@@ -58,6 +58,7 @@ class AppwriteService extends ChangeNotifier {
         email: email,
         password: password,
       );
+    await ensureCurrentUserProfile();
       notifyListeners();
       return session;
     } catch (e) {
@@ -159,7 +160,102 @@ class AppwriteService extends ChangeNotifier {
   }
 
   // =========================================================================
-  // 👔 WARDROBE (OUTFITS) DB METHODS
+  
+  bool _userProfileSyncInFlight = false;
+
+  String _safeUsernameFromUser(dynamic user) {
+    final emailPrefix = user.email.toString().split('@').first;
+    final raw = (user.name.toString().trim().isNotEmpty
+            ? user.name.toString()
+            : emailPrefix)
+        .toLowerCase();
+
+    final cleaned = raw
+        .replaceAll(RegExp(r'[^a-z0-9_]+'), '_')
+        .replaceAll(RegExp(r'_+'), '_')
+        .replaceAll(RegExp(r'^_+|_+$'), '');
+
+    if (cleaned.isNotEmpty) return cleaned;
+    return 'user_${user.$id.toString().substring(0, 8)}';
+  }
+
+  Future<void> ensureCurrentUserProfile() async {
+    if (_userProfileSyncInFlight) return;
+
+    final usersCollectionId = Env.usersCollection.trim();
+    if (usersCollectionId.isEmpty) {
+      debugPrint('⚠️ Users collection env is empty. Skipping user profile sync.');
+      return;
+    }
+
+    _userProfileSyncInFlight = true;
+
+    try {
+      final user = await account.get();
+
+      final displayName = user.name.toString().trim().isNotEmpty
+          ? user.name.toString().trim()
+          : user.email.toString().split('@').first;
+
+      final data = <String, dynamic>{
+        'name': displayName,
+        'username': _safeUsernameFromUser(user),
+        'email': user.email,
+        // Existing users collection supports this attribute.
+        // Keep it empty for new users until onboarding/profile updates it.
+        'stylePreferences': <String>[],
+      };
+
+      try {
+        await databases.getDocument(
+          databaseId: Env.databaseId,
+          collectionId: usersCollectionId,
+          documentId: user.$id,
+        );
+
+        await databases.updateDocument(
+          databaseId: Env.databaseId,
+          collectionId: usersCollectionId,
+          documentId: user.$id,
+          data: {
+            'name': data['name'],
+            'username': data['username'],
+            'email': data['email'],
+          },
+        );
+
+        debugPrint('✅ User profile synced: ${user.$id}');
+      } on AppwriteException catch (e) {
+        if (e.code == 404) {
+          await databases.createDocument(
+            databaseId: Env.databaseId,
+            collectionId: usersCollectionId,
+            documentId: user.$id,
+            data: data,
+            permissions: [
+              Permission.read(Role.user(user.$id)),
+              Permission.update(Role.user(user.$id)),
+              Permission.delete(Role.user(user.$id)),
+            ],
+          );
+
+          debugPrint('✅ User profile created: ${user.$id}');
+          return;
+        }
+
+        debugPrint(
+          '❌ User profile sync AppwriteException: code=${e.code}, type=${e.type}, message=${e.message}',
+        );
+      }
+    } catch (e) {
+      debugPrint('❌ User profile sync failed: $e');
+    } finally {
+      _userProfileSyncInFlight = false;
+    }
+  }
+
+
+// 👔 WARDROBE (OUTFITS) DB METHODS
   // =========================================================================
 
   Future<List<Map<String, dynamic>>> getWardrobeItems() async {
