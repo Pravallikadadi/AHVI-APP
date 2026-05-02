@@ -1485,7 +1485,7 @@ class _StyleBoardViewModel {
     String boardSignature(String title, List<Map<String, dynamic>> items) {
       final names = items
           .map((item) => _text(
-                item['name'] ?? item['label'] ?? item['title'] ?? item['id'],
+                item['name'] ?? item['label'] ?? item['title'] ?? item['id'] ?? item[r'$id'],
                 '',
               ).toLowerCase().trim())
           .where((name) => name.isNotEmpty)
@@ -1503,49 +1503,15 @@ class _StyleBoardViewModel {
       }
     }
 
-    for (final board in payload.renderedBoards) {
-      addBoard(
-        _StyleBoardViewModel(
-          title: _text(
-            board['label'] ?? board['title'] ?? board['name'],
-            'AHVI Style Board',
-          ),
-          imageBase64: _nullableText(
-            board['image_base64'] ??
-                board['imageBase64'] ??
-                board['board_image_base64'],
-          ),
-          imageUrl: _nullableText(
-            board['image_url'] ??
-                board['imageUrl'] ??
-                board['board_image_url'] ??
-                board['boardImageUrl'],
-          ),
-          score: _intOrNull(board['score']),
-          vibe: _text(board['vibe'] ?? board['subtitle'], 'styled look'),
-          aesthetic: _text(board['aesthetic'] ?? board['style'], 'modern refined'),
-          items: mergedBoardItems(board),
-        ),
-      );
-    }
-
-    // Backend may send one rendered board plus multiple candidate cards.
-    // Do not return early here; include cards too so the UI can swipe 2-3 looks.
+    // Demo-safe contract:
+    // Prefer live backend cards first because rendered_boards may contain stale
+    // pre-rendered 3-piece images. Cards contain the full item payload.
     for (final card in payload.cards) {
       addBoard(
         _StyleBoardViewModel(
           title: _text(card['title'] ?? card['name'] ?? card['label'], 'Styled Look'),
-          imageBase64: _nullableText(
-            card['image_base64'] ??
-                card['imageBase64'] ??
-                card['board_image_base64'],
-          ),
-          imageUrl: _nullableText(
-            card['image_url'] ??
-                card['imageUrl'] ??
-                card['board_image_url'] ??
-                card['boardImageUrl'],
-          ),
+          imageBase64: null,
+          imageUrl: null,
           score: _intOrNull(card['score']),
           vibe: _text(card['vibe'] ?? card['subtitle'] ?? card['reason'], 'wardrobe ready'),
           aesthetic: _text(card['aesthetic'] ?? card['style'], 'personal style'),
@@ -1558,23 +1524,44 @@ class _StyleBoardViewModel {
       addBoard(
         _StyleBoardViewModel(
           title: _text(outfit['title'] ?? outfit['name'] ?? outfit['label'], 'Styled Look'),
-          imageBase64: _nullableText(
-            outfit['image_base64'] ??
-                outfit['imageBase64'] ??
-                outfit['board_image_base64'],
-          ),
-          imageUrl: _nullableText(
-            outfit['image_url'] ??
-                outfit['imageUrl'] ??
-                outfit['board_image_url'] ??
-                outfit['boardImageUrl'],
-          ),
+          imageBase64: null,
+          imageUrl: null,
           score: _intOrNull(outfit['score']),
           vibe: _text(outfit['vibe'] ?? outfit['reason'] ?? outfit['subtitle'], 'wardrobe ready'),
           aesthetic: _text(outfit['aesthetic'] ?? outfit['style'], 'personal style'),
           items: mergedBoardItems(outfit),
         ),
       );
+    }
+
+    // Only use rendered boards if no live cards/outfits are available.
+    // This prevents stale 3-piece board images from hiding accessories.
+    if (boards.isEmpty) {
+      for (final board in payload.renderedBoards) {
+        addBoard(
+          _StyleBoardViewModel(
+            title: _text(
+              board['label'] ?? board['title'] ?? board['name'],
+              'AHVI Style Board',
+            ),
+            imageBase64: _nullableText(
+              board['image_base64'] ??
+                  board['imageBase64'] ??
+                  board['board_image_base64'],
+            ),
+            imageUrl: _nullableText(
+              board['image_url'] ??
+                  board['imageUrl'] ??
+                  board['board_image_url'] ??
+                  board['boardImageUrl'],
+            ),
+            score: _intOrNull(board['score']),
+            vibe: _text(board['vibe'] ?? board['subtitle'], 'styled look'),
+            aesthetic: _text(board['aesthetic'] ?? board['style'], 'modern refined'),
+            items: mergedBoardItems(board),
+          ),
+        );
+      }
     }
 
     return boards;
