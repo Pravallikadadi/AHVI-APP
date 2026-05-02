@@ -208,13 +208,13 @@ class AppwriteService extends ChangeNotifier {
 
       try {
         await databases.getDocument(
-          databaseId: Env.databaseId,
+          databaseId: Env.appwriteDatabaseId,
           collectionId: usersCollectionId,
           documentId: user.$id,
         );
 
         await databases.updateDocument(
-          databaseId: Env.databaseId,
+          databaseId: Env.appwriteDatabaseId,
           collectionId: usersCollectionId,
           documentId: user.$id,
           data: {
@@ -228,7 +228,7 @@ class AppwriteService extends ChangeNotifier {
       } on AppwriteException catch (e) {
         if (e.code == 404) {
           await databases.createDocument(
-            databaseId: Env.databaseId,
+            databaseId: Env.appwriteDatabaseId,
             collectionId: usersCollectionId,
             documentId: user.$id,
             data: data,
