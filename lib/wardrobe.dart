@@ -108,6 +108,21 @@ String _cleanUiText(Object? value, {String fallback = ''}) {
   return cleaned.isNotEmpty ? cleaned : fallback;
 }
 
+List<String> _categoryTokens(Object? value) {
+  final raw = _cleanUiText(value).toLowerCase();
+  if (raw.isEmpty) return const [];
+  return raw
+      .replaceAll(RegExp(r'[^a-z0-9]+'), ' ')
+      .trim()
+      .split(RegExp(r'\s+'))
+      .where((token) => token.isNotEmpty)
+      .toList();
+}
+
+bool _hasAnyCategoryToken(List<String> tokens, List<String> words) {
+  return words.any(tokens.contains);
+}
+
 String _cleanCategory(Object? value, {String fallback = 'Tops'}) {
   final raw = _cleanUiText(value, fallback: fallback);
   const allowed = {
@@ -122,34 +137,128 @@ String _cleanCategory(Object? value, {String fallback = 'Tops'}) {
     'Jewelry',
     'Makeup',
     'Skincare',
+    'Indian Wear',
   };
-  if (allowed.contains(raw)) return raw;
-  final lower = raw.toLowerCase();
-  if (lower.contains('shoe') ||
-      lower.contains('boot') ||
-      lower.contains('sneaker') ||
-      lower.contains('sandal') ||
-      lower.contains('heel'))
-    return 'Footwear';
-  if (lower.contains('pant') ||
-      lower.contains('trouser') ||
-      lower.contains('jean') ||
-      lower.contains('short') ||
-      lower.contains('skirt'))
-    return 'Bottoms';
-  if (lower.contains('shirt') ||
-      lower.contains('tee') ||
-      lower.contains('top') ||
-      lower.contains('blouse') ||
-      lower.contains('hoodie'))
+
+  if (allowed.contains(raw)) {
+    if (raw == 'Bags' || raw == 'Jewelry') return 'Accessories';
+    return raw;
+  }
+
+  final tokens = _categoryTokens(raw);
+
+  // Tops first: "Short-Sleeved Shirt" must be Tops.
+  if (_hasAnyCategoryToken(tokens, [
+    'shirt',
+    'shirts',
+    'tee',
+    'tshirt',
+    'tshirts',
+    'top',
+    'tops',
+    'blouse',
+    'blouses',
+    'hoodie',
+    'hoodies',
+    'sweater',
+    'sweaters',
+    'kurta',
+    'kurtas',
+    'polo',
+    'polos',
+  ])) {
     return 'Tops';
-  if (lower.contains('dress') || lower.contains('gown')) return 'Dresses';
-  if (lower.contains('bag') || lower.contains('purse')) return 'Bags';
-  if (lower.contains('watch') ||
-      lower.contains('jewel') ||
-      lower.contains('ring') ||
-      lower.contains('necklace'))
-    return 'Jewelry';
+  }
+
+  // Only "shorts", never "short".
+  if (_hasAnyCategoryToken(tokens, [
+    'pants',
+    'pant',
+    'trousers',
+    'trouser',
+    'jeans',
+    'jean',
+    'shorts',
+    'skirt',
+    'skirts',
+    'legging',
+    'leggings',
+    'chino',
+    'chinos',
+  ])) {
+    return 'Bottoms';
+  }
+
+  if (_hasAnyCategoryToken(tokens, [
+    'shoe',
+    'shoes',
+    'boot',
+    'boots',
+    'sneaker',
+    'sneakers',
+    'heel',
+    'heels',
+    'sandal',
+    'sandals',
+    'loafer',
+    'loafers',
+    'slipper',
+    'slippers',
+  ])) {
+    return 'Footwear';
+  }
+
+  if (_hasAnyCategoryToken(tokens, [
+    'watch',
+    'watches',
+    'bag',
+    'bags',
+    'belt',
+    'belts',
+    'scarf',
+    'scarves',
+    'jewelry',
+    'jewellery',
+    'jewel',
+    'ring',
+    'rings',
+    'necklace',
+    'bracelet',
+    'earring',
+    'earrings',
+    'accessory',
+    'accessories',
+    'hat',
+    'cap',
+    'sunglass',
+    'sunglasses',
+  ])) {
+    return 'Accessories';
+  }
+
+  if (_hasAnyCategoryToken(tokens, [
+    'jacket',
+    'coat',
+    'blazer',
+    'outerwear',
+    'cardigan',
+    'overshirt',
+  ])) {
+    return 'Outerwear';
+  }
+
+  if (_hasAnyCategoryToken(tokens, [
+    'dress',
+    'dresses',
+    'gown',
+    'jumpsuit',
+    'saree',
+    'lehenga',
+    'sherwani',
+  ])) {
+    return 'Dresses';
+  }
+
   return fallback;
 }
 
@@ -327,18 +436,6 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
           Query.limit(100),
         ],
       );
-      if (response.documents.isEmpty) {
-        response = await databases.listDocuments(
-          databaseId: Env.appwriteDatabaseId,
-          collectionId: Env.outfitsCollection,
-          queries: [
-            Query.equal('user_id', user.$id),
-            Query.orderDesc('\$createdAt'),
-            Query.limit(100),
-          ],
-        );
-      }
-
       final fetchedItems = response.documents.map((doc) {
         return WardrobeItem(
           id: doc.$id,
@@ -417,6 +514,14 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
             setState(() => _wardrobe.insert(0, localItem));
           }
           await _saveWardrobeCache();
+
+          final alreadySavedRemotely = item['remoteSaved'] == true;
+          if (alreadySavedRemotely) {
+            if (mounted) {
+              _showToast('Item saved to wardrobe');
+            }
+            return;
+          }
 
           // Persist to Appwrite. Required schema fields:
           //   userId, name, category, status, image_url, masked_url,
@@ -1908,8 +2013,10 @@ class _AddItemModalState extends State<_AddItemModal>
     ).saveWardrobeLabels(payloads);
     if (!mounted) return;
     if (saveResult == null || saveResult['success'] != true) {
-      _toast('Saved locally. Backend wardrobe save is not configured yet.');
+      _toast('Could not save wardrobe items. Please try again.');
+      return;
     }
+
     Navigator.of(context).pop();
     for (final item in selected) {
       final displayBytes = item.maskedImageBytes ?? _capturedBytes;
@@ -1927,6 +2034,7 @@ class _AddItemModalState extends State<_AddItemModal>
         'maskedUrl': item.maskedUrl,
         'worn': 0,
         'liked': false,
+        'remoteSaved': true,
       });
     }
   }
