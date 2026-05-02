@@ -1439,51 +1439,114 @@ class _StyleBoardViewModel {
 
   static List<_StyleBoardViewModel> fromPayload(_StyleBoardPayload payload) {
     final boards = <_StyleBoardViewModel>[];
+    final seen = <String>{};
+
+    String boardSignature(String title, List<Map<String, dynamic>> items) {
+      final names = items
+          .map((item) => _text(
+                item['name'] ?? item['label'] ?? item['title'] ?? item['id'],
+                '',
+              ).toLowerCase().trim())
+          .where((name) => name.isNotEmpty)
+          .toList()
+        ..sort();
+
+      if (names.isNotEmpty) return names.join('|');
+      return title.toLowerCase().trim();
+    }
+
+    void addBoard(_StyleBoardViewModel board) {
+      final signature = boardSignature(board.title, board.items);
+      if (signature.isEmpty || seen.add(signature)) {
+        boards.add(board);
+      }
+    }
 
     for (final board in payload.renderedBoards) {
-      boards.add(
+      addBoard(
         _StyleBoardViewModel(
-          title: _text(board['label'], 'AHVI Style Board'),
-          imageBase64: _nullableText(board['image_base64']),
-          imageUrl: _nullableText(board['image_url']),
-          score: _intOrNull(board['score']),
-          vibe: _text(board['vibe'], 'styled look'),
-          aesthetic: _text(board['aesthetic'], 'modern refined'),
-          items: _mapList(board['items']),
-        ),
-      );
-    }
-
-    if (boards.isNotEmpty) return boards;
-
-    for (final card in payload.cards) {
-      boards.add(
-        _StyleBoardViewModel(
-          title: _text(card['title'] ?? card['name'], 'Styled Look'),
-          score: _intOrNull(card['score']),
-          vibe: _text(card['vibe'] ?? card['subtitle'], 'wardrobe ready'),
-          aesthetic: _text(
-            card['aesthetic'] ?? card['style'],
-            'personal style',
+          title: _text(
+            board['label'] ?? board['title'] ?? board['name'],
+            'AHVI Style Board',
           ),
-          items: _mapList(card['items']),
+          imageBase64: _nullableText(
+            board['image_base64'] ??
+                board['imageBase64'] ??
+                board['board_image_base64'],
+          ),
+          imageUrl: _nullableText(
+            board['image_url'] ??
+                board['imageUrl'] ??
+                board['board_image_url'] ??
+                board['boardImageUrl'],
+          ),
+          score: _intOrNull(board['score']),
+          vibe: _text(board['vibe'] ?? board['subtitle'], 'styled look'),
+          aesthetic: _text(board['aesthetic'] ?? board['style'], 'modern refined'),
+          items: _mapList(
+            board['items'] ??
+                board['wardrobe_items'] ??
+                board['wardrobeItems'] ??
+                board['pieces'],
+          ),
         ),
       );
     }
 
-    if (boards.isNotEmpty) return boards;
+    // Backend may send one rendered board plus multiple candidate cards.
+    // Do not return early here; include cards too so the UI can swipe 2-3 looks.
+    for (final card in payload.cards) {
+      addBoard(
+        _StyleBoardViewModel(
+          title: _text(card['title'] ?? card['name'] ?? card['label'], 'Styled Look'),
+          imageBase64: _nullableText(
+            card['image_base64'] ??
+                card['imageBase64'] ??
+                card['board_image_base64'],
+          ),
+          imageUrl: _nullableText(
+            card['image_url'] ??
+                card['imageUrl'] ??
+                card['board_image_url'] ??
+                card['boardImageUrl'],
+          ),
+          score: _intOrNull(card['score']),
+          vibe: _text(card['vibe'] ?? card['subtitle'] ?? card['reason'], 'wardrobe ready'),
+          aesthetic: _text(card['aesthetic'] ?? card['style'], 'personal style'),
+          items: _mapList(
+            card['items'] ??
+                card['wardrobe_items'] ??
+                card['wardrobeItems'] ??
+                card['pieces'],
+          ),
+        ),
+      );
+    }
 
     for (final outfit in payload.outfits) {
-      boards.add(
+      addBoard(
         _StyleBoardViewModel(
-          title: _text(outfit['title'] ?? outfit['name'], 'Styled Look'),
-          score: _intOrNull(outfit['score']),
-          vibe: _text(outfit['vibe'] ?? outfit['reason'], 'wardrobe ready'),
-          aesthetic: _text(
-            outfit['aesthetic'] ?? outfit['style'],
-            'personal style',
+          title: _text(outfit['title'] ?? outfit['name'] ?? outfit['label'], 'Styled Look'),
+          imageBase64: _nullableText(
+            outfit['image_base64'] ??
+                outfit['imageBase64'] ??
+                outfit['board_image_base64'],
           ),
-          items: _mapList(outfit['items']),
+          imageUrl: _nullableText(
+            outfit['image_url'] ??
+                outfit['imageUrl'] ??
+                outfit['board_image_url'] ??
+                outfit['boardImageUrl'],
+          ),
+          score: _intOrNull(outfit['score']),
+          vibe: _text(outfit['vibe'] ?? outfit['reason'] ?? outfit['subtitle'], 'wardrobe ready'),
+          aesthetic: _text(outfit['aesthetic'] ?? outfit['style'], 'personal style'),
+          items: _mapList(
+            outfit['items'] ??
+                outfit['wardrobe_items'] ??
+                outfit['wardrobeItems'] ??
+                outfit['pieces'],
+          ),
         ),
       );
     }
