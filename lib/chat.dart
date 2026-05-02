@@ -2631,46 +2631,111 @@ class _PulsingMicIconState extends State<_PulsingMicIcon>
 // File-level helpers shared by the State class above and the swiper widget below.
 
 const Map<String, Rect> _flatLaySlotsKv = {
-  'top':       Rect.fromLTWH(0.05, 0.05, 0.55, 0.42),
-  'bottom':    Rect.fromLTWH(0.05, 0.40, 0.55, 0.55),
-  'shoes':     Rect.fromLTWH(0.55, 0.66, 0.40, 0.30),
-  'bag':       Rect.fromLTWH(0.62, 0.36, 0.35, 0.30),
-  'watch':     Rect.fromLTWH(0.62, 0.05, 0.18, 0.18),
-  'jewelry':   Rect.fromLTWH(0.82, 0.05, 0.16, 0.18),
-  'headwear':  Rect.fromLTWH(0.62, 0.18, 0.30, 0.20),
+  // Main outfit column
+  'top':       Rect.fromLTWH(0.05, 0.06, 0.48, 0.34),
+  'bottom':    Rect.fromLTWH(0.04, 0.37, 0.50, 0.58),
+
+  // Right-side accessories and shoes, reference-board style
+  'watch':     Rect.fromLTWH(0.58, 0.06, 0.17, 0.16),
+  'jewelry':   Rect.fromLTWH(0.77, 0.06, 0.18, 0.16),
+  'eyewear':   Rect.fromLTWH(0.58, 0.22, 0.22, 0.15),
+  'belt':      Rect.fromLTWH(0.79, 0.22, 0.18, 0.15),
+  'headwear':  Rect.fromLTWH(0.58, 0.37, 0.26, 0.18),
+  'bag':       Rect.fromLTWH(0.60, 0.52, 0.35, 0.23),
+  'shoes':     Rect.fromLTWH(0.57, 0.75, 0.40, 0.22),
+
+  // Overflow accessories, used if there are multiple small add-ons
+  'accessory1': Rect.fromLTWH(0.84, 0.38, 0.13, 0.13),
+  'accessory2': Rect.fromLTWH(0.84, 0.52, 0.13, 0.13),
 };
 
 String _roleForItem(Map<String, dynamic> item) {
-  final blob =
-      '${item['category'] ?? ''} ${item['sub_category'] ?? ''} ${item['name'] ?? ''}'
-          .toLowerCase();
+  final blob = [
+    item['slot'],
+    item['type'],
+    item['category'],
+    item['cat'],
+    item['category_group'],
+    item['sub_category'],
+    item['subcategory'],
+    item['subCategory'],
+    item['name'],
+    item['label'],
+    item['description'],
+  ].where((v) => v != null).join(' ').toLowerCase();
 
-  // Order matters: tops are checked BEFORE bottoms because "short-sleeve
-  // shirt" contains the substring "short" which would otherwise match
-  // bottom. Shoes-first because "boot" / "loafer" are unambiguous.
-  if (RegExp(r'\b(shoe|sneaker|heel|boot|sandal|loafer|flipflop|slipper|footwear)\b')
-      .hasMatch(blob)) return 'shoes';
-  if (RegExp(r'\b(shirt|top|blouse|jacket|blazer|tee|vest|dress|sweater|hoodie|kurta|kurti|saree)\b')
-      .hasMatch(blob)) return 'top';
-  // "shorts" (plural) only — singular "short" collides with "short-sleeve".
-  if (RegExp(r'\b(jean|jeans|pant|pants|trouser|trousers|shorts|skirt|bottom)\b')
-      .hasMatch(blob)) return 'bottom';
-  if (RegExp(r'\b(bag|purse|clutch|backpack|tote)\b').hasMatch(blob)) return 'bag';
-  if (RegExp(r'\b(watch)\b').hasMatch(blob)) return 'watch';
-  if (RegExp(r'\b(necklace|earring|ring|bracelet|jewelry|jewellery)\b').hasMatch(blob))
+  bool has(String pattern) => RegExp(pattern).hasMatch(blob);
+
+  // Shoes first: unambiguous.
+  if (has(r'\b(shoe|shoes|sneaker|sneakers|heel|heels|boot|boots|sandal|sandals|loafer|loafers|flipflop|slipper|footwear)\b')) {
+    return 'shoes';
+  }
+
+  // Accessories before clothing, so "belt", "watch", "sunglasses" never disappear.
+  if (has(r'\b(watch|watches)\b')) return 'watch';
+  if (has(r'\b(belt|belts)\b')) return 'belt';
+  if (has(r'\b(sunglass|sunglasses|eyewear|glasses|shade|shades)\b')) return 'eyewear';
+  if (has(r'\b(bag|bags|purse|clutch|backpack|tote|handbag)\b')) return 'bag';
+  if (has(r'\b(necklace|earring|earrings|ring|rings|bracelet|bracelets|jewelry|jewellery)\b')) {
     return 'jewelry';
-  if (RegExp(r'\b(cap|hat|beanie|headwear)\b').hasMatch(blob)) return 'headwear';
+  }
+  if (has(r'\b(cap|caps|hat|hats|beanie|headwear)\b')) return 'headwear';
+  if (has(r'\b(scarf|scarves|accessory|accessories)\b')) return 'accessory';
+
+  // Tops before bottoms because "short-sleeve shirt" contains "short".
+  if (has(r'\b(shirt|shirts|top|tops|blouse|jacket|blazer|tee|tshirt|tshirts|vest|dress|dresses|sweater|hoodie|kurta|kurti|saree|sari|tunic|tunics)\b')) {
+    return 'top';
+  }
+
+  // "shorts" only; never "short".
+  if (has(r'\b(jean|jeans|pant|pants|trouser|trousers|shorts|skirt|skirts|bottom|bottoms|chino|chinos)\b')) {
+    return 'bottom';
+  }
+
   return 'unknown';
 }
 
 Map<String, Map<String, dynamic>> _slotItemsForFlatLayKv(
     List<Map<String, dynamic>> items) {
   final byRole = <String, Map<String, dynamic>>{};
+  var accessoryOverflow = 0;
+
+  bool hasImage(Map<String, dynamic> item) {
+    return (item['masked_url'] ??
+            item['maskedUrl'] ??
+            item['image_url'] ??
+            item['imageUrl'] ??
+            item['url'] ??
+            item['image'] ??
+            '')
+        .toString()
+        .trim()
+        .isNotEmpty;
+  }
+
+  void putRole(String role, Map<String, dynamic> item) {
+    if (!hasImage(item)) return;
+
+    if (role == 'accessory') {
+      final key = accessoryOverflow == 0 ? 'accessory1' : 'accessory2';
+      accessoryOverflow += 1;
+      byRole.putIfAbsent(key, () => item);
+      return;
+    }
+
+    // Main clothing keeps first item per role. Accessories have distinct roles.
+    byRole.putIfAbsent(role, () => item);
+  }
+
   for (final item in items) {
     final role = _roleForItem(item);
     if (role == 'unknown') continue;
-    byRole.putIfAbsent(role, () => item);
+
+    if (_flatLaySlotsKv.containsKey(role) || role == 'accessory') {
+      putRole(role, item);
+    }
   }
+
   return byRole;
 }
 
@@ -2678,7 +2743,14 @@ Widget _flatLayPieceKv(
     Map<String, dynamic> item, String role, double w, double h) {
   final slot = _flatLaySlotsKv[role];
   if (slot == null) return const SizedBox.shrink();
-  final imageUrl = (item['masked_url'] ?? item['image_url'] ?? '').toString();
+  final imageUrl = (item['masked_url'] ??
+          item['maskedUrl'] ??
+          item['image_url'] ??
+          item['imageUrl'] ??
+          item['url'] ??
+          item['image'] ??
+          '')
+      .toString();
   return Positioned(
     left: slot.left * w,
     top: slot.top * h,
