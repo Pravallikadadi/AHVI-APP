@@ -1,0 +1,29 @@
+﻿# Flutter/Dart
+.dart_tool/
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+pubspec.lock
+
+# Android/iOS build outputs
+android/.gradle/
+android/app/build/
+ios/Pods/
+ios/Flutter/Flutter.framework
+ios/Flutter/Flutter.podspec
+
+# Secrets
+.env
+.env.*
+*.pem
+*serviceAccount*.json
+firebase-adminsdk*.json
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
