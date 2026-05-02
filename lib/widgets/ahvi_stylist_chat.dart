@@ -1441,6 +1441,47 @@ class _StyleBoardViewModel {
     final boards = <_StyleBoardViewModel>[];
     final seen = <String>{};
 
+    List<Map<String, dynamic>> mergedBoardItems(Map<String, dynamic> source) {
+      final merged = <Map<String, dynamic>>[];
+      final localSeen = <String>{};
+
+      void addItems(Object? value) {
+        for (final item in _mapList(value)) {
+          final key = _text(
+            item['id'] ??
+                item[r'$id'] ??
+                item['item_id'] ??
+                item['name'] ??
+                item['label'] ??
+                item['title'],
+            '',
+          ).toLowerCase().trim();
+
+          if (key.isEmpty || localSeen.add(key)) {
+            merged.add(item);
+          }
+        }
+      }
+
+      addItems(
+        source['items'] ??
+            source['wardrobe_items'] ??
+            source['wardrobeItems'] ??
+            source['pieces'],
+      );
+
+      addItems(
+        source['accessories'] ??
+            source['accessory_items'] ??
+            source['accessoryItems'] ??
+            source['addons'] ??
+            source['add_ons'] ??
+            source['addOns'],
+      );
+
+      return merged;
+    }
+
     String boardSignature(String title, List<Map<String, dynamic>> items) {
       final names = items
           .map((item) => _text(
@@ -1483,12 +1524,7 @@ class _StyleBoardViewModel {
           score: _intOrNull(board['score']),
           vibe: _text(board['vibe'] ?? board['subtitle'], 'styled look'),
           aesthetic: _text(board['aesthetic'] ?? board['style'], 'modern refined'),
-          items: _mapList(
-            board['items'] ??
-                board['wardrobe_items'] ??
-                board['wardrobeItems'] ??
-                board['pieces'],
-          ),
+          items: mergedBoardItems(board),
         ),
       );
     }
@@ -1513,12 +1549,7 @@ class _StyleBoardViewModel {
           score: _intOrNull(card['score']),
           vibe: _text(card['vibe'] ?? card['subtitle'] ?? card['reason'], 'wardrobe ready'),
           aesthetic: _text(card['aesthetic'] ?? card['style'], 'personal style'),
-          items: _mapList(
-            card['items'] ??
-                card['wardrobe_items'] ??
-                card['wardrobeItems'] ??
-                card['pieces'],
-          ),
+          items: mergedBoardItems(card),
         ),
       );
     }
@@ -1541,12 +1572,7 @@ class _StyleBoardViewModel {
           score: _intOrNull(outfit['score']),
           vibe: _text(outfit['vibe'] ?? outfit['reason'] ?? outfit['subtitle'], 'wardrobe ready'),
           aesthetic: _text(outfit['aesthetic'] ?? outfit['style'], 'personal style'),
-          items: _mapList(
-            outfit['items'] ??
-                outfit['wardrobe_items'] ??
-                outfit['wardrobeItems'] ??
-                outfit['pieces'],
-          ),
+          items: mergedBoardItems(outfit),
         ),
       );
     }
