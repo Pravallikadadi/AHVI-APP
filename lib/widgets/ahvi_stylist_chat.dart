@@ -1700,6 +1700,14 @@ class _BoardImageStage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Demo-safe behavior:
+    // If backend gives 4+ wardrobe pieces, prefer the live item collage so
+    // accessories like watch, belt, cap, sunglasses, bag, jewelry are visible.
+    // Some pre-rendered board images only contain the core 3-piece outfit.
+    if (board.items.length >= 4) {
+      return _FallbackFashionCollage(items: board.items);
+    }
+
     final bytes = _decodeImage(board.imageBase64);
     if (bytes != null) {
       return Image.memory(
