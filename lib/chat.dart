@@ -2634,59 +2634,238 @@ class _PulsingMicIconState extends State<_PulsingMicIcon>
 // ─── Magazine flat-lay style board ────────────────────────────────────────────
 // File-level helpers shared by the State class above and the swiper widget below.
 
+// ================= AHVI BOARD V8 EDITORIAL INTELLIGENCE BEGIN =================
+
 const Map<String, Rect> _flatLaySlotsKv = {
-  // Shared editorial layout for mens + womens.
-  // Main outfit dominates. Accessories are compact and premium.
-  'top': Rect.fromLTWH(0.055, 0.035, 0.47, 0.31),
-  'bottom': Rect.fromLTWH(0.050, 0.315, 0.49, 0.58),
-  'dress': Rect.fromLTWH(0.060, 0.045, 0.50, 0.76),
-  'footwear': Rect.fromLTWH(0.585, 0.760, 0.30, 0.15),
+  // V8 editorial composition:
+  // - top + bottom become the central hero outfit
+  // - footwear is close to the outfit, not floating at the bottom
+  // - accessories are a controlled right-side cluster
+  // Coordinates are normalized inside the board canvas.
+  'outerwear': Rect.fromLTWH(0.055, 0.035, 0.475, 0.345),
+  'jacket': Rect.fromLTWH(0.055, 0.035, 0.475, 0.345),
+  'blazer': Rect.fromLTWH(0.055, 0.035, 0.475, 0.345),
 
-  // Refined accessory rail
-  'earrings': Rect.fromLTWH(0.630, 0.070, 0.11, 0.09),
-  'necklace': Rect.fromLTWH(0.775, 0.050, 0.16, 0.14),
-  'ring': Rect.fromLTWH(0.620, 0.185, 0.11, 0.09),
-  'bracelet': Rect.fromLTWH(0.775, 0.195, 0.16, 0.08),
-  'watch': Rect.fromLTWH(0.625, 0.295, 0.12, 0.13),
-  'eyewear': Rect.fromLTWH(0.775, 0.305, 0.16, 0.08),
-  'belt': Rect.fromLTWH(0.620, 0.445, 0.17, 0.08),
-  'bag': Rect.fromLTWH(0.695, 0.480, 0.24, 0.21),
-  'headwear': Rect.fromLTWH(0.650, 0.470, 0.18, 0.13),
+  'top': Rect.fromLTWH(0.075, 0.055, 0.430, 0.295),
+  'tops': Rect.fromLTWH(0.075, 0.055, 0.430, 0.295),
+  'shirt': Rect.fromLTWH(0.075, 0.055, 0.430, 0.295),
+  'tshirt': Rect.fromLTWH(0.075, 0.055, 0.430, 0.295),
+  'tee': Rect.fromLTWH(0.075, 0.055, 0.430, 0.295),
 
-  // Overflow accents
-  'accessory1': Rect.fromLTWH(0.865, 0.355, 0.08, 0.08),
-  'accessory2': Rect.fromLTWH(0.865, 0.450, 0.08, 0.08),
+  'bottom': Rect.fromLTWH(0.055, 0.315, 0.480, 0.500),
+  'bottoms': Rect.fromLTWH(0.055, 0.315, 0.480, 0.500),
+  'pants': Rect.fromLTWH(0.055, 0.315, 0.480, 0.500),
+  'trousers': Rect.fromLTWH(0.055, 0.315, 0.480, 0.500),
+  'jeans': Rect.fromLTWH(0.055, 0.315, 0.480, 0.500),
+  'shorts': Rect.fromLTWH(0.075, 0.395, 0.430, 0.380),
+
+  'dress': Rect.fromLTWH(0.070, 0.055, 0.500, 0.760),
+  'dresses': Rect.fromLTWH(0.070, 0.055, 0.500, 0.760),
+  'onepiece': Rect.fromLTWH(0.070, 0.055, 0.500, 0.760),
+  'saree': Rect.fromLTWH(0.055, 0.045, 0.535, 0.790),
+  'indianwear': Rect.fromLTWH(0.055, 0.045, 0.535, 0.790),
+
+  'footwear': Rect.fromLTWH(0.565, 0.610, 0.350, 0.250),
+  'shoes': Rect.fromLTWH(0.565, 0.610, 0.350, 0.250),
+  'shoe': Rect.fromLTWH(0.565, 0.610, 0.350, 0.250),
+  'sneakers': Rect.fromLTWH(0.565, 0.610, 0.350, 0.250),
+  'boots': Rect.fromLTWH(0.565, 0.610, 0.350, 0.250),
+  'loafers': Rect.fromLTWH(0.565, 0.610, 0.350, 0.250),
+  'heels': Rect.fromLTWH(0.565, 0.610, 0.350, 0.250),
+  'sandals': Rect.fromLTWH(0.565, 0.610, 0.350, 0.250),
+  'sliders': Rect.fromLTWH(0.565, 0.610, 0.350, 0.250),
+
+  'accessory': Rect.fromLTWH(0.615, 0.095, 0.270, 0.380),
+  'accessories': Rect.fromLTWH(0.615, 0.095, 0.270, 0.380),
+  'watch': Rect.fromLTWH(0.625, 0.115, 0.175, 0.155),
+  'belt': Rect.fromLTWH(0.610, 0.305, 0.270, 0.110),
+  'cap': Rect.fromLTWH(0.690, 0.445, 0.180, 0.130),
+  'hat': Rect.fromLTWH(0.690, 0.445, 0.180, 0.130),
+  'bag': Rect.fromLTWH(0.610, 0.380, 0.270, 0.230),
+  'jewelry': Rect.fromLTWH(0.650, 0.155, 0.200, 0.220),
 };
 
+// ================= AHVI BOARD V8 EDITORIAL INTELLIGENCE END =================
+
 double _flatLayRoleScaleKv(String role) {
-  switch (role) {
-    case 'top':
-      return 1.12;
-    case 'bottom':
-      return 1.12;
-    case 'dress':
-      return 1.12;
-    case 'footwear':
-      return 1.00;
-    case 'bag':
-      return 0.96;
-    case 'necklace':
-      return 0.88;
-    case 'earrings':
-    case 'ring':
-    case 'bracelet':
-    case 'watch':
-    case 'eyewear':
-    case 'belt':
-      return 0.78;
-    case 'headwear':
-      return 0.82;
-    case 'accessory1':
-    case 'accessory2':
-      return 0.68;
-    default:
-      return 0.82;
+  final r = role.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]+'), '');
+
+  // V8: hero garments should dominate the canvas.
+  if (r.contains('dress') || r.contains('saree') || r.contains('onepiece')) {
+    return 1.34;
   }
+
+  if (r.contains('outer') || r.contains('jacket') || r.contains('blazer')) {
+    return 1.24;
+  }
+
+  if (r == 'top' ||
+      r.contains('shirt') ||
+      r.contains('tshirt') ||
+      r.contains('tee') ||
+      r.contains('polo') ||
+      r.contains('kurta')) {
+    return 1.33;
+  }
+
+  if (r == 'bottom' ||
+      r.contains('pant') ||
+      r.contains('trouser') ||
+      r.contains('jean') ||
+      r.contains('short')) {
+    return 1.42;
+  }
+
+  if (r.contains('foot') ||
+      r.contains('shoe') ||
+      r.contains('sneaker') ||
+      r.contains('boot') ||
+      r.contains('loafer') ||
+      r.contains('heel') ||
+      r.contains('sandal') ||
+      r.contains('slider')) {
+    return 1.28;
+  }
+
+  if (r.contains('watch')) return 0.88;
+  if (r.contains('belt')) return 0.92;
+  if (r.contains('cap') || r.contains('hat')) return 0.82;
+  if (r.contains('bag')) return 1.02;
+  if (r.contains('jewel') || r.contains('ring') || r.contains('necklace')) {
+    return 0.78;
+  }
+
+  if (r.contains('access')) return 0.86;
+
+  return 1.0;
+}
+
+String _ahviBoardV8Norm(Object? value) {
+  return (value ?? '').toString().trim();
+}
+
+bool _ahviBoardV8WeakWhy(Object? value) {
+  final v = _ahviBoardV8Norm(value).toLowerCase();
+  if (v.isEmpty) return true;
+  if (v == 'today') return true;
+  if (v == 'date night') return true;
+  if (v == 'office') return true;
+  if (v == 'work') return true;
+  if (v == 'casual') return true;
+  if (v == 'party') return true;
+  if (v.length < 18) return true;
+  return false;
+}
+
+String _ahviBoardV8Occasion(Object? raw) {
+  final q = _ahviBoardV8Norm(raw).toLowerCase();
+
+  if (q.contains('date')) return 'date night';
+  if (q.contains('office') || q.contains('meeting') || q.contains('work')) {
+    return 'office';
+  }
+  if (q.contains('party') || q.contains('club')) return 'party';
+  if (q.contains('wedding') ||
+      q.contains('traditional') ||
+      q.contains('ethnic')) {
+    return 'traditional';
+  }
+  if (q.contains('travel') || q.contains('airport')) return 'travel';
+  if (q.contains('rain')) return 'rainy day';
+  return 'today';
+}
+
+String _ahviBoardV8LookName({
+  Object? rawTitle,
+  Object? occasion,
+  int index = 0,
+}) {
+  final title = _ahviBoardV8Norm(rawTitle);
+  final lower = title.toLowerCase();
+
+  if (title.isNotEmpty &&
+      !lower.contains('ahvi styled look') &&
+      !lower.contains('look ${index + 1}') &&
+      lower.length > 8) {
+    return title;
+  }
+
+  switch (_ahviBoardV8Occasion(occasion)) {
+    case 'date night':
+      return 'Look ${index + 1} · Evening Smart Casual';
+    case 'office':
+      return 'Look ${index + 1} · Polished Work Fit';
+    case 'party':
+      return 'Look ${index + 1} · After-Hours Statement';
+    case 'traditional':
+      return 'Look ${index + 1} · Occasion Ready';
+    case 'travel':
+      return 'Look ${index + 1} · Travel Smart';
+    case 'rainy day':
+      return 'Look ${index + 1} · Weather Ready';
+    default:
+      return 'Look ${index + 1} · Clean Daily Look';
+  }
+}
+
+String _ahviBoardV8Why({
+  Object? rawWhy,
+  Object? occasion,
+  Object? top,
+  Object? bottom,
+  Object? footwear,
+  Object? accessory,
+}) {
+  final existing = _ahviBoardV8Norm(rawWhy);
+  if (!_ahviBoardV8WeakWhy(existing)) return existing;
+
+  final occ = _ahviBoardV8Occasion(occasion);
+  final topName = _ahviBoardV8Norm(top);
+  final bottomName = _ahviBoardV8Norm(bottom);
+  final footwearName = _ahviBoardV8Norm(footwear);
+  final accessoryName = _ahviBoardV8Norm(accessory);
+
+  String pieces() {
+    final parts = <String>[];
+    if (topName.isNotEmpty) parts.add(topName);
+    if (bottomName.isNotEmpty) parts.add(bottomName);
+    if (footwearName.isNotEmpty) parts.add(footwearName);
+    return parts.take(3).join(', ');
+  }
+
+  final usedPieces = pieces();
+
+  if (occ == 'date night') {
+    return usedPieces.isNotEmpty
+        ? 'This works for date night because $usedPieces creates a clean smart-casual base. The look feels intentional without being overdone, and the accessory choice keeps it polished.'
+        : 'This works for date night because it balances polish and ease: a clean hero piece, a grounded base, and minimal accessories so the look feels intentional.';
+  }
+
+  if (occ == 'office') {
+    return usedPieces.isNotEmpty
+        ? 'This works for office because $usedPieces keeps the outfit structured, neat, and easy to wear through the day. The styling stays professional without looking stiff.'
+        : 'This works for office because it keeps the outfit structured and clean while staying comfortable enough for a full day.';
+  }
+
+  if (occ == 'party') {
+    return usedPieces.isNotEmpty
+        ? 'This works for a party because $usedPieces gives the outfit a stronger visual point of view while keeping the base balanced and wearable.'
+        : 'This works for a party because it adds visual interest without making the outfit feel messy or over-accessorized.';
+  }
+
+  if (occ == 'travel') {
+    return usedPieces.isNotEmpty
+        ? 'This works for travel because $usedPieces keeps the outfit comfortable, practical, and still put-together.'
+        : 'This works for travel because it prioritizes comfort, easy movement, and a clean put-together finish.';
+  }
+
+  if (accessoryName.isNotEmpty) {
+    return 'This works because the outfit has a clean base and $accessoryName adds a controlled finishing detail without cluttering the look.';
+  }
+
+  return usedPieces.isNotEmpty
+      ? 'This works because $usedPieces creates a balanced everyday outfit: clean, easy to wear, and visually connected.'
+      : 'This works because it keeps the outfit balanced, wearable, and visually clean for the occasion.';
 }
 
 EdgeInsets _flatLayRolePaddingKv(String role) {
@@ -2996,7 +3175,9 @@ class _OutfitBoardSwiperState extends State<_OutfitBoardSwiper> {
           Padding(
             padding: const EdgeInsets.only(left: 4, bottom: 8, top: 4),
             child: Text(
-              n > 1 ? 'AHVI styled looks · swipe' : 'AHVI Styled Look',
+              n > 1
+                  ? 'AHVI styled looks · swipe'
+                  : _ahviBoardV8LookName(index: 0, occasion: 'today'),
               style: TextStyle(
                 color: t.textPrimary,
                 fontSize: 14,
@@ -3011,7 +3192,8 @@ class _OutfitBoardSwiperState extends State<_OutfitBoardSwiper> {
               controller: _controller,
               itemCount: n,
               onPageChanged: (i) => setState(() => _index = i),
-              itemBuilder: (_, i) => _boardCanvas(widget.boards[i], t),
+              itemBuilder: (_, i) =>
+                  _editorialBoardCanvas(widget.boards[i], t, i),
             ),
           ),
           if (n > 1)
@@ -3045,31 +3227,569 @@ class _OutfitBoardSwiperState extends State<_OutfitBoardSwiper> {
     );
   }
 
-  Widget _boardCanvas(Map<String, dynamic> board, AppThemeTokens t) {
+  Widget _editorialBoardCanvas(
+    Map<String, dynamic> board,
+    AppThemeTokens t,
+    int index,
+  ) {
     final rawItems = board['items'] as List? ?? const [];
     final items = rawItems
         .whereType<Map>()
         .map((e) => Map<String, dynamic>.from(e))
         .toList();
+
     final slotted = _slotItemsForFlatLayKv(items);
 
+    final top = _editorialFindItem(slotted, items, const [
+      'top',
+      'shirt',
+      't-shirt',
+      'tee',
+      'polo',
+      'kurta',
+      'hoodie',
+      'jacket',
+      'blazer',
+      'overshirt',
+    ]);
+
+    final bottom = _editorialFindItem(slotted, items, const [
+      'bottom',
+      'pant',
+      'pants',
+      'trouser',
+      'trousers',
+      'jeans',
+      'chinos',
+      'shorts',
+      'joggers',
+    ]);
+
+    final dress = _editorialFindItem(slotted, items, const [
+      'dress',
+      'saree',
+      'gown',
+      'lehenga',
+    ]);
+
+    final footwear = _editorialFindItem(slotted, items, const [
+      'footwear',
+      'shoe',
+      'shoes',
+      'sneaker',
+      'sneakers',
+      'loafer',
+      'loafers',
+      'boot',
+      'boots',
+      'sandals',
+    ]);
+
+    final accessories = _editorialAccessories(
+      items,
+      top,
+      bottom,
+      dress,
+      footwear,
+    );
+    final lookName = _editorialLookName(board, top ?? dress, bottom);
+    final occasion = _editorialOccasion(board);
+    final why = _editorialWhy(board, top ?? dress, bottom, footwear);
+
     return ClipRRect(
-      borderRadius: BorderRadius.circular(20),
-      child: LayoutBuilder(
-        builder: (ctx, c) => Stack(
-          children: [
-            Container(color: const Color(0xFFFAFAFA)),
-            for (final entry in slotted.entries)
-              _flatLayPieceKv(
-                entry.value,
-                entry.key,
-                _flatLaySlotsKv[entry.key] ?? Rect.zero,
-                Size(c.maxWidth, c.maxHeight),
-              ),
+      borderRadius: BorderRadius.circular(24),
+      child: Container(
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFFCF5),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: t.cardBorder.withValues(alpha: 0.75)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.08),
+              blurRadius: 22,
+              offset: const Offset(0, 10),
+            ),
           ],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _editorialHeader(t, index, lookName, occasion),
+              const SizedBox(height: 8),
+              _editorialWhyBox(t, why),
+              const SizedBox(height: 10),
+              Expanded(
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.72),
+                    borderRadius: BorderRadius.circular(22),
+                  ),
+                  child: dress != null
+                      ? _editorialImageOrPlaceholder(dress, t)
+                      : Column(
+                          children: [
+                            Expanded(
+                              flex: 42,
+                              child: top == null
+                                  ? _editorialEmpty(t, 'Top not found')
+                                  : _editorialImageOrPlaceholder(top, t),
+                            ),
+                            const SizedBox(height: 8),
+                            Expanded(
+                              flex: 58,
+                              child: bottom == null
+                                  ? _editorialEmpty(t, 'Bottom not found')
+                                  : _editorialImageOrPlaceholder(bottom, t),
+                            ),
+                          ],
+                        ),
+                ),
+              ),
+              const SizedBox(height: 9),
+              _editorialSectionLabel(t, 'ACCESSORIES'),
+              const SizedBox(height: 6),
+              SizedBox(
+                height: 50,
+                child: accessories.isEmpty
+                    ? _editorialEmpty(t, 'No accessory added')
+                    : ListView.separated(
+                        scrollDirection: Axis.horizontal,
+                        physics: const BouncingScrollPhysics(),
+                        itemCount: accessories.length > 4
+                            ? 4
+                            : accessories.length,
+                        separatorBuilder: (_, __) => const SizedBox(width: 8),
+                        itemBuilder: (_, i) => Container(
+                          width: 58,
+                          padding: const EdgeInsets.all(5),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.82),
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: t.cardBorder.withValues(alpha: 0.45),
+                            ),
+                          ),
+                          child: _editorialImageOrPlaceholder(
+                            accessories[i],
+                            t,
+                          ),
+                        ),
+                      ),
+              ),
+              const SizedBox(height: 8),
+              _editorialSectionLabel(t, 'FOOTWEAR'),
+              const SizedBox(height: 6),
+              SizedBox(
+                height: 58,
+                child: footwear == null
+                    ? _editorialEmpty(t, 'Footwear not found')
+                    : Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.82),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: t.cardBorder.withValues(alpha: 0.45),
+                          ),
+                        ),
+                        child: _editorialImageOrPlaceholder(footwear, t),
+                      ),
+              ),
+            ],
+          ),
         ),
       ),
     );
+  }
+
+  Widget _editorialHeader(
+    AppThemeTokens t,
+    int index,
+    String lookName,
+    String occasion,
+  ) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'LOOK ${(index + 1).toString().padLeft(2, '0')}',
+                style: TextStyle(
+                  color: t.accent.secondary,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1.3,
+                ),
+              ),
+              const SizedBox(height: 3),
+              Text(
+                lookName,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: t.textPrimary,
+                  fontSize: 22,
+                  fontWeight: FontWeight.w900,
+                  height: 1.0,
+                  letterSpacing: -0.5,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 10),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+          decoration: BoxDecoration(
+            color: t.accent.secondary.withValues(alpha: 0.10),
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(
+              color: t.accent.secondary.withValues(alpha: 0.28),
+            ),
+          ),
+          child: Text(
+            occasion.toUpperCase(),
+            style: TextStyle(
+              color: t.textPrimary,
+              fontSize: 9,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 0.7,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _editorialWhyBox(AppThemeTokens t, String why) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.76),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: t.cardBorder.withValues(alpha: 0.55)),
+      ),
+      child: Text.rich(
+        TextSpan(
+          children: [
+            TextSpan(
+              text: 'Why it works: ',
+              style: TextStyle(
+                color: t.textPrimary,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            TextSpan(text: why),
+          ],
+        ),
+        maxLines: 3,
+        overflow: TextOverflow.ellipsis,
+        style: TextStyle(
+          color: t.mutedText,
+          fontSize: 10.5,
+          height: 1.25,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+
+  Widget _editorialSectionLabel(AppThemeTokens t, String label) {
+    return Row(
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            color: t.textPrimary.withValues(alpha: 0.75),
+            fontSize: 9,
+            fontWeight: FontWeight.w900,
+            letterSpacing: 1.1,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Container(
+            height: 1,
+            color: t.cardBorder.withValues(alpha: 0.65),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _editorialImageOrPlaceholder(
+    Map<String, dynamic> item,
+    AppThemeTokens t,
+  ) {
+    final imageUrl = _flatLayImageUrlKv(item);
+    if (imageUrl.isNotEmpty) {
+      return Image.network(
+        imageUrl,
+        fit: BoxFit.contain,
+        alignment: Alignment.center,
+        filterQuality: FilterQuality.high,
+        errorBuilder: (_, __, ___) => _editorialPlaceholder(item, t),
+      );
+    }
+    return _editorialPlaceholder(item, t);
+  }
+
+  Widget _editorialPlaceholder(Map<String, dynamic> item, AppThemeTokens t) {
+    final name =
+        (item['name'] ??
+                item['label'] ??
+                item['title'] ??
+                item['category'] ??
+                'Item')
+            .toString();
+
+    return Container(
+      alignment: Alignment.center,
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: t.accent.secondary.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: t.cardBorder.withValues(alpha: 0.45)),
+      ),
+      child: Text(
+        name,
+        textAlign: TextAlign.center,
+        maxLines: 3,
+        overflow: TextOverflow.ellipsis,
+        style: TextStyle(
+          color: t.textPrimary,
+          fontSize: 10,
+          height: 1.1,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+    );
+  }
+
+  Widget _editorialEmpty(AppThemeTokens t, String text) {
+    return Container(
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.45),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: t.cardBorder.withValues(alpha: 0.40)),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          color: t.mutedText,
+          fontSize: 10,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
+
+  Map<String, dynamic>? _editorialFindItem(
+    Map<String, Map<String, dynamic>> slotted,
+    List<Map<String, dynamic>> items,
+    List<String> tokens,
+  ) {
+    for (final entry in slotted.entries) {
+      final key = entry.key.toLowerCase();
+      if (tokens.any((token) => key.contains(token))) {
+        return entry.value;
+      }
+    }
+
+    for (final item in items) {
+      final text = _editorialItemText(item);
+      if (tokens.any((token) => text.contains(token))) {
+        return item;
+      }
+    }
+
+    return null;
+  }
+
+  String _editorialItemText(Map<String, dynamic> item) {
+    return [
+      item['name'],
+      item['label'],
+      item['title'],
+      item['category'],
+      item['sub_category'],
+      item['subcategory'],
+      item['type'],
+      item['color'],
+    ].where((v) => v != null).join(' ').toLowerCase();
+  }
+
+  List<Map<String, dynamic>> _editorialAccessories(
+    List<Map<String, dynamic>> items,
+    Map<String, dynamic>? top,
+    Map<String, dynamic>? bottom,
+    Map<String, dynamic>? dress,
+    Map<String, dynamic>? footwear,
+  ) {
+    final blocked = <Map<String, dynamic>>[
+      if (top != null) top,
+      if (bottom != null) bottom,
+      if (dress != null) dress,
+      if (footwear != null) footwear,
+    ];
+
+    final seen = <String>{};
+    final output = <Map<String, dynamic>>[];
+
+    for (final item in items) {
+      if (blocked.any((b) => identical(b, item))) continue;
+
+      final text = _editorialItemText(item);
+      final isAccessory =
+          text.contains('watch') ||
+          text.contains('bracelet') ||
+          text.contains('belt') ||
+          text.contains('cap') ||
+          text.contains('bag') ||
+          text.contains('sunglass') ||
+          text.contains('eyewear') ||
+          text.contains('jewel') ||
+          text.contains('chain') ||
+          text.contains('ring');
+
+      if (!isAccessory) continue;
+
+      final key =
+          (item['category'] ??
+                  item['sub_category'] ??
+                  item['name'] ??
+                  item['label'] ??
+                  text)
+              .toString()
+              .toLowerCase()
+              .trim();
+
+      if (key.isEmpty || seen.add(key)) {
+        output.add(item);
+      }
+    }
+
+    return output;
+  }
+
+  String _editorialLookName(
+    Map<String, dynamic> board,
+    Map<String, dynamic>? top,
+    Map<String, dynamic>? bottom,
+  ) {
+    final existing =
+        (board['look_name'] ??
+                board['lookName'] ??
+                board['title'] ??
+                board['name'] ??
+                board['label'] ??
+                '')
+            .toString()
+            .trim();
+
+    if (existing.isNotEmpty &&
+        existing.toLowerCase() != 'styled look' &&
+        existing.toLowerCase() != 'ahvi style board') {
+      return existing;
+    }
+
+    final topColor = (top?['color'] ?? top?['dominant_color'] ?? '')
+        .toString()
+        .toLowerCase();
+    final bottomColor = (bottom?['color'] ?? bottom?['dominant_color'] ?? '')
+        .toString()
+        .toLowerCase();
+
+    String pretty(String value) {
+      if (value.contains('green') || value.contains('emerald'))
+        return 'Emerald';
+      if (value.contains('beige') ||
+          value.contains('cream') ||
+          value.contains('tan'))
+        return 'Sand';
+      if (value.contains('black')) return 'Noir';
+      if (value.contains('white')) return 'Ivory';
+      if (value.contains('blue') || value.contains('denim')) return 'Denim';
+      if (value.contains('pink')) return 'Rose';
+      if (value.contains('brown')) return 'Cocoa';
+      if (value.contains('navy')) return 'Navy';
+      if (value.isEmpty) return '';
+      return value[0].toUpperCase() + value.substring(1);
+    }
+
+    final a = pretty(topColor);
+    final b = pretty(bottomColor);
+
+    if (a.isNotEmpty && b.isNotEmpty && a != b) return '$a + $b';
+    if (a.isNotEmpty) return '$a Edit';
+
+    return 'Styled Look';
+  }
+
+  String _editorialOccasion(Map<String, dynamic> board) {
+    final text = [
+      board['occasion'],
+      board['intent'],
+      board['title'],
+      board['vibe'],
+      board['aesthetic'],
+      board['reason'],
+    ].where((v) => v != null).join(' ').toLowerCase();
+
+    if (text.contains('date')) return 'Date Night';
+    if (text.contains('office') || text.contains('business'))
+      return 'Office Casual';
+    if (text.contains('evening') || text.contains('dinner'))
+      return 'Evening Casual';
+    if (text.contains('brunch')) return 'Brunch';
+    if (text.contains('street')) return 'Streetwear';
+
+    return 'Smart Casual';
+  }
+
+  String _editorialWhy(
+    Map<String, dynamic> board,
+    Map<String, dynamic>? top,
+    Map<String, dynamic>? bottom,
+    Map<String, dynamic>? footwear,
+  ) {
+    final existing =
+        (board['why_it_works'] ??
+                board['whyItWorks'] ??
+                board['explanation'] ??
+                board['reason'] ??
+                board['vibe'] ??
+                '')
+            .toString()
+            .trim();
+
+    if (existing.isNotEmpty && existing.toLowerCase() != 'wardrobe ready') {
+      return existing;
+    }
+
+    final topName = (top?['name'] ?? top?['label'] ?? top?['category'] ?? 'top')
+        .toString();
+    final bottomName =
+        (bottom?['name'] ?? bottom?['label'] ?? bottom?['category'] ?? 'bottom')
+            .toString();
+    final footwearName =
+        (footwear?['name'] ??
+                footwear?['label'] ??
+                footwear?['category'] ??
+                'footwear')
+            .toString();
+
+    return 'The $topName creates the focal point, the $bottomName balances the silhouette, and the $footwearName finishes the look cleanly.';
   }
 
   Widget _saveButton(AppThemeTokens t) {
