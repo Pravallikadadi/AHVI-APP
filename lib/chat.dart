@@ -2635,30 +2635,120 @@ class _PulsingMicIconState extends State<_PulsingMicIcon>
 // File-level helpers shared by the State class above and the swiper widget below.
 
 const Map<String, Rect> _flatLaySlotsKv = {
-  // Canonical outfit slots:
-  // top + bottom + footwear + accessories
-  'top': Rect.fromLTWH(0.05, 0.04, 0.45, 0.30),
-  'bottom': Rect.fromLTWH(0.04, 0.33, 0.49, 0.58),
-  'footwear': Rect.fromLTWH(0.55, 0.72, 0.42, 0.24),
+  // Shared editorial layout for mens + womens.
+  // Main outfit dominates. Accessories are compact and premium.
+  'top': Rect.fromLTWH(0.055, 0.035, 0.47, 0.31),
+  'bottom': Rect.fromLTWH(0.050, 0.315, 0.49, 0.58),
+  'dress': Rect.fromLTWH(0.060, 0.045, 0.50, 0.76),
+  'footwear': Rect.fromLTWH(0.585, 0.760, 0.30, 0.15),
 
-  // One-piece outfit slot: dress / saree / lehenga / gown
-  'dress': Rect.fromLTWH(0.05, 0.05, 0.47, 0.72),
+  // Refined accessory rail
+  'earrings': Rect.fromLTWH(0.630, 0.070, 0.11, 0.09),
+  'necklace': Rect.fromLTWH(0.775, 0.050, 0.16, 0.14),
+  'ring': Rect.fromLTWH(0.620, 0.185, 0.11, 0.09),
+  'bracelet': Rect.fromLTWH(0.775, 0.195, 0.16, 0.08),
+  'watch': Rect.fromLTWH(0.625, 0.295, 0.12, 0.13),
+  'eyewear': Rect.fromLTWH(0.775, 0.305, 0.16, 0.08),
+  'belt': Rect.fromLTWH(0.620, 0.445, 0.17, 0.08),
+  'bag': Rect.fromLTWH(0.695, 0.480, 0.24, 0.21),
+  'headwear': Rect.fromLTWH(0.650, 0.470, 0.18, 0.13),
 
-  // Accessory sub-slots
-  'watch': Rect.fromLTWH(0.58, 0.05, 0.16, 0.14),
-  'jewelry': Rect.fromLTWH(0.76, 0.05, 0.17, 0.14),
-  'eyewear': Rect.fromLTWH(0.57, 0.20, 0.23, 0.13),
-  'belt': Rect.fromLTWH(0.76, 0.20, 0.20, 0.13),
-  'headwear': Rect.fromLTWH(0.58, 0.35, 0.30, 0.18),
-  'bag': Rect.fromLTWH(0.58, 0.51, 0.37, 0.20),
-
-  // Extra accessory fallback positions
-  'accessory1': Rect.fromLTWH(0.84, 0.35, 0.13, 0.13),
-  'accessory2': Rect.fromLTWH(0.84, 0.49, 0.13, 0.13),
+  // Overflow accents
+  'accessory1': Rect.fromLTWH(0.865, 0.355, 0.08, 0.08),
+  'accessory2': Rect.fromLTWH(0.865, 0.450, 0.08, 0.08),
 };
+
+double _flatLayRoleScaleKv(String role) {
+  switch (role) {
+    case 'top':
+      return 1.12;
+    case 'bottom':
+      return 1.12;
+    case 'dress':
+      return 1.12;
+    case 'footwear':
+      return 1.00;
+    case 'bag':
+      return 0.96;
+    case 'necklace':
+      return 0.88;
+    case 'earrings':
+    case 'ring':
+    case 'bracelet':
+    case 'watch':
+    case 'eyewear':
+    case 'belt':
+      return 0.78;
+    case 'headwear':
+      return 0.82;
+    case 'accessory1':
+    case 'accessory2':
+      return 0.68;
+    default:
+      return 0.82;
+  }
+}
+
+EdgeInsets _flatLayRolePaddingKv(String role) {
+  switch (role) {
+    case 'top':
+    case 'bottom':
+    case 'dress':
+      return const EdgeInsets.all(0);
+    case 'footwear':
+      return const EdgeInsets.all(2);
+    case 'bag':
+      return const EdgeInsets.all(4);
+    default:
+      return const EdgeInsets.all(6);
+  }
+}
+
+int _flatLayRoleZKv(String role) {
+  switch (role) {
+    case 'bottom':
+      return 1;
+    case 'top':
+    case 'dress':
+      return 2;
+    case 'footwear':
+      return 3;
+    case 'bag':
+      return 4;
+    default:
+      return 5;
+  }
+}
+
+List<MapEntry<String, Map<String, dynamic>>> _flatLaySortedEntriesKv(
+  Map<String, Map<String, dynamic>> byRole,
+) {
+  final entries = byRole.entries.toList();
+  entries.sort(
+    (a, b) => _flatLayRoleZKv(a.key).compareTo(_flatLayRoleZKv(b.key)),
+  );
+  return entries;
+}
+
+String _flatLayImageUrlKv(Map<String, dynamic> item) {
+  return (item['masked_url'] ??
+          item['maskedUrl'] ??
+          item['image_url'] ??
+          item['imageUrl'] ??
+          item['url'] ??
+          item['image'] ??
+          '')
+      .toString()
+      .trim();
+}
+
+// Premium board shell colors / spacing
+const double _kvBoardRadius = 24.0;
+const double _kvSectionRadius = 18.0;
 
 String _roleForItem(Map<String, dynamic> item) {
   final blob = [
+    item['layout_role'],
     item['role'],
     item['slot'],
     item['type'],
@@ -2675,43 +2765,42 @@ String _roleForItem(Map<String, dynamic> item) {
 
   bool has(String pattern) => RegExp(pattern).hasMatch(blob);
 
-  // Canonical role: footwear.
   if (has(
-    r'\b(footwear|shoe|shoes|sneaker|sneakers|boot|boots|chelsea|loafer|loafers|heel|heels|sandal|sandals|flat|flats|slipper|slippers|flipflop|flipflops)\b',
+    r'\b(footwear|shoe|shoes|heel|heels|sandal|sandals|flat|flats|pump|pumps|loafer|loafers|sneaker|sneakers|boot|boots)\b',
   )) {
     return 'footwear';
   }
 
-  // One-piece garments before tops.
-  // This prevents saree/dress/lehenga/gown from being rendered as a top.
-  if (has(r'\b(dress|dresses|saree|sari|lehenga|gown|jumpsuit)\b')) {
+  // One-piece before top
+  if (has(r'\b(dress|dresses|saree|sari|lehenga|gown|jumpsuit|kurta set)\b')) {
     return 'dress';
   }
 
-  // Accessory sub-slots.
+  // Fine accessory roles
+  if (has(r'\b(earring|earrings)\b')) return 'earrings';
+  if (has(r'\b(necklace|pendant|choker)\b')) return 'necklace';
+  if (has(r'\b(ring|rings)\b')) return 'ring';
+  if (has(r'\b(bracelet|bracelets|bangle|bangles)\b')) return 'bracelet';
   if (has(r'\b(watch|watches)\b')) return 'watch';
-  if (has(r'\b(belt|belts)\b')) return 'belt';
   if (has(r'\b(sunglass|sunglasses|eyewear|glasses|shade|shades)\b'))
     return 'eyewear';
-  if (has(r'\b(bag|bags|purse|clutch|backpack|tote|handbag)\b')) return 'bag';
+  if (has(r'\b(belt|belts)\b')) return 'belt';
   if (has(
-    r'\b(necklace|earring|earrings|ring|rings|bracelet|bracelets|jewelry|jewellery)\b',
-  )) {
-    return 'jewelry';
-  }
+    r'\b(bag|bags|purse|clutch|tote|handbag|hobo|crossbody|shoulder bag|backpack)\b',
+  ))
+    return 'bag';
   if (has(r'\b(cap|caps|hat|hats|beanie|headwear)\b')) return 'headwear';
-  if (has(r'\b(scarf|scarves|accessory|accessories)\b')) return 'accessory';
+  if (has(r'\b(accessory|accessories|scarf|scarves|brooch)\b'))
+    return 'accessory';
 
-  // Canonical role: top.
   if (has(
-    r'\b(top|tops|shirt|shirts|tee|tshirt|tshirts|polo|buttondown|button-down|jacket|blazer|sweater|hoodie|vest|kurta|tunic|tunics)\b',
+    r'\b(top|tops|shirt|shirts|blouse|tee|tshirt|tshirts|tank|cami|camisole|sweater|cardigan|jacket|blazer|kurti|tunic|crop top|polo|hoodie)\b',
   )) {
     return 'top';
   }
 
-  // Canonical role: bottom. Use shorts only; never "short".
   if (has(
-    r'\b(bottom|bottoms|jean|jeans|pant|pants|trouser|trousers|shorts|skirt|skirts|chino|chinos|cargo|jogger|joggers|trackpants)\b',
+    r'\b(bottom|bottoms|jean|jeans|pant|pants|trouser|trousers|wide leg|wide-leg|shorts|skirt|skirts|palazzo|chino|chinos|cargo|jogger|joggers)\b',
   )) {
     return 'bottom';
   }
@@ -2723,22 +2812,42 @@ Map<String, Map<String, dynamic>> _slotItemsForFlatLayKv(
   List<Map<String, dynamic>> items,
 ) {
   final byRole = <String, Map<String, dynamic>>{};
+  final seenRole = <String>{};
+  final seenId = <String>{};
   var accessoryOverflow = 0;
 
   bool hasImage(Map<String, dynamic> item) {
-    return (item['masked_url'] ??
-            item['maskedUrl'] ??
-            item['image_url'] ??
-            item['imageUrl'] ??
-            item['url'] ??
-            item['image'] ??
-            '')
+    return _flatLayImageUrlKv(item).isNotEmpty;
+  }
+
+  String itemId(Map<String, dynamic> item) {
+    return (item[r'$id'] ??
+            item['id'] ??
+            item['item_id'] ??
+            item['image_id'] ??
+            item['name'] ??
+            item['label'] ??
+            item.hashCode)
         .toString()
-        .trim()
-        .isNotEmpty;
+        .toLowerCase();
+  }
+
+  bool isAccessoryRole(String role) {
+    return {
+      'earrings',
+      'necklace',
+      'ring',
+      'bracelet',
+      'watch',
+      'eyewear',
+      'belt',
+      'bag',
+      'headwear',
+    }.contains(role);
   }
 
   void putAccessoryOverflow(Map<String, dynamic> item) {
+    if (accessoryOverflow >= 2) return;
     final key = accessoryOverflow == 0 ? 'accessory1' : 'accessory2';
     accessoryOverflow += 1;
     byRole.putIfAbsent(key, () => item);
@@ -2747,26 +2856,24 @@ Map<String, Map<String, dynamic>> _slotItemsForFlatLayKv(
   void putRole(String role, Map<String, dynamic> item) {
     if (!hasImage(item)) return;
 
+    final id = itemId(item);
+    if (seenId.contains(id)) return;
+    seenId.add(id);
+
     if (role == 'accessory') {
       putAccessoryOverflow(item);
       return;
     }
 
-    if (byRole.containsKey(role)) {
-      // Main outfit keeps one top, one bottom, one footwear, one dress.
-      // Duplicate accessories overflow into accessory slots.
-      if (role == 'watch' ||
-          role == 'jewelry' ||
-          role == 'eyewear' ||
-          role == 'belt' ||
-          role == 'headwear' ||
-          role == 'bag') {
+    if (byRole.containsKey(role) || seenRole.contains(role)) {
+      if (isAccessoryRole(role)) {
         putAccessoryOverflow(item);
       }
       return;
     }
 
     byRole[role] = item;
+    seenRole.add(role);
   }
 
   for (final item in items) {
@@ -2778,7 +2885,6 @@ Map<String, Map<String, dynamic>> _slotItemsForFlatLayKv(
     }
   }
 
-  // If a one-piece item exists, do not also render top/bottom over it.
   if (byRole.containsKey('dress')) {
     byRole.remove('top');
     byRole.remove('bottom');
@@ -2790,42 +2896,57 @@ Map<String, Map<String, dynamic>> _slotItemsForFlatLayKv(
 Widget _flatLayPieceKv(
   Map<String, dynamic> item,
   String role,
-  double w,
-  double h,
+  Rect slot,
+  Size boardSize,
 ) {
-  final slot = _flatLaySlotsKv[role];
-  if (slot == null) return const SizedBox.shrink();
-  final imageUrl =
-      (item['masked_url'] ??
-              item['maskedUrl'] ??
-              item['image_url'] ??
-              item['imageUrl'] ??
-              item['url'] ??
-              item['image'] ??
-              '')
-          .toString();
+  final imageUrl = _flatLayImageUrlKv(item);
+
+  if (imageUrl.isEmpty) {
+    return const SizedBox.shrink();
+  }
+
+  final left = slot.left * boardSize.width;
+  final top = slot.top * boardSize.height;
+  final width = slot.width * boardSize.width;
+  final height = slot.height * boardSize.height;
+
+  final scale = _flatLayRoleScaleKv(role);
+  final scaledWidth = width * scale;
+  final scaledHeight = height * scale;
+
+  final isHero = role == 'top' || role == 'bottom' || role == 'dress';
+
   return Positioned(
-    left: slot.left * w,
-    top: slot.top * h,
-    width: slot.width * w,
-    height: slot.height * h,
-    child: imageUrl.isEmpty
-        ? const SizedBox.shrink()
-        : Image.network(
+    left: left + ((width - scaledWidth) / 2),
+    top: top + ((height - scaledHeight) / 2),
+    width: scaledWidth,
+    height: scaledHeight,
+    child: Padding(
+      padding: _flatLayRolePaddingKv(role),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(isHero ? 24 : 18),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(isHero ? 0.07 : 0.045),
+              blurRadius: isHero ? 22 : 12,
+              spreadRadius: isHero ? -8 : -6,
+              offset: Offset(0, isHero ? 14 : 8),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(isHero ? 24 : 18),
+          child: Image.network(
             imageUrl,
             fit: BoxFit.contain,
+            alignment: Alignment.center,
+            filterQuality: FilterQuality.high,
             errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-            loadingBuilder: (_, child, progress) {
-              if (progress == null) return child;
-              return const Center(
-                child: SizedBox(
-                  width: 14,
-                  height: 14,
-                  child: CircularProgressIndicator(strokeWidth: 1.5),
-                ),
-              );
-            },
           ),
+        ),
+      ),
+    ),
   );
 }
 
@@ -2939,7 +3060,12 @@ class _OutfitBoardSwiperState extends State<_OutfitBoardSwiper> {
           children: [
             Container(color: const Color(0xFFFAFAFA)),
             for (final entry in slotted.entries)
-              _flatLayPieceKv(entry.value, entry.key, c.maxWidth, c.maxHeight),
+              _flatLayPieceKv(
+                entry.value,
+                entry.key,
+                _flatLaySlotsKv[entry.key] ?? Rect.zero,
+                Size(c.maxWidth, c.maxHeight),
+              ),
           ],
         ),
       ),
@@ -3005,3 +3131,31 @@ class _OutfitBoardSwiperState extends State<_OutfitBoardSwiper> {
     );
   }
 }
+
+// ================= AHVI V6 PREMIUM BOARD UI HELPERS BEGIN =================
+
+TextStyle _kvBoardTitleStyle(BuildContext context) {
+  return Theme.of(context).textTheme.titleLarge!.copyWith(
+    fontWeight: FontWeight.w800,
+    letterSpacing: -0.4,
+    height: 1.1,
+  );
+}
+
+TextStyle _kvBoardSubtitleStyle(BuildContext context) {
+  return Theme.of(context).textTheme.bodyMedium!.copyWith(
+    color: const Color(0xFF6B7280),
+    fontWeight: FontWeight.w500,
+    height: 1.35,
+  );
+}
+
+TextStyle _kvSectionTitleStyle(BuildContext context) {
+  return Theme.of(context).textTheme.titleMedium!.copyWith(
+    fontWeight: FontWeight.w700,
+    color: const Color(0xFF2F2560),
+    letterSpacing: -0.2,
+  );
+}
+
+// ================= AHVI V6 PREMIUM BOARD UI HELPERS END =================
