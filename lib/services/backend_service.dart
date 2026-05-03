@@ -1,4 +1,4 @@
-﻿import 'dart:convert';
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:myapp/config/env.dart';
@@ -18,7 +18,10 @@ String _demoChatFallback(String query, String moduleContext) {
   if (q.contains('how are you') || q == 'hi' || q == 'hello' || q == 'hey') {
     return 'I am here and ready. Ask me for an outfit, a capsule wardrobe, or just talk to me.';
   }
-  if (isStyle || q.contains('outfit') || q.contains('wear') || q.contains('style')) {
+  if (isStyle ||
+      q.contains('outfit') ||
+      q.contains('wear') ||
+      q.contains('style')) {
     return 'I will assume a smart casual look for now: choose one clean hero piece, pair it with a neutral base, and finish with footwear or an accessory that matches the occasion. If your wardrobe is synced, I will use those saved pieces first.';
   }
   return 'I can help with that. Tell me a little more, or ask me to style an outfit, plan your day, or build a capsule wardrobe.';
@@ -33,9 +36,15 @@ class BackendService {
 
   Future<String> _currentUserId() async {
     final user = await _appwriteService.getCurrentUser();
-    final id = user?.$id ?? '';
-    if (id.isEmpty) throw Exception('User not authenticated');
-    return id;
+
+    // Web debug / fresh app start may not have an Appwrite session yet.
+    // Do not crash the whole UI. Return an empty marker and let callers
+    // handle auth-required state gracefully.
+    if (user == null || user.$id.trim().isEmpty) {
+      return '';
+    }
+
+    return user.$id;
   }
 
   Future<Map<String, String>> _authHeaders() async {
@@ -143,21 +152,24 @@ class BackendService {
         historyForRequest.add({'role': 'user', 'content': query});
       }
 
-      final response = await http.post(
-        Uri.parse('$baseUrl/api/text'),
-        headers: await _authHeaders(),
-        body: jsonEncode({
-          'messages': historyForRequest,
-          'language': 'en',
-          'current_memory': _memoryPayload(currentMemory),
-          'user_profile': {...?userProfile, 'user_id': authedUserId},
-          'user_id': authedUserId,
-          'module_context': moduleContext,
-          'include_base64':
-              moduleContext == 'style' || moduleContext == 'wardrobe',
-          if (safeWardrobePayload.isNotEmpty) 'wardrobe': safeWardrobePayload,
-        }),
-      ).timeout(const Duration(seconds: 25));
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/api/text'),
+            headers: await _authHeaders(),
+            body: jsonEncode({
+              'messages': historyForRequest,
+              'language': 'en',
+              'current_memory': _memoryPayload(currentMemory),
+              'user_profile': {...?userProfile, 'user_id': authedUserId},
+              'user_id': authedUserId,
+              'module_context': moduleContext,
+              'include_base64':
+                  moduleContext == 'style' || moduleContext == 'wardrobe',
+              if (safeWardrobePayload.isNotEmpty)
+                'wardrobe': safeWardrobePayload,
+            }),
+          )
+          .timeout(const Duration(seconds: 25));
 
       if (response.statusCode == 200) {
         final data = await compute(_parseJsonMap, response.body);
@@ -197,11 +209,13 @@ class BackendService {
   // Wardrobe vision and background removal.
   Future<String?> removeBackground(String base64Image) async {
     try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/api/background/remove-bg'),
-        headers: await _authHeaders(),
-        body: jsonEncode({'image_base64': base64Image}),
-      ).timeout(const Duration(seconds: 45));
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/api/background/remove-bg'),
+            headers: await _authHeaders(),
+            body: jsonEncode({'image_base64': base64Image}),
+          )
+          .timeout(const Duration(seconds: 45));
       if (response.statusCode == 200) {
         final data = await compute(_parseJsonMap, response.body);
         return data['image_base64'] as String?;
@@ -220,16 +234,18 @@ class BackendService {
   }) async {
     try {
       final base64String = await compute(_encodeBytes, imageBytes);
-      final response = await http.post(
-        Uri.parse('$baseUrl/api/wardrobe/capture/analyze'),
-        headers: await _authHeaders(),
-        body: jsonEncode({
-          'user_id': await _currentUserId(),
-          'image_base64': base64String,
-          'auto_save': autoSave,
-          'save_duplicates': saveDuplicates,
-        }),
-      ).timeout(const Duration(seconds: 55));
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/api/wardrobe/capture/analyze'),
+            headers: await _authHeaders(),
+            body: jsonEncode({
+              'user_id': await _currentUserId(),
+              'image_base64': base64String,
+              'auto_save': autoSave,
+              'save_duplicates': saveDuplicates,
+            }),
+          )
+          .timeout(const Duration(seconds: 55));
 
       if (response.statusCode == 200) {
         return await compute(_parseJsonMap, response.body);
@@ -249,18 +265,20 @@ class BackendService {
     List<Map<String, dynamic>> detectedItems,
   ) async {
     try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/api/wardrobe/capture/save-selected'),
-        headers: await _authHeaders(),
-        body: jsonEncode({
-          'user_id': await _currentUserId(),
-          'selected_item_ids': detectedItems
-              .map((item) => item['item_id']?.toString() ?? '')
-              .where((id) => id.isNotEmpty)
-              .toList(),
-          'detected_items': detectedItems,
-        }),
-      ).timeout(const Duration(seconds: 30));
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/api/wardrobe/capture/save-selected'),
+            headers: await _authHeaders(),
+            body: jsonEncode({
+              'user_id': await _currentUserId(),
+              'selected_item_ids': detectedItems
+                  .map((item) => item['item_id']?.toString() ?? '')
+                  .where((id) => id.isNotEmpty)
+                  .toList(),
+              'detected_items': detectedItems,
+            }),
+          )
+          .timeout(const Duration(seconds: 30));
 
       if (response.statusCode == 200) {
         return await compute(_parseJsonMap, response.body);
@@ -308,5 +326,3 @@ class BackendService {
     }
   }
 }
-
-

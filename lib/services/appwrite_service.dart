@@ -29,13 +29,22 @@ class AppwriteService extends ChangeNotifier {
   // AUTHENTICATION METHODS
   // =========================================================================
 
+  // ================= AHVI AUTH SESSION GUARD V1 =================
   Future<User?> getCurrentUser() async {
-    if (_cachedUser != null) return _cachedUser;
     try {
       _cachedUser = await account.get();
+
+      // Session exists. This is the only canonical user id.
+      // Do not replace it with any locally generated id.
       return _cachedUser;
     } catch (e) {
-      debugPrint("No active session or error: $e");
+      _cachedUser = null;
+
+      // Important:
+      // account.get() failing means there is no active Appwrite session.
+      // Do NOT create a new user here.
+      // Screens should redirect to sign-in/onboarding instead.
+      // BackendService will also refuse to call /api/text without a real user.
       return null;
     }
   }
@@ -58,7 +67,7 @@ class AppwriteService extends ChangeNotifier {
         email: email,
         password: password,
       );
-    await ensureCurrentUserProfile();
+      await ensureCurrentUserProfile();
       notifyListeners();
       return session;
     } catch (e) {
@@ -160,15 +169,16 @@ class AppwriteService extends ChangeNotifier {
   }
 
   // =========================================================================
-  
+
   bool _userProfileSyncInFlight = false;
 
   String _safeUsernameFromUser(dynamic user) {
     final emailPrefix = user.email.toString().split('@').first;
-    final raw = (user.name.toString().trim().isNotEmpty
-            ? user.name.toString()
-            : emailPrefix)
-        .toLowerCase();
+    final raw =
+        (user.name.toString().trim().isNotEmpty
+                ? user.name.toString()
+                : emailPrefix)
+            .toLowerCase();
 
     final cleaned = raw
         .replaceAll(RegExp(r'[^a-z0-9_]+'), '_')
@@ -184,7 +194,9 @@ class AppwriteService extends ChangeNotifier {
 
     final usersCollectionId = Env.usersCollection.trim();
     if (usersCollectionId.isEmpty) {
-      debugPrint('⚠️ Users collection env is empty. Skipping user profile sync.');
+      debugPrint(
+        '⚠️ Users collection env is empty. Skipping user profile sync.',
+      );
       return;
     }
 
@@ -254,8 +266,7 @@ class AppwriteService extends ChangeNotifier {
     }
   }
 
-
-// 👔 WARDROBE (OUTFITS) DB METHODS
+  // 👔 WARDROBE (OUTFITS) DB METHODS
   // =========================================================================
 
   Future<List<Map<String, dynamic>>> getWardrobeItems() async {
