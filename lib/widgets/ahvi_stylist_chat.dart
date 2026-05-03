@@ -1412,7 +1412,7 @@ class _StyleBoardCarousel extends StatelessWidget {
         itemCount: boards.length,
         separatorBuilder: (_, _) => const SizedBox(width: 12),
         itemBuilder: (_, index) =>
-            _PinterestStyleBoardCard(board: boards[index], width: width),
+            _EditorialStyleBoardCard(board: boards[index], width: width),
       ),
     );
   }
@@ -1567,6 +1567,638 @@ class _StyleBoardViewModel {
     return boards;
   }
 }
+
+
+class _EditorialStyleBoardCard extends StatelessWidget {
+  final _StyleBoardViewModel board;
+  final double width;
+
+  const _EditorialStyleBoardCard({
+    required this.board,
+    required this.width,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.themeTokens;
+
+    final top = _firstItemByRole(board.items, const [
+      'shirt',
+      'top',
+      't-shirt',
+      'tee',
+      'polo',
+      'kurta',
+      'hoodie',
+      'sweater',
+      'blazer',
+      'jacket',
+      'overshirt',
+    ]);
+
+    final bottom = _firstItemByRole(board.items, const [
+      'trouser',
+      'trousers',
+      'pant',
+      'pants',
+      'jeans',
+      'chinos',
+      'shorts',
+      'joggers',
+      'bottom',
+    ]);
+
+    final footwear = _firstItemByRole(board.items, const [
+      'shoe',
+      'shoes',
+      'sneaker',
+      'sneakers',
+      'loafer',
+      'loafers',
+      'boot',
+      'boots',
+      'footwear',
+      'sandals',
+      'formal shoes',
+    ]);
+
+    final accessories = _dedupEditorialAccessories(
+      board.items.where((item) {
+        if (identical(item, top) || identical(item, bottom) || identical(item, footwear)) {
+          return false;
+        }
+        final role = _editorialItemText(item);
+        return role.contains('watch') ||
+            role.contains('bracelet') ||
+            role.contains('belt') ||
+            role.contains('cap') ||
+            role.contains('bag') ||
+            role.contains('sunglass') ||
+            role.contains('eyewear') ||
+            role.contains('jewel') ||
+            role.contains('chain') ||
+            role.contains('ring');
+      }).toList(),
+    );
+
+    final lookName = _editorialLookName(board, top, bottom);
+    final occasion = _editorialOccasion(board);
+    final why = _editorialWhyItWorks(board, top, bottom, footwear);
+    final chips = _chipsFor(board).take(3).toList();
+
+    return Container(
+      width: width,
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFFCF5),
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: t.cardBorder.withValues(alpha: 0.70)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.12),
+            blurRadius: 26,
+            offset: const Offset(0, 12),
+          ),
+        ],
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _EditorialBoardHeader(
+              lookName: lookName,
+              occasion: occasion,
+              score: board.score,
+            ),
+            const SizedBox(height: 10),
+            _EditorialWhyBox(text: why),
+            const SizedBox(height: 12),
+            Expanded(
+              child: _EditorialMainOutfitZone(
+                top: top,
+                bottom: bottom,
+              ),
+            ),
+            const SizedBox(height: 10),
+            _EditorialSectionLabel(label: 'ACCESSORIES'),
+            const SizedBox(height: 7),
+            SizedBox(
+              height: 58,
+              child: accessories.isEmpty
+                  ? _EditorialEmptyHint(text: 'No accessory added')
+                  : ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      physics: const BouncingScrollPhysics(),
+                      itemCount: math.min(accessories.length, 4),
+                      separatorBuilder: (_, _) => const SizedBox(width: 8),
+                      itemBuilder: (_, index) {
+                        return _EditorialMiniItem(item: accessories[index]);
+                      },
+                    ),
+            ),
+            const SizedBox(height: 10),
+            _EditorialSectionLabel(label: 'FOOTWEAR'),
+            const SizedBox(height: 7),
+            SizedBox(
+              height: 70,
+              child: footwear == null
+                  ? _EditorialEmptyHint(text: 'Footwear not found')
+                  : _EditorialFootwearItem(item: footwear),
+            ),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                for (final chip in chips) ...[
+                  _BoardChip(label: chip, color: t.accent.secondary),
+                  const SizedBox(width: 6),
+                ],
+              ],
+            ),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Expanded(
+                  child: _BoardActionButton(
+                    label: 'Save Board',
+                    filled: true,
+                    onTap: () => _toast(
+                      context,
+                      'Board ready to save after Appwrite sync.',
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _BoardActionButton(
+                    label: 'Wear This',
+                    filled: false,
+                    onTap: () => _toast(context, 'Look selected for today.'),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _EditorialBoardHeader extends StatelessWidget {
+  final String lookName;
+  final String occasion;
+  final int? score;
+
+  const _EditorialBoardHeader({
+    required this.lookName,
+    required this.occasion,
+    required this.score,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.themeTokens;
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'LOOK 01',
+                style: TextStyle(
+                  color: t.accent.secondary,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1.4,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                lookName,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: t.textPrimary,
+                  fontSize: 23,
+                  fontWeight: FontWeight.w900,
+                  height: 1.0,
+                  letterSpacing: -0.5,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+                decoration: BoxDecoration(
+                  color: t.accent.secondary.withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(999),
+                  border: Border.all(
+                    color: t.accent.secondary.withValues(alpha: 0.26),
+                  ),
+                ),
+                child: Text(
+                  occasion.toUpperCase(),
+                  style: TextStyle(
+                    color: t.textPrimary,
+                    fontSize: 9,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 0.8,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        if (score != null)
+          Container(
+            margin: const EdgeInsets.only(left: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+            decoration: BoxDecoration(
+              color: t.accent.primary.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(999),
+              border: Border.all(
+                color: t.accent.primary.withValues(alpha: 0.20),
+              ),
+            ),
+            child: Text(
+              '$score%',
+              style: TextStyle(
+                color: t.accent.primary,
+                fontSize: 11,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class _EditorialWhyBox extends StatelessWidget {
+  final String text;
+
+  const _EditorialWhyBox({required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.themeTokens;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(11),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.72),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: t.cardBorder.withValues(alpha: 0.55)),
+      ),
+      child: Text.rich(
+        TextSpan(
+          children: [
+            TextSpan(
+              text: 'Why it works: ',
+              style: TextStyle(
+                color: t.textPrimary,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            TextSpan(text: text),
+          ],
+        ),
+        maxLines: 4,
+        overflow: TextOverflow.ellipsis,
+        style: TextStyle(
+          color: t.mutedText,
+          fontSize: 11,
+          height: 1.28,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+}
+
+class _EditorialMainOutfitZone extends StatelessWidget {
+  final Map<String, dynamic>? top;
+  final Map<String, dynamic>? bottom;
+
+  const _EditorialMainOutfitZone({
+    required this.top,
+    required this.bottom,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFFFFF).withValues(alpha: 0.74),
+        borderRadius: BorderRadius.circular(24),
+      ),
+      child: Column(
+        children: [
+          Expanded(
+            flex: 44,
+            child: top == null
+                ? _EditorialEmptyHint(text: 'Top not found')
+                : _EditorialWardrobeImage(item: top!, fit: BoxFit.contain),
+          ),
+          const SizedBox(height: 8),
+          Expanded(
+            flex: 56,
+            child: bottom == null
+                ? _EditorialEmptyHint(text: 'Bottom not found')
+                : _EditorialWardrobeImage(item: bottom!, fit: BoxFit.contain),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _EditorialSectionLabel extends StatelessWidget {
+  final String label;
+
+  const _EditorialSectionLabel({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.themeTokens;
+
+    return Row(
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            color: t.textPrimary.withValues(alpha: 0.74),
+            fontSize: 9,
+            fontWeight: FontWeight.w900,
+            letterSpacing: 1.2,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Container(
+            height: 1,
+            color: t.cardBorder.withValues(alpha: 0.70),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _EditorialMiniItem extends StatelessWidget {
+  final Map<String, dynamic> item;
+
+  const _EditorialMiniItem({required this.item});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 64,
+      padding: const EdgeInsets.all(6),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.78),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: _EditorialWardrobeImage(item: item, fit: BoxFit.contain),
+    );
+  }
+}
+
+class _EditorialFootwearItem extends StatelessWidget {
+  final Map<String, dynamic> item;
+
+  const _EditorialFootwearItem({required this.item});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(7),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.78),
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: _EditorialWardrobeImage(item: item, fit: BoxFit.contain),
+    );
+  }
+}
+
+class _EditorialWardrobeImage extends StatelessWidget {
+  final Map<String, dynamic> item;
+  final BoxFit fit;
+
+  const _EditorialWardrobeImage({
+    required this.item,
+    required this.fit,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final imageUrl = _nullableText(
+      item['masked_url'] ??
+          item['masked_image_url'] ??
+          item['maskedUrl'] ??
+          item['image_url'] ??
+          item['imageUrl'] ??
+          item['url'],
+    );
+
+    if (imageUrl != null && imageUrl.isNotEmpty) {
+      return Image.network(
+        imageUrl,
+        width: double.infinity,
+        height: double.infinity,
+        fit: fit,
+        errorBuilder: (_, _, _) => _EditorialItemPlaceholder(item: item),
+      );
+    }
+
+    return _EditorialItemPlaceholder(item: item);
+  }
+}
+
+class _EditorialItemPlaceholder extends StatelessWidget {
+  final Map<String, dynamic> item;
+
+  const _EditorialItemPlaceholder({required this.item});
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.themeTokens;
+    final name = _text(
+      item['name'] ?? item['label'] ?? item['title'] ?? item['category'],
+      'Item',
+    );
+
+    return Container(
+      alignment: Alignment.center,
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: t.accent.secondary.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: t.cardBorder.withValues(alpha: 0.5)),
+      ),
+      child: Text(
+        name,
+        textAlign: TextAlign.center,
+        maxLines: 3,
+        overflow: TextOverflow.ellipsis,
+        style: TextStyle(
+          color: t.textPrimary,
+          fontSize: 10,
+          height: 1.1,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+    );
+  }
+}
+
+class _EditorialEmptyHint extends StatelessWidget {
+  final String text;
+
+  const _EditorialEmptyHint({required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.themeTokens;
+
+    return Container(
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.45),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: t.cardBorder.withValues(alpha: 0.45)),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          color: t.mutedText,
+          fontSize: 10,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
+}
+
+Map<String, dynamic>? _firstItemByRole(
+  List<Map<String, dynamic>> items,
+  List<String> tokens,
+) {
+  for (final item in items) {
+    final text = _editorialItemText(item);
+    for (final token in tokens) {
+      if (text.contains(token)) return item;
+    }
+  }
+  return null;
+}
+
+String _editorialItemText(Map<String, dynamic> item) {
+  return [
+    item['name'],
+    item['label'],
+    item['title'],
+    item['category'],
+    item['sub_category'],
+    item['subcategory'],
+    item['type'],
+    item['color'],
+  ].where((v) => v != null).join(' ').toLowerCase();
+}
+
+List<Map<String, dynamic>> _dedupEditorialAccessories(
+  List<Map<String, dynamic>> items,
+) {
+  final seen = <String>{};
+  final output = <Map<String, dynamic>>[];
+
+  for (final item in items) {
+    final key = _text(
+      item['category'] ?? item['sub_category'] ?? item['name'] ?? item['label'],
+      '',
+    ).toLowerCase().trim();
+
+    if (key.isEmpty || seen.add(key)) {
+      output.add(item);
+    }
+  }
+
+  return output;
+}
+
+String _editorialLookName(
+  _StyleBoardViewModel board,
+  Map<String, dynamic>? top,
+  Map<String, dynamic>? bottom,
+) {
+  final existing = board.title.trim();
+  if (existing.isNotEmpty && existing.toLowerCase() != 'styled look') {
+    return existing;
+  }
+
+  final topColor = _text(top?['color'] ?? top?['dominant_color'], '').toLowerCase();
+  final bottomColor = _text(bottom?['color'] ?? bottom?['dominant_color'], '').toLowerCase();
+
+  String prettyColor(String value) {
+    if (value.contains('green') || value.contains('emerald')) return 'Emerald';
+    if (value.contains('beige') || value.contains('cream') || value.contains('tan')) return 'Sand';
+    if (value.contains('black')) return 'Noir';
+    if (value.contains('white')) return 'Ivory';
+    if (value.contains('blue') || value.contains('denim')) return 'Denim';
+    if (value.contains('pink')) return 'Rose';
+    if (value.contains('brown')) return 'Cocoa';
+    if (value.contains('navy')) return 'Navy';
+    if (value.isEmpty) return '';
+    return value[0].toUpperCase() + value.substring(1);
+  }
+
+  final a = prettyColor(topColor);
+  final b = prettyColor(bottomColor);
+
+  if (a.isNotEmpty && b.isNotEmpty && a != b) return '$a + $b';
+  if (a.isNotEmpty) return '$a Edit';
+
+  return 'Styled Look';
+}
+
+String _editorialOccasion(_StyleBoardViewModel board) {
+  final text = '${board.vibe} ${board.aesthetic} ${board.title}'.toLowerCase();
+
+  if (text.contains('date')) return 'Date Night';
+  if (text.contains('office') || text.contains('business')) return 'Office Casual';
+  if (text.contains('evening') || text.contains('dinner')) return 'Evening Casual';
+  if (text.contains('brunch')) return 'Brunch';
+  if (text.contains('street')) return 'Streetwear';
+
+  return 'Smart Casual';
+}
+
+String _editorialWhyItWorks(
+  _StyleBoardViewModel board,
+  Map<String, dynamic>? top,
+  Map<String, dynamic>? bottom,
+  Map<String, dynamic>? footwear,
+) {
+  final existing = board.vibe.trim();
+  if (existing.isNotEmpty && existing.toLowerCase() != 'wardrobe ready') {
+    return existing;
+  }
+
+  final topName = _text(top?['name'] ?? top?['label'] ?? top?['category'], 'top');
+  final bottomName = _text(bottom?['name'] ?? bottom?['label'] ?? bottom?['category'], 'bottom');
+  final footwearName = _text(footwear?['name'] ?? footwear?['label'] ?? footwear?['category'], 'footwear');
+
+  return 'The $topName creates the focal point, the $bottomName balances the silhouette, and the $footwearName finishes the look for a clean styled outfit.';
+}
+
 
 class _PinterestStyleBoardCard extends StatelessWidget {
   final _StyleBoardViewModel board;
