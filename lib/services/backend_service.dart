@@ -37,14 +37,21 @@ class BackendService {
   Future<String> _currentUserId() async {
     final user = await _appwriteService.getCurrentUser();
 
-    // Web debug / fresh app start may not have an Appwrite session yet.
-    // Do not crash the whole UI. Return an empty marker and let callers
-    // handle auth-required state gracefully.
-    if (user == null || user.$id.trim().isEmpty) {
-      return '';
+    if (user != null && user.$id.trim().isNotEmpty) {
+      return user.$id.trim();
     }
 
-    return user.$id;
+    // Appwrite session may still be restoring on app start.
+    // Use the last authenticated id only as a continuity fallback.
+    final cachedUserId = await _appwriteService.getCachedUserId();
+    if (cachedUserId != null && cachedUserId.trim().isNotEmpty) {
+      return cachedUserId.trim();
+    }
+
+    // Never send user_1, empty string, ID.unique(), or any fake user id.
+    throw StateError(
+      'No authenticated Appwrite user. User must sign in before backend requests.',
+    );
   }
 
   Future<Map<String, String>> _authHeaders() async {

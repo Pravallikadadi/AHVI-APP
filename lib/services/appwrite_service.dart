@@ -5,6 +5,7 @@ import 'package:appwrite/models.dart';
 import 'package:appwrite/enums.dart';
 import 'package:myapp/config/env.dart';
 import 'package:myapp/services/notification_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class AppwriteService extends ChangeNotifier {
   late Client client;
@@ -30,21 +31,46 @@ class AppwriteService extends ChangeNotifier {
   // =========================================================================
 
   // ================= AHVI AUTH SESSION GUARD V1 =================
+
+  // ================= AHVI PERSISTED USER SESSION V2 BEGIN =================
+  static const String _ahviCachedUserIdKey = 'ahvi_current_appwrite_user_id';
+  static const String _ahviCachedUserEmailKey =
+      'ahvi_current_appwrite_user_email';
+
+  Future<void> _persistCurrentUser(User user) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_ahviCachedUserIdKey, user.$id);
+    await prefs.setString(_ahviCachedUserEmailKey, user.email);
+  }
+
+  Future<String?> getCachedUserId() async {
+    final prefs = await SharedPreferences.getInstance();
+    final id = prefs.getString(_ahviCachedUserIdKey);
+    if (id == null || id.trim().isEmpty) return null;
+    return id.trim();
+  }
+
+  Future<void> clearCachedUserIdentity() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_ahviCachedUserIdKey);
+    await prefs.remove(_ahviCachedUserEmailKey);
+  }
+  // ================= AHVI PERSISTED USER SESSION V2 END =================
+
   Future<User?> getCurrentUser() async {
     try {
       _cachedUser = await account.get();
 
-      // Session exists. This is the only canonical user id.
-      // Do not replace it with any locally generated id.
+      // Canonical source of truth is Appwrite Auth account id.
+      await _persistCurrentUser(_cachedUser!);
+
       return _cachedUser;
     } catch (e) {
       _cachedUser = null;
 
       // Important:
-      // account.get() failing means there is no active Appwrite session.
-      // Do NOT create a new user here.
-      // Screens should redirect to sign-in/onboarding instead.
-      // BackendService will also refuse to call /api/text without a real user.
+      // No active Appwrite session. Do not create a new account/profile here.
+      // Caller should route to sign-in/onboarding.
       return null;
     }
   }
@@ -53,7 +79,10 @@ class AppwriteService extends ChangeNotifier {
   Future<void> cacheCurrentUser() async {
     try {
       _cachedUser = await account.get();
-    } catch (_) {}
+      await _persistCurrentUser(_cachedUser!);
+    } catch (e) {
+      _cachedUser = null;
+    }
   }
 
   // Clear cache on logout
@@ -130,6 +159,7 @@ class AppwriteService extends ChangeNotifier {
   }
 
   Future<void> logout() async {
+    await clearCachedUserIdentity();
     try {
       await AhviNotificationService.instance.unregisterForCurrentUser(this);
       await account.deleteSession(sessionId: 'current');
