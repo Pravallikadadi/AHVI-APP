@@ -1147,7 +1147,11 @@ class _ChatScreenState extends State<ChatScreen>
         .toList();
     if (boards.isEmpty) return const SizedBox.shrink();
 
-    return _OutfitBoardSwiper(boards: boards, t: t, onSave: _saveBoardToPlanner);
+    return _OutfitBoardSwiper(
+      boards: boards,
+      t: t,
+      onSave: _saveBoardToPlanner,
+    );
   }
 
   Future<void> _saveBoardToPlanner(
@@ -1156,15 +1160,15 @@ class _ChatScreenState extends State<ChatScreen>
   ) async {
     final appwrite = Provider.of<AppwriteService>(context, listen: false);
 
-    final occasion =
-        (board['occasion'] ?? board['title'] ?? 'Saved').toString().trim();
+    final occasion = (board['occasion'] ?? board['title'] ?? 'Saved')
+        .toString()
+        .trim();
     final desc = slotted.values
         .map((it) => (it['name'] ?? '').toString().trim())
         .where((s) => s.isNotEmpty)
         .join(' + ');
     final firstWithImage = slotted.values.firstWhere(
-      (it) =>
-          (it['masked_url'] ?? it['image_url'] ?? '').toString().isNotEmpty,
+      (it) => (it['masked_url'] ?? it['image_url'] ?? '').toString().isNotEmpty,
       orElse: () => const <String, dynamic>{},
     );
     final imageUrl =
@@ -2631,26 +2635,31 @@ class _PulsingMicIconState extends State<_PulsingMicIcon>
 // File-level helpers shared by the State class above and the swiper widget below.
 
 const Map<String, Rect> _flatLaySlotsKv = {
-  // Main outfit column
-  'top':       Rect.fromLTWH(0.05, 0.06, 0.48, 0.34),
-  'bottom':    Rect.fromLTWH(0.04, 0.37, 0.50, 0.58),
+  // Canonical outfit slots:
+  // top + bottom + footwear + accessories
+  'top': Rect.fromLTWH(0.05, 0.04, 0.45, 0.30),
+  'bottom': Rect.fromLTWH(0.04, 0.33, 0.49, 0.58),
+  'footwear': Rect.fromLTWH(0.55, 0.72, 0.42, 0.24),
 
-  // Right-side accessories and shoes, reference-board style
-  'watch':     Rect.fromLTWH(0.58, 0.06, 0.17, 0.16),
-  'jewelry':   Rect.fromLTWH(0.77, 0.06, 0.18, 0.16),
-  'eyewear':   Rect.fromLTWH(0.58, 0.22, 0.22, 0.15),
-  'belt':      Rect.fromLTWH(0.79, 0.22, 0.18, 0.15),
-  'headwear':  Rect.fromLTWH(0.58, 0.37, 0.26, 0.18),
-  'bag':       Rect.fromLTWH(0.60, 0.52, 0.35, 0.23),
-  'shoes':     Rect.fromLTWH(0.57, 0.75, 0.40, 0.22),
+  // One-piece outfit slot: dress / saree / lehenga / gown
+  'dress': Rect.fromLTWH(0.05, 0.05, 0.47, 0.72),
 
-  // Overflow accessories, used if there are multiple small add-ons
-  'accessory1': Rect.fromLTWH(0.84, 0.38, 0.13, 0.13),
-  'accessory2': Rect.fromLTWH(0.84, 0.52, 0.13, 0.13),
+  // Accessory sub-slots
+  'watch': Rect.fromLTWH(0.58, 0.05, 0.16, 0.14),
+  'jewelry': Rect.fromLTWH(0.76, 0.05, 0.17, 0.14),
+  'eyewear': Rect.fromLTWH(0.57, 0.20, 0.23, 0.13),
+  'belt': Rect.fromLTWH(0.76, 0.20, 0.20, 0.13),
+  'headwear': Rect.fromLTWH(0.58, 0.35, 0.30, 0.18),
+  'bag': Rect.fromLTWH(0.58, 0.51, 0.37, 0.20),
+
+  // Extra accessory fallback positions
+  'accessory1': Rect.fromLTWH(0.84, 0.35, 0.13, 0.13),
+  'accessory2': Rect.fromLTWH(0.84, 0.49, 0.13, 0.13),
 };
 
 String _roleForItem(Map<String, dynamic> item) {
   final blob = [
+    item['role'],
     item['slot'],
     item['type'],
     item['category'],
@@ -2666,29 +2675,44 @@ String _roleForItem(Map<String, dynamic> item) {
 
   bool has(String pattern) => RegExp(pattern).hasMatch(blob);
 
-  // Shoes first: unambiguous.
-  if (has(r'\b(shoe|shoes|sneaker|sneakers|heel|heels|boot|boots|sandal|sandals|loafer|loafers|flipflop|slipper|footwear)\b')) {
-    return 'shoes';
+  // Canonical role: footwear.
+  if (has(
+    r'\b(footwear|shoe|shoes|sneaker|sneakers|boot|boots|chelsea|loafer|loafers|heel|heels|sandal|sandals|flat|flats|slipper|slippers|flipflop|flipflops)\b',
+  )) {
+    return 'footwear';
   }
 
-  // Accessories before clothing, so "belt", "watch", "sunglasses" never disappear.
+  // One-piece garments before tops.
+  // This prevents saree/dress/lehenga/gown from being rendered as a top.
+  if (has(r'\b(dress|dresses|saree|sari|lehenga|gown|jumpsuit)\b')) {
+    return 'dress';
+  }
+
+  // Accessory sub-slots.
   if (has(r'\b(watch|watches)\b')) return 'watch';
   if (has(r'\b(belt|belts)\b')) return 'belt';
-  if (has(r'\b(sunglass|sunglasses|eyewear|glasses|shade|shades)\b')) return 'eyewear';
+  if (has(r'\b(sunglass|sunglasses|eyewear|glasses|shade|shades)\b'))
+    return 'eyewear';
   if (has(r'\b(bag|bags|purse|clutch|backpack|tote|handbag)\b')) return 'bag';
-  if (has(r'\b(necklace|earring|earrings|ring|rings|bracelet|bracelets|jewelry|jewellery)\b')) {
+  if (has(
+    r'\b(necklace|earring|earrings|ring|rings|bracelet|bracelets|jewelry|jewellery)\b',
+  )) {
     return 'jewelry';
   }
   if (has(r'\b(cap|caps|hat|hats|beanie|headwear)\b')) return 'headwear';
   if (has(r'\b(scarf|scarves|accessory|accessories)\b')) return 'accessory';
 
-  // Tops before bottoms because "short-sleeve shirt" contains "short".
-  if (has(r'\b(shirt|shirts|top|tops|blouse|jacket|blazer|tee|tshirt|tshirts|vest|dress|dresses|sweater|hoodie|kurta|kurti|saree|sari|tunic|tunics)\b')) {
+  // Canonical role: top.
+  if (has(
+    r'\b(top|tops|shirt|shirts|tee|tshirt|tshirts|polo|buttondown|button-down|jacket|blazer|sweater|hoodie|vest|kurta|tunic|tunics)\b',
+  )) {
     return 'top';
   }
 
-  // "shorts" only; never "short".
-  if (has(r'\b(jean|jeans|pant|pants|trouser|trousers|shorts|skirt|skirts|bottom|bottoms|chino|chinos)\b')) {
+  // Canonical role: bottom. Use shorts only; never "short".
+  if (has(
+    r'\b(bottom|bottoms|jean|jeans|pant|pants|trouser|trousers|shorts|skirt|skirts|chino|chinos|cargo|jogger|joggers|trackpants)\b',
+  )) {
     return 'bottom';
   }
 
@@ -2696,7 +2720,8 @@ String _roleForItem(Map<String, dynamic> item) {
 }
 
 Map<String, Map<String, dynamic>> _slotItemsForFlatLayKv(
-    List<Map<String, dynamic>> items) {
+  List<Map<String, dynamic>> items,
+) {
   final byRole = <String, Map<String, dynamic>>{};
   var accessoryOverflow = 0;
 
@@ -2713,18 +2738,35 @@ Map<String, Map<String, dynamic>> _slotItemsForFlatLayKv(
         .isNotEmpty;
   }
 
+  void putAccessoryOverflow(Map<String, dynamic> item) {
+    final key = accessoryOverflow == 0 ? 'accessory1' : 'accessory2';
+    accessoryOverflow += 1;
+    byRole.putIfAbsent(key, () => item);
+  }
+
   void putRole(String role, Map<String, dynamic> item) {
     if (!hasImage(item)) return;
 
     if (role == 'accessory') {
-      final key = accessoryOverflow == 0 ? 'accessory1' : 'accessory2';
-      accessoryOverflow += 1;
-      byRole.putIfAbsent(key, () => item);
+      putAccessoryOverflow(item);
       return;
     }
 
-    // Main clothing keeps first item per role. Accessories have distinct roles.
-    byRole.putIfAbsent(role, () => item);
+    if (byRole.containsKey(role)) {
+      // Main outfit keeps one top, one bottom, one footwear, one dress.
+      // Duplicate accessories overflow into accessory slots.
+      if (role == 'watch' ||
+          role == 'jewelry' ||
+          role == 'eyewear' ||
+          role == 'belt' ||
+          role == 'headwear' ||
+          role == 'bag') {
+        putAccessoryOverflow(item);
+      }
+      return;
+    }
+
+    byRole[role] = item;
   }
 
   for (final item in items) {
@@ -2736,21 +2778,32 @@ Map<String, Map<String, dynamic>> _slotItemsForFlatLayKv(
     }
   }
 
+  // If a one-piece item exists, do not also render top/bottom over it.
+  if (byRole.containsKey('dress')) {
+    byRole.remove('top');
+    byRole.remove('bottom');
+  }
+
   return byRole;
 }
 
 Widget _flatLayPieceKv(
-    Map<String, dynamic> item, String role, double w, double h) {
+  Map<String, dynamic> item,
+  String role,
+  double w,
+  double h,
+) {
   final slot = _flatLaySlotsKv[role];
   if (slot == null) return const SizedBox.shrink();
-  final imageUrl = (item['masked_url'] ??
-          item['maskedUrl'] ??
-          item['image_url'] ??
-          item['imageUrl'] ??
-          item['url'] ??
-          item['image'] ??
-          '')
-      .toString();
+  final imageUrl =
+      (item['masked_url'] ??
+              item['maskedUrl'] ??
+              item['image_url'] ??
+              item['imageUrl'] ??
+              item['url'] ??
+              item['image'] ??
+              '')
+          .toString();
   return Positioned(
     left: slot.left * w,
     top: slot.top * h,
@@ -2776,10 +2829,11 @@ Widget _flatLayPieceKv(
   );
 }
 
-typedef _OutfitBoardSaveCallback = Future<void> Function(
-  Map<String, dynamic> board,
-  Map<String, Map<String, dynamic>> slotted,
-);
+typedef _OutfitBoardSaveCallback =
+    Future<void> Function(
+      Map<String, dynamic> board,
+      Map<String, Map<String, dynamic>> slotted,
+    );
 
 class _OutfitBoardSwiper extends StatefulWidget {
   final List<Map<String, dynamic>> boards;
@@ -2922,7 +2976,9 @@ class _OutfitBoardSwiperState extends State<_OutfitBoardSwiper> {
               : t.accent.primary.withValues(alpha: 0.10),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-              color: t.accent.primary.withValues(alpha: 0.4), width: 1),
+            color: t.accent.primary.withValues(alpha: 0.4),
+            width: 1,
+          ),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
