@@ -1,4 +1,4 @@
-﻿// ============================================================
+// ============================================================
 // WARDROBE.DART - DUAL R2 UPLOAD + APPWRITE FETCH/SAVE
 // ============================================================
 
@@ -545,26 +545,26 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
               collectionId: Env.outfitsCollection,
               documentId: ID.unique(),
               data: {
-              'image_url': imageUrl,
-              'category': localItem.cat,
-              'userId': user.$id,
-              'status': 'active',
+                'image_url': imageUrl,
+                'category': localItem.cat,
+                'userId': user.$id,
+                'status': 'active',
 
-              'masked_url': maskedUrl,
-              'image_id': localItem.id,
-              'masked_id': '${localItem.id}_masked',
+                'masked_url': maskedUrl,
+                'image_id': localItem.id,
+                'masked_id': '${localItem.id}_masked',
 
-              'name': localItem.name,
-              'sub_category': localItem.cat,
+                'name': localItem.name,
+                'sub_category': localItem.cat,
 
-              'color_code': '#000000',
-              'occasions': localItem.occasions,
-              'pattern': 'plain',
+                'color_code': '#000000',
+                'occasions': localItem.occasions,
+                'pattern': 'plain',
 
-              'worn': localItem.worn,
-              'liked': localItem.liked,
-              'qdrant_point_id': localItem.id,
-            },
+                'worn': localItem.worn,
+                'liked': localItem.liked,
+                'qdrant_point_id': localItem.id,
+              },
               permissions: [
                 Permission.read(Role.user(user.$id)),
                 Permission.update(Role.user(user.$id)),
@@ -604,7 +604,9 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
             debugPrint('$st');
 
             if (mounted) {
-              setState(() => _wardrobe.removeWhere((w) => w.id == localItem.id));
+              setState(
+                () => _wardrobe.removeWhere((w) => w.id == localItem.id),
+              );
               await _saveWardrobeCache();
               _showToast('Save failed: ${e.message}');
             }
@@ -613,7 +615,9 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
             debugPrint('$st');
 
             if (mounted) {
-              setState(() => _wardrobe.removeWhere((w) => w.id == localItem.id));
+              setState(
+                () => _wardrobe.removeWhere((w) => w.id == localItem.id),
+              );
               await _saveWardrobeCache();
               _showToast('Save failed. Check logs.');
             }
@@ -695,22 +699,22 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
   }
 
   void _shareItem(WardrobeItem item) {
-  final occasionText = item.occasions.isNotEmpty
-      ? '\nOccasions: ${_cleanStringList(item.occasions).join(', ')}'
-      : '';
+    final occasionText = item.occasions.isNotEmpty
+        ? '\nOccasions: ${_cleanStringList(item.occasions).join(', ')}'
+        : '';
 
-  final notesText = _cleanUiText(item.notes).isNotEmpty
-      ? '\nNotes: ${_cleanUiText(item.notes)}'
-      : '';
+    final notesText = _cleanUiText(item.notes).isNotEmpty
+        ? '\nNotes: ${_cleanUiText(item.notes)}'
+        : '';
 
-  final text =
-      '${_cleanUiText(item.name, fallback: 'Item')}\n'
-      'Category: ${_cleanCategory(item.cat)}'
-      '$occasionText'
-      '$notesText';
+    final text =
+        '${_cleanUiText(item.name, fallback: 'Item')}\n'
+        'Category: ${_cleanCategory(item.cat)}'
+        '$occasionText'
+        '$notesText';
 
-  Clipboard.setData(ClipboardData(text: text));
-  _showToast('Copied to clipboard');
+    Clipboard.setData(ClipboardData(text: text));
+    _showToast('Copied to clipboard');
   }
 
   Future<void> _showEditSavedItem(WardrobeItem item) async {
@@ -827,10 +831,39 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
     }
   }
 
+  Map<String, dynamic> _wardrobeItemDeletePayload(WardrobeItem item) {
+    return {
+      'id': item.id,
+      'item_id': item.id,
+      'document_id': item.id,
+      'name': item.name,
+      'category': item.cat,
+      'image_url': item.imageUrl,
+      'imageUrl': item.imageUrl,
+      'masked_url': item.imageUrl,
+      'maskedUrl': item.imageUrl,
+    };
+  }
+
+  Future<bool> _deleteWardrobeItemPersistently(WardrobeItem item) async {
+    final result = await BackendService().deleteWardrobeItems([
+      _wardrobeItemDeletePayload(item),
+    ], deleteR2: true);
+
+    if (result == null) return false;
+
+    final success = result['success'] == true;
+    final deletedCount = int.tryParse('${result['deleted_count'] ?? 0}') ?? 0;
+    final errorCount = int.tryParse('${result['error_count'] ?? 0}') ?? 0;
+
+    return success || (deletedCount > 0 && errorCount == 0);
+  }
+
   void _showDeleteConfirm(String id) {
     final t = context.themeTokens;
     final accent4 = _accent4(t);
     final item = _wardrobe.firstWhere((i) => i.id == id);
+
     showDialog(
       context: context,
       barrierColor: t.backgroundPrimary.withValues(alpha: 0.7),
@@ -846,7 +879,7 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
           ),
         ),
         content: Text(
-          'Remove "${item.name}" from your wardrobe?',
+          'Remove "${item.name}" from your wardrobe? This will delete it from cloud storage too.',
           style: TextStyle(
             fontFamily: GoogleFonts.inter().fontFamily,
             color: t.mutedText,
@@ -866,9 +899,43 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
           TextButton(
             onPressed: () async {
               Navigator.of(context).pop();
+
+              final previous = List<WardrobeItem>.from(_wardrobe);
+
               setState(() => _wardrobe.removeWhere((i) => i.id == id));
               await _saveWardrobeCache();
-              _showToast('"${item.name}" removed');
+
+              try {
+                final deleted = await _deleteWardrobeItemPersistently(item);
+
+                if (!deleted) {
+                  if (!mounted) return;
+                  setState(() {
+                    _wardrobe
+                      ..clear()
+                      ..addAll(previous);
+                  });
+                  await _saveWardrobeCache();
+                  _showToast(
+                    'Could not remove "${item.name}" from cloud. Please try again.',
+                  );
+                  return;
+                }
+
+                if (!mounted) return;
+                _showToast('"${item.name}" removed');
+              } catch (e) {
+                if (!mounted) return;
+                setState(() {
+                  _wardrobe
+                    ..clear()
+                    ..addAll(previous);
+                });
+                await _saveWardrobeCache();
+                _showToast(
+                  'Could not remove "${item.name}". Please try again.',
+                );
+              }
             },
             child: Text(
               AppLocalizations.t(context, 'wardrobe_remove'),

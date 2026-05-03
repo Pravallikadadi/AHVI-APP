@@ -301,6 +301,66 @@ class BackendService {
     }
   }
 
+  Future<Map<String, dynamic>?> deleteWardrobeItems(
+    List<Map<String, dynamic>> items, {
+    bool deleteR2 = true,
+  }) async {
+    try {
+      final ids = items
+          .map(
+            (item) =>
+                item[r'$id'] ??
+                item['document_id'] ??
+                item['documentId'] ??
+                item['id'] ??
+                item['item_id'] ??
+                item['itemId'] ??
+                '',
+          )
+          .map((id) => id.toString().trim())
+          .where((id) => id.isNotEmpty)
+          .toSet()
+          .toList();
+
+      if (ids.isEmpty) {
+        return {
+          'success': false,
+          'error': 'No wardrobe document id found for delete.',
+        };
+      }
+
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/api/wardrobe/capture/delete-selected'),
+            headers: await _authHeaders(),
+            body: jsonEncode({
+              'user_id': await _currentUserId(),
+              'item_ids': ids,
+              'items': items,
+              'delete_r2': deleteR2,
+            }),
+          )
+          .timeout(const Duration(seconds: 35));
+
+      if (response.statusCode == 200) {
+        return await compute(_parseJsonMap, response.body);
+      }
+
+      debugPrint(
+        'Wardrobe delete failed: ${response.statusCode} ${response.body}',
+      );
+
+      return {
+        'success': false,
+        'status': response.statusCode,
+        'error': response.body,
+      };
+    } catch (e) {
+      debugPrint('Wardrobe delete error: $e');
+      return {'success': false, 'error': e.toString()};
+    }
+  }
+
   Future<bool> scheduleReminder({
     required String eventId,
     required String message,
