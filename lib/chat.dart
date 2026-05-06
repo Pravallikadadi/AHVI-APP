@@ -473,7 +473,6 @@ class _ChatScreenState extends State<ChatScreen>
   final List<_ChatMessage> _messages = [];
   final List<Map<String, String>> _chatHistory = [];
   String _runningMemory = '';
-  String? _lastStylePrompt;
   bool _isTyping = false;
   String _userName = 'User';
   final Map<String, List<List<bool>>> _checklistChecksByTitle = {};
@@ -680,68 +679,7 @@ class _ChatScreenState extends State<ChatScreen>
     _scrollToBottom();
   }
 
-
-  bool _isAhviMoreLooksChip(String chip) {
-    final q = chip.toLowerCase().trim();
-    return q.contains('more look') ||
-        q.contains('next best') ||
-        q.contains('next option') ||
-        q.contains('other option') ||
-        q.contains('different shoe') ||
-        q.contains('different footwear') ||
-        q == 'more';
-  }
-
-  bool _isAhviStylePrompt(String text) {
-    final q = text.toLowerCase();
-    return q.contains('wear') ||
-        q.contains('outfit') ||
-        q.contains('look') ||
-        q.contains('style board') ||
-        q.contains('date night') ||
-        q.contains('dinner') ||
-        q.contains('office') ||
-        q.contains('party') ||
-        q.contains('travel');
-  }
-
-  String _buildMoreLooksPrompt(String chip) {
-    final base = (_lastStylePrompt != null && _lastStylePrompt!.trim().isNotEmpty)
-        ? _lastStylePrompt!.trim()
-        : 'Suggest an outfit from my wardrobe';
-
-    final q = chip.toLowerCase();
-    if (q.contains('shoe') || q.contains('footwear')) {
-      return '$base. Show a fresh set of outfit boards with different footwear where possible. Avoid repeating the exact same looks already shown.';
-    }
-
-    if (q.contains('next best')) {
-      return '$base. Show the next best outfit options from my wardrobe. Avoid repeating the exact same looks already shown.';
-    }
-
-    return '$base. Show more outfit options from my wardrobe. Avoid repeating the exact same looks already shown.';
-  }
-
-  List<dynamic> _chipsForAssistantResponse(Map<String, dynamic> response, List<dynamic> cards) {
-    final raw = List<dynamic>.from(response['chips'] as List? ?? const []);
-    if (cards.isEmpty) return raw;
-
-    const styleChips = ['More looks', 'Next best options', 'Try different shoes'];
-    final out = <dynamic>[...raw];
-    for (final chip in styleChips) {
-      if (!out.any((x) => x.toString().toLowerCase() == chip.toLowerCase())) {
-        out.add(chip);
-      }
-    }
-    return out;
-  }
-
   void _handleChipTap(String chip) {
-    if (_isAhviMoreLooksChip(chip)) {
-      _sendMessage(_buildMoreLooksPrompt(chip));
-      return;
-    }
-
     final local = _local[chip];
     if (local == null) return _sendMessage(chip);
     setState(() {
@@ -755,9 +693,6 @@ class _ChatScreenState extends State<ChatScreen>
     final text = chipText ?? _chatController.text.trim();
     if (text.isEmpty) return;
     _chatController.clear();
-    if (_isAhviStylePrompt(text) && !_isAhviMoreLooksChip(text)) {
-      _lastStylePrompt = text;
-    }
     setState(() {
       _messages.add(_ChatMessage(text: text, isMe: true));
       _chatHistory.add({'role': 'user', 'content': text});
@@ -778,23 +713,21 @@ class _ChatScreenState extends State<ChatScreen>
         _runningMemory = response['updated_memory'];
       }
       final rawMessage = response['message'];
-      final cards = List<dynamic>.from(response['cards'] as List? ?? const []);
       final aiText =
           (response['message_text'] ??
                   (rawMessage is Map ? rawMessage['content'] : rawMessage) ??
                   AppLocalizations.t(context, 'chat_connection_error'))
               .toString();
-
       _chatHistory.add({'role': 'assistant', 'content': aiText});
       setState(
         () => _messages.add(
           _ChatMessage(
             text: aiText,
             isMe: false,
-            chips: _chipsForAssistantResponse(response, cards),
+            chips: response['chips'] ?? [],
             boardId: response['board_ids'],
             packId: response['pack_ids'],
-            cards: cards,
+            cards: List<dynamic>.from(response['cards'] as List? ?? const []),
           ),
         ),
       );
@@ -1192,7 +1125,7 @@ class _ChatScreenState extends State<ChatScreen>
             children: m.chips
                 .map(
                   (c) => GestureDetector(
-                    onTap: () => _handleChipTap(c.toString()),
+                    onTap: () => _sendMessage(c.toString()),
                     child: _chip(c.toString(), t),
                   ),
                 )
@@ -1235,12 +1168,10 @@ class _ChatScreenState extends State<ChatScreen>
         .where((s) => s.isNotEmpty)
         .join(' + ');
     final firstWithImage = slotted.values.firstWhere(
-      (it) => (it['masked_url'] ?? it['image_url'] ?? '').toString().isNotEmpty,
+      (it) => _flatLayImageUrlKv(it).isNotEmpty,
       orElse: () => const <String, dynamic>{},
     );
-    final imageUrl =
-        (firstWithImage['masked_url'] ?? firstWithImage['image_url'] ?? '')
-            .toString();
+    final imageUrl = _flatLayImageUrlKv(firstWithImage);
 
     final result = await appwrite.saveBoardToCollection(
       occasion: occasion.isEmpty ? 'Saved' : occasion,
@@ -2977,15 +2908,39 @@ List<MapEntry<String, Map<String, dynamic>>> _flatLaySortedEntriesKv(
 }
 
 String _flatLayImageUrlKv(Map<String, dynamic> item) {
-  return (item['masked_url'] ??
-          item['maskedUrl'] ??
-          item['image_url'] ??
-          item['imageUrl'] ??
-          item['url'] ??
-          item['image'] ??
-          '')
-      .toString()
-      .trim();
+  // AHVI style boards must prefer clean/processed item assets.
+  // Some older documents store the raw photo in image_url, so image_url
+  // should not win over normalized/masked/processed URLs.
+  final candidates = <Object?>[
+    item['normalized_url'],
+    item['normalizedUrl'],
+    item['transparent_url'],
+    item['transparentUrl'],
+    item['processed_url'],
+    item['processedUrl'],
+    item['masked_url'],
+    item['maskedUrl'],
+    item['png_url'],
+    item['pngUrl'],
+    item['cutout_url'],
+    item['cutoutUrl'],
+    item['image_url'],
+    item['imageUrl'],
+    item['public_url'],
+    item['publicUrl'],
+    item['url'],
+    item['image'],
+    item['raw_url'],
+    item['rawUrl'],
+  ];
+
+  for (final value in candidates) {
+    final url = value?.toString().trim() ?? '';
+    if (url.isEmpty || url.toLowerCase() == 'null') continue;
+    return url;
+  }
+
+  return '';
 }
 
 // Premium board shell colors / spacing
@@ -3285,13 +3240,31 @@ class _OutfitBoardSwiperState extends State<_OutfitBoardSwiper> {
                 }),
               ),
             ),
-          Padding(
-            padding: const EdgeInsets.only(top: 12, left: 4),
-            child: _saveButton(t),
-          ),
         ],
       ),
     );
+  }
+
+
+  Future<void> _saveBoardAt(int index) async {
+    if (index < 0 || index >= widget.boards.length) return;
+    if (_saving.contains(index) || _saved.contains(index)) return;
+
+    setState(() => _saving.add(index));
+    final board = widget.boards[index];
+    final rawItems = board['items'] as List? ?? const [];
+    final items = rawItems
+        .whereType<Map>()
+        .map((e) => Map<String, dynamic>.from(e))
+        .toList();
+    final slotted = _slotItemsForFlatLayKv(items);
+
+    await widget.onSave(board, slotted);
+    if (!mounted) return;
+    setState(() {
+      _saving.remove(index);
+      _saved.add(index);
+    });
   }
 
   Widget _editorialBoardCanvas(
@@ -3347,6 +3320,10 @@ class _OutfitBoardSwiperState extends State<_OutfitBoardSwiper> {
       'sneakers',
       'loafer',
       'loafers',
+      'slider',
+      'sliders',
+      'slipper',
+      'slippers',
       'boot',
       'boots',
       'sandals',
@@ -3359,6 +3336,7 @@ class _OutfitBoardSwiperState extends State<_OutfitBoardSwiper> {
       dress,
       footwear,
     );
+
     final lookName = _editorialLookName(board, top ?? dress, bottom);
     final occasion = _editorialOccasion(board);
     final why = _editorialWhy(board, top ?? dress, bottom, footwear);
@@ -3379,7 +3357,7 @@ class _OutfitBoardSwiperState extends State<_OutfitBoardSwiper> {
           ],
         ),
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -3388,84 +3366,229 @@ class _OutfitBoardSwiperState extends State<_OutfitBoardSwiper> {
               _editorialWhyBox(t, why),
               const SizedBox(height: 10),
               Expanded(
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.72),
-                    borderRadius: BorderRadius.circular(22),
-                  ),
-                  child: dress != null
-                      ? _editorialImageOrPlaceholder(dress, t)
-                      : Column(
-                          children: [
-                            Expanded(
-                              flex: 42,
-                              child: top == null
-                                  ? _editorialEmpty(t, 'Top not found')
-                                  : _editorialImageOrPlaceholder(top, t),
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final w = constraints.maxWidth;
+                    final h = constraints.maxHeight;
+
+                    Widget positionedItem({
+                      required Map<String, dynamic>? item,
+                      required double left,
+                      required double topPx,
+                      required double width,
+                      required double height,
+                      required AppThemeTokens t,
+                      Alignment alignment = Alignment.center,
+                      double scale = 1.0,
+                    }) {
+                      if (item == null) return const SizedBox.shrink();
+                      return Positioned(
+                        left: left,
+                        top: topPx,
+                        width: width,
+                        height: height,
+                        child: Transform.scale(
+                          scale: scale,
+                          alignment: alignment,
+                          child: Align(
+                            alignment: alignment,
+                            child: _editorialImageOrPlaceholder(item, t),
+                          ),
+                        ),
+                      );
+                    }
+
+                    final visibleAccessories =
+                        accessories.take(4).toList(growable: false);
+                    final accessoryCount = visibleAccessories.length;
+                    final railLeft = w * 0.710;
+                    final railTop = h * 0.045;
+                    final railGap = h * 0.022;
+                    final railItemH = accessoryCount <= 2 ? h * 0.180 : h * 0.142;
+                    final railItemW = w * 0.250;
+
+                    return Container(
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.78),
+                        borderRadius: BorderRadius.circular(24),
+                      ),
+                      clipBehavior: Clip.antiAlias,
+                      child: Stack(
+                        children: [
+                          Positioned(
+                            right: -w * 0.13,
+                            top: -h * 0.10,
+                            width: w * 0.60,
+                            height: w * 0.60,
+                            child: DecoratedBox(
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: const Color(0xFFF1E7EA)
+                                    .withValues(alpha: 0.86),
+                              ),
                             ),
-                            const SizedBox(height: 8),
-                            Expanded(
-                              flex: 58,
-                              child: bottom == null
-                                  ? _editorialEmpty(t, 'Bottom not found')
-                                  : _editorialImageOrPlaceholder(bottom, t),
+                          ),
+                          Positioned(
+                            left: -w * 0.18,
+                            bottom: -h * 0.08,
+                            width: w * 0.52,
+                            height: w * 0.52,
+                            child: DecoratedBox(
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: const Color(0xFFF5F1E7)
+                                    .withValues(alpha: 0.70),
+                              ),
+                            ),
+                          ),
+
+                          // Background layer: bottom/pants.
+                          if (dress == null)
+                            positionedItem(
+                              item: bottom,
+                              left: w * 0.345 + 3,
+                              topPx: h * 0.000,
+                              width: w * 0.430,
+                              height: h * 0.895,
+                              t: t,
+                              scale: 1.42,
+                            ),
+
+                          // Dress path uses the main canvas area.
+                          if (dress != null)
+                            positionedItem(
+                              item: dress,
+                              left: w * 0.020,
+                              topPx: h * 0.015,
+                              width: w * 0.620,
+                              height: h * 0.850,
+                              t: t,
+                              scale: 1.34,
+                            ),
+
+                          // Foreground layer: top/shirt.
+                          if (dress == null)
+                            positionedItem(
+                              item: top,
+                              left: w * 0.005,
+                              topPx: h * 0.065 + 5,
+                              width: w * 0.615,
+                              height: h * 0.720,
+                              t: t,
+                              scale: 1.46,
+                            ),
+
+                          // Footwear: bottom-left anchor.
+                          positionedItem(
+                            item: footwear,
+                            left: -w * 0.055,
+                            topPx: h * 0.615,
+                            width: w * 0.520,
+                            height: h * 0.350,
+                            t: t,
+                            alignment: Alignment.bottomLeft,
+                            scale: 1.58,
+                          ),
+
+                          // Controlled right accessory rail.
+                          for (var i = 0; i < visibleAccessories.length; i++)
+                            Positioned(
+                              left: railLeft,
+                              top: railTop + (railItemH + railGap) * i,
+                              width: railItemW,
+                              height: i == 2 && accessoryCount >= 3
+                                  ? railItemH * 1.20
+                                  : railItemH,
+                              child: Transform.scale(
+                                scale: i == 2 ? 1.30 : 1.22,
+                                child: _editorialImageOrPlaceholder(
+                                  visibleAccessories[i],
+                                  t,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: 10),
+              Container(
+                height: 1,
+                width: double.infinity,
+                color: t.cardBorder.withValues(alpha: 0.72),
+              ),
+              SizedBox(
+                height: 44,
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: _saving.contains(index) || _saved.contains(index)
+                            ? null
+                            : () => _saveBoardAt(index),
+                        child: Center(
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                _saved.contains(index)
+                                    ? Icons.check_rounded
+                                    : Icons.favorite_border_rounded,
+                                size: 18,
+                                color: t.mutedText,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                _saving.contains(index)
+                                    ? 'Saving…'
+                                    : (_saved.contains(index)
+                                        ? 'Saved'
+                                        : 'Save Look'),
+                                style: TextStyle(
+                                  color: t.mutedText,
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    Container(
+                      width: 1,
+                      height: 22,
+                      color: t.cardBorder.withValues(alpha: 0.72),
+                    ),
+                    Expanded(
+                      child: Center(
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.ios_share_rounded,
+                              size: 18,
+                              color: t.mutedText,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Share',
+                              style: TextStyle(
+                                color: t.mutedText,
+                                fontWeight: FontWeight.w800,
+                                fontSize: 13,
+                              ),
                             ),
                           ],
                         ),
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-              const SizedBox(height: 9),
-              _editorialSectionLabel(t, 'ACCESSORIES'),
-              const SizedBox(height: 6),
-              SizedBox(
-                height: 50,
-                child: accessories.isEmpty
-                    ? _editorialEmpty(t, 'No accessory added')
-                    : ListView.separated(
-                        scrollDirection: Axis.horizontal,
-                        physics: const BouncingScrollPhysics(),
-                        itemCount: accessories.length > 4
-                            ? 4
-                            : accessories.length,
-                        separatorBuilder: (_, __) => const SizedBox(width: 8),
-                        itemBuilder: (_, i) => Container(
-                          width: 58,
-                          padding: const EdgeInsets.all(5),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.82),
-                            borderRadius: BorderRadius.circular(14),
-                            border: Border.all(
-                              color: t.cardBorder.withValues(alpha: 0.45),
-                            ),
-                          ),
-                          child: _editorialImageOrPlaceholder(
-                            accessories[i],
-                            t,
-                          ),
-                        ),
-                      ),
-              ),
-              const SizedBox(height: 8),
-              _editorialSectionLabel(t, 'FOOTWEAR'),
-              const SizedBox(height: 6),
-              SizedBox(
-                height: 58,
-                child: footwear == null
-                    ? _editorialEmpty(t, 'Footwear not found')
-                    : Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(6),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.82),
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: t.cardBorder.withValues(alpha: 0.45),
-                          ),
-                        ),
-                        child: _editorialImageOrPlaceholder(footwear, t),
-                      ),
               ),
             ],
           ),
@@ -3764,43 +3887,19 @@ class _OutfitBoardSwiperState extends State<_OutfitBoardSwiper> {
             .toString()
             .trim();
 
-    if (existing.isNotEmpty &&
-        existing.toLowerCase() != 'styled look' &&
-        existing.toLowerCase() != 'ahvi style board') {
-      return existing;
-    }
+    final occasion = _editorialOccasion(board).toLowerCase();
+    final lower = existing.toLowerCase();
+    final genericTitle = existing.isEmpty ||
+        lower == 'styled look' ||
+        lower == 'ahvi style board' ||
+        lower == 'hero look' ||
+        lower == 'easy win' ||
+        lower == 'signature combo' ||
+        lower == 'polished daily';
 
-    final topColor = (top?['color'] ?? top?['dominant_color'] ?? '')
-        .toString()
-        .toLowerCase();
-    final bottomColor = (bottom?['color'] ?? bottom?['dominant_color'] ?? '')
-        .toString()
-        .toLowerCase();
-
-    String pretty(String value) {
-      if (value.contains('green') || value.contains('emerald'))
-        return 'Emerald';
-      if (value.contains('beige') ||
-          value.contains('cream') ||
-          value.contains('tan'))
-        return 'Sand';
-      if (value.contains('black')) return 'Noir';
-      if (value.contains('white')) return 'Ivory';
-      if (value.contains('blue') || value.contains('denim')) return 'Denim';
-      if (value.contains('pink')) return 'Rose';
-      if (value.contains('brown')) return 'Cocoa';
-      if (value.contains('navy')) return 'Navy';
-      if (value.isEmpty) return '';
-      return value[0].toUpperCase() + value.substring(1);
-    }
-
-    final a = pretty(topColor);
-    final b = pretty(bottomColor);
-
-    if (a.isNotEmpty && b.isNotEmpty && a != b) return '$a + $b';
-    if (a.isNotEmpty) return '$a Edit';
-
-    return 'Styled Look';
+    if (occasion.contains('date') && genericTitle) return 'Date Night Edit';
+    if (genericTitle) return "Today's Edit";
+    return existing;
   }
 
   String _editorialOccasion(Map<String, dynamic> board) {
@@ -3897,7 +3996,7 @@ class _OutfitBoardSwiperState extends State<_OutfitBoardSwiper> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
-              saved ? Icons.check_rounded : Icons.bookmark_outline,
+              saved ? Icons.check_rounded : Icons.favorite_border_rounded,
               size: 16,
               color: t.accent.primary,
             ),
@@ -3905,7 +4004,7 @@ class _OutfitBoardSwiperState extends State<_OutfitBoardSwiper> {
             Text(
               saving
                   ? 'Saving…'
-                  : (saved ? 'Saved to Boards' : 'Save to Boards'),
+                  : (saved ? 'Saved' : 'Save Look'),
               style: TextStyle(
                 color: t.accent.primary,
                 fontSize: 12.5,
@@ -3948,4 +4047,4 @@ TextStyle _kvSectionTitleStyle(BuildContext context) {
 // ================= AHVI V6 PREMIUM BOARD UI HELPERS END =================
 
 
-// ================= AHVI MORE LOOKS FRONTEND V1 APPLIED =================
+// ================= AHVI V4.5 SINGLE CANVAS MORE LOOKS MERGE =================

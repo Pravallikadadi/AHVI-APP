@@ -28,9 +28,11 @@ import 'package:myapp/theme/theme_controller.dart';
 import 'package:myapp/theme/theme_tokens.dart';
 import 'package:myapp/services/appwrite_service.dart';
 import 'package:myapp/services/backend_service.dart'; // <-- Added Backend Service
+import 'package:myapp/services/connectivity_watcher.dart';
 import 'package:myapp/services/notification_service.dart';
+import 'package:myapp/services/offline_cache.dart';
+import 'package:myapp/services/offline_sync_bootstrap.dart';
 import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_localizations/flutter_localizations.dart'; // 🆕 Localization
 import 'package:myapp/app_localizations.dart'; // 🆕 Localization
 
@@ -112,8 +114,13 @@ class _MyAppState extends State<MyApp> {
           create: (_) => AppwriteService(),
         ),
         ProxyProvider<AppwriteService, BackendService>(
-          update: (_, appwrite, __) =>
-              BackendService(appwriteService: appwrite),
+          update: (_, appwrite, _) => BackendService(appwriteService: appwrite),
+        ),
+        ChangeNotifierProvider<ConnectivityWatcher>(
+          create: (_) => ConnectivityWatcher()..init(),
+        ),
+        ChangeNotifierProvider<OfflineCache>(
+          create: (_) => OfflineCache(),
         ),
       ],
       child: Consumer<ThemeController>(
@@ -140,7 +147,7 @@ class _MyAppState extends State<MyApp> {
           return Selector<ProfileController, String>(
             // Only rebuild MaterialApp when lang actually changes — not on every notifyListeners()
             selector: (_, p) => p.state.lang,
-            builder: (context, lang, __) {
+            builder: (context, lang, _) {
               return MaterialApp(
                 debugShowCheckedModeBanner: false,
                 theme: lightTheme,
@@ -169,7 +176,7 @@ class _MyAppState extends State<MyApp> {
                   GlobalCupertinoLocalizations.delegate,
                 ],
 
-                home: const AuthWrapper(),
+                home: const OfflineSyncBootstrap(child: AuthWrapper()),
 
                 routes: {
                   AppRoutes.intro: (_) => const SignInScreen(),
@@ -194,10 +201,10 @@ class _MyAppState extends State<MyApp> {
                   if (settings.name == AppRoutes.workout) {
                     return PageRouteBuilder(
                       settings: settings,
-                      pageBuilder: (_, __, ___) => DailyWearScreen(),
+                      pageBuilder: (_, _, _) => DailyWearScreen(),
                       transitionDuration: Duration.zero,
                       reverseTransitionDuration: Duration.zero,
-                      transitionsBuilder: (_, __, ___, child) => child,
+                      transitionsBuilder: (_, _, _, child) => child,
                     );
                   }
                   return null; // fall through to routes map
@@ -1109,11 +1116,10 @@ class _AuthWrapperState extends State<AuthWrapper> {
         // Appwrite session survives restart, but ProfileController is in-memory.
         // Rehydrate it on cold start so UI does not fall back to "New User".
         try {
-          Provider.of<ProfileController>(context, listen: false)
-              .loadFromAccount(
-            name: user.name,
-            email: user.email,
-          );
+          Provider.of<ProfileController>(
+            context,
+            listen: false,
+          ).loadFromAccount(name: user.name, email: user.email);
         } catch (e) {
           debugPrint("Profile hydration skipped: $e");
         }
@@ -1123,16 +1129,16 @@ class _AuthWrapperState extends State<AuthWrapper> {
         );
       }
 
-      // 'onboardingComplete' = true only after onboarding3 Save & Continue
-      // We use a separate key from 'isFirstTimeUser' so it is only set
-      // after the user actually finishes all 3 onboarding screens.
-      final prefs = await SharedPreferences.getInstance();
-      final onboardingDone = prefs.getBool('onboardingComplete') ?? false;
+      // Appwrite users document is the source of truth.
+      // SharedPreferences is only a local cache and is refreshed from Appwrite.
+      final onboardingDone = user != null
+          ? await appwrite.isCurrentUserOnboardingComplete()
+          : false;
 
       if (mounted) {
         setState(() {
           _isLoggedIn = user != null;
-          _isFirstTime = !onboardingDone; // true = onboarding not yet done
+          _isFirstTime = user != null ? !onboardingDone : true;
           _authDone = true;
         });
         _maybeNavigate();
@@ -1140,11 +1146,9 @@ class _AuthWrapperState extends State<AuthWrapper> {
     } catch (e) {
       debugPrint("Auth Check Error: $e");
       if (mounted) {
-        final prefs = await SharedPreferences.getInstance();
-        final onboardingDone = prefs.getBool('onboardingComplete') ?? false;
         setState(() {
           _isLoggedIn = false;
-          _isFirstTime = !onboardingDone;
+          _isFirstTime = true;
           _authDone = true;
         });
         _maybeNavigate();
@@ -1176,8 +1180,8 @@ class _AuthWrapperState extends State<AuthWrapper> {
 
     Navigator.of(context).pushReplacement(
       PageRouteBuilder(
-        pageBuilder: (_, __, ___) => destination,
-        transitionsBuilder: (_, animation, __, child) =>
+        pageBuilder: (_, _, _) => destination,
+        transitionsBuilder: (_, animation, _, child) =>
             FadeTransition(opacity: animation, child: child),
         transitionDuration: const Duration(milliseconds: 400),
       ),

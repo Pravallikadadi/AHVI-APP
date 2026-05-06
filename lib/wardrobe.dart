@@ -6,6 +6,10 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:camera/camera.dart';
 import 'package:myapp/services/backend_service.dart';
+import 'package:myapp/services/appwrite_service.dart';
+import 'package:myapp/services/connectivity_watcher.dart';
+import 'package:myapp/services/offline_cache.dart';
+import 'package:provider/provider.dart';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -14,10 +18,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:myapp/app_localizations.dart';
 import 'package:myapp/theme/theme_tokens.dart';
-import 'package:myapp/widgets/ahvi_home_text.dart';
 import 'package:myapp/widgets/ahvi_header.dart';
 import 'package:myapp/widgets/ahvi_stylist_chat.dart';
-import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 // ÃƒÆ’Ã‚Â°Ãƒâ€¦Ã‚Â¸Ãƒâ€¦Ã‚Â¡ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ Backend & Providers
@@ -32,6 +34,22 @@ import 'package:myapp/config/env.dart';
 
 Color _accent4(AppThemeTokens t) =>
     Color.lerp(t.accent.primary, t.accent.secondary, 0.55)!;
+
+class _OfflineDimmer extends StatelessWidget {
+  final Widget child;
+  final double offlineOpacity;
+  const _OfflineDimmer({required this.child, this.offlineOpacity = 0.4});
+
+  @override
+  Widget build(BuildContext context) {
+    final online = context.watch<ConnectivityWatcher>().isOnline;
+    return AnimatedOpacity(
+      opacity: online ? 1.0 : offlineOpacity,
+      duration: const Duration(milliseconds: 180),
+      child: child,
+    );
+  }
+}
 Color _accent5(AppThemeTokens t) =>
     Color.lerp(t.accent.secondary, t.accent.tertiary, 0.55)!;
 
@@ -491,6 +509,12 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
   }
 
   void _openAddModal() {
+    final connectivity =
+        Provider.of<ConnectivityWatcher>(context, listen: false);
+    if (!connectivity.isOnline) {
+      _showToast('Need internet to add new items');
+      return;
+    }
     HapticFeedback.lightImpact();
     showDialog(
       context: context,
@@ -594,6 +618,12 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
               });
 
               await _saveWardrobeCache(userId: user.$id);
+              if (mounted) {
+                Provider.of<AppwriteService>(
+                  context,
+                  listen: false,
+                ).invalidateWardrobeCache();
+              }
               _showToast('Item saved to wardrobe');
             }
           } on AppwriteException catch (e, st) {
@@ -750,7 +780,7 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
                 ),
                 const SizedBox(height: 10),
                 DropdownButtonFormField<String>(
-                  value: selectedCat,
+                  initialValue: selectedCat,
                   decoration: const InputDecoration(labelText: 'Category'),
                   items: cats
                       .map(
@@ -758,8 +788,9 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
                       )
                       .toList(),
                   onChanged: (value) {
-                    if (value != null)
+                    if (value != null) {
                       setDialogState(() => selectedCat = value);
+                    }
                   },
                 ),
                 const SizedBox(height: 10),
@@ -860,6 +891,12 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
   }
 
   void _showDeleteConfirm(String id) {
+    final connectivity =
+        Provider.of<ConnectivityWatcher>(context, listen: false);
+    if (!connectivity.isOnline) {
+      _showToast('Need internet to delete items');
+      return;
+    }
     final t = context.themeTokens;
     final accent4 = _accent4(t);
     final item = _wardrobe.firstWhere((i) => i.id == id);
@@ -923,6 +960,14 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
                 }
 
                 if (!mounted) return;
+                Provider.of<AppwriteService>(
+                  context,
+                  listen: false,
+                ).invalidateWardrobeCache();
+                await Provider.of<OfflineCache>(
+                  context,
+                  listen: false,
+                ).removeWardrobeItem(item.id, deleteImages: true);
                 _showToast('"${item.name}" removed');
               } catch (e) {
                 if (!mounted) return;
@@ -1421,12 +1466,15 @@ class _ItemDetailPanelState extends State<_ItemDetailPanel>
                           fgColor: t.textPrimary,
                           onTap: widget.onShare,
                         ),
-                        _HoverTintButton(
-                          label: AppLocalizations.t(context, 'wardrobe_remove'),
-                          bgColor: accent4.withValues(alpha: 0.08),
-                          hoverBgColor: accent4.withValues(alpha: 0.18),
-                          fgColor: accent4,
-                          onTap: widget.onDelete,
+                        _OfflineDimmer(
+                          child: _HoverTintButton(
+                            label:
+                                AppLocalizations.t(context, 'wardrobe_remove'),
+                            bgColor: accent4.withValues(alpha: 0.08),
+                            hoverBgColor: accent4.withValues(alpha: 0.18),
+                            fgColor: accent4,
+                            onTap: widget.onDelete,
+                          ),
                         ),
                       ],
                     ),
@@ -1627,8 +1675,9 @@ class _DetectedItem {
         s.contains('heel')) {
       return 'Footwear';
     }
-    if (s.contains('dress') || s.contains('gown') || s.contains('jumpsuit'))
+    if (s.contains('dress') || s.contains('gown') || s.contains('jumpsuit')) {
       return 'Dresses';
+    }
     if (s.contains('bag') ||
         s.contains('purse') ||
         s.contains('clutch') ||
@@ -2829,8 +2878,9 @@ class _AddItemModalState extends State<_AddItemModal>
                           }
                         }
                       });
-                      if (_detected.length > 6)
+                      if (_detected.length > 6) {
                         _toast('Maximum 6 items selected');
+                      }
                     }
                   },
                   child: Text(
@@ -3870,42 +3920,44 @@ class _AppHeader extends StatelessWidget {
                         letterSpacing: -0.5,
                       ),
                     ),
-                    _HoverScaleButton(
-                      scaleFactor: 1.02,
-                      duration: const Duration(milliseconds: 200),
-                      onTap: onAddTap,
-                      child: Container(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                            colors: [t.accent.primary, t.accent.tertiary],
+                    _OfflineDimmer(
+                      child: _HoverScaleButton(
+                        scaleFactor: 1.02,
+                        duration: const Duration(milliseconds: 200),
+                        onTap: onAddTap,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [t.accent.primary, t.accent.tertiary],
+                            ),
+                            borderRadius: BorderRadius.circular(20),
                           ),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 8,
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.add, color: t.textPrimary, size: 16),
-                              const SizedBox(width: 6),
-                              Text(
-                                AppLocalizations.t(
-                                  context,
-                                  'wardrobe_add_item',
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 8,
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.add, color: t.textPrimary, size: 16),
+                                const SizedBox(width: 6),
+                                Text(
+                                  AppLocalizations.t(
+                                    context,
+                                    'wardrobe_add_item',
+                                  ),
+                                  style: TextStyle(
+                                    fontFamily: GoogleFonts.inter().fontFamily,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w500,
+                                    color: t.textPrimary,
+                                  ),
                                 ),
-                                style: TextStyle(
-                                  fontFamily: GoogleFonts.inter().fontFamily,
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w500,
-                                  color: t.textPrimary,
-                                ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                         ),
                       ),
@@ -4855,7 +4907,7 @@ class _ItemCardState extends State<_ItemCard>
                   child: AnimatedScale(
                     scale: _deletePressed ? 0.88 : 1.0,
                     duration: Duration(milliseconds: _deletePressed ? 80 : 150),
-                    child: _DeleteHoverButton(),
+                    child: _OfflineDimmer(child: _DeleteHoverButton()),
                   ),
                 ),
               ),
@@ -5104,23 +5156,26 @@ class _EmptyState extends StatelessWidget {
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 24),
-          GestureDetector(
-            onTap: onAddTap,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 13),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [t.accent.primary, t.accent.tertiary],
+          _OfflineDimmer(
+            child: GestureDetector(
+              onTap: onAddTap,
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 28, vertical: 13),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [t.accent.primary, t.accent.tertiary],
+                  ),
+                  borderRadius: BorderRadius.circular(20),
                 ),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Text(
-                '+ ${AppLocalizations.t(context, 'wardrobe_add_first_item')}',
-                style: TextStyle(
-                  fontFamily: GoogleFonts.inter().fontFamily,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: t.textPrimary,
+                child: Text(
+                  '+ ${AppLocalizations.t(context, 'wardrobe_add_first_item')}',
+                  style: TextStyle(
+                    fontFamily: GoogleFonts.inter().fontFamily,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: t.textPrimary,
+                  ),
                 ),
               ),
             ),

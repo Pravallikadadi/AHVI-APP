@@ -15,6 +15,33 @@ class AppwriteService extends ChangeNotifier {
 
   // Cached user — avoid repeated network calls
   User? _cachedUser;
+  Map<String, dynamic>? _cachedUserProfileData;
+
+  Map<String, dynamic>? get cachedUserProfileData => _cachedUserProfileData;
+
+  // Wardrobe TTL cache — cuts redundant listDocuments calls from planner pages.
+  List<Map<String, dynamic>>? _wardrobeCache;
+  DateTime? _wardrobeCacheAt;
+  Future<List<Map<String, dynamic>>>? _wardrobeInflight;
+  static const Duration _wardrobeTtl = Duration(seconds: 60);
+
+  // Optional write-through to offline cache.
+  void Function(List<Map<String, dynamic>>)? _onWardrobeFetched;
+  void Function(String occasion, List<Document>)? _onSavedBoardsFetched;
+
+  void attachOfflineWriteThrough({
+    void Function(List<Map<String, dynamic>>)? onWardrobe,
+    void Function(String occasion, List<Document>)? onSavedBoards,
+  }) {
+    _onWardrobeFetched = onWardrobe;
+    _onSavedBoardsFetched = onSavedBoards;
+  }
+
+  void invalidateWardrobeCache() {
+    _wardrobeCache = null;
+    _wardrobeCacheAt = null;
+    _wardrobeInflight = null;
+  }
 
   AppwriteService() {
     client = Client()
@@ -88,6 +115,7 @@ class AppwriteService extends ChangeNotifier {
   // Clear cache on logout
   void clearUserCache() {
     _cachedUser = null;
+    _cachedUserProfileData = null;
   }
 
   Future<Session?> loginEmailPassword(String email, String password) async {
@@ -99,6 +127,7 @@ class AppwriteService extends ChangeNotifier {
 
       await cacheCurrentUser();
       await ensureCurrentUserProfile();
+      await refreshCurrentUserProfile();
 
       notifyListeners();
       return session;
@@ -112,6 +141,9 @@ class AppwriteService extends ChangeNotifier {
     try {
       await account.createOAuth2Session(provider: OAuthProvider.google);
       await cacheCurrentUser();
+      await ensureCurrentUserProfile();
+      await refreshCurrentUserProfile();
+
       notifyListeners();
       return true;
     } catch (e) {
@@ -124,6 +156,9 @@ class AppwriteService extends ChangeNotifier {
     try {
       await account.createOAuth2Session(provider: OAuthProvider.apple);
       await cacheCurrentUser();
+      await ensureCurrentUserProfile();
+      await refreshCurrentUserProfile();
+
       notifyListeners();
       return true;
     } catch (e) {
@@ -224,6 +259,86 @@ class AppwriteService extends ChangeNotifier {
     return 'user_${user.$id.toString().substring(0, 8)}';
   }
 
+  Future<Document?> getCurrentUserProfileDocument({
+    bool createIfMissing = true,
+  }) async {
+    try {
+      final usersCollectionId = Env.usersCollection.trim();
+      if (usersCollectionId.isEmpty) {
+        debugPrint(
+          '⚠️ Users collection env is empty. Cannot load user profile.',
+        );
+        return null;
+      }
+
+      final user = await account.get();
+      if (createIfMissing) {
+        await ensureCurrentUserProfile();
+      }
+
+      final document = await databases.getDocument(
+        databaseId: Env.appwriteDatabaseId,
+        collectionId: usersCollectionId,
+        documentId: user.$id,
+      );
+
+      _cachedUserProfileData = Map<String, dynamic>.from(document.data);
+      return document;
+    } catch (e) {
+      debugPrint('❌ Failed to load current user profile: $e');
+      return null;
+    }
+  }
+
+  Future<Map<String, dynamic>?> refreshCurrentUserProfile() async {
+    final document = await getCurrentUserProfileDocument(createIfMissing: true);
+    if (document == null) return null;
+    _cachedUserProfileData = Map<String, dynamic>.from(document.data);
+    return _cachedUserProfileData;
+  }
+
+  bool isOnboardingCompleteFromProfile(Map<String, dynamic>? profile) {
+    return profile?['onboarding1'] == true &&
+        profile?['onboarding2'] == true &&
+        profile?['onboarding3'] == true;
+  }
+
+  Future<bool> isCurrentUserOnboardingComplete() async {
+    final profile = await refreshCurrentUserProfile();
+    final done = isOnboardingCompleteFromProfile(profile);
+
+    // Keep SharedPreferences as a local cache only.
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('onboardingComplete', done);
+
+    return done;
+  }
+
+  Future<void> updateCurrentUserProfileFields(Map<String, dynamic> data) async {
+    final user = await getCurrentUser();
+    if (user == null) throw Exception('User not authenticated');
+
+    final usersCollectionId = Env.usersCollection.trim();
+    if (usersCollectionId.isEmpty) {
+      throw Exception('Users collection env is empty');
+    }
+
+    await ensureCurrentUserProfile();
+
+    final cleaned = Map<String, dynamic>.from(data)
+      ..removeWhere((key, value) => value == null);
+
+    await databases.updateDocument(
+      databaseId: Env.appwriteDatabaseId,
+      collectionId: usersCollectionId,
+      documentId: user.$id,
+      data: cleaned,
+    );
+
+    await refreshCurrentUserProfile();
+    notifyListeners();
+  }
+
   Future<void> ensureCurrentUserProfile() async {
     if (_userProfileSyncInFlight) return;
 
@@ -244,41 +359,51 @@ class AppwriteService extends ChangeNotifier {
           ? user.name.toString().trim()
           : user.email.toString().split('@').first;
 
-      final data = <String, dynamic>{
+      final createData = <String, dynamic>{
         'name': displayName,
         'username': _safeUsernameFromUser(user),
         'email': user.email,
-        // Existing users collection supports this attribute.
-        // Keep it empty for new users until onboarding/profile updates it.
+        // Keep onboarding/profile fields persistent in Appwrite.
+        // These are defaults only for first-time users; existing users are never reset.
+        'onboarding1': false,
+        'onboarding2': false,
+        'onboarding3': false,
         'stylePreferences': <String>[],
       };
 
       try {
-        await databases.getDocument(
+        final existing = await databases.getDocument(
           databaseId: Env.appwriteDatabaseId,
           collectionId: usersCollectionId,
           documentId: user.$id,
         );
 
-        await databases.updateDocument(
+        // IMPORTANT: Do not overwrite onboarding/profile answers on relogin.
+        // Only refresh identity fields that come from Appwrite Auth.
+        final updated = await databases.updateDocument(
           databaseId: Env.appwriteDatabaseId,
           collectionId: usersCollectionId,
           documentId: user.$id,
           data: {
-            'name': data['name'],
-            'username': data['username'],
-            'email': data['email'],
+            'name': displayName,
+            'username': _safeUsernameFromUser(user),
+            'email': user.email,
           },
         );
+
+        _cachedUserProfileData = Map<String, dynamic>.from({
+          ...existing.data,
+          ...updated.data,
+        });
 
         debugPrint('✅ User profile synced: ${user.$id}');
       } on AppwriteException catch (e) {
         if (e.code == 404) {
-          await databases.createDocument(
+          final created = await databases.createDocument(
             databaseId: Env.appwriteDatabaseId,
             collectionId: usersCollectionId,
             documentId: user.$id,
-            data: data,
+            data: createData,
             permissions: [
               Permission.read(Role.user(user.$id)),
               Permission.update(Role.user(user.$id)),
@@ -286,6 +411,7 @@ class AppwriteService extends ChangeNotifier {
             ],
           );
 
+          _cachedUserProfileData = Map<String, dynamic>.from(created.data);
           debugPrint('✅ User profile created: ${user.$id}');
           return;
         }
@@ -304,7 +430,35 @@ class AppwriteService extends ChangeNotifier {
   // 👔 WARDROBE (OUTFITS) DB METHODS
   // =========================================================================
 
-  Future<List<Map<String, dynamic>>> getWardrobeItems() async {
+  Future<List<Map<String, dynamic>>> getWardrobeItems({
+    bool forceRefresh = false,
+  }) async {
+    if (!forceRefresh) {
+      final cached = _wardrobeCache;
+      final at = _wardrobeCacheAt;
+      if (cached != null &&
+          at != null &&
+          DateTime.now().difference(at) < _wardrobeTtl) {
+        return cached;
+      }
+      final inflight = _wardrobeInflight;
+      if (inflight != null) return inflight;
+    }
+
+    final fetch = _fetchWardrobeItems();
+    _wardrobeInflight = fetch;
+    try {
+      final items = await fetch;
+      _wardrobeCache = items;
+      _wardrobeCacheAt = DateTime.now();
+      _onWardrobeFetched?.call(items);
+      return items;
+    } finally {
+      _wardrobeInflight = null;
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> _fetchWardrobeItems() async {
     try {
       final user = await getCurrentUser();
       if (user == null) throw Exception("User not authenticated");
@@ -334,9 +488,10 @@ class AppwriteService extends ChangeNotifier {
         );
       }
 
-      return result.documents.map((doc) {
-        return {
+      return result.documents.map<Map<String, dynamic>>((doc) {
+        return <String, dynamic>{
           "id": doc.$id,
+          r"$id": doc.$id,
           "name": doc.data['name'],
           "category": doc.data['category'],
           "sub_category": doc.data['sub_category'],
@@ -444,6 +599,7 @@ class AppwriteService extends ChangeNotifier {
           Query.orderDesc('\$createdAt'),
         ],
       );
+      _onSavedBoardsFetched?.call(occasion, result.documents);
       return result.documents;
     } catch (e) {
       debugPrint("Error fetching $occasion boards: $e");
@@ -486,6 +642,22 @@ class AppwriteService extends ChangeNotifier {
       final user = await getCurrentUser();
       if (user == null) throw Exception('User not authenticated');
 
+      final cleanImageUrl = (imageUrl ?? '').trim();
+      if (cleanImageUrl.isEmpty) {
+        throw Exception('Cannot save board without imageUrl');
+      }
+
+      final rawItemIds = extra?['itemIds'] ?? extra?['item_ids'] ?? <dynamic>[];
+      final itemIds = rawItemIds is Iterable
+          ? rawItemIds
+                .map((e) => e.toString())
+                .where((e) => e.isNotEmpty)
+                .toList()
+          : <String>[];
+
+      // Current Appwrite saved_boards schema supports only:
+      // userId, imageUrl, itemIds, occasion.
+      // Keep this direct Appwrite fallback schema-safe.
       return await databases.createDocument(
         databaseId: Env.appwriteDatabaseId,
         collectionId: Env.savedBoardsCollection,
@@ -493,10 +665,8 @@ class AppwriteService extends ChangeNotifier {
         data: {
           'userId': user.$id,
           'occasion': occasion,
-          'outfitDescription': outfitDescription,
-          if (imageUrl != null && imageUrl.isNotEmpty) 'imageUrl': imageUrl,
-          'emoji': emoji ?? '✨',
-          if (extra != null) ...extra,
+          'imageUrl': cleanImageUrl,
+          'itemIds': itemIds,
         },
       );
     } catch (e) {

@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:appwrite/models.dart' as appwrite_models;
 import 'package:provider/provider.dart';
 import 'package:myapp/theme/theme_tokens.dart';
 import 'package:myapp/services/appwrite_service.dart';
+import 'package:myapp/services/connectivity_watcher.dart';
+import 'package:myapp/services/offline_cache.dart';
 import 'package:myapp/app_localizations.dart';
+import 'package:myapp/style_board/saved_board_thumb.dart';
 
 class PartyLooksScreen extends StatefulWidget {
   const PartyLooksScreen({super.key});
@@ -14,27 +16,66 @@ class PartyLooksScreen extends StatefulWidget {
 
 class _PartyLooksScreenState extends State<PartyLooksScreen> {
   bool _isLoading = true;
-  List<appwrite_models.Document> _boards = [];
+  List<dynamic> _boards = const [];
+  Map<String, Map<String, dynamic>> _wardrobeById = const {};
 
   @override
   void initState() {
     super.initState();
-    _fetchPartyBoards();
+    _loadBoards();
   }
 
-  Future<void> _fetchPartyBoards() async {
+  Future<void> _loadBoards() async {
+    final cache = Provider.of<OfflineCache>(context, listen: false);
+    final connectivity =
+        Provider.of<ConnectivityWatcher>(context, listen: false);
+
+    // Always show cache instantly (offline-first paint).
+    _applyFromCache(cache);
+
+    if (!connectivity.isOnline) {
+      if (mounted) setState(() => _isLoading = false);
+      return;
+    }
+
     try {
       final appwrite = Provider.of<AppwriteService>(context, listen: false);
-      final boards = await appwrite.getSavedBoardsByOccasion('Party');
+      final results = await Future.wait([
+        appwrite.getSavedBoardsByOccasion('Party'),
+        appwrite.getWardrobeItems(),
+      ]);
+      final boards = results[0] as List;
+      final wardrobe = results[1] as List<Map<String, dynamic>>;
+      _wardrobeById = _buildIdMap(wardrobe);
       if (mounted) {
         setState(() {
           _boards = boards;
           _isLoading = false;
         });
       }
-    } catch (e) {
+    } catch (_) {
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  void _applyFromCache(OfflineCache cache) {
+    final boards = cache.getSavedBoards('Party');
+    _boards = boards;
+    _wardrobeById = _buildIdMap(cache.getWardrobe());
+    if (mounted) {
+      setState(() => _isLoading = boards.isEmpty);
+    }
+  }
+
+  Map<String, Map<String, dynamic>> _buildIdMap(
+    List<Map<String, dynamic>> items,
+  ) {
+    final byId = <String, Map<String, dynamic>>{};
+    for (final item in items) {
+      final id = (item[r'$id'] ?? item['id'] ?? '').toString();
+      if (id.isNotEmpty) byId[id] = item;
+    }
+    return byId;
   }
 
   @override
@@ -48,7 +89,11 @@ class _PartyLooksScreenState extends State<PartyLooksScreen> {
           // ── Header ──
           Container(
             padding: EdgeInsets.fromLTRB(
-                20, MediaQuery.of(context).padding.top + 12, 20, 14),
+              20,
+              MediaQuery.of(context).padding.top + 12,
+              20,
+              14,
+            ),
             child: Row(
               children: [
                 GestureDetector(
@@ -61,8 +106,11 @@ class _PartyLooksScreenState extends State<PartyLooksScreen> {
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(color: t.cardBorder),
                     ),
-                    child: Icon(Icons.chevron_left_rounded,
-                        color: t.textPrimary, size: 22),
+                    child: Icon(
+                      Icons.chevron_left_rounded,
+                      color: t.textPrimary,
+                      size: 22,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -99,10 +147,11 @@ class _PartyLooksScreenState extends State<PartyLooksScreen> {
           Expanded(
             child: _isLoading
                 ? Center(
-                    child: CircularProgressIndicator(color: t.accent.primary))
+                    child: CircularProgressIndicator(color: t.accent.primary),
+                  )
                 : _boards.isEmpty
-                    ? _buildEmptyState(t)
-                    : _buildBoardsGrid(t),
+                ? _buildEmptyState(t)
+                : _buildBoardsGrid(t),
           ),
         ],
       ),
@@ -121,8 +170,11 @@ class _PartyLooksScreenState extends State<PartyLooksScreen> {
               shape: BoxShape.circle,
               border: Border.all(color: t.cardBorder),
             ),
-            child: Icon(Icons.celebration_rounded,
-                size: 48, color: t.accent.secondary),
+            child: Icon(
+              Icons.celebration_rounded,
+              size: 48,
+              color: t.accent.secondary,
+            ),
           ),
           const SizedBox(height: 24),
           Text(
@@ -137,11 +189,7 @@ class _PartyLooksScreenState extends State<PartyLooksScreen> {
           Text(
             context.tr('wardrobe_insight_empty'),
             textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 14,
-              color: t.mutedText,
-              height: 1.5,
-            ),
+            style: TextStyle(fontSize: 14, color: t.mutedText, height: 1.5),
           ),
         ],
       ),
@@ -160,8 +208,6 @@ class _PartyLooksScreenState extends State<PartyLooksScreen> {
       itemCount: _boards.length,
       itemBuilder: (context, index) {
         final board = _boards[index];
-        final imageUrl = board.data['imageUrl'] ?? '';
-
         return GestureDetector(
           onTap: () {
             // TODO: Open fullscreen view
@@ -171,15 +217,13 @@ class _PartyLooksScreenState extends State<PartyLooksScreen> {
               borderRadius: BorderRadius.circular(16),
               border: Border.all(color: t.cardBorder),
               color: t.panel,
-              image: imageUrl.isNotEmpty
-                  ? DecorationImage(
-                      image: NetworkImage(imageUrl), fit: BoxFit.cover)
-                  : null,
             ),
-            child: imageUrl.isEmpty
-                ? Center(
-                    child: Icon(Icons.image_not_supported, color: t.mutedText))
-                : null,
+            clipBehavior: Clip.antiAlias,
+            child: SavedBoardThumb(
+              source: board,
+              wardrobeById: _wardrobeById,
+              radius: BorderRadius.circular(16),
+            ),
           ),
         );
       },
