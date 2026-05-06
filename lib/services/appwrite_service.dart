@@ -96,7 +96,10 @@ class AppwriteService extends ChangeNotifier {
         email: email,
         password: password,
       );
+
+      await cacheCurrentUser();
       await ensureCurrentUserProfile();
+
       notifyListeners();
       return session;
     } catch (e) {
@@ -108,6 +111,7 @@ class AppwriteService extends ChangeNotifier {
   Future<bool> loginWithGoogle() async {
     try {
       await account.createOAuth2Session(provider: OAuthProvider.google);
+      await cacheCurrentUser();
       notifyListeners();
       return true;
     } catch (e) {
@@ -119,6 +123,7 @@ class AppwriteService extends ChangeNotifier {
   Future<bool> loginWithApple() async {
     try {
       await account.createOAuth2Session(provider: OAuthProvider.apple);
+      await cacheCurrentUser();
       notifyListeners();
       return true;
     } catch (e) {

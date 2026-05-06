@@ -361,6 +361,172 @@ class BackendService {
     }
   }
 
+
+  // Calendar events persisted through AHVI backend/Appwrite.
+  Future<List<Map<String, dynamic>>> getCalendarEvents({
+    DateTime? startTime,
+    DateTime? endTime,
+    int limit = 200,
+  }) async {
+    try {
+      final params = <String, String>{
+        'limit': limit.toString(),
+        if (startTime != null) 'start_time': startTime.toIso8601String(),
+        if (endTime != null) 'end_time': endTime.toIso8601String(),
+      };
+
+      final uri = Uri.parse(
+        '$baseUrl/api/calendar/events',
+      ).replace(queryParameters: params);
+
+      final response = await http
+          .get(uri, headers: await _authHeaders())
+          .timeout(const Duration(seconds: 30));
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final data = await compute(_parseJsonMap, response.body);
+        return List<Map<String, dynamic>>.from(data['events'] as List? ?? const []);
+      }
+
+      debugPrint(
+        'Calendar events load failed: ${response.statusCode} ${response.body}',
+      );
+      return <Map<String, dynamic>>[];
+    } catch (e) {
+      debugPrint('Calendar events load error: $e');
+      return <Map<String, dynamic>>[];
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getTodayCalendarEvents({
+    DateTime? date,
+  }) async {
+    try {
+      final day = date ?? DateTime.now();
+      final yyyy = day.year.toString().padLeft(4, '0');
+      final mm = day.month.toString().padLeft(2, '0');
+      final dd = day.day.toString().padLeft(2, '0');
+
+      final uri = Uri.parse(
+        '$baseUrl/api/calendar/today',
+      ).replace(queryParameters: {'date': '$yyyy-$mm-$dd'});
+
+      final response = await http
+          .get(uri, headers: await _authHeaders())
+          .timeout(const Duration(seconds: 30));
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final data = await compute(_parseJsonMap, response.body);
+        return List<Map<String, dynamic>>.from(data['events'] as List? ?? const []);
+      }
+
+      debugPrint(
+        'Today calendar load failed: ${response.statusCode} ${response.body}',
+      );
+      return <Map<String, dynamic>>[];
+    } catch (e) {
+      debugPrint('Today calendar load error: $e');
+      return <Map<String, dynamic>>[];
+    }
+  }
+
+  Future<Map<String, dynamic>?> createCalendarEvent({
+    required String title,
+    required DateTime startTime,
+    DateTime? endTime,
+    String description = '',
+    String timezone = 'Asia/Kolkata',
+    String type = 'plan',
+    String source = 'ahvi',
+    String status = 'scheduled',
+    String dressCode = '',
+    String venueName = '',
+    String venueAddress = '',
+    int reminderMinutes = 30,
+    Map<String, dynamic>? metadata,
+  }) async {
+    try {
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/api/calendar/events'),
+            headers: await _authHeaders(),
+            body: jsonEncode({
+              'title': title,
+              'description': description,
+              'start_time': startTime.toIso8601String(),
+              'end_time': endTime?.toIso8601String(),
+              'timezone': timezone,
+              'type': type,
+              'source': source,
+              'status': status,
+              'dress_code': dressCode,
+              'venue_name': venueName,
+              'venue_address': venueAddress,
+              'reminder_minutes': reminderMinutes,
+              'metadata': metadata ?? <String, dynamic>{},
+            }),
+          )
+          .timeout(const Duration(seconds: 30));
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final data = await compute(_parseJsonMap, response.body);
+        return Map<String, dynamic>.from(data['event'] as Map? ?? data);
+      }
+
+      debugPrint(
+        'Calendar event create failed: ${response.statusCode} ${response.body}',
+      );
+      return null;
+    } catch (e) {
+      debugPrint('Calendar event create error: $e');
+      return null;
+    }
+  }
+
+  Future<Map<String, dynamic>?> updateCalendarEvent(
+    String eventId,
+    Map<String, dynamic> fields,
+  ) async {
+    try {
+      final response = await http
+          .patch(
+            Uri.parse('$baseUrl/api/calendar/events/$eventId'),
+            headers: await _authHeaders(),
+            body: jsonEncode(fields),
+          )
+          .timeout(const Duration(seconds: 30));
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final data = await compute(_parseJsonMap, response.body);
+        return Map<String, dynamic>.from(data['event'] as Map? ?? data);
+      }
+
+      debugPrint(
+        'Calendar event update failed: ${response.statusCode} ${response.body}',
+      );
+      return null;
+    } catch (e) {
+      debugPrint('Calendar event update error: $e');
+      return null;
+    }
+  }
+
+  Future<bool> deleteCalendarEvent(String eventId) async {
+    try {
+      final response = await http
+          .delete(
+            Uri.parse('$baseUrl/api/calendar/events/$eventId'),
+            headers: await _authHeaders(),
+          )
+          .timeout(const Duration(seconds: 30));
+
+      return response.statusCode >= 200 && response.statusCode < 300;
+    } catch (e) {
+      debugPrint('Calendar event delete error: $e');
+      return false;
+    }
+  }
+
   Future<bool> scheduleReminder({
     required String eventId,
     required String message,

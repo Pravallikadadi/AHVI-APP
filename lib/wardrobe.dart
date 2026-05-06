@@ -838,10 +838,10 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
       'document_id': item.id,
       'name': item.name,
       'category': item.cat,
-      'image_url': item.imageUrl,
-      'imageUrl': item.imageUrl,
-      'masked_url': item.imageUrl,
-      'maskedUrl': item.imageUrl,
+      'image_url': item.maskedUrl ?? item.imageUrl,
+      'imageUrl': item.maskedUrl ?? item.imageUrl,
+      'masked_url': item.maskedUrl ?? item.imageUrl,
+      'maskedUrl': item.maskedUrl ?? item.imageUrl,
     };
   }
 
@@ -2097,8 +2097,8 @@ class _AddItemModalState extends State<_AddItemModal>
           item.pattern,
         ].where((v) => v != null && v.isNotEmpty && v != 'null').join(', '),
         'imageBytes': displayBytes,
-        'imageUrl': item.rawUrl,
-        'maskedUrl': item.maskedUrl,
+        'imageUrl': item.maskedUrl ?? item.rawUrl,
+        'maskedUrl': item.maskedUrl ?? item.rawUrl,
         'worn': 0,
         'liked': false,
         'remoteSaved': true,

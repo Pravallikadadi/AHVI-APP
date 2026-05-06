@@ -1105,6 +1105,19 @@ class _AuthWrapperState extends State<AuthWrapper> {
       final appwrite = Provider.of<AppwriteService>(context, listen: false);
       final user = await appwrite.getCurrentUser();
       if (user != null) {
+        // AHVI auth persistence fix:
+        // Appwrite session survives restart, but ProfileController is in-memory.
+        // Rehydrate it on cold start so UI does not fall back to "New User".
+        try {
+          Provider.of<ProfileController>(context, listen: false)
+              .loadFromAccount(
+            name: user.name,
+            email: user.email,
+          );
+        } catch (e) {
+          debugPrint("Profile hydration skipped: $e");
+        }
+
         unawaited(
           AhviNotificationService.instance.registerForCurrentUser(appwrite),
         );

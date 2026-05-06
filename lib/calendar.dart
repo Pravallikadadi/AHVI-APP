@@ -24,21 +24,47 @@ class ScheduleApp extends StatelessWidget {
 // MODELS
 // ==========================================
 class PlanItem {
+  final String? id;
   final String occasion;
   final IconData icon;
   final String colorTheme;
   final String time;
   final String outfit;
+  final DateTime? startTime;
   bool hasReminder;
 
   PlanItem({
+    this.id,
     required this.occasion,
     required this.icon,
     this.colorTheme = 'orange',
     this.time = '',
     this.outfit = '',
+    this.startTime,
     this.hasReminder = true,
   });
+
+  PlanItem copyWith({
+    String? id,
+    String? occasion,
+    IconData? icon,
+    String? colorTheme,
+    String? time,
+    String? outfit,
+    DateTime? startTime,
+    bool? hasReminder,
+  }) {
+    return PlanItem(
+      id: id ?? this.id,
+      occasion: occasion ?? this.occasion,
+      icon: icon ?? this.icon,
+      colorTheme: colorTheme ?? this.colorTheme,
+      time: time ?? this.time,
+      outfit: outfit ?? this.outfit,
+      startTime: startTime ?? this.startTime,
+      hasReminder: hasReminder ?? this.hasReminder,
+    );
+  }
 }
 
 class OutfitIdea {
@@ -68,16 +94,142 @@ class CalendarShell extends StatefulWidget {
 class _CalendarShellState extends State<CalendarShell> {
   DateTime _currentMonth = DateTime.now();
   DateTime _selectedDate = DateTime.now();
-  
+
+  final BackendService _backend = BackendService();
   final Map<String, List<PlanItem>> _plansData = {};
-  
+
+  bool _isLoadingPlans = false;
   bool _isChatOpen = false;
   String _activeOccasion = 'Gym';
   IconData _activeIcon = Icons.fitness_center;
 
+  String _dateKey(DateTime date) => "${date.year}-${date.month}-${date.day}";
+
   // Helper formats
-  String get _selectedDateKey => "${_selectedDate.year}-${_selectedDate.month}-${_selectedDate.day}";
-  String get _todayKey => "${DateTime.now().year}-${DateTime.now().month}-${DateTime.now().day}";
+  String get _selectedDateKey => _dateKey(_selectedDate);
+  String get _todayKey => _dateKey(DateTime.now());
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCalendarEvents();
+  }
+
+  IconData _iconForOccasion(String value) {
+    final q = value.toLowerCase();
+    if (q.contains('gym') || q.contains('workout') || q.contains('fitness')) {
+      return Icons.fitness_center;
+    }
+    if (q.contains('office') || q.contains('work') || q.contains('meeting')) {
+      return Icons.work_outline;
+    }
+    if (q.contains('party') || q.contains('event')) {
+      return Icons.celebration;
+    }
+    if (q.contains('travel') || q.contains('trip')) {
+      return Icons.flight_takeoff;
+    }
+    if (q.contains('shopping')) {
+      return Icons.shopping_bag_outlined;
+    }
+    if (q.contains('study') || q.contains('class')) {
+      return Icons.menu_book;
+    }
+    if (q.contains('date')) {
+      return Icons.favorite_border;
+    }
+    return Icons.event;
+  }
+
+  String _themeForOccasion(String value) {
+    final q = value.toLowerCase();
+    if (q.contains('office') || q.contains('work') || q.contains('meeting')) {
+      return 'blue';
+    }
+    if (q.contains('party') || q.contains('date')) {
+      return 'pink';
+    }
+    return 'orange';
+  }
+
+  String _formatTime(DateTime date) {
+    final hour = date.hour;
+    final minute = date.minute.toString().padLeft(2, '0');
+    final suffix = hour >= 12 ? 'PM' : 'AM';
+    final displayHour = hour == 0 ? 12 : (hour > 12 ? hour - 12 : hour);
+    return '$displayHour:$minute $suffix';
+  }
+
+  DateTime _startDateTimeForPlan(PlanItem plan) {
+    if (plan.startTime != null) return plan.startTime!;
+
+    final text = plan.time.trim().toLowerCase();
+    var hour = 12;
+    var minute = 0;
+
+    final match = RegExp(r'(\d{1,2})(?::(\d{2}))?\s*(am|pm)?').firstMatch(text);
+    if (match != null) {
+      hour = int.tryParse(match.group(1) ?? '') ?? 12;
+      minute = int.tryParse(match.group(2) ?? '0') ?? 0;
+      final suffix = match.group(3);
+      if (suffix == 'pm' && hour < 12) hour += 12;
+      if (suffix == 'am' && hour == 12) hour = 0;
+    }
+
+    return DateTime(
+      _selectedDate.year,
+      _selectedDate.month,
+      _selectedDate.day,
+      hour,
+      minute,
+    );
+  }
+
+  PlanItem _planFromBackendEvent(Map<String, dynamic> event) {
+    final title = (event['title'] ?? 'Plan').toString();
+    final startRaw = (event['start_time'] ?? '').toString();
+    final start = DateTime.tryParse(startRaw);
+    final metadata = event['metadata'] is Map
+        ? Map<String, dynamic>.from(event['metadata'] as Map)
+        : <String, dynamic>{};
+
+    final occasion = (metadata['occasion'] ?? event['type'] ?? title).toString();
+    final outfit = (metadata['outfit'] ?? event['description'] ?? '').toString();
+
+    return PlanItem(
+      id: (event['id'] ?? event[r'$id'] ?? '').toString(),
+      occasion: occasion.isEmpty ? title : occasion,
+      icon: _iconForOccasion(occasion),
+      colorTheme: _themeForOccasion(occasion),
+      time: start != null ? _formatTime(start) : '',
+      outfit: outfit,
+      startTime: start,
+      hasReminder: ((event['reminder_minutes'] ?? 30) as num).toInt() > 0,
+    );
+  }
+
+  Future<void> _loadCalendarEvents() async {
+    if (_isLoadingPlans) return;
+    setState(() => _isLoadingPlans = true);
+
+    final events = await _backend.getCalendarEvents(limit: 300);
+    final next = <String, List<PlanItem>>{};
+
+    for (final event in events) {
+      final plan = _planFromBackendEvent(event);
+      final date = plan.startTime ?? DateTime.now();
+      final key = _dateKey(date);
+      next.putIfAbsent(key, () => <PlanItem>[]).add(plan);
+    }
+
+    if (!mounted) return;
+    setState(() {
+      _plansData
+        ..clear()
+        ..addAll(next);
+      _isLoadingPlans = false;
+    });
+  }
 
   void _changeMonth(int increment) {
     setState(() {
@@ -85,25 +237,80 @@ class _CalendarShellState extends State<CalendarShell> {
     });
   }
 
-  void _addPlan(PlanItem plan) {
+  Future<void> _addPlan(PlanItem plan) async {
+    final key = _selectedDateKey;
     setState(() {
-      if (!_plansData.containsKey(_selectedDateKey)) {
-        _plansData[_selectedDateKey] = [];
+      _plansData.putIfAbsent(key, () => <PlanItem>[]);
+      _plansData[key]!.add(plan);
+    });
+
+    final start = _startDateTimeForPlan(plan);
+    final created = await _backend.createCalendarEvent(
+      title: plan.occasion,
+      description: plan.outfit,
+      startTime: start,
+      endTime: start.add(const Duration(hours: 1)),
+      type: plan.occasion,
+      source: 'ahvi_calendar',
+      reminderMinutes: plan.hasReminder ? 30 : 0,
+      metadata: {
+        'occasion': plan.occasion,
+        'outfit': plan.outfit,
+        'colorTheme': plan.colorTheme,
+      },
+    );
+
+    if (!mounted || created == null) return;
+
+    final savedStart = DateTime.tryParse((created['start_time'] ?? '').toString()) ?? start;
+    final savedPlan = plan.copyWith(
+      id: (created['id'] ?? created[r'$id'] ?? '').toString(),
+      startTime: savedStart,
+      time: _formatTime(savedStart),
+    );
+
+    setState(() {
+      final list = _plansData[key] ?? <PlanItem>[];
+      final idx = list.indexOf(plan);
+      if (idx >= 0) {
+        list[idx] = savedPlan;
       }
-      _plansData[_selectedDateKey]!.add(plan);
     });
   }
 
-  void _removePlan(int index) {
+  Future<void> _removePlan(int index) async {
+    final key = _selectedDateKey;
+    final plan = (_plansData[key] != null && index < _plansData[key]!.length)
+        ? _plansData[key]![index]
+        : null;
+
     setState(() {
-      _plansData[_selectedDateKey]?.removeAt(index);
+      _plansData[key]?.removeAt(index);
     });
+
+    final id = plan?.id;
+    if (id != null && id.trim().isNotEmpty) {
+      await _backend.deleteCalendarEvent(id);
+    }
   }
 
-  void _toggleReminder(int index) {
+  Future<void> _toggleReminder(int index) async {
+    final key = _selectedDateKey;
+    if (_plansData[key] == null || index >= _plansData[key]!.length) return;
+
+    final plan = _plansData[key]![index];
+    final nextValue = !plan.hasReminder;
+
     setState(() {
-      _plansData[_selectedDateKey]![index].hasReminder = !_plansData[_selectedDateKey]![index].hasReminder;
+      _plansData[key]![index].hasReminder = nextValue;
     });
+
+    final id = plan.id;
+    if (id != null && id.trim().isNotEmpty) {
+      await _backend.updateCalendarEvent(id, {
+        'reminder_minutes': nextValue ? 30 : 0,
+      });
+    }
   }
 
   void _openChat(String occasion, IconData icon) {

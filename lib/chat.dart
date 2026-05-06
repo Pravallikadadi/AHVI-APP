@@ -473,6 +473,7 @@ class _ChatScreenState extends State<ChatScreen>
   final List<_ChatMessage> _messages = [];
   final List<Map<String, String>> _chatHistory = [];
   String _runningMemory = '';
+  String? _lastStylePrompt;
   bool _isTyping = false;
   String _userName = 'User';
   final Map<String, List<List<bool>>> _checklistChecksByTitle = {};
@@ -679,7 +680,68 @@ class _ChatScreenState extends State<ChatScreen>
     _scrollToBottom();
   }
 
+
+  bool _isAhviMoreLooksChip(String chip) {
+    final q = chip.toLowerCase().trim();
+    return q.contains('more look') ||
+        q.contains('next best') ||
+        q.contains('next option') ||
+        q.contains('other option') ||
+        q.contains('different shoe') ||
+        q.contains('different footwear') ||
+        q == 'more';
+  }
+
+  bool _isAhviStylePrompt(String text) {
+    final q = text.toLowerCase();
+    return q.contains('wear') ||
+        q.contains('outfit') ||
+        q.contains('look') ||
+        q.contains('style board') ||
+        q.contains('date night') ||
+        q.contains('dinner') ||
+        q.contains('office') ||
+        q.contains('party') ||
+        q.contains('travel');
+  }
+
+  String _buildMoreLooksPrompt(String chip) {
+    final base = (_lastStylePrompt != null && _lastStylePrompt!.trim().isNotEmpty)
+        ? _lastStylePrompt!.trim()
+        : 'Suggest an outfit from my wardrobe';
+
+    final q = chip.toLowerCase();
+    if (q.contains('shoe') || q.contains('footwear')) {
+      return '$base. Show a fresh set of outfit boards with different footwear where possible. Avoid repeating the exact same looks already shown.';
+    }
+
+    if (q.contains('next best')) {
+      return '$base. Show the next best outfit options from my wardrobe. Avoid repeating the exact same looks already shown.';
+    }
+
+    return '$base. Show more outfit options from my wardrobe. Avoid repeating the exact same looks already shown.';
+  }
+
+  List<dynamic> _chipsForAssistantResponse(Map<String, dynamic> response, List<dynamic> cards) {
+    final raw = List<dynamic>.from(response['chips'] as List? ?? const []);
+    if (cards.isEmpty) return raw;
+
+    const styleChips = ['More looks', 'Next best options', 'Try different shoes'];
+    final out = <dynamic>[...raw];
+    for (final chip in styleChips) {
+      if (!out.any((x) => x.toString().toLowerCase() == chip.toLowerCase())) {
+        out.add(chip);
+      }
+    }
+    return out;
+  }
+
   void _handleChipTap(String chip) {
+    if (_isAhviMoreLooksChip(chip)) {
+      _sendMessage(_buildMoreLooksPrompt(chip));
+      return;
+    }
+
     final local = _local[chip];
     if (local == null) return _sendMessage(chip);
     setState(() {
@@ -693,6 +755,9 @@ class _ChatScreenState extends State<ChatScreen>
     final text = chipText ?? _chatController.text.trim();
     if (text.isEmpty) return;
     _chatController.clear();
+    if (_isAhviStylePrompt(text) && !_isAhviMoreLooksChip(text)) {
+      _lastStylePrompt = text;
+    }
     setState(() {
       _messages.add(_ChatMessage(text: text, isMe: true));
       _chatHistory.add({'role': 'user', 'content': text});
@@ -713,21 +778,23 @@ class _ChatScreenState extends State<ChatScreen>
         _runningMemory = response['updated_memory'];
       }
       final rawMessage = response['message'];
+      final cards = List<dynamic>.from(response['cards'] as List? ?? const []);
       final aiText =
           (response['message_text'] ??
                   (rawMessage is Map ? rawMessage['content'] : rawMessage) ??
                   AppLocalizations.t(context, 'chat_connection_error'))
               .toString();
+
       _chatHistory.add({'role': 'assistant', 'content': aiText});
       setState(
         () => _messages.add(
           _ChatMessage(
             text: aiText,
             isMe: false,
-            chips: response['chips'] ?? [],
+            chips: _chipsForAssistantResponse(response, cards),
             boardId: response['board_ids'],
             packId: response['pack_ids'],
-            cards: List<dynamic>.from(response['cards'] as List? ?? const []),
+            cards: cards,
           ),
         ),
       );
@@ -1125,7 +1192,7 @@ class _ChatScreenState extends State<ChatScreen>
             children: m.chips
                 .map(
                   (c) => GestureDetector(
-                    onTap: () => _sendMessage(c.toString()),
+                    onTap: () => _handleChipTap(c.toString()),
                     child: _chip(c.toString(), t),
                   ),
                 )
@@ -3879,3 +3946,6 @@ TextStyle _kvSectionTitleStyle(BuildContext context) {
 }
 
 // ================= AHVI V6 PREMIUM BOARD UI HELPERS END =================
+
+
+// ================= AHVI MORE LOOKS FRONTEND V1 APPLIED =================
