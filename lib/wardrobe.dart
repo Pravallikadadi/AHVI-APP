@@ -1120,6 +1120,9 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
                         _shareItem(i);
                       },
                       onTapCard: _openItemDetail,
+                      onRefresh: () async {
+                        await _fetchWardrobeItems();
+                      },
                     )
                   : _StatsPanel(wardrobe: _wardrobe),
             ),
@@ -4385,6 +4388,7 @@ class _WardrobePanel extends StatelessWidget {
   final ValueChanged<String> onWore;
   final ValueChanged<String> onShare;
   final ValueChanged<String> onTapCard;
+  final Future<void> Function() onRefresh;
 
   const _WardrobePanel({
     required this.items,
@@ -4396,32 +4400,40 @@ class _WardrobePanel extends StatelessWidget {
     required this.onWore,
     required this.onShare,
     required this.onTapCard,
+    required this.onRefresh,
   });
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(24, 0, 24, 100),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const SizedBox(height: 14),
-          _InlineInsightCard(wardrobe: wardrobe),
-          const SizedBox(height: 20),
-          if (allEmpty)
-            _EmptyState(onAddTap: onAddTap)
-          else if (items.isEmpty)
-            const _EmptySearch()
-          else
-            _ItemGrid(
-              items: items,
-              onDelete: onDelete,
-              onToggleLike: onToggleLike,
-              onWore: onWore,
-              onShare: onShare,
-              onTapCard: onTapCard,
-            ),
-        ],
+    return RefreshIndicator(
+      onRefresh: onRefresh,
+      child: SingleChildScrollView(
+        // AlwaysScrollable required so RefreshIndicator can pull-trigger
+        // even when the content is shorter than the viewport (e.g. empty
+        // wardrobe state).
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(24, 0, 24, 100),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 14),
+            _InlineInsightCard(wardrobe: wardrobe),
+            const SizedBox(height: 20),
+            if (allEmpty)
+              _EmptyState(onAddTap: onAddTap)
+            else if (items.isEmpty)
+              const _EmptySearch()
+            else
+              _ItemGrid(
+                items: items,
+                onDelete: onDelete,
+                onToggleLike: onToggleLike,
+                onWore: onWore,
+                onShare: onShare,
+                onTapCard: onTapCard,
+              ),
+          ],
+        ),
       ),
     );
   }
