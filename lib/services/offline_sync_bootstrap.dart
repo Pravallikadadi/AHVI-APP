@@ -120,10 +120,16 @@ class _OfflineSyncBootstrapState extends State<OfflineSyncBootstrap> {
                     : '')
                 .toString()
                 .trim();
-        if (uid.isNotEmpty && uid != _lastSyncedUserId) {
-          // User changed — purge cache for the *previous* user before
-          // syncing the new one. setUser() in OfflineCache rebinds keys.
-          final cache = context.read<OfflineCache>();
+        final cache = context.read<OfflineCache>();
+        if (uid.isEmpty) {
+          // Logout: detach the cache from any user. _loadFromPrefs() resets
+          // in-memory state so a subsequent build cannot show stale rows.
+          if (_lastSyncedUserId != null) {
+            cache.setUser(null);
+            _lastSyncedUserId = null;
+          }
+        } else if (uid != _lastSyncedUserId) {
+          // User switched — rebind cache keys to the new user before sync.
           cache.setUser(uid);
           _lastSyncedUserId = null; // force resync below
         }

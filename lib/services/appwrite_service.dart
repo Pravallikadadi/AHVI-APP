@@ -208,15 +208,30 @@ class AppwriteService extends ChangeNotifier {
   }
 
   Future<void> logout() async {
+    // Clear local identity first so any race between the SDK call and a
+    // subsequent UI rebuild can never see the previous user.
     await clearCachedUserIdentity();
     try {
       await AhviNotificationService.instance.unregisterForCurrentUser(this);
-      await account.deleteSession(sessionId: 'current');
-      clearUserCache();
-      notifyListeners();
     } catch (e) {
-      debugPrint("Logout error: $e");
+      debugPrint("Push unregister error: $e");
     }
+    // Tear down EVERY session for this user, not just the current one.
+    // Prevents the next sign-in on the same device from inheriting an
+    // orphan session that still resolves account.get() to the previous
+    // user before the new login completes.
+    try {
+      await account.deleteSessions();
+    } catch (e) {
+      debugPrint("deleteSessions failed, falling back to current: $e");
+      try {
+        await account.deleteSession(sessionId: 'current');
+      } catch (e2) {
+        debugPrint("deleteSession('current') also failed: $e2");
+      }
+    }
+    clearUserCache();
+    notifyListeners();
   }
 
   // Deletes all active sessions — effectively signs the user out everywhere.
