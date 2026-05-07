@@ -49,43 +49,57 @@ class OfflineCache extends ChangeNotifier {
     notifyListeners();
   }
 
-  String _wardrobeKey() => 'offline:wardrobe:${_userId ?? "anon"}';
-  String _boardsKey(String occasion) =>
-      'offline:boards:${_userId ?? "anon"}:${occasion.toLowerCase()}';
-  String _imageMapKey() => 'offline:images:${_userId ?? "anon"}';
+  // Per-user prefs keys. We deliberately do NOT use an "anon" fallback —
+  // anonymous reads/writes leak data across accounts on the same device.
+  // Callers must ensure a userId is set; helpers below early-return when not.
+  String? _wardrobeKey() =>
+      _userId == null || _userId!.isEmpty ? null : 'offline:wardrobe:$_userId';
+  String? _boardsKey(String occasion) =>
+      _userId == null || _userId!.isEmpty
+          ? null
+          : 'offline:boards:$_userId:${occasion.toLowerCase()}';
+  String? _imageMapKey() =>
+      _userId == null || _userId!.isEmpty ? null : 'offline:images:$_userId';
 
   void _loadFromPrefs() {
-    final wRaw = _prefs.getString(_wardrobeKey());
-    if (wRaw != null) {
-      try {
-        final decoded = jsonDecode(wRaw);
-        if (decoded is List) {
-          _wardrobe = decoded
-              .whereType<Map>()
-              .map((e) => Map<String, dynamic>.from(e))
-              .toList();
+    // Always reset in-memory state first so a user-switch never inherits the
+    // previous user's data when there is no key for the new user yet.
+    _wardrobe = const [];
+    _savedBoardsByOccasion.clear();
+    _imageMap = {};
+
+    final wKey = _wardrobeKey();
+    if (wKey != null) {
+      final wRaw = _prefs.getString(wKey);
+      if (wRaw != null) {
+        try {
+          final decoded = jsonDecode(wRaw);
+          if (decoded is List) {
+            _wardrobe = decoded
+                .whereType<Map>()
+                .map((e) => Map<String, dynamic>.from(e))
+                .toList();
+          }
+        } catch (_) {
+          _wardrobe = const [];
         }
-      } catch (_) {
-        _wardrobe = const [];
       }
-    } else {
-      _wardrobe = const [];
     }
 
-    _savedBoardsByOccasion.clear();
-
-    final imgRaw = _prefs.getString(_imageMapKey());
-    if (imgRaw != null) {
-      try {
-        final decoded = jsonDecode(imgRaw);
-        if (decoded is Map) {
-          _imageMap = decoded.map((k, v) => MapEntry(k.toString(), v.toString()));
+    final imgKey = _imageMapKey();
+    if (imgKey != null) {
+      final imgRaw = _prefs.getString(imgKey);
+      if (imgRaw != null) {
+        try {
+          final decoded = jsonDecode(imgRaw);
+          if (decoded is Map) {
+            _imageMap =
+                decoded.map((k, v) => MapEntry(k.toString(), v.toString()));
+          }
+        } catch (_) {
+          _imageMap = {};
         }
-      } catch (_) {
-        _imageMap = {};
       }
-    } else {
-      _imageMap = {};
     }
   }
 
@@ -94,8 +108,10 @@ class OfflineCache extends ChangeNotifier {
   List<Map<String, dynamic>> getWardrobe() => wardrobe;
 
   Future<void> setWardrobe(List<Map<String, dynamic>> items) async {
+    final key = _wardrobeKey();
+    if (key == null) return; // refuse anonymous writes
     _wardrobe = List<Map<String, dynamic>>.from(items);
-    await _prefs.setString(_wardrobeKey(), jsonEncode(_wardrobe));
+    await _prefs.setString(key, jsonEncode(_wardrobe));
     notifyListeners();
   }
 
@@ -114,7 +130,10 @@ class OfflineCache extends ChangeNotifier {
       }
     }
     _wardrobe = next;
-    await _prefs.setString(_wardrobeKey(), jsonEncode(_wardrobe));
+    final key = _wardrobeKey();
+    if (key != null) {
+      await _prefs.setString(key, jsonEncode(_wardrobe));
+    }
 
     if (deleteImages) {
       for (final item in removed) {
@@ -134,7 +153,9 @@ class OfflineCache extends ChangeNotifier {
     if (_savedBoardsByOccasion.containsKey(key)) {
       return List.unmodifiable(_savedBoardsByOccasion[key]!);
     }
-    final raw = _prefs.getString(_boardsKey(occasion));
+    final prefsKey = _boardsKey(occasion);
+    if (prefsKey == null) return const [];
+    final raw = _prefs.getString(prefsKey);
     if (raw == null) return const [];
     try {
       final decoded = jsonDecode(raw);
@@ -162,7 +183,10 @@ class OfflineCache extends ChangeNotifier {
             })
         .toList();
     _savedBoardsByOccasion[occasion.toLowerCase()] = list;
-    await _prefs.setString(_boardsKey(occasion), jsonEncode(list));
+    final key = _boardsKey(occasion);
+    if (key != null) {
+      await _prefs.setString(key, jsonEncode(list));
+    }
     notifyListeners();
   }
 
@@ -279,7 +303,10 @@ class OfflineCache extends ChangeNotifier {
   }
 
   Future<void> _persistImageMap() async {
-    await _prefs.setString(_imageMapKey(), jsonEncode(_imageMap));
+    final key = _imageMapKey();
+    if (key != null) {
+      await _prefs.setString(key, jsonEncode(_imageMap));
+    }
   }
 
   // ---------- HELPERS ----------

@@ -318,7 +318,38 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
     _fetchWardrobeItems();
   }
 
-  static const String _wardrobeCacheGlobalKey = 'ahvi_wardrobe_cache_global';
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Detect user-switch (Abhinav -> Kavya on same device) and purge stale
+    // wardrobe state before re-fetching for the new user.
+    final appwrite = Provider.of<AppwriteService>(context, listen: true);
+    final cachedUser = appwrite.cachedUserProfileData;
+    final newUid = (cachedUser != null
+            ? (cachedUser['userId'] ?? cachedUser['\$id'] ?? '')
+            : '')
+        .toString()
+        .trim();
+    if (newUid.isEmpty) return;
+    if (_currentUserId != null && _currentUserId != newUid) {
+      // Different authed user than last build. Hard reset.
+      setState(() {
+        _wardrobe.clear();
+        _loadedCache = false;
+        _isLoading = true;
+        _currentUserId = newUid;
+      });
+      // Async kick-off; ignored (errors handled inside).
+      _loadCachedWardrobe(userId: newUid);
+      _fetchWardrobeItems();
+    }
+  }
+
+  // Legacy global key — kept only for one-shot cleanup. Never read; deleted
+  // on first cache touch so old installs do not leak previous-user data into
+  // the next signed-in user's view.
+  static const String _wardrobeCacheGlobalKeyLegacy =
+      'ahvi_wardrobe_cache_global';
 
   String _wardrobeCacheUserKey(String userId) => 'ahvi_wardrobe_cache_$userId';
 
@@ -356,13 +387,19 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
   Future<bool> _loadCachedWardrobe({String? userId}) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final raw =
-          prefs.getString(
-            userId != null
-                ? _wardrobeCacheUserKey(userId)
-                : _wardrobeCacheGlobalKey,
-          ) ??
-          prefs.getString(_wardrobeCacheGlobalKey);
+      // SECURITY: only ever read the user-scoped key. Never fall back to a
+      // global cache — that bleeds the previous user's wardrobe to the next
+      // user on the same device. Anonymous load = empty list.
+      if (userId == null || userId.isEmpty) {
+        // Eagerly nuke the legacy global key so it cannot be revived.
+        await prefs.remove(_wardrobeCacheGlobalKeyLegacy);
+        return false;
+      }
+      // One-shot cleanup of the legacy global key on every read.
+      if (prefs.containsKey(_wardrobeCacheGlobalKeyLegacy)) {
+        await prefs.remove(_wardrobeCacheGlobalKeyLegacy);
+      }
+      final raw = prefs.getString(_wardrobeCacheUserKey(userId));
       if (raw == null || raw.isEmpty) return false;
       final decoded = jsonDecode(raw);
       if (decoded is! List) return false;
@@ -390,11 +427,17 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
   Future<void> _saveWardrobeCache({String? userId}) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final raw = jsonEncode(_wardrobe.map(_itemToCacheJson).toList());
-      await prefs.setString(_wardrobeCacheGlobalKey, raw);
       final uid = userId ?? _currentUserId;
-      if (uid != null && uid.isNotEmpty) {
-        await prefs.setString(_wardrobeCacheUserKey(uid), raw);
+      if (uid == null || uid.isEmpty) {
+        // No authed user -> do not persist. Anonymous writes leak across
+        // accounts on the same device.
+        return;
+      }
+      final raw = jsonEncode(_wardrobe.map(_itemToCacheJson).toList());
+      await prefs.setString(_wardrobeCacheUserKey(uid), raw);
+      // Belt-and-suspenders: drop the legacy global key on every save.
+      if (prefs.containsKey(_wardrobeCacheGlobalKeyLegacy)) {
+        await prefs.remove(_wardrobeCacheGlobalKeyLegacy);
       }
     } catch (e) {
       debugPrint('Failed to save cached wardrobe: $e');

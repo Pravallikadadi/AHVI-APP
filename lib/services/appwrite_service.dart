@@ -112,14 +112,21 @@ class AppwriteService extends ChangeNotifier {
     }
   }
 
-  // Clear cache on logout
+  // Clear all per-user state. Called on logout AND on every successful
+  // login so a freshly authed user never sees the previous user's data.
   void clearUserCache() {
     _cachedUser = null;
     _cachedUserProfileData = null;
+    invalidateWardrobeCache();
   }
 
   Future<Session?> loginEmailPassword(String email, String password) async {
     try {
+      // Wipe any previous user's in-memory state before authenticating
+      // the new user. Prevents wardrobe/profile data from one account
+      // leaking into the next account on the same device.
+      clearUserCache();
+
       final session = await account.createEmailPasswordSession(
         email: email,
         password: password,
@@ -139,6 +146,7 @@ class AppwriteService extends ChangeNotifier {
 
   Future<bool> loginWithGoogle() async {
     try {
+      clearUserCache();
       await account.createOAuth2Session(provider: OAuthProvider.google);
       await cacheCurrentUser();
       await ensureCurrentUserProfile();
@@ -154,6 +162,7 @@ class AppwriteService extends ChangeNotifier {
 
   Future<bool> loginWithApple() async {
     try {
+      clearUserCache();
       await account.createOAuth2Session(provider: OAuthProvider.apple);
       await cacheCurrentUser();
       await ensureCurrentUserProfile();

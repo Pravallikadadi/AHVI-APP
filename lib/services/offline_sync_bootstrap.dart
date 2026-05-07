@@ -109,9 +109,24 @@ class _OfflineSyncBootstrapState extends State<OfflineSyncBootstrap> {
 
   @override
   Widget build(BuildContext context) {
-    // Re-run sync when connectivity flips back to online.
-    return Consumer<ConnectivityWatcher>(
-      builder: (_, conn, child) {
+    // Re-run sync when connectivity flips back to online OR when the
+    // authenticated user changes (login switch on the same device).
+    return Consumer2<ConnectivityWatcher, AppwriteService>(
+      builder: (_, conn, appwrite, child) {
+        final cachedUser = appwrite.cachedUserProfileData;
+        final uid =
+            (cachedUser != null
+                    ? (cachedUser['userId'] ?? cachedUser['\$id'] ?? '')
+                    : '')
+                .toString()
+                .trim();
+        if (uid.isNotEmpty && uid != _lastSyncedUserId) {
+          // User changed — purge cache for the *previous* user before
+          // syncing the new one. setUser() in OfflineCache rebinds keys.
+          final cache = context.read<OfflineCache>();
+          cache.setUser(uid);
+          _lastSyncedUserId = null; // force resync below
+        }
         if (conn.isOnline) {
           WidgetsBinding.instance.addPostFrameCallback((_) => _maybeSync());
         }
