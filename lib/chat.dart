@@ -66,6 +66,130 @@ class _ChatMessage {
   });
 }
 
+bool _isStyleMoreChip(String value) {
+  final text = value.toLowerCase().trim();
+  return text == 'more looks' ||
+      text == 'more options' ||
+      text == 'next best options' ||
+      text == 'next best' ||
+      text == 'try different shoes' ||
+      text.contains('more look') ||
+      text.contains('more option') ||
+      text.contains('next option') ||
+      text.contains('different shoe') ||
+      text.contains('different footwear');
+}
+
+List<dynamic> _extractStyleBoardsFromResponse(Map<String, dynamic> response) {
+  final data = response['data'] is Map
+      ? Map<String, dynamic>.from(response['data'] as Map)
+      : <String, dynamic>{};
+
+  for (final value in [
+    response['style_boards'],
+    response['cards'],
+    data['outfits'],
+    data['rendered_boards'],
+  ]) {
+    final boards = _mapDynamicBoards(value);
+    if (boards.isNotEmpty) return boards;
+  }
+  return const [];
+}
+
+List<dynamic> _mapDynamicBoards(dynamic value) {
+  if (value is! List) return const [];
+  return value
+      .whereType<Map>()
+      .map((item) => Map<String, dynamic>.from(item))
+      .toList();
+}
+
+List<dynamic> _mergeStyleBoards(
+  List<dynamic> current,
+  List<dynamic> incoming, {
+  int maxBoards = 6,
+}) {
+  final merged = <Map<String, dynamic>>[];
+  final seen = <String>{};
+
+  void add(dynamic value) {
+    if (merged.length >= maxBoards || value is! Map) return;
+    final board = Map<String, dynamic>.from(value);
+    final signature = _styleBoardSignature(board);
+    if (signature.isEmpty || !seen.add(signature)) return;
+    merged.add(board);
+  }
+
+  for (final board in current) {
+    add(board);
+  }
+  for (final board in incoming) {
+    add(board);
+  }
+  return merged;
+}
+
+List<String> _styleBoardSignatures(List<dynamic> boards) {
+  return boards
+      .whereType<Map>()
+      .map((board) => _styleBoardSignature(Map<String, dynamic>.from(board)))
+      .where((signature) => signature.isNotEmpty)
+      .toList();
+}
+
+String _styleBoardSignature(Map<String, dynamic> board) {
+  final names =
+      _styleBoardItems(board)
+          .map(
+            (item) =>
+                (item['id'] ??
+                        item[r'$id'] ??
+                        item['item_id'] ??
+                        item['image_id'] ??
+                        item['name'] ??
+                        item['label'] ??
+                        '')
+                    .toString()
+                    .trim()
+                    .toLowerCase(),
+          )
+          .where((value) => value.isNotEmpty)
+          .toList()
+        ..sort();
+
+  if (names.isNotEmpty) return names.join('|');
+  return (board['id'] ?? board['title'] ?? board['name'] ?? '')
+      .toString()
+      .trim()
+      .toLowerCase();
+}
+
+List<Map<String, dynamic>> _styleBoardItems(Map<String, dynamic> board) {
+  final out = <Map<String, dynamic>>[];
+  void addList(dynamic value) {
+    if (value is! List) return;
+    out.addAll(
+      value.whereType<Map>().map((item) => Map<String, dynamic>.from(item)),
+    );
+  }
+
+  addList(board['items']);
+  addList(board['accessories']);
+  for (final key in [
+    'top',
+    'bottom',
+    'dress',
+    'shoes',
+    'footwear',
+    'outerwear',
+  ]) {
+    final value = board[key];
+    if (value is Map) out.add(Map<String, dynamic>.from(value));
+  }
+  return out;
+}
+
 enum _RespType { outfits, plan, card, checklist }
 
 class _LocalResponse {
@@ -680,6 +804,10 @@ class _ChatScreenState extends State<ChatScreen>
   }
 
   void _handleChipTap(String chip) {
+    if (_module == 'style' && _isStyleMoreChip(chip)) {
+      _requestMoreStyleBoards(chip);
+      return;
+    }
     final local = _local[chip];
     if (local == null) return _sendMessage(chip);
     setState(() {
@@ -687,6 +815,110 @@ class _ChatScreenState extends State<ChatScreen>
       _messages.add(_ChatMessage(text: local.intro, isMe: false, local: local));
     });
     _scrollToBottom();
+  }
+
+  Future<void> _requestMoreStyleBoards(String chip) async {
+    final sourceIndex = _lastAssistantWithBoardsIndex();
+    final sourceCards = sourceIndex == null
+        ? const <dynamic>[]
+        : _messages[sourceIndex].cards;
+    final exclude = _styleBoardSignatures(sourceCards);
+
+    setState(() {
+      _messages.add(_ChatMessage(text: chip, isMe: true));
+      _chatHistory.add({'role': 'user', 'content': chip});
+      _isTyping = true;
+    });
+    _scrollToBottom();
+
+    try {
+      final backend = Provider.of<BackendService>(context, listen: false);
+      final response = await backend.sendChatQuery(
+        chip,
+        'user_$_userName',
+        List<Map<String, String>>.from(_chatHistory),
+        _runningMemory,
+        moduleContext: _module,
+        styleAction: 'more_options',
+        excludeStyleSignatures: exclude,
+        requestedBoardCount: 3,
+      );
+      if (!mounted) return;
+
+      final newBoards = _extractStyleBoardsFromResponse(response);
+      final mergedBoards = _mergeStyleBoards(
+        sourceCards,
+        newBoards,
+        maxBoards: 6,
+      );
+      final added = mergedBoards.length > sourceCards.length;
+      final rawMessage = response['message'];
+      final aiText =
+          (response['message_text'] ??
+                  (rawMessage is Map ? rawMessage['content'] : rawMessage) ??
+                  '')
+              .toString()
+              .trim();
+
+      setState(() {
+        if (sourceIndex != null && added) {
+          final old = _messages[sourceIndex];
+          _messages[sourceIndex] = _ChatMessage(
+            text: old.text,
+            isMe: old.isMe,
+            isGreeting: old.isGreeting,
+            chips: old.chips,
+            boardId: old.boardId,
+            packId: old.packId,
+            local: old.local,
+            cards: mergedBoards,
+          );
+          _messages.add(
+            _ChatMessage(
+              text: aiText.isNotEmpty ? aiText : 'I added fresh style options.',
+              isMe: false,
+              chips: response['chips'] ?? [],
+            ),
+          );
+        } else {
+          _messages.add(
+            _ChatMessage(
+              text: "I've shown the strongest options from this wardrobe.",
+              isMe: false,
+              chips: response['chips'] ?? [],
+            ),
+          );
+        }
+        _chatHistory.add({
+          'role': 'assistant',
+          'content': added
+              ? (aiText.isNotEmpty ? aiText : 'I added fresh style options.')
+              : "I've shown the strongest options from this wardrobe.",
+        });
+      });
+      _saveCurrentSession();
+    } catch (e) {
+      if (!mounted) return;
+      setState(
+        () => _messages.add(
+          _ChatMessage(
+            text: '${AppLocalizations.t(context, 'chat_error_prefix')}: $e',
+            isMe: false,
+          ),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isTyping = false);
+      _scrollToBottom();
+    }
+  }
+
+  int? _lastAssistantWithBoardsIndex() {
+    for (var i = _messages.length - 1; i >= 0; i--) {
+      final message = _messages[i];
+      if (!message.isMe && message.cards.isNotEmpty) return i;
+    }
+    return null;
   }
 
   void _sendMessage([String? chipText]) async {
@@ -727,7 +959,7 @@ class _ChatScreenState extends State<ChatScreen>
             chips: response['chips'] ?? [],
             boardId: response['board_ids'],
             packId: response['pack_ids'],
-            cards: List<dynamic>.from(response['cards'] as List? ?? const []),
+            cards: _extractStyleBoardsFromResponse(response),
           ),
         ),
       );
@@ -1135,7 +1367,7 @@ class _ChatScreenState extends State<ChatScreen>
     ],
   );
 
-  // Magazine flat-lay composition: up to 3 boards in a horizontal swipe
+  // Magazine flat-lay composition: dynamic boards in a horizontal swipe
   // (PageView). Each board is a single white canvas with one item per
   // role (top / bottom / shoes / bag / watch / jewelry / headwear).
   // A "Save to boards" pill sits below — writes to saved_boards.
@@ -1143,7 +1375,6 @@ class _ChatScreenState extends State<ChatScreen>
     final boards = cards
         .whereType<Map>()
         .map((c) => Map<String, dynamic>.from(c))
-        .take(3)
         .toList();
     if (boards.isEmpty) return const SizedBox.shrink();
 
@@ -3245,7 +3476,6 @@ class _OutfitBoardSwiperState extends State<_OutfitBoardSwiper> {
     );
   }
 
-
   Future<void> _saveBoardAt(int index) async {
     if (index < 0 || index >= widget.boards.length) return;
     if (_saving.contains(index) || _saved.contains(index)) return;
@@ -3398,13 +3628,16 @@ class _OutfitBoardSwiperState extends State<_OutfitBoardSwiper> {
                       );
                     }
 
-                    final visibleAccessories =
-                        accessories.take(4).toList(growable: false);
+                    final visibleAccessories = accessories
+                        .take(4)
+                        .toList(growable: false);
                     final accessoryCount = visibleAccessories.length;
                     final railLeft = w * 0.710;
                     final railTop = h * 0.045;
                     final railGap = h * 0.022;
-                    final railItemH = accessoryCount <= 2 ? h * 0.180 : h * 0.142;
+                    final railItemH = accessoryCount <= 2
+                        ? h * 0.180
+                        : h * 0.142;
                     final railItemW = w * 0.250;
 
                     return Container(
@@ -3424,8 +3657,9 @@ class _OutfitBoardSwiperState extends State<_OutfitBoardSwiper> {
                             child: DecoratedBox(
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
-                                color: const Color(0xFFF1E7EA)
-                                    .withValues(alpha: 0.86),
+                                color: const Color(
+                                  0xFFF1E7EA,
+                                ).withValues(alpha: 0.86),
                               ),
                             ),
                           ),
@@ -3437,8 +3671,9 @@ class _OutfitBoardSwiperState extends State<_OutfitBoardSwiper> {
                             child: DecoratedBox(
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
-                                color: const Color(0xFFF5F1E7)
-                                    .withValues(alpha: 0.70),
+                                color: const Color(
+                                  0xFFF5F1E7,
+                                ).withValues(alpha: 0.70),
                               ),
                             ),
                           ),
@@ -3546,8 +3781,8 @@ class _OutfitBoardSwiperState extends State<_OutfitBoardSwiper> {
                                 _saving.contains(index)
                                     ? 'Saving…'
                                     : (_saved.contains(index)
-                                        ? 'Saved'
-                                        : 'Save Look'),
+                                          ? 'Saved'
+                                          : 'Save Look'),
                                 style: TextStyle(
                                   color: t.mutedText,
                                   fontWeight: FontWeight.w800,
@@ -3889,16 +4124,21 @@ class _OutfitBoardSwiperState extends State<_OutfitBoardSwiper> {
 
     final occasion = _editorialOccasion(board).toLowerCase();
     final lower = existing.toLowerCase();
-    final genericTitle = existing.isEmpty ||
+    final genericTitle =
+        existing.isEmpty ||
         lower == 'styled look' ||
         lower == 'ahvi style board' ||
         lower == 'hero look' ||
+        lower == "today's edit" ||
         lower == 'easy win' ||
         lower == 'signature combo' ||
         lower == 'polished daily';
 
     if (occasion.contains('date') && genericTitle) return 'Date Night Edit';
-    if (genericTitle) return "Today's Edit";
+    if (occasion.contains('office') && genericTitle) return 'Boardroom Casual';
+    if (occasion.contains('work') && genericTitle) return 'Sharp Daily';
+    if (occasion.contains('party') && genericTitle) return 'After-Hours Edit';
+    if (genericTitle) return 'Polished Neutral';
     return existing;
   }
 
@@ -4002,9 +4242,7 @@ class _OutfitBoardSwiperState extends State<_OutfitBoardSwiper> {
             ),
             const SizedBox(width: 6),
             Text(
-              saving
-                  ? 'Saving…'
-                  : (saved ? 'Saved' : 'Save Look'),
+              saving ? 'Saving…' : (saved ? 'Saved' : 'Save Look'),
               style: TextStyle(
                 color: t.accent.primary,
                 fontSize: 12.5,
@@ -4045,6 +4283,5 @@ TextStyle _kvSectionTitleStyle(BuildContext context) {
 }
 
 // ================= AHVI V6 PREMIUM BOARD UI HELPERS END =================
-
 
 // ================= AHVI V4.5 SINGLE CANVAS MORE LOOKS MERGE =================

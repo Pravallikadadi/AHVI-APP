@@ -136,6 +136,9 @@ class BackendService {
     List<Map<String, dynamic>>? fetchedWardrobe,
     String moduleContext = 'chat',
     Map<String, dynamic>? userProfile,
+    String? styleAction,
+    List<String> excludeStyleSignatures = const [],
+    int? requestedBoardCount,
   }) async {
     try {
       final authedUserId = await _currentUserId();
@@ -172,6 +175,12 @@ class BackendService {
               'module_context': moduleContext,
               'include_base64':
                   moduleContext == 'style' || moduleContext == 'wardrobe',
+              if (styleAction != null && styleAction.trim().isNotEmpty)
+                'style_action': styleAction.trim(),
+              if (excludeStyleSignatures.isNotEmpty)
+                'exclude_style_signatures': excludeStyleSignatures,
+              if (requestedBoardCount != null)
+                'requested_board_count': requestedBoardCount,
               if (safeWardrobePayload.isNotEmpty)
                 'wardrobe': safeWardrobePayload,
             }),
@@ -192,6 +201,9 @@ class BackendService {
             fetchedWardrobe: items,
             moduleContext: moduleContext,
             userProfile: userProfile,
+            styleAction: styleAction,
+            excludeStyleSignatures: excludeStyleSignatures,
+            requestedBoardCount: requestedBoardCount,
           );
         }
 
