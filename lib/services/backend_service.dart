@@ -173,8 +173,10 @@ class BackendService {
               'user_profile': {...?userProfile, 'user_id': authedUserId},
               'user_id': authedUserId,
               'module_context': moduleContext,
-              'include_base64':
-                  moduleContext == 'style' || moduleContext == 'wardrobe',
+              // Chat style boards render from live wardrobe item cards.
+              // Requesting base64 board renders here makes /api/text much
+              // heavier and can leave the UI feeling stuck on slow networks.
+              'include_base64': false,
               if (styleAction != null && styleAction.trim().isNotEmpty)
                 'style_action': styleAction.trim(),
               if (excludeStyleSignatures.isNotEmpty)
@@ -185,7 +187,7 @@ class BackendService {
                 'wardrobe': safeWardrobePayload,
             }),
           )
-          .timeout(const Duration(seconds: 25));
+          .timeout(const Duration(seconds: 90));
 
       if (response.statusCode == 200) {
         final data = await compute(_parseJsonMap, response.body);
