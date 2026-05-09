@@ -3438,8 +3438,9 @@ class _ChatScreenState extends State<ChatScreen> {
       } catch (_) {
         reply = '';
       }
-      if (reply.isEmpty)
-        reply = AppLocalizations.t(context, 'diet_chat_fallback');
+      if (reply.isEmpty) {
+        reply = 'AHVI is still preparing this. Try again in a moment.';
+      }
       if (mounted) {
         setState(() {
           _isTyping = false;

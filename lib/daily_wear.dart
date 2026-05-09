@@ -111,15 +111,37 @@ class _DailyWearScreenState extends State<DailyWearScreen>
       'desc': AppLocalizations.t(context, 'outfit_linen_air_desc'),
       'tip': AppLocalizations.t(context, 'outfit_linen_air_tip'),
       'range': [26, 99],
-      'occ': [AppLocalizations.t(context, 'occ_casual'), AppLocalizations.t(context, 'occ_weekend'), AppLocalizations.t(context, 'occ_travel')],
+      'occ': [
+        AppLocalizations.t(context, 'occ_casual'),
+        AppLocalizations.t(context, 'occ_weekend'),
+        AppLocalizations.t(context, 'occ_travel'),
+      ],
       'colors': ['#e8e0d5', '#c8b89a', '#d4a472'],
       'arTags': [
-        {'t': AppLocalizations.t(context, 'ar_linen_overshirt'), 'top': 0.28, 'left': 0.18},
-        {'t': AppLocalizations.t(context, 'ar_drawstring_shorts'), 'top': 0.60, 'left': 0.12},
-        {'t': AppLocalizations.t(context, 'ar_sandals'), 'top': 0.82, 'left': 0.22},
+        {
+          't': AppLocalizations.t(context, 'ar_linen_overshirt'),
+          'top': 0.28,
+          'left': 0.18,
+        },
+        {
+          't': AppLocalizations.t(context, 'ar_drawstring_shorts'),
+          'top': 0.60,
+          'left': 0.12,
+        },
+        {
+          't': AppLocalizations.t(context, 'ar_sandals'),
+          'top': 0.82,
+          'left': 0.22,
+        },
       ],
-      'tags': [AppLocalizations.t(context, 'tag_breezy'), AppLocalizations.t(context, 'tag_linen'), AppLocalizations.t(context, 'tag_relaxed_fit'), AppLocalizations.t(context, 'tag_warm_weather')],
-      'img': 'https://i.pinimg.com/736x/dc/f4/05/dcf405a9b3fa1734bf1a68c689295012.jpg',
+      'tags': [
+        AppLocalizations.t(context, 'tag_breezy'),
+        AppLocalizations.t(context, 'tag_linen'),
+        AppLocalizations.t(context, 'tag_relaxed_fit'),
+        AppLocalizations.t(context, 'tag_warm_weather'),
+      ],
+      'img':
+          'https://i.pinimg.com/736x/dc/f4/05/dcf405a9b3fa1734bf1a68c689295012.jpg',
       'localImg': 'assets/images/outfit_linen_air.jpg',
     },
     {
@@ -131,15 +153,37 @@ class _DailyWearScreenState extends State<DailyWearScreen>
       'desc': AppLocalizations.t(context, 'outfit_coffee_run_desc'),
       'tip': AppLocalizations.t(context, 'outfit_coffee_run_tip'),
       'range': [15, 25],
-      'occ': [AppLocalizations.t(context, 'occ_casual'), AppLocalizations.t(context, 'occ_weekend'), AppLocalizations.t(context, 'occ_errands')],
+      'occ': [
+        AppLocalizations.t(context, 'occ_casual'),
+        AppLocalizations.t(context, 'occ_weekend'),
+        AppLocalizations.t(context, 'occ_errands'),
+      ],
       'colors': ['#8d8d8d', '#4a6fa5', '#f5f5f5'],
       'arTags': [
-        {'t': AppLocalizations.t(context, 'ar_oversized_hoodie'), 'top': 0.30, 'left': 0.15},
-        {'t': AppLocalizations.t(context, 'ar_straight_jeans'), 'top': 0.62, 'left': 0.10},
-        {'t': AppLocalizations.t(context, 'ar_chunky_sneakers'), 'top': 0.83, 'left': 0.20},
+        {
+          't': AppLocalizations.t(context, 'ar_oversized_hoodie'),
+          'top': 0.30,
+          'left': 0.15,
+        },
+        {
+          't': AppLocalizations.t(context, 'ar_straight_jeans'),
+          'top': 0.62,
+          'left': 0.10,
+        },
+        {
+          't': AppLocalizations.t(context, 'ar_chunky_sneakers'),
+          'top': 0.83,
+          'left': 0.20,
+        },
       ],
-      'tags': [AppLocalizations.t(context, 'tag_cosy'), AppLocalizations.t(context, 'tag_casual'), AppLocalizations.t(context, 'tag_everyday'), AppLocalizations.t(context, 'tag_comfortable')],
-      'img': 'https://i.pinimg.com/736x/a3/f2/18/a3f218d89461024773e4b0c0a0b52de2.jpg',
+      'tags': [
+        AppLocalizations.t(context, 'tag_cosy'),
+        AppLocalizations.t(context, 'tag_casual'),
+        AppLocalizations.t(context, 'tag_everyday'),
+        AppLocalizations.t(context, 'tag_comfortable'),
+      ],
+      'img':
+          'https://i.pinimg.com/736x/a3/f2/18/a3f218d89461024773e4b0c0a0b52de2.jpg',
       'localImg': 'assets/images/outfit_coffee_run.jpg',
     },
     {
@@ -151,15 +195,37 @@ class _DailyWearScreenState extends State<DailyWearScreen>
       'desc': AppLocalizations.t(context, 'outfit_office_hours_desc'),
       'tip': AppLocalizations.t(context, 'outfit_office_hours_tip'),
       'range': [18, 28],
-      'occ': [AppLocalizations.t(context, 'occ_work'), AppLocalizations.t(context, 'occ_meetings'), AppLocalizations.t(context, 'tag_formal')],
+      'occ': [
+        AppLocalizations.t(context, 'occ_work'),
+        AppLocalizations.t(context, 'occ_meetings'),
+        AppLocalizations.t(context, 'tag_formal'),
+      ],
       'colors': ['#2c3e50', '#a8bbd1', '#1a1a1a'],
       'arTags': [
-        {'t': AppLocalizations.t(context, 'ar_slim_blazer'), 'top': 0.28, 'left': 0.16},
-        {'t': AppLocalizations.t(context, 'ar_tailored_trousers'), 'top': 0.63, 'left': 0.11},
-        {'t': AppLocalizations.t(context, 'ar_chelsea_boots'), 'top': 0.83, 'left': 0.21},
+        {
+          't': AppLocalizations.t(context, 'ar_slim_blazer'),
+          'top': 0.28,
+          'left': 0.16,
+        },
+        {
+          't': AppLocalizations.t(context, 'ar_tailored_trousers'),
+          'top': 0.63,
+          'left': 0.11,
+        },
+        {
+          't': AppLocalizations.t(context, 'ar_chelsea_boots'),
+          'top': 0.83,
+          'left': 0.21,
+        },
       ],
-      'tags': [AppLocalizations.t(context, 'tag_smart'), AppLocalizations.t(context, 'tag_formal'), AppLocalizations.t(context, 'tag_polished'), AppLocalizations.t(context, 'tag_work_ready')],
-      'img': 'https://i.pinimg.com/736x/e0/c1/9d/e0c19d4fc4c0afe55a832318c50c5b8a.jpg',
+      'tags': [
+        AppLocalizations.t(context, 'tag_smart'),
+        AppLocalizations.t(context, 'tag_formal'),
+        AppLocalizations.t(context, 'tag_polished'),
+        AppLocalizations.t(context, 'tag_work_ready'),
+      ],
+      'img':
+          'https://i.pinimg.com/736x/e0/c1/9d/e0c19d4fc4c0afe55a832318c50c5b8a.jpg',
       'localImg': 'assets/images/outfit_office_hours.jpg',
     },
     {
@@ -171,15 +237,37 @@ class _DailyWearScreenState extends State<DailyWearScreen>
       'desc': AppLocalizations.t(context, 'outfit_golden_hour_desc'),
       'tip': AppLocalizations.t(context, 'outfit_golden_hour_tip'),
       'range': [20, 30],
-      'occ': [AppLocalizations.t(context, 'tag_date_night'), AppLocalizations.t(context, 'occ_casual'), AppLocalizations.t(context, 'occ_dinner')],
+      'occ': [
+        AppLocalizations.t(context, 'tag_date_night'),
+        AppLocalizations.t(context, 'occ_casual'),
+        AppLocalizations.t(context, 'occ_dinner'),
+      ],
       'colors': ['#c8864a', '#8b6f5c', '#d4b483'],
       'arTags': [
-        {'t': AppLocalizations.t(context, 'ar_knit_polo'), 'top': 0.29, 'left': 0.16},
-        {'t': AppLocalizations.t(context, 'ar_camel_trousers'), 'top': 0.62, 'left': 0.10},
-        {'t': AppLocalizations.t(context, 'ar_suede_loafers'), 'top': 0.83, 'left': 0.20},
+        {
+          't': AppLocalizations.t(context, 'ar_knit_polo'),
+          'top': 0.29,
+          'left': 0.16,
+        },
+        {
+          't': AppLocalizations.t(context, 'ar_camel_trousers'),
+          'top': 0.62,
+          'left': 0.10,
+        },
+        {
+          't': AppLocalizations.t(context, 'ar_suede_loafers'),
+          'top': 0.83,
+          'left': 0.20,
+        },
       ],
-      'tags': [AppLocalizations.t(context, 'tag_earth_tones'), AppLocalizations.t(context, 'tag_trendy'), AppLocalizations.t(context, 'tag_textured'), AppLocalizations.t(context, 'tag_date_night')],
-      'img': 'https://i.pinimg.com/474x/33/f8/a6/33f8a65105a50fbc1948e176221182d0.jpg',
+      'tags': [
+        AppLocalizations.t(context, 'tag_earth_tones'),
+        AppLocalizations.t(context, 'tag_trendy'),
+        AppLocalizations.t(context, 'tag_textured'),
+        AppLocalizations.t(context, 'tag_date_night'),
+      ],
+      'img':
+          'https://i.pinimg.com/474x/33/f8/a6/33f8a65105a50fbc1948e176221182d0.jpg',
       'localImg': 'assets/images/outfit_golden_hour.jpg',
     },
   ];
@@ -201,7 +289,6 @@ class _DailyWearScreenState extends State<DailyWearScreen>
   late AnimationController _screenFadeCtrl;
   late Animation<double> _screenFade;
 
-
   OverlayEntry? _toastEntry;
   Timer? _toastTimer;
 
@@ -216,7 +303,10 @@ class _DailyWearScreenState extends State<DailyWearScreen>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _tryOnLoadingMessage = AppLocalizations.t(context, 'daily_wear_requesting_camera');
+    _tryOnLoadingMessage = AppLocalizations.t(
+      context,
+      'daily_wear_requesting_camera',
+    );
 
     // Rebuild outfit data on every call so text updates when language changes
     final outfits = _buildAllOutfits(context);
@@ -232,10 +322,16 @@ class _DailyWearScreenState extends State<DailyWearScreen>
       _outfitsInited = true;
     } else {
       // Language changed — rebuild displayed outfits preserving order & worn state
-      final currentIds = _displayedOutfits.map((o) => o['id'] as String).toList();
+      final currentIds = _displayedOutfits
+          .map((o) => o['id'] as String)
+          .toList();
       final outfitById = {for (final o in outfits) o['id'] as String: o};
       _displayedOutfits = currentIds
-          .map((id) => outfitById[id] ?? _displayedOutfits.firstWhere((o) => o['id'] == id))
+          .map(
+            (id) =>
+                outfitById[id] ??
+                _displayedOutfits.firstWhere((o) => o['id'] == id),
+          )
           .toList();
     }
 
@@ -299,9 +395,14 @@ class _DailyWearScreenState extends State<DailyWearScreen>
   void initState() {
     super.initState();
 
-    _scanCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 3000))..repeat();
-    _scanLineY = Tween<double>(begin: 0.10, end: 0.85).animate(
-      CurvedAnimation(parent: _scanCtrl, curve: Curves.easeInOut));
+    _scanCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 3000),
+    )..repeat();
+    _scanLineY = Tween<double>(
+      begin: 0.10,
+      end: 0.85,
+    ).animate(CurvedAnimation(parent: _scanCtrl, curve: Curves.easeInOut));
 
     // Screen fade-in removed — instant display
     _screenFadeCtrl = AnimationController(
@@ -309,7 +410,10 @@ class _DailyWearScreenState extends State<DailyWearScreen>
       duration: Duration.zero,
       value: 1.0,
     );
-    _screenFade = CurvedAnimation(parent: _screenFadeCtrl, curve: Curves.linear);
+    _screenFade = CurvedAnimation(
+      parent: _screenFadeCtrl,
+      curve: Curves.linear,
+    );
 
     _pageController.addListener(_onPageScroll);
 
@@ -323,7 +427,13 @@ class _DailyWearScreenState extends State<DailyWearScreen>
         if (mounted) _updateClock();
       });
       final now = DateTime.now();
-      final nextMinute = DateTime(now.year, now.month, now.day, now.hour, now.minute + 1);
+      final nextMinute = DateTime(
+        now.year,
+        now.month,
+        now.day,
+        now.hour,
+        now.minute + 1,
+      );
       _clockAlignTimer = Timer(nextMinute.difference(now), () {
         if (!mounted) return;
         _updateClock();
@@ -343,8 +453,18 @@ class _DailyWearScreenState extends State<DailyWearScreen>
     final now = DateTime.now();
     const days = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
     const months = [
-      'JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN',
-      'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC',
+      'JAN',
+      'FEB',
+      'MAR',
+      'APR',
+      'MAY',
+      'JUN',
+      'JUL',
+      'AUG',
+      'SEP',
+      'OCT',
+      'NOV',
+      'DEC',
     ];
     // Update without setState — no Scaffold rebuild
     _liveDayNotifier.value = days[now.weekday % 7];
@@ -438,17 +558,61 @@ class _DailyWearScreenState extends State<DailyWearScreen>
   void _applyWeather(int temp, int feel, int code, [BuildContext? ctx]) {
     final context = ctx ?? this.context;
     final wm = <int, List<String>>{
-      0: ['☀️', AppLocalizations.t(context, 'weather_clear_sky'), AppLocalizations.t(context, 'weather_clear_sky_tip')],
-      1: ['🌤️', AppLocalizations.t(context, 'weather_mostly_clear'), AppLocalizations.t(context, 'weather_mostly_clear_tip')],
-      2: ['⛅', AppLocalizations.t(context, 'weather_partly_cloudy'), AppLocalizations.t(context, 'weather_partly_cloudy_tip')],
-      3: ['☁️', AppLocalizations.t(context, 'weather_overcast'), AppLocalizations.t(context, 'weather_overcast_tip')],
-      45: ['🌫️', AppLocalizations.t(context, 'weather_foggy'), AppLocalizations.t(context, 'weather_foggy_tip')],
-      51: ['🌦️', AppLocalizations.t(context, 'weather_light_drizzle'), AppLocalizations.t(context, 'weather_light_drizzle_tip')],
-      61: ['🌧️', AppLocalizations.t(context, 'weather_light_rain'), AppLocalizations.t(context, 'weather_light_rain_tip')],
-      63: ['🌧️', AppLocalizations.t(context, 'weather_rain'), AppLocalizations.t(context, 'weather_rain_tip')],
-      65: ['⛈️', AppLocalizations.t(context, 'weather_heavy_rain'), AppLocalizations.t(context, 'weather_heavy_rain_tip')],
-      80: ['🌦️', AppLocalizations.t(context, 'weather_showers'), AppLocalizations.t(context, 'weather_showers_tip')],
-      95: ['⛈️', AppLocalizations.t(context, 'weather_thunderstorm'), AppLocalizations.t(context, 'weather_thunderstorm_tip')],
+      0: [
+        '☀️',
+        AppLocalizations.t(context, 'weather_clear_sky'),
+        AppLocalizations.t(context, 'weather_clear_sky_tip'),
+      ],
+      1: [
+        '🌤️',
+        AppLocalizations.t(context, 'weather_mostly_clear'),
+        AppLocalizations.t(context, 'weather_mostly_clear_tip'),
+      ],
+      2: [
+        '⛅',
+        AppLocalizations.t(context, 'weather_partly_cloudy'),
+        AppLocalizations.t(context, 'weather_partly_cloudy_tip'),
+      ],
+      3: [
+        '☁️',
+        AppLocalizations.t(context, 'weather_overcast'),
+        AppLocalizations.t(context, 'weather_overcast_tip'),
+      ],
+      45: [
+        '🌫️',
+        AppLocalizations.t(context, 'weather_foggy'),
+        AppLocalizations.t(context, 'weather_foggy_tip'),
+      ],
+      51: [
+        '🌦️',
+        AppLocalizations.t(context, 'weather_light_drizzle'),
+        AppLocalizations.t(context, 'weather_light_drizzle_tip'),
+      ],
+      61: [
+        '🌧️',
+        AppLocalizations.t(context, 'weather_light_rain'),
+        AppLocalizations.t(context, 'weather_light_rain_tip'),
+      ],
+      63: [
+        '🌧️',
+        AppLocalizations.t(context, 'weather_rain'),
+        AppLocalizations.t(context, 'weather_rain_tip'),
+      ],
+      65: [
+        '⛈️',
+        AppLocalizations.t(context, 'weather_heavy_rain'),
+        AppLocalizations.t(context, 'weather_heavy_rain_tip'),
+      ],
+      80: [
+        '🌦️',
+        AppLocalizations.t(context, 'weather_showers'),
+        AppLocalizations.t(context, 'weather_showers_tip'),
+      ],
+      95: [
+        '⛈️',
+        AppLocalizations.t(context, 'weather_thunderstorm'),
+        AppLocalizations.t(context, 'weather_thunderstorm_tip'),
+      ],
     };
     final feelsLike = feel >= 36
         ? AppLocalizations.t(context, 'feels_very_hot')
@@ -495,15 +659,25 @@ class _DailyWearScreenState extends State<DailyWearScreen>
     final sorted = List<Map<String, dynamic>>.from(_buildAllOutfits(context))
       ..sort((a, b) => score(b).compareTo(score(a)));
     final hero = sorted.first;
-    final tempIcon = temp >= 30 ? '🌡️' : temp >= 22 ? '🌤️' : temp >= 15 ? '🍃' : '🧣';
+    final tempIcon = temp >= 30
+        ? '🌡️'
+        : temp >= 22
+        ? '🌤️'
+        : temp >= 15
+        ? '🍃'
+        : '🧣';
     final banner = score(hero) == 2
         ? AppLocalizations.t(context, 'banner_perfect_fit')
-            .replaceAll('{icon}', tempIcon)
-            .replaceAll('{name}', AppLocalizations.t(context, hero['nameKey'] as String))
-            .replaceAll('{temp}', '$temp')
-        : AppLocalizations.t(context, 'banner_sorted_for')
-            .replaceAll('{icon}', tempIcon)
-            .replaceAll('{temp}', '$temp');
+              .replaceAll('{icon}', tempIcon)
+              .replaceAll(
+                '{name}',
+                AppLocalizations.t(context, hero['nameKey'] as String),
+              )
+              .replaceAll('{temp}', '$temp')
+        : AppLocalizations.t(
+            context,
+            'banner_sorted_for',
+          ).replaceAll('{icon}', tempIcon).replaceAll('{temp}', '$temp');
 
     // Single postFrameCallback — ONE setState for both weather + outfit data.
     // Previously: setState (weather) → _sortOutfitsForWeather → setState (outfits)
@@ -550,39 +724,37 @@ class _DailyWearScreenState extends State<DailyWearScreen>
     _toastEntry = null;
   }
 
-
-
   // ──────────────────────────────────────────────────────────────────────
 
   @override
-void dispose() {
-  _pageController.removeListener(_onPageScroll);
-  _pageController.dispose();
-  _chatController.dispose();
-  _removeOverlay();
-  _chatScrollController.dispose();
-  _scanCtrl.dispose();
-  _screenFadeCtrl.dispose();
-  _autoPlayTimer?.cancel();
-  _toastTimer?.cancel();
-  _liveDayNotifier.dispose();
-  _liveDateNotifier.dispose();
-  _liveTimeNotifier.dispose();
-  _carouselIndexNotifier.dispose();
+  void dispose() {
+    _pageController.removeListener(_onPageScroll);
+    _pageController.dispose();
+    _chatController.dispose();
+    _removeOverlay();
+    _chatScrollController.dispose();
+    _scanCtrl.dispose();
+    _screenFadeCtrl.dispose();
+    _autoPlayTimer?.cancel();
+    _toastTimer?.cancel();
+    _liveDayNotifier.dispose();
+    _liveDateNotifier.dispose();
+    _liveTimeNotifier.dispose();
+    _carouselIndexNotifier.dispose();
 
-  try {
-    _toastEntry?.remove();
-  } catch (_) {}
-  _chatFocusNode.dispose();
-  _clockAlignTimer?.cancel();
-  _clockTimer?.cancel();
-  _chatGreetingTimer?.cancel();
-  _tryOnStageTimer?.cancel();
-  for (final timer in _arTagTimers) {
-    timer.cancel();
+    try {
+      _toastEntry?.remove();
+    } catch (_) {}
+    _chatFocusNode.dispose();
+    _clockAlignTimer?.cancel();
+    _clockTimer?.cancel();
+    _chatGreetingTimer?.cancel();
+    _tryOnStageTimer?.cancel();
+    for (final timer in _arTagTimers) {
+      timer.cancel();
+    }
+    super.dispose(); // ✅ ADD THIS
   }
-  super.dispose(); // ✅ ADD THIS
-}
 
   void _showToast(String message, {bool green = false}) {
     _toastEntry?.remove();
@@ -597,7 +769,8 @@ void dispose() {
     _toastEntry = entry;
     Overlay.of(context).insert(entry);
     _toastTimer = Timer(const Duration(milliseconds: 2800), () {
-      if (!mounted) return; // guard: widget may have been disposed before timer fires
+      if (!mounted)
+        return; // guard: widget may have been disposed before timer fires
       try {
         entry.remove();
       } catch (_) {}
@@ -606,13 +779,21 @@ void dispose() {
   }
 
   void _wearOutfit(String outfitId, {bool closeModal = false}) {
-    final outfit = _buildAllOutfits(context).firstWhere((o) => o['id'] == outfitId);
+    final outfit = _buildAllOutfits(
+      context,
+    ).firstWhere((o) => o['id'] == outfitId);
     HapticFeedback.lightImpact();
     setState(() => _wornOutfitId = outfitId);
     if (closeModal) {
       setState(() => _tryOnOpen = false);
     }
-    _showToast(AppLocalizations.t(context, 'daily_wear_toast_wearing').replaceAll('{name}', AppLocalizations.t(context, outfit['nameKey'] as String)), green: true);
+    _showToast(
+      AppLocalizations.t(context, 'daily_wear_toast_wearing').replaceAll(
+        '{name}',
+        AppLocalizations.t(context, outfit['nameKey'] as String),
+      ),
+      green: true,
+    );
   }
 
   void _openChat() {
@@ -626,8 +807,7 @@ void dispose() {
           _messages.add(
             _ChatMessage(
               id: DateTime.now().microsecondsSinceEpoch,
-              text:
-                  AppLocalizations.t(context, 'daily_wear_ahvi_greeting'),
+              text: AppLocalizations.t(context, 'daily_wear_ahvi_greeting'),
               isUser: false,
               createdAt: DateTime.now(),
             ),
@@ -652,14 +832,17 @@ void dispose() {
           body: Container(
             decoration: BoxDecoration(
               color: bg2Color,
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(28),
+              ),
               border: Border.all(color: cardBorderColor),
             ),
             child: Column(
               children: [
                 const SizedBox(height: 8),
                 Container(
-                  width: 36, height: 4,
+                  width: 36,
+                  height: 4,
                   decoration: BoxDecoration(
                     color: panel2Color,
                     borderRadius: BorderRadius.circular(2),
@@ -710,14 +893,20 @@ void dispose() {
         _visibleArTags = 0;
         _selectedSwatchIndex = 0;
         _frontCamera = true;
-        _tryOnLoadingMessage = AppLocalizations.t(context, 'daily_wear_requesting_camera');
+        _tryOnLoadingMessage = AppLocalizations.t(
+          context,
+          'daily_wear_requesting_camera',
+        );
         _tryOnStage = _TryOnStage.preview;
       });
     } else {
       _visibleArTags = 0;
       _selectedSwatchIndex = 0;
       _frontCamera = true;
-      _tryOnLoadingMessage = AppLocalizations.t(context, 'daily_wear_requesting_camera');
+      _tryOnLoadingMessage = AppLocalizations.t(
+        context,
+        'daily_wear_requesting_camera',
+      );
       _tryOnStage = _TryOnStage.preview;
     }
   }
@@ -725,12 +914,20 @@ void dispose() {
   void _startTryOnCamera() {
     setState(() {
       _tryOnStage = _TryOnStage.loading;
-      _tryOnLoadingMessage = AppLocalizations.t(context, 'daily_wear_requesting_camera');
+      _tryOnLoadingMessage = AppLocalizations.t(
+        context,
+        'daily_wear_requesting_camera',
+      );
     });
     _tryOnStageTimer?.cancel();
     _tryOnStageTimer = Timer(const Duration(milliseconds: 700), () {
       if (!mounted) return;
-      setState(() => _tryOnLoadingMessage = AppLocalizations.t(context, 'daily_wear_initialising_ar'));
+      setState(
+        () => _tryOnLoadingMessage = AppLocalizations.t(
+          context,
+          'daily_wear_initialising_ar',
+        ),
+      );
       _tryOnStageTimer = Timer(const Duration(milliseconds: 700), () {
         if (!mounted) return;
         setState(() {
@@ -768,7 +965,10 @@ void dispose() {
 
   void _saveCapturedLook() {
     HapticFeedback.selectionClick();
-    _showToast(AppLocalizations.t(context, 'daily_wear_toast_saved'), green: true);
+    _showToast(
+      AppLocalizations.t(context, 'daily_wear_toast_saved'),
+      green: true,
+    );
   }
 
   void _toggleMic() {
@@ -839,14 +1039,17 @@ void dispose() {
       );
       if (!mounted) return;
       final rawMessage = response['message'];
-      final replyText = (response['message_text'] ??
-              (rawMessage is Map ? rawMessage['content'] : rawMessage) ??
-              '')
-          .toString()
-          .trim();
+      final replyText =
+          (response['message_text'] ??
+                  (rawMessage is Map ? rawMessage['content'] : rawMessage) ??
+                  '')
+              .toString()
+              .trim();
       final message = _ChatMessage(
         id: DateTime.now().microsecondsSinceEpoch,
-        text: replyText.isNotEmpty ? replyText : "I'm having a moment - try again.",
+        text: replyText.isNotEmpty
+            ? replyText
+            : "I'm having a moment - try again.",
         isUser: false,
         createdAt: DateTime.now(),
       );
@@ -859,14 +1062,9 @@ void dispose() {
       if (_micActive) _speakMessage(message);
     } catch (_) {
       if (!mounted) return;
-      final fallbacks = [
-        "Based on today's conditions, **${_currentOutfit['name']}** is your strongest choice right now.",
-        'For a first date, **Golden Hour** is hard to beat - earth tones feel warm and approachable.',
-        'Linen excels in heat, but fit is everything - slightly relaxed, never shapeless.',
-      ];
       final message = _ChatMessage(
         id: DateTime.now().microsecondsSinceEpoch,
-        text: fallbacks[DateTime.now().second % fallbacks.length],
+        text: 'AHVI is still styling this. Try again in a moment.',
         isUser: false,
         createdAt: DateTime.now(),
       );
@@ -898,8 +1096,9 @@ void dispose() {
     final title = userMessages.first.text.length > 40
         ? '${userMessages.first.text.substring(0, 40)}…'
         : userMessages.first.text;
-    final existingIdx =
-        _chatHistory.indexWhere((s) => s.id == _currentSessionId);
+    final existingIdx = _chatHistory.indexWhere(
+      (s) => s.id == _currentSessionId,
+    );
     final session = _ChatSession(
       id: _currentSessionId,
       title: title,
@@ -925,12 +1124,14 @@ void dispose() {
     Future.delayed(const Duration(milliseconds: 400), () {
       if (!mounted || _messages.isNotEmpty) return;
       setState(() {
-        _messages.add(_ChatMessage(
-          id: DateTime.now().millisecondsSinceEpoch,
-          text: AppLocalizations.t(context, 'daily_wear_ahvi_greeting'),
-          isUser: false,
-          createdAt: DateTime.now(),
-        ));
+        _messages.add(
+          _ChatMessage(
+            id: DateTime.now().millisecondsSinceEpoch,
+            text: AppLocalizations.t(context, 'daily_wear_ahvi_greeting'),
+            isUser: false,
+            createdAt: DateTime.now(),
+          ),
+        );
       });
     });
   }
@@ -965,35 +1166,49 @@ void dispose() {
           children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 20, 16, 4),
-              child: Row(children: [
-                Text(
-                  AppLocalizations.t(context, 'common_chats'),
-                  style: GoogleFonts.anton(
-                    fontSize: 20,
-                    color: t.textPrimary,
-                    letterSpacing: 0.4,
-                  ),
-                ),
-                const Spacer(),
-                GestureDetector(
-                  onTap: _startNewChat,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [t.accent.primary, t.accent.tertiary],
-                      ),
-                      borderRadius: BorderRadius.circular(20),
+              child: Row(
+                children: [
+                  Text(
+                    AppLocalizations.t(context, 'common_chats'),
+                    style: GoogleFonts.anton(
+                      fontSize: 20,
+                      color: t.textPrimary,
+                      letterSpacing: 0.4,
                     ),
-                    child: Row(mainAxisSize: MainAxisSize.min, children: [
-                      const Icon(Icons.add, color: Colors.white, size: 14),
-                      const SizedBox(width: 4),
-                      Text(AppLocalizations.t(context, 'common_new'), style: const TextStyle(
-                          color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700)),
-                    ]),
                   ),
-                ),
-              ]),
+                  const Spacer(),
+                  GestureDetector(
+                    onTap: _startNewChat,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 7,
+                      ),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [t.accent.primary, t.accent.tertiary],
+                        ),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.add, color: Colors.white, size: 14),
+                          const SizedBox(width: 4),
+                          Text(
+                            AppLocalizations.t(context, 'common_new'),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
             const SizedBox(height: 8),
             Divider(color: t.cardBorder, height: 1),
@@ -1010,7 +1225,11 @@ void dispose() {
                       padding: const EdgeInsets.symmetric(vertical: 8),
                       itemCount: _chatHistory.length,
                       separatorBuilder: (_, __) => Divider(
-                          color: t.cardBorder, height: 1, indent: 16, endIndent: 16),
+                        color: t.cardBorder,
+                        height: 1,
+                        indent: 16,
+                        endIndent: 16,
+                      ),
                       itemBuilder: (_, i) {
                         final session = _chatHistory[i];
                         final isActive = session.id == _currentSessionId;
@@ -1018,60 +1237,86 @@ void dispose() {
                           onTap: () => _loadSession(session),
                           child: Container(
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 16, vertical: 12),
+                              horizontal: 16,
+                              vertical: 12,
+                            ),
                             color: isActive
                                 ? t.accent.primary.withValues(alpha: 0.08)
                                 : Colors.transparent,
-                            child: Row(children: [
-                              Container(
-                                width: 32, height: 32,
-                                decoration: BoxDecoration(
-                                  color: isActive
-                                      ? t.accent.primary.withValues(alpha: 0.15)
-                                      : t.panel,
-                                  shape: BoxShape.circle,
-                                  border: Border.all(
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 32,
+                                  height: 32,
+                                  decoration: BoxDecoration(
                                     color: isActive
-                                        ? t.accent.primary.withValues(alpha: 0.4)
-                                        : t.cardBorder,
+                                        ? t.accent.primary.withValues(
+                                            alpha: 0.15,
+                                          )
+                                        : t.panel,
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: isActive
+                                          ? t.accent.primary.withValues(
+                                              alpha: 0.4,
+                                            )
+                                          : t.cardBorder,
+                                    ),
                                   ),
-                                ),
-                                child: Center(
-                                  child: Text('✦', style: TextStyle(
-                                      fontSize: 13,
-                                      color: isActive ? t.accent.primary : t.mutedText)),
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      session.title,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
+                                  child: Center(
+                                    child: Text(
+                                      '✦',
                                       style: TextStyle(
                                         fontSize: 13,
-                                        fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
-                                        color: isActive ? t.accent.primary : t.textPrimary,
+                                        color: isActive
+                                            ? t.accent.primary
+                                            : t.mutedText,
                                       ),
                                     ),
-                                    const SizedBox(height: 2),
-                                    Text('${session.messages.length} ${AppLocalizations.t(context, 'wear_messages')}',
-                                        style: TextStyle(fontSize: 10, color: t.mutedText)),
-                                  ],
-                                ),
-                              ),
-                              if (isActive)
-                                Container(
-                                  width: 6, height: 6,
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    color: t.accent.primary,
                                   ),
                                 ),
-                            ]),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        session.title,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          fontWeight: isActive
+                                              ? FontWeight.w700
+                                              : FontWeight.w500,
+                                          color: isActive
+                                              ? t.accent.primary
+                                              : t.textPrimary,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        '${session.messages.length} ${AppLocalizations.t(context, 'wear_messages')}',
+                                        style: TextStyle(
+                                          fontSize: 10,
+                                          color: t.mutedText,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                if (isActive)
+                                  Container(
+                                    width: 6,
+                                    height: 6,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: t.accent.primary,
+                                    ),
+                                  ),
+                              ],
+                            ),
                           ),
                         );
                       },
@@ -1179,9 +1424,9 @@ void dispose() {
                 child: _buildTryOnOverlay(),
               ),
           ],
-        ),     // Stack
-      ),       // Scaffold
-    );         // PopScope
+        ), // Stack
+      ), // Scaffold
+    ); // PopScope
   }
 
   Widget _buildHeader() => Padding(
@@ -1219,13 +1464,7 @@ void dispose() {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                children: [
-                  backBtn,
-                  const SizedBox(width: 12),
-                  leftBlock,
-                ],
-              ),
+              Row(children: [backBtn, const SizedBox(width: 12), leftBlock]),
               const SizedBox(height: 10),
               _buildDatePill(),
             ],
@@ -1237,13 +1476,7 @@ void dispose() {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Row(
-                  children: [
-                    backBtn,
-                    const SizedBox(width: 12),
-                    leftBlock,
-                  ],
-                ),
+                Row(children: [backBtn, const SizedBox(width: 12), leftBlock]),
                 _buildDatePill(),
               ],
             ),
@@ -1256,69 +1489,69 @@ void dispose() {
   Widget _buildDatePill() => ValueListenableBuilder<String>(
     valueListenable: _liveTimeNotifier,
     builder: (_, __, ___) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
-    decoration: BoxDecoration(
-      gradient: LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [
-          accentColor.withValues(alpha: 0.18),
-          accent3Color.withValues(alpha: 0.12),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            accentColor.withValues(alpha: 0.18),
+            accent3Color.withValues(alpha: 0.12),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(30),
+        border: Border.all(color: accentColor.withValues(alpha: 0.30)),
+        boxShadow: [
+          BoxShadow(
+            color: accentColor.withValues(alpha: 0.12),
+            blurRadius: 20,
+            offset: const Offset(0, 4),
+          ),
         ],
       ),
-      borderRadius: BorderRadius.circular(30),
-      border: Border.all(color: accentColor.withValues(alpha: 0.30)),
-      boxShadow: [
-        BoxShadow(
-          color: accentColor.withValues(alpha: 0.12),
-          blurRadius: 20,
-          offset: const Offset(0, 4),
-        ),
-      ],
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            _liveDay,
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+              color: accentColor,
+              letterSpacing: 1.2,
+            ),
+          ),
+          Text(
+            ' · ',
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w600,
+              color: accentColor.withValues(alpha: 0.5),
+              letterSpacing: 1.2,
+            ),
+          ),
+          Text(
+            _liveDate,
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+              color: accentColor,
+              letterSpacing: 1.2,
+            ),
+          ),
+          const SizedBox(width: 6),
+          Text(
+            _liveTime,
+            style: TextStyle(
+              fontSize: 9,
+              fontWeight: FontWeight.w500,
+              color: accentColor.withValues(alpha: 0.65),
+              letterSpacing: 0.5,
+            ),
+          ),
+        ],
+      ),
     ),
-    child: Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          _liveDay,
-          style: TextStyle(
-            fontSize: 10,
-            fontWeight: FontWeight.w700,
-            color: accentColor,
-            letterSpacing: 1.2,
-          ),
-        ),
-        Text(
-          ' · ',
-          style: TextStyle(
-            fontSize: 10,
-            fontWeight: FontWeight.w600,
-            color: accentColor.withValues(alpha: 0.5),
-            letterSpacing: 1.2,
-          ),
-        ),
-        Text(
-          _liveDate,
-          style: TextStyle(
-            fontSize: 10,
-            fontWeight: FontWeight.w700,
-            color: accentColor,
-            letterSpacing: 1.2,
-          ),
-        ),
-        const SizedBox(width: 6),
-        Text(
-          _liveTime,
-          style: TextStyle(
-            fontSize: 9,
-            fontWeight: FontWeight.w500,
-            color: accentColor.withValues(alpha: 0.65),
-            letterSpacing: 0.5,
-          ),
-        ),
-      ],
-    ),
-  ),
   );
 
   Widget _buildWeatherBar() => Padding(
@@ -1529,61 +1762,61 @@ void dispose() {
     return ValueListenableBuilder<int>(
       valueListenable: _carouselIndexNotifier,
       builder: (_, idx, __) {
-        final disabled = left
-            ? idx == 0
-            : idx == _displayedOutfits.length - 1;
-    return Positioned(
-      left: left ? 10 : null,
-      right: left ? null : 10,
-      top: 0,
-      bottom: 80,
-      child: Center(
-        child: AnimatedOpacity(
-          duration: const Duration(milliseconds: 200),
-          opacity: disabled ? 0.3 : 1.0,
-          child: _PressScaleButton(
-            scaleDown: 0.92,
-            onTap: disabled
-                ? null
-                : () {
-                    if (left) {
-                      _pageController.previousPage(
-                        duration: const Duration(milliseconds: 450),
-                        curve: Curves.easeInOut,
-                      );
-                    } else {
-                      _pageController.nextPage(
-                        duration: const Duration(milliseconds: 450),
-                        curve: Curves.easeInOut,
-                      );
-                    }
-                  },
-            child: Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.30),
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.white.withValues(alpha: 0.18)),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.2),
-                    blurRadius: 16,
-                    offset: const Offset(0, 4),
+        final disabled = left ? idx == 0 : idx == _displayedOutfits.length - 1;
+        return Positioned(
+          left: left ? 10 : null,
+          right: left ? null : 10,
+          top: 0,
+          bottom: 80,
+          child: Center(
+            child: AnimatedOpacity(
+              duration: const Duration(milliseconds: 200),
+              opacity: disabled ? 0.3 : 1.0,
+              child: _PressScaleButton(
+                scaleDown: 0.92,
+                onTap: disabled
+                    ? null
+                    : () {
+                        if (left) {
+                          _pageController.previousPage(
+                            duration: const Duration(milliseconds: 450),
+                            curve: Curves.easeInOut,
+                          );
+                        } else {
+                          _pageController.nextPage(
+                            duration: const Duration(milliseconds: 450),
+                            curve: Curves.easeInOut,
+                          );
+                        }
+                      },
+                child: Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.30),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.18),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.2),
+                        blurRadius: 16,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-              child: Center(
-                child: Text(
-                  left ? '‹' : '›',
-                  style: const TextStyle(color: Colors.white, fontSize: 20),
+                  child: Center(
+                    child: Text(
+                      left ? '‹' : '›',
+                      style: const TextStyle(color: Colors.white, fontSize: 20),
+                    ),
+                  ),
                 ),
               ),
             ),
           ),
-        ),
-      ),
-    );
+        );
       },
     );
   }
@@ -1615,7 +1848,11 @@ void dispose() {
             return Container(
               color: panelColor,
               child: Center(
-                child: Icon(Icons.checkroom_outlined, color: mutedColor, size: 48),
+                child: Icon(
+                  Icons.checkroom_outlined,
+                  color: mutedColor,
+                  size: 48,
+                ),
               ),
             );
           },
@@ -1653,7 +1890,9 @@ void dispose() {
                 decoration: BoxDecoration(
                   color: Colors.black.withValues(alpha: 0.32),
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.18)),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.18),
+                  ),
                 ),
                 child: Text(
                   AppLocalizations.t(context, 'daily_wear_ahvi_pick'),
@@ -1669,10 +1908,18 @@ void dispose() {
                 children: [
                   _circleAction(saved ? '❤️' : '🤍', () {
                     setState(() => _savedCarouselById[outfitId] = !saved);
-                    if (!saved) _showToast(AppLocalizations.t(context, 'daily_wear_toast_saved_wardrobe'));
+                    if (!saved)
+                      _showToast(
+                        AppLocalizations.t(
+                          context,
+                          'daily_wear_toast_saved_wardrobe',
+                        ),
+                      );
                   }),
                   const SizedBox(width: 8),
-                  _circleShare('${AppLocalizations.t(context, outfit['nameKey'] as String)} · ${AppLocalizations.t(context, outfit['descKey'] as String)}'),
+                  _circleShare(
+                    '${AppLocalizations.t(context, outfit['nameKey'] as String)} · ${AppLocalizations.t(context, outfit['descKey'] as String)}',
+                  ),
                 ],
               ),
             ],
@@ -1694,7 +1941,10 @@ void dispose() {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          AppLocalizations.t(context, outfit['nameKey'] as String),
+                          AppLocalizations.t(
+                            context,
+                            outfit['nameKey'] as String,
+                          ),
                           style: const TextStyle(
                             fontSize: 28,
                             fontWeight: FontWeight.w600,
@@ -1705,8 +1955,14 @@ void dispose() {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          AppLocalizations.t(context, outfit['descKey'] as String),
-                          style: const TextStyle(fontSize: 11, color: Colors.white70),
+                          AppLocalizations.t(
+                            context,
+                            outfit['descKey'] as String,
+                          ),
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: Colors.white70,
+                          ),
                         ),
                       ],
                     ),
@@ -1719,7 +1975,9 @@ void dispose() {
                     decoration: BoxDecoration(
                       color: Colors.black.withValues(alpha: 0.32),
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: Colors.white.withValues(alpha: 0.18)),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.18),
+                      ),
                     ),
                     child: Text(
                       '${index + 1} / ${_displayedOutfits.length}',
@@ -1736,29 +1994,32 @@ void dispose() {
               Wrap(
                 spacing: 5,
                 runSpacing: 5,
-                children: ((outfit['tags'] as List?)?.cast<String>() ?? <String>[])
-                    .map(
-                      (t) => Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 11,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.18),
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: Colors.white.withValues(alpha: 0.35)),
-                        ),
-                        child: Text(
-                          t,
-                          style: const TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white,
+                children:
+                    ((outfit['tags'] as List?)?.cast<String>() ?? <String>[])
+                        .map(
+                          (t) => Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 11,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.18),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                color: Colors.white.withValues(alpha: 0.35),
+                              ),
+                            ),
+                            child: Text(
+                              t,
+                              style: const TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white,
+                              ),
+                            ),
                           ),
-                        ),
-                      ),
-                    )
-                    .toList(),
+                        )
+                        .toList(),
               ),
               const SizedBox(height: 14),
               _PressScaleButton(
@@ -1938,7 +2199,11 @@ void dispose() {
                       return Container(
                         color: panelColor,
                         child: Center(
-                          child: Icon(Icons.checkroom_outlined, color: mutedColor, size: 32),
+                          child: Icon(
+                            Icons.checkroom_outlined,
+                            color: mutedColor,
+                            size: 32,
+                          ),
                         ),
                       );
                     },
@@ -1992,10 +2257,18 @@ void dispose() {
                     children: [
                       _smallIcon(saved ? '❤️' : '🤍', () {
                         setState(() => _savedOptionById[outfitId] = !saved);
-                        if (!saved) _showToast(AppLocalizations.t(context, 'daily_wear_toast_outfit_saved'));
+                        if (!saved)
+                          _showToast(
+                            AppLocalizations.t(
+                              context,
+                              'daily_wear_toast_outfit_saved',
+                            ),
+                          );
                       }),
                       const SizedBox(width: 5),
-                      _smallShare(AppLocalizations.t(context, card['nameKey'] as String)),
+                      _smallShare(
+                        AppLocalizations.t(context, card['nameKey'] as String),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 8),
@@ -2003,7 +2276,12 @@ void dispose() {
                     children: [
                       Expanded(
                         child: _smallButton(
-                          isWorn ? AppLocalizations.t(context, 'daily_wear_wearing') : AppLocalizations.t(context, 'daily_wear_wear'),
+                          isWorn
+                              ? AppLocalizations.t(
+                                  context,
+                                  'daily_wear_wearing',
+                                )
+                              : AppLocalizations.t(context, 'daily_wear_wear'),
                           isWorn ? null : () => _wearOutfit(outfitId),
                           primary: !isWorn,
                           activeLabelColor: isWorn
@@ -2143,12 +2421,19 @@ void dispose() {
                   CircleAvatar(
                     radius: 11,
                     backgroundColor: Colors.white.withValues(alpha: 0.18),
-                    child: Text('✦', style: TextStyle(fontSize: 11, color: Colors.white)),
+                    child: Text(
+                      '✦',
+                      style: TextStyle(fontSize: 11, color: Colors.white),
+                    ),
                   ),
                   const SizedBox(width: 7),
                   Text(
                     AppLocalizations.t(context, 'ask_ahvi'),
-                    style: GoogleFonts.anton(fontSize: 11, letterSpacing: 0.4, color: Colors.white),
+                    style: GoogleFonts.anton(
+                      fontSize: 11,
+                      letterSpacing: 0.4,
+                      color: Colors.white,
+                    ),
                   ),
                 ],
               ),
@@ -2211,11 +2496,7 @@ void dispose() {
               border: Border.all(color: cardBorderColor),
             ),
             child: Center(
-              child: Icon(
-                Icons.history_rounded,
-                color: mutedColor,
-                size: 18,
-              ),
+              child: Icon(Icons.history_rounded, color: mutedColor, size: 18),
             ),
           ),
         ),
@@ -2342,73 +2623,79 @@ void dispose() {
                 border: Border.all(color: cardBorderColor),
               ),
               child: SingleChildScrollView(
-                  padding: EdgeInsets.fromLTRB(
-                    20,
-                    24,
-                    20,
-                    32 + MediaQuery.of(context).padding.bottom,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Center(
+                padding: EdgeInsets.fromLTRB(
+                  20,
+                  24,
+                  20,
+                  32 + MediaQuery.of(context).padding.bottom,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: panel2Color,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+                    Align(
+                      alignment: Alignment.topRight,
+                      child: _PressScaleButton(
+                        scaleDown: 0.90,
+                        onTap: _closeTryOn,
                         child: Container(
-                          width: 40,
-                          height: 4,
+                          width: 36,
+                          height: 36,
                           decoration: BoxDecoration(
-                            color: panel2Color,
-                            borderRadius: BorderRadius.circular(2),
+                            color: panelColor,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: cardBorderColor),
                           ),
-                        ),
-                      ),
-                      const SizedBox(height: 18),
-                      Align(
-                        alignment: Alignment.topRight,
-                        child: _PressScaleButton(
-                          scaleDown: 0.90,
-                          onTap: _closeTryOn,
-                          child: Container(
-                            width: 36,
-                            height: 36,
-                            decoration: BoxDecoration(
-                              color: panelColor,
-                              shape: BoxShape.circle,
-                              border: Border.all(color: cardBorderColor),
-                            ),
-                            child: Center(
-                              child: Text(
-                                '✕',
-                                style: TextStyle(color: mutedColor),
-                              ),
+                          child: Center(
+                            child: Text(
+                              '✕',
+                              style: TextStyle(color: mutedColor),
                             ),
                           ),
                         ),
                       ),
-                      const SizedBox(height: 8),
-                      Text(
-                        AppLocalizations.t(context, 'daily_wear_virtual_tryon'),
-                        style: TextStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.w600,
-                          color: textColor,
-                        ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      AppLocalizations.t(context, 'daily_wear_virtual_tryon'),
+                      style: TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.w600,
+                        color: textColor,
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        AppLocalizations.t(context, 'daily_wear_fitting').replaceAll('{name}', _selectedTryOnOutfit['name'] as String),
-                        style: TextStyle(fontSize: 13, color: mutedColor),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      AppLocalizations.t(
+                        context,
+                        'daily_wear_fitting',
+                      ).replaceAll(
+                        '{name}',
+                        _selectedTryOnOutfit['name'] as String,
                       ),
-                      const SizedBox(height: 18),
-                      _tryOnBody(),
-                    ],
-                  ),
+                      style: TextStyle(fontSize: 13, color: mutedColor),
+                    ),
+                    const SizedBox(height: 18),
+                    _tryOnBody(),
+                  ],
                 ),
               ),
             ),
           ),
         ),
-      ],
-    );
+      ),
+    ],
+  );
 
   Widget _tryOnBody() {
     final outfit = _selectedTryOnOutfit;
@@ -2437,15 +2724,21 @@ void dispose() {
                 ),
               ),
               const SizedBox(height: 6),
-              Text(AppLocalizations.t(context, 'wear_preparing_ar'), style: TextStyle(color: mutedColor)),
+              Text(
+                AppLocalizations.t(context, 'wear_preparing_ar'),
+                style: TextStyle(color: mutedColor),
+              ),
             ],
           ),
         ),
       );
     }
     if (_tryOnStage == _TryOnStage.camera) {
-      final colors = ((outfit['colors'] as List?)?.cast<String>() ?? <String>[]);
-      final tags = ((outfit['arTags'] as List?)?.cast<Map<String, dynamic>>() ?? <Map<String, dynamic>>[]);
+      final colors =
+          ((outfit['colors'] as List?)?.cast<String>() ?? <String>[]);
+      final tags =
+          ((outfit['arTags'] as List?)?.cast<Map<String, dynamic>>() ??
+          <Map<String, dynamic>>[]);
       return Column(
         children: [
           AspectRatio(
@@ -2530,7 +2823,12 @@ void dispose() {
                         top:
                             constraints.maxHeight *
                             (tags[index]['top'] as double),
-                        child: _ArTag(label: AppLocalizations.t(context, tags[index]['t'] as String)),
+                        child: _ArTag(
+                          label: AppLocalizations.t(
+                            context,
+                            tags[index]['t'] as String,
+                          ),
+                        ),
                       ),
                     ),
                     Positioned(
@@ -2546,7 +2844,9 @@ void dispose() {
                           decoration: BoxDecoration(
                             color: Colors.black.withValues(alpha: 0.45),
                             borderRadius: BorderRadius.circular(30),
-                            border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
+                            border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.15),
+                            ),
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
@@ -3341,7 +3641,10 @@ class _ToastWidgetState extends State<_ToastWidget>
             child: SlideTransition(
               position: _slide,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 13),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 26,
+                  vertical: 13,
+                ),
                 decoration: BoxDecoration(
                   color: widget.green
                       ? accent3Color.withValues(alpha: 0.15)

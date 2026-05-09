@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:myapp/app_localizations.dart';
 import 'dart:ui';
 import 'package:image_picker/image_picker.dart';
+import 'package:myapp/services/ahvi_response_parser.dart';
 import 'package:myapp/services/backend_service.dart';
 import 'package:provider/provider.dart';
 import 'theme/theme_tokens.dart';
@@ -1981,6 +1982,10 @@ class _ChatViewState extends State<_ChatView> {
   }
 
   List<String> _workoutChecklistFromResponse(Map<String, dynamic> response) {
+    final parsed = AhviResponse.fromMap(response);
+    if (parsed.checklistItems.isNotEmpty) {
+      return parsed.checklistItems.take(10).toList(growable: false);
+    }
     final cards = response['cards'];
     if (cards is! List) return const [];
     final items = <String>[];

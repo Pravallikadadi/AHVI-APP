@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:myapp/app_localizations.dart';
+import 'package:myapp/services/ahvi_response_parser.dart';
 import 'package:myapp/services/backend_service.dart';
 import 'package:myapp/theme/theme_tokens.dart';
 
@@ -193,8 +194,10 @@ class _CalendarShellState extends State<CalendarShell> {
         ? Map<String, dynamic>.from(event['metadata'] as Map)
         : <String, dynamic>{};
 
-    final occasion = (metadata['occasion'] ?? event['type'] ?? title).toString();
-    final outfit = (metadata['outfit'] ?? event['description'] ?? '').toString();
+    final occasion = (metadata['occasion'] ?? event['type'] ?? title)
+        .toString();
+    final outfit = (metadata['outfit'] ?? event['description'] ?? '')
+        .toString();
 
     return PlanItem(
       id: (event['id'] ?? event[r'$id'] ?? '').toString(),
@@ -233,7 +236,11 @@ class _CalendarShellState extends State<CalendarShell> {
 
   void _changeMonth(int increment) {
     setState(() {
-      _currentMonth = DateTime(_currentMonth.year, _currentMonth.month + increment, 1);
+      _currentMonth = DateTime(
+        _currentMonth.year,
+        _currentMonth.month + increment,
+        1,
+      );
     });
   }
 
@@ -262,7 +269,8 @@ class _CalendarShellState extends State<CalendarShell> {
 
     if (!mounted || created == null) return;
 
-    final savedStart = DateTime.tryParse((created['start_time'] ?? '').toString()) ?? start;
+    final savedStart =
+        DateTime.tryParse((created['start_time'] ?? '').toString()) ?? start;
     final savedPlan = plan.copyWith(
       id: (created['id'] ?? created[r'$id'] ?? '').toString(),
       startTime: savedStart,
@@ -342,21 +350,45 @@ class _CalendarShellState extends State<CalendarShell> {
                 constraints: const BoxConstraints(maxWidth: 480),
                 child: AnimatedSwitcher(
                   duration: const Duration(milliseconds: 300),
-                  child: _isChatOpen 
+                  child: _isChatOpen
                       ? StyleChatScreen(
                           key: const ValueKey('chat'),
                           occasion: _activeOccasion,
                           icon: _activeIcon,
                           onBack: _closeChat,
                           onSavePlan: (time, outfit) {
-                            _addPlan(PlanItem(
-                              occasion: _activeOccasion,
-                              icon: _activeIcon,
-                              time: time,
-                              outfit: outfit,
-                              colorTheme: ['orange', 'blue', 'pink'][DateTime.now().millisecond % 3], // Random theme
-                            ));
-                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppLocalizations.t(context, 'calendar_plan_saved'), style: TextStyle(color: context.themeTokens.textPrimary, fontWeight: FontWeight.w600)), backgroundColor: context.themeTokens.backgroundSecondary, duration: const Duration(seconds: 2)));
+                            _addPlan(
+                              PlanItem(
+                                occasion: _activeOccasion,
+                                icon: _activeIcon,
+                                time: time,
+                                outfit: outfit,
+                                colorTheme:
+                                    [
+                                      'orange',
+                                      'blue',
+                                      'pink',
+                                    ][DateTime.now().millisecond %
+                                        3], // Random theme
+                              ),
+                            );
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  AppLocalizations.t(
+                                    context,
+                                    'calendar_plan_saved',
+                                  ),
+                                  style: TextStyle(
+                                    color: context.themeTokens.textPrimary,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                backgroundColor:
+                                    context.themeTokens.backgroundSecondary,
+                                duration: const Duration(seconds: 2),
+                              ),
+                            );
                           },
                         )
                       : MainCalendarView(
@@ -410,13 +442,17 @@ class BackgroundScene extends StatefulWidget {
   State<BackgroundScene> createState() => _BackgroundSceneState();
 }
 
-class _BackgroundSceneState extends State<BackgroundScene> with SingleTickerProviderStateMixin {
+class _BackgroundSceneState extends State<BackgroundScene>
+    with SingleTickerProviderStateMixin {
   late AnimationController _ctrl;
 
   @override
   void initState() {
     super.initState();
-    _ctrl = AnimationController(vsync: this, duration: const Duration(seconds: 14))..repeat(reverse: true);
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 14),
+    )..repeat(reverse: true);
   }
 
   @override
@@ -467,7 +503,6 @@ class _BackgroundSceneState extends State<BackgroundScene> with SingleTickerProv
       },
     );
   }
-
 }
 
 // ==========================================
@@ -501,8 +536,29 @@ class MainCalendarView extends StatelessWidget {
     required this.onToggleReminder,
   });
 
-  final List<String> _months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-  final List<String> _weekdays = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  final List<String> _months = [
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December',
+  ];
+  final List<String> _weekdays = [
+    'Sun',
+    'Mon',
+    'Tue',
+    'Wed',
+    'Thu',
+    'Fri',
+    'Sat',
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -527,11 +583,21 @@ class MainCalendarView extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: theme.card,
                   shape: BoxShape.circle,
-                  boxShadow: [BoxShadow(color: theme.accent.primary.withValues(alpha: 0.12), blurRadius: 10, offset: const Offset(0, 2))],
+                  boxShadow: [
+                    BoxShadow(
+                      color: theme.accent.primary.withValues(alpha: 0.12),
+                      blurRadius: 10,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
                 ),
                 child: Padding(
                   padding: const EdgeInsets.only(left: 6.0),
-                  child: Icon(Icons.arrow_back_ios, size: 18, color: theme.textPrimary),
+                  child: Icon(
+                    Icons.arrow_back_ios,
+                    size: 18,
+                    color: theme.textPrimary,
+                  ),
                 ),
               ),
             ),
@@ -539,21 +605,43 @@ class MainCalendarView extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(AppLocalizations.t(context, 'boards_schedule_calendar'), style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: theme.textPrimary)),
+                  Text(
+                    AppLocalizations.t(context, 'boards_schedule_calendar'),
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: theme.textPrimary,
+                    ),
+                  ),
                   const SizedBox(height: 3),
                   Row(
                     children: [
                       Container(
-                        width: 8, height: 8,
-                        decoration: BoxDecoration(color: theme.accent.tertiary, shape: BoxShape.circle, boxShadow: [BoxShadow(color: theme.accent.tertiary.withValues(alpha: 0.75), blurRadius: 7)]),
+                        width: 8,
+                        height: 8,
+                        decoration: BoxDecoration(
+                          color: theme.accent.tertiary,
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: theme.accent.tertiary.withValues(
+                                alpha: 0.75,
+                              ),
+                              blurRadius: 7,
+                            ),
+                          ],
+                        ),
                       ),
                       const SizedBox(width: 6),
-                      Text('${getAllPlansCount()} ${AppLocalizations.t(context, 'calendar_outfit_plans')}', style: TextStyle(fontSize: 12, color: theme.mutedText)),
+                      Text(
+                        '${getAllPlansCount()} ${AppLocalizations.t(context, 'calendar_outfit_plans')}',
+                        style: TextStyle(fontSize: 12, color: theme.mutedText),
+                      ),
                     ],
                   ),
                 ],
               ),
-            )
+            ),
           ],
         ),
         const SizedBox(height: 18),
@@ -563,7 +651,13 @@ class MainCalendarView extends StatelessWidget {
           decoration: BoxDecoration(
             color: theme.card,
             borderRadius: BorderRadius.circular(24),
-            boxShadow: [BoxShadow(color: theme.textPrimary.withValues(alpha: 0.08), blurRadius: 24, offset: const Offset(0, 4))],
+            boxShadow: [
+              BoxShadow(
+                color: theme.textPrimary.withValues(alpha: 0.08),
+                blurRadius: 24,
+                offset: const Offset(0, 4),
+              ),
+            ],
           ),
           child: Column(
             children: [
@@ -573,9 +667,24 @@ class MainCalendarView extends StatelessWidget {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    _navBtn(Icons.chevron_left_rounded, () => onMonthChanged(-1), theme),
-                    Text('${_months[currentMonth.month - 1]} ${currentMonth.year}', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: theme.textPrimary)),
-                    _navBtn(Icons.chevron_right_rounded, () => onMonthChanged(1), theme),
+                    _navBtn(
+                      Icons.chevron_left_rounded,
+                      () => onMonthChanged(-1),
+                      theme,
+                    ),
+                    Text(
+                      '${_months[currentMonth.month - 1]} ${currentMonth.year}',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: theme.textPrimary,
+                      ),
+                    ),
+                    _navBtn(
+                      Icons.chevron_right_rounded,
+                      () => onMonthChanged(1),
+                      theme,
+                    ),
                   ],
                 ),
               ),
@@ -584,7 +693,9 @@ class MainCalendarView extends StatelessWidget {
               Builder(
                 builder: (ctx) {
                   final now = DateTime.now();
-                  final isCurrentMonth = currentMonth.year == now.year && currentMonth.month == now.month;
+                  final isCurrentMonth =
+                      currentMonth.year == now.year &&
+                      currentMonth.month == now.month;
                   final totalDays = _daysInMonth(currentMonth);
                   // Auto-scroll to today when viewing current month
                   final scrollCtrl = ScrollController(
@@ -602,38 +713,110 @@ class MainCalendarView extends StatelessWidget {
                       itemBuilder: (ctx, index) {
                         final now = DateTime.now();
                         final day = index + 1;
-                        final date = DateTime(currentMonth.year, currentMonth.month, day);
+                        final date = DateTime(
+                          currentMonth.year,
+                          currentMonth.month,
+                          day,
+                        );
                         final key = "${date.year}-${date.month}-${date.day}";
                         final isSelected = key == selectedDateKey;
                         final isToday = key == todayKey;
-                        final hasEvent = (allPlansData[key]?.isNotEmpty ?? false);
-                        final isPast = date.isBefore(DateTime(now.year, now.month, now.day));
+                        final hasEvent =
+                            (allPlansData[key]?.isNotEmpty ?? false);
+                        final isPast = date.isBefore(
+                          DateTime(now.year, now.month, now.day),
+                        );
 
                         return GestureDetector(
                           onTap: () => onDaySelected(date),
                           child: AnimatedContainer(
                             duration: const Duration(milliseconds: 200),
-                            margin: const EdgeInsets.symmetric(horizontal: 3, vertical: 4),
+                            margin: const EdgeInsets.symmetric(
+                              horizontal: 3,
+                              vertical: 4,
+                            ),
                             width: 52,
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(20),
-                              color: isPast && !isSelected ? theme.card.withValues(alpha: 0.55) : theme.card,
-                              border: Border.all(color: isSelected ? theme.accent.primary : Colors.transparent, width: isSelected ? 1.5 : 1),
-                              boxShadow: isSelected ? [BoxShadow(color: theme.accent.primary.withValues(alpha: 0.6), blurRadius: 16, spreadRadius: 2)] : [],
+                              color: isPast && !isSelected
+                                  ? theme.card.withValues(alpha: 0.55)
+                                  : theme.card,
+                              border: Border.all(
+                                color: isSelected
+                                    ? theme.accent.primary
+                                    : Colors.transparent,
+                                width: isSelected ? 1.5 : 1,
+                              ),
+                              boxShadow: isSelected
+                                  ? [
+                                      BoxShadow(
+                                        color: theme.accent.primary.withValues(
+                                          alpha: 0.6,
+                                        ),
+                                        blurRadius: 16,
+                                        spreadRadius: 2,
+                                      ),
+                                    ]
+                                  : [],
                             ),
                             child: Stack(
                               alignment: Alignment.center,
                               children: [
                                 if (isToday)
-                                   Positioned(top: 6, right: 6, child: Container(width: 5, height: 5, decoration: BoxDecoration(color: theme.accent.tertiary, shape: BoxShape.circle))),
+                                  Positioned(
+                                    top: 6,
+                                    right: 6,
+                                    child: Container(
+                                      width: 5,
+                                      height: 5,
+                                      decoration: BoxDecoration(
+                                        color: theme.accent.tertiary,
+                                        shape: BoxShape.circle,
+                                      ),
+                                    ),
+                                  ),
                                 if (hasEvent)
-                                   Positioned(bottom: 6, child: Container(width: 5, height: 5, decoration: BoxDecoration(color: theme.accent.secondary, shape: BoxShape.circle))),
+                                  Positioned(
+                                    bottom: 6,
+                                    child: Container(
+                                      width: 5,
+                                      height: 5,
+                                      decoration: BoxDecoration(
+                                        color: theme.accent.secondary,
+                                        shape: BoxShape.circle,
+                                      ),
+                                    ),
+                                  ),
                                 Column(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    Text(_weekdays[date.weekday % 7], style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: isSelected ? theme.accent.primary : (isPast ? theme.mutedText.withValues(alpha: 0.5) : theme.mutedText))),
+                                    Text(
+                                      _weekdays[date.weekday % 7],
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w600,
+                                        color: isSelected
+                                            ? theme.accent.primary
+                                            : (isPast
+                                                  ? theme.mutedText.withValues(
+                                                      alpha: 0.5,
+                                                    )
+                                                  : theme.mutedText),
+                                      ),
+                                    ),
                                     const SizedBox(height: 2),
-                                    Text('$day', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: isPast && !isSelected ? theme.textPrimary.withValues(alpha: 0.35) : theme.textPrimary)),
+                                    Text(
+                                      '$day',
+                                      style: TextStyle(
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.w700,
+                                        color: isPast && !isSelected
+                                            ? theme.textPrimary.withValues(
+                                                alpha: 0.35,
+                                              )
+                                            : theme.textPrimary,
+                                      ),
+                                    ),
                                   ],
                                 ),
                               ],
@@ -646,7 +829,11 @@ class MainCalendarView extends StatelessWidget {
                 },
               ),
 
-              Container(height: 1, margin: const EdgeInsets.symmetric(horizontal: 14), color: theme.textPrimary.withValues(alpha: 0.06)),
+              Container(
+                height: 1,
+                margin: const EdgeInsets.symmetric(horizontal: 14),
+                color: theme.textPrimary.withValues(alpha: 0.06),
+              ),
 
               // Plans Section
               Padding(
@@ -654,101 +841,223 @@ class MainCalendarView extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Text(selectedDateKey == todayKey ? AppLocalizations.t(context, 'calendar_todays_plans') : "${_months[selectedDate.month - 1]} ${selectedDate.day} ${AppLocalizations.t(context, 'calendar_plans')}", style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: theme.mutedText, letterSpacing: 1.2)),
+                    Text(
+                      selectedDateKey == todayKey
+                          ? AppLocalizations.t(context, 'calendar_todays_plans')
+                          : "${_months[selectedDate.month - 1]} ${selectedDate.day} ${AppLocalizations.t(context, 'calendar_plans')}",
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: theme.mutedText,
+                        letterSpacing: 1.2,
+                      ),
+                    ),
                     const SizedBox(height: 10),
-                    
+
                     if (plans.isEmpty)
                       Padding(
                         padding: const EdgeInsets.symmetric(vertical: 20),
-                        child: Text(AppLocalizations.t(context, 'calendar_no_plans'), textAlign: TextAlign.center, style: TextStyle(color: theme.mutedText, fontSize: 13, height: 1.5)),
+                        child: Text(
+                          AppLocalizations.t(context, 'calendar_no_plans'),
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: theme.mutedText,
+                            fontSize: 13,
+                            height: 1.5,
+                          ),
+                        ),
                       )
-                    else 
+                    else
                       ...List.generate(plans.length, (idx) {
                         final plan = plans[idx];
                         Color sideColor = theme.accent.primary;
-                        List<Color> bgGrad = [theme.accent.primary.withValues(alpha: 0.13), theme.accent.primary.withValues(alpha: 0.07)];
-                        
-                        if(plan.colorTheme == 'blue') {
+                        List<Color> bgGrad = [
+                          theme.accent.primary.withValues(alpha: 0.13),
+                          theme.accent.primary.withValues(alpha: 0.07),
+                        ];
+
+                        if (plan.colorTheme == 'blue') {
                           sideColor = theme.accent.secondary;
-                          bgGrad = [theme.accent.secondary.withValues(alpha: 0.12), theme.accent.secondary.withValues(alpha: 0.06)];
+                          bgGrad = [
+                            theme.accent.secondary.withValues(alpha: 0.12),
+                            theme.accent.secondary.withValues(alpha: 0.06),
+                          ];
                         } else if (plan.colorTheme == 'pink') {
                           sideColor = theme.accent.tertiary;
-                          bgGrad = [theme.accent.tertiary.withValues(alpha: 0.12), theme.accent.tertiary.withValues(alpha: 0.06)];
+                          bgGrad = [
+                            theme.accent.tertiary.withValues(alpha: 0.12),
+                            theme.accent.tertiary.withValues(alpha: 0.06),
+                          ];
                         }
 
                         return Container(
                           margin: const EdgeInsets.only(bottom: 6),
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(14),
-                            gradient: LinearGradient(colors: bgGrad, begin: Alignment.topLeft, end: Alignment.bottomRight),
-                            border: Border(left: BorderSide(color: sideColor, width: 4)),
-                            boxShadow: [BoxShadow(color: sideColor.withValues(alpha: 0.1), blurRadius: 8, offset: const Offset(0, 2))],
+                            gradient: LinearGradient(
+                              colors: bgGrad,
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            border: Border(
+                              left: BorderSide(color: sideColor, width: 4),
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: sideColor.withValues(alpha: 0.1),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
                           ),
                           child: Stack(
                             children: [
                               Padding(
-                                padding: const EdgeInsets.fromLTRB(13, 9, 40, 9),
+                                padding: const EdgeInsets.fromLTRB(
+                                  13,
+                                  9,
+                                  40,
+                                  9,
+                                ),
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Icon(plan.icon, size: 16, color: theme.textPrimary),
+                                    Icon(
+                                      plan.icon,
+                                      size: 16,
+                                      color: theme.textPrimary,
+                                    ),
                                     const SizedBox(height: 2),
-                                    Text(plan.occasion, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: theme.textPrimary)),
+                                    Text(
+                                      plan.occasion,
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w700,
+                                        color: theme.textPrimary,
+                                      ),
+                                    ),
                                     const SizedBox(height: 2),
-                                    Text(plan.time.isEmpty ? AppLocalizations.t(context, 'calendar_planned') : plan.time, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: theme.mutedText)),
+                                    Text(
+                                      plan.time.isEmpty
+                                          ? AppLocalizations.t(
+                                              context,
+                                              'calendar_planned',
+                                            )
+                                          : plan.time,
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w600,
+                                        color: theme.mutedText,
+                                      ),
+                                    ),
                                     if (plan.outfit.isNotEmpty) ...[
                                       const SizedBox(height: 2),
-                                      Text(plan.outfit, style: TextStyle(fontSize: 11, fontStyle: FontStyle.italic, color: theme.textPrimary.withValues(alpha: 0.8))),
-                                    ]
+                                      Text(
+                                        plan.outfit,
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          fontStyle: FontStyle.italic,
+                                          color: theme.textPrimary.withValues(
+                                            alpha: 0.8,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
                                   ],
                                 ),
                               ),
                               Positioned(
-                                top: 4, right: 4,
+                                top: 4,
+                                right: 4,
                                 child: IconButton(
-                                  icon: Icon(Icons.close, size: 14, color: theme.mutedText),
+                                  icon: Icon(
+                                    Icons.close,
+                                    size: 14,
+                                    color: theme.mutedText,
+                                  ),
                                   onPressed: () => onRemovePlan(idx),
                                   padding: EdgeInsets.zero,
-                                  constraints: const BoxConstraints(minWidth: 24, minHeight: 24),
+                                  constraints: const BoxConstraints(
+                                    minWidth: 24,
+                                    minHeight: 24,
+                                  ),
                                 ),
                               ),
                               Positioned(
-                                bottom: 4, right: 4,
+                                bottom: 4,
+                                right: 4,
                                 child: IconButton(
-                                  icon: Icon(plan.hasReminder ? Icons.notifications_active : Icons.notifications_off, size: 14, color: plan.hasReminder ? theme.accent.primary : theme.mutedText),
+                                  icon: Icon(
+                                    plan.hasReminder
+                                        ? Icons.notifications_active
+                                        : Icons.notifications_off,
+                                    size: 14,
+                                    color: plan.hasReminder
+                                        ? theme.accent.primary
+                                        : theme.mutedText,
+                                  ),
                                   onPressed: () => onToggleReminder(idx),
                                   padding: EdgeInsets.zero,
-                                  constraints: const BoxConstraints(minWidth: 24, minHeight: 24),
+                                  constraints: const BoxConstraints(
+                                    minWidth: 24,
+                                    minHeight: 24,
+                                  ),
                                 ),
-                              )
+                              ),
                             ],
                           ),
                         );
                       }),
-                    
+
                     const SizedBox(height: 12),
                     GestureDetector(
                       onTap: onAddPlanPressed,
                       child: Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          gradient: LinearGradient(colors: [theme.accent.primary, theme.accent.secondary], begin: Alignment.topLeft, end: Alignment.bottomRight),
+                          gradient: LinearGradient(
+                            colors: [
+                              theme.accent.primary,
+                              theme.accent.secondary,
+                            ],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
                           borderRadius: BorderRadius.circular(18),
-                          boxShadow: [BoxShadow(color: theme.accent.primary.withValues(alpha: 0.35), blurRadius: 16, offset: const Offset(0, 4))],
+                          boxShadow: [
+                            BoxShadow(
+                              color: theme.accent.primary.withValues(
+                                alpha: 0.35,
+                              ),
+                              blurRadius: 16,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
                         ),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            const Icon(Icons.add_circle_outline, size: 16, color: Colors.white),
+                            const Icon(
+                              Icons.add_circle_outline,
+                              size: 16,
+                              color: Colors.white,
+                            ),
                             const SizedBox(width: 8),
-                            Text(AppLocalizations.t(context, 'calendar_add_plan'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13.5)),
+                            Text(
+                              AppLocalizations.t(context, 'calendar_add_plan'),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w700,
+                                fontSize: 13.5,
+                              ),
+                            ),
                           ],
                         ),
                       ),
                     ),
                   ],
                 ),
-              )
+              ),
             ],
           ),
         ),
@@ -761,7 +1070,8 @@ class MainCalendarView extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 32, height: 32,
+        width: 32,
+        height: 32,
         decoration: BoxDecoration(
           color: theme.backgroundSecondary,
           borderRadius: BorderRadius.circular(12),
@@ -791,7 +1101,11 @@ class AddPlanModal extends StatefulWidget {
   final Function(PlanItem) onPlanSaved;
   final Function(String, IconData) onChatOpened;
 
-  const AddPlanModal({super.key, required this.onPlanSaved, required this.onChatOpened});
+  const AddPlanModal({
+    super.key,
+    required this.onPlanSaved,
+    required this.onChatOpened,
+  });
 
   @override
   State<AddPlanModal> createState() => _AddPlanModalState();
@@ -799,14 +1113,42 @@ class AddPlanModal extends StatefulWidget {
 
 class _AddPlanModalState extends State<AddPlanModal> {
   final List<Map<String, dynamic>> _buttons = [
-    {'name': 'Gym', 'icon': Icons.fitness_center, 'key': 'calendar_occasion_gym'},
-    {'name': 'Office', 'icon': Icons.work_outline, 'key': 'calendar_occasion_office'},
-    {'name': 'Party', 'icon': Icons.celebration, 'key': 'calendar_occasion_party'},
-    {'name': 'Shopping', 'icon': Icons.shopping_bag_outlined, 'key': 'calendar_occasion_shopping'},
-    {'name': 'Study', 'icon': Icons.menu_book, 'key': 'calendar_occasion_study'},
-    {'name': 'Travel', 'icon': Icons.flight_takeoff, 'key': 'calendar_occasion_travel'},
+    {
+      'name': 'Gym',
+      'icon': Icons.fitness_center,
+      'key': 'calendar_occasion_gym',
+    },
+    {
+      'name': 'Office',
+      'icon': Icons.work_outline,
+      'key': 'calendar_occasion_office',
+    },
+    {
+      'name': 'Party',
+      'icon': Icons.celebration,
+      'key': 'calendar_occasion_party',
+    },
+    {
+      'name': 'Shopping',
+      'icon': Icons.shopping_bag_outlined,
+      'key': 'calendar_occasion_shopping',
+    },
+    {
+      'name': 'Study',
+      'icon': Icons.menu_book,
+      'key': 'calendar_occasion_study',
+    },
+    {
+      'name': 'Travel',
+      'icon': Icons.flight_takeoff,
+      'key': 'calendar_occasion_travel',
+    },
     {'name': 'Event', 'icon': Icons.event, 'key': 'calendar_occasion_event'},
-    {'name': 'Date Night', 'icon': Icons.favorite_border, 'key': 'calendar_occasion_date_night'},
+    {
+      'name': 'Date Night',
+      'icon': Icons.favorite_border,
+      'key': 'calendar_occasion_date_night',
+    },
   ];
 
   final String _selectedOccasion = 'Gym';
@@ -817,8 +1159,17 @@ class _AddPlanModalState extends State<AddPlanModal> {
     return Container(
       decoration: BoxDecoration(
         color: theme.backgroundSecondary,
-        borderRadius: const BorderRadius.only(topLeft: Radius.circular(28), topRight: Radius.circular(28)),
-        boxShadow: [BoxShadow(color: theme.textPrimary.withValues(alpha: 0.08), blurRadius: 32, offset: const Offset(0, -4))],
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(28),
+          topRight: Radius.circular(28),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: theme.textPrimary.withValues(alpha: 0.08),
+            blurRadius: 32,
+            offset: const Offset(0, -4),
+          ),
+        ],
       ),
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
       child: Column(
@@ -826,57 +1177,123 @@ class _AddPlanModalState extends State<AddPlanModal> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           // Handle
-          Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: theme.cardBorder, borderRadius: BorderRadius.circular(2)))),
+          Center(
+            child: Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: theme.cardBorder,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
           const SizedBox(height: 18),
-          
+
           // Header
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(AppLocalizations.t(context, 'calendar_new_plan'), style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: theme.textPrimary)),
+              Text(
+                AppLocalizations.t(context, 'calendar_new_plan'),
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: theme.textPrimary,
+                ),
+              ),
               GestureDetector(
                 onTap: () => Navigator.pop(context),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  decoration: BoxDecoration(color: theme.card, borderRadius: BorderRadius.circular(10), border: Border.all(color: theme.cardBorder)),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: theme.card,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: theme.cardBorder),
+                  ),
                   child: Row(
                     children: [
                       Icon(Icons.close, size: 14, color: theme.mutedText),
                       SizedBox(width: 4),
-                      Text(AppLocalizations.t(context, 'calendar_close'), style: TextStyle(color: theme.mutedText, fontSize: 13, fontWeight: FontWeight.w600)),
+                      Text(
+                        AppLocalizations.t(context, 'calendar_close'),
+                        style: TextStyle(
+                          color: theme.mutedText,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ],
                   ),
                 ),
-              )
+              ),
             ],
           ),
           const SizedBox(height: 16),
 
           // Occasions grid
-          Text(AppLocalizations.t(context, 'calendar_choose_occasion'), style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w700, letterSpacing: 1.2, color: theme.mutedText)),
+          Text(
+            AppLocalizations.t(context, 'calendar_choose_occasion'),
+            style: TextStyle(
+              fontSize: 10.5,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 1.2,
+              color: theme.mutedText,
+            ),
+          ),
           const SizedBox(height: 10),
           Wrap(
-            spacing: 8, runSpacing: 8,
+            spacing: 8,
+            runSpacing: 8,
             children: _buttons.map((b) {
               bool isSel = _selectedOccasion == b['name'];
               return GestureDetector(
                 onTap: () {
-                  widget.onChatOpened(b['name'] as String, b['icon'] as IconData);
+                  widget.onChatOpened(
+                    b['name'] as String,
+                    b['icon'] as IconData,
+                  );
                 },
                 child: Container(
                   width: (MediaQuery.of(context).size.width - 40 - 24) / 4,
                   padding: const EdgeInsets.symmetric(vertical: 10),
                   decoration: BoxDecoration(
-                    color: isSel ? theme.accent.primary.withValues(alpha: 0.2) : theme.card,
+                    color: isSel
+                        ? theme.accent.primary.withValues(alpha: 0.2)
+                        : theme.card,
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: isSel ? theme.accent.primary : theme.cardBorder),
-                    boxShadow: isSel ? [BoxShadow(color: theme.accent.primary.withValues(alpha: 0.4), blurRadius: 12)] : [],
+                    border: Border.all(
+                      color: isSel ? theme.accent.primary : theme.cardBorder,
+                    ),
+                    boxShadow: isSel
+                        ? [
+                            BoxShadow(
+                              color: theme.accent.primary.withValues(
+                                alpha: 0.4,
+                              ),
+                              blurRadius: 12,
+                            ),
+                          ]
+                        : [],
                   ),
                   child: Column(
                     children: [
-                      Icon(b['icon'] as IconData, size: 24, color: theme.textPrimary),
+                      Icon(
+                        b['icon'] as IconData,
+                        size: 24,
+                        color: theme.textPrimary,
+                      ),
                       const SizedBox(height: 4),
-                      Text(AppLocalizations.t(context, b['key'] as String), style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: isSel ? theme.accent.primary : theme.mutedText)),
+                      Text(
+                        AppLocalizations.t(context, b['key'] as String),
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: isSel ? theme.accent.primary : theme.mutedText,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -897,7 +1314,13 @@ class ChatMessage {
   final String text;
   final bool isUser;
   final String time;
-  ChatMessage(this.text, {required this.isUser, required this.time});
+  final List<AhviChip> chips;
+  ChatMessage(
+    this.text, {
+    required this.isUser,
+    required this.time,
+    this.chips = const [],
+  });
 }
 
 class StyleChatScreen extends StatefulWidget {
@@ -906,7 +1329,13 @@ class StyleChatScreen extends StatefulWidget {
   final VoidCallback onBack;
   final Function(String, String) onSavePlan;
 
-  const StyleChatScreen({super.key, required this.occasion, required this.icon, required this.onBack, required this.onSavePlan});
+  const StyleChatScreen({
+    super.key,
+    required this.occasion,
+    required this.icon,
+    required this.onBack,
+    required this.onSavePlan,
+  });
 
   @override
   State<StyleChatScreen> createState() => _StyleChatScreenState();
@@ -916,6 +1345,8 @@ class _StyleChatScreenState extends State<StyleChatScreen> {
   final TextEditingController _textCtrl = TextEditingController();
   final List<ChatMessage> _msgs = [];
   bool _isListening = false;
+  String? _lastDraftPlan;
+  String? _lastDraftTime;
 
   bool _greetingAdded = false;
 
@@ -929,18 +1360,26 @@ class _StyleChatScreenState extends State<StyleChatScreen> {
     super.didChangeDependencies();
     if (!_greetingAdded) {
       _greetingAdded = true;
-      _msgs.add(ChatMessage(
-        AppLocalizations.t(context, 'calendar_chat_greeting').replaceAll('{occasion}', widget.occasion),
-        isUser: false,
-        time: AppLocalizations.t(context, 'calendar_chat_time_now'),
-      ));
+      _msgs.add(
+        ChatMessage(
+          AppLocalizations.t(
+            context,
+            'calendar_chat_greeting',
+          ).replaceAll('{occasion}', widget.occasion),
+          isUser: false,
+          time: AppLocalizations.t(context, 'calendar_chat_time_now'),
+        ),
+      );
     }
   }
 
   // Helper to extract time
   String _extractTime(String text) {
-     final match = RegExp(r"\b(\d{1,2}(:\d{2})?\s*(am|pm|a\.m\.|p\.m\.|o'clock)?)\b", caseSensitive: false).firstMatch(text);
-     return match != null ? match.group(1) ?? "" : "";
+    final match = RegExp(
+      r"\b(\d{1,2}(:\d{2})?\s*(am|pm|a\.m\.|p\.m\.|o'clock)?)\b",
+      caseSensitive: false,
+    ).firstMatch(text);
+    return match != null ? match.group(1) ?? "" : "";
   }
 
   String _responseText(Map<String, dynamic> response) {
@@ -951,6 +1390,61 @@ class _StyleChatScreenState extends State<StyleChatScreen> {
         .toString()
         .trim();
   }
+
+  String _summaryFromAhvi(AhviResponse parsed) {
+    final sections = parsed.prepSections.isNotEmpty
+        ? parsed.prepSections
+        : parsed.planSections;
+    final lines = <String>[];
+    for (final section in sections.take(3)) {
+      if (section.title.trim().isNotEmpty) lines.add(section.title.trim());
+      lines.addAll(section.items.take(3));
+    }
+    if (lines.isNotEmpty) return lines.join(' • ');
+    if (parsed.checklistItems.isNotEmpty) {
+      return parsed.checklistItems.take(5).join(' • ');
+    }
+    return parsed.messageText;
+  }
+
+  List<AhviChip> _calendarChipsFor(AhviResponse parsed) {
+    final chips = <AhviChip>[...parsed.chips];
+    final hasStructuredPlan =
+        parsed.isPlan ||
+        parsed.isPrep ||
+        parsed.planSections.isNotEmpty ||
+        parsed.prepSections.isNotEmpty ||
+        parsed.checklistItems.isNotEmpty;
+    if (hasStructuredPlan) {
+      chips.addAll(const [
+        AhviChip(label: 'Save to calendar', value: 'calendar_save_draft'),
+        AhviChip(label: 'Add prep', value: 'calendar_add_prep'),
+        AhviChip(label: 'Build outfit', value: 'calendar_build_outfit'),
+      ]);
+    }
+    final seen = <String>{};
+    return chips.where((chip) => seen.add(chip.label)).take(3).toList();
+  }
+
+  void _handleChip(AhviChip chip) {
+    if (chip.value == 'calendar_save_draft') {
+      final plan = _lastDraftPlan;
+      if (plan == null || plan.trim().isEmpty) return;
+      widget.onSavePlan(_lastDraftTime ?? '9:00 AM', plan);
+      setState(() {
+        _msgs.add(
+          ChatMessage(
+            'Saved it to your calendar.',
+            isUser: false,
+            time: AppLocalizations.t(context, 'calendar_chat_time_now'),
+          ),
+        );
+      });
+      return;
+    }
+    _textCtrl.text = chip.value;
+  }
+
   Future<void> _sendMsg() async {
     if (_textCtrl.text.trim().isEmpty) return;
 
@@ -959,53 +1453,91 @@ class _StyleChatScreenState extends State<StyleChatScreen> {
     final mockOutfit = "Styling layer with ${widget.occasion} vibes.";
 
     setState(() {
-      _msgs.add(ChatMessage(userText, isUser: true, time: AppLocalizations.t(context, 'calendar_chat_time_now')));
+      _msgs.add(
+        ChatMessage(
+          userText,
+          isUser: true,
+          time: AppLocalizations.t(context, 'calendar_chat_time_now'),
+        ),
+      );
       _textCtrl.clear();
     });
 
     String reply = '';
+    List<AhviChip> responseChips = const [];
     try {
       final response = await BackendService().sendChatQuery(
         'Occasion: ${widget.occasion}\n\n$userText',
         '',
         _msgs
-            .map((m) => {'role': m.isUser ? 'user' : 'assistant', 'content': m.text})
+            .map(
+              (m) => {
+                'role': m.isUser ? 'user' : 'assistant',
+                'content': m.text,
+              },
+            )
             .toList(),
         '',
         moduleContext: 'calendar',
       );
-      reply = _responseText(response);
+      final parsed = AhviResponse.fromMap(response);
+      reply = parsed.messageText.isNotEmpty
+          ? parsed.messageText
+          : _responseText(response);
+      responseChips = _calendarChipsFor(parsed);
+      final summary = _summaryFromAhvi(parsed);
+      if (summary.trim().isNotEmpty) {
+        _lastDraftPlan = summary;
+        _lastDraftTime = _extractTime(reply).isNotEmpty
+            ? _extractTime(reply)
+            : (_extractTime(userText).isNotEmpty
+                  ? _extractTime(userText)
+                  : _lastDraftTime);
+      }
     } catch (_) {}
 
     if (!mounted) return;
     setState(() {
       final extractedTime = _extractTime(userText);
-      if (lower.contains('yes') || lower.contains('save') || lower.contains('add')) {
+      if (lower.contains('yes') ||
+          lower.contains('save') ||
+          lower.contains('add')) {
         if (extractedTime.isNotEmpty) {
           widget.onSavePlan(extractedTime, mockOutfit);
           reply = reply.isNotEmpty
               ? reply
               : AppLocalizations.t(context, 'calendar_chat_saved_with_time')
-                  .replaceAll('{occasion}', widget.occasion)
-                  .replaceAll('{time}', extractedTime);
+                    .replaceAll('{occasion}', widget.occasion)
+                    .replaceAll('{time}', extractedTime);
         } else {
-          reply = reply.isNotEmpty ? reply : AppLocalizations.t(context, 'calendar_chat_ask_time');
+          reply = reply.isNotEmpty
+              ? reply
+              : AppLocalizations.t(context, 'calendar_chat_ask_time');
         }
       } else if (extractedTime.isNotEmpty) {
         widget.onSavePlan(extractedTime, mockOutfit);
         reply = reply.isNotEmpty
             ? reply
-            : AppLocalizations.t(context, 'calendar_chat_set_reminder').replaceAll('{time}', extractedTime);
+            : AppLocalizations.t(
+                context,
+                'calendar_chat_set_reminder',
+              ).replaceAll('{time}', extractedTime);
       } else {
-        reply = reply.isNotEmpty ? reply : AppLocalizations.t(context, 'calendar_chat_suggest_save');
+        reply = reply.isNotEmpty
+            ? reply
+            : AppLocalizations.t(context, 'calendar_chat_suggest_save');
       }
-      _msgs.add(ChatMessage(
-        reply,
-        isUser: false,
-        time: AppLocalizations.t(context, 'calendar_chat_time_now'),
-      ));
+      _msgs.add(
+        ChatMessage(
+          reply,
+          isUser: false,
+          time: AppLocalizations.t(context, 'calendar_chat_time_now'),
+          chips: responseChips,
+        ),
+      );
     });
   }
+
   @override
   Widget build(BuildContext context) {
     final theme = context.themeTokens;
@@ -1017,177 +1549,344 @@ class _StyleChatScreenState extends State<StyleChatScreen> {
       child: Container(
         color: theme.backgroundSecondary,
         child: Column(
-        children: [
-          // Header
-          Padding(
-            padding: const EdgeInsets.fromLTRB(18, 28, 18, 10),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                GestureDetector(
-                  onTap: widget.onBack,
-                  behavior: HitTestBehavior.opaque,
-                  child: Container(
-                    width: 40, height: 40,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: theme.card,
-                      border: Border.all(color: theme.cardBorder),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.only(left: 6.0),
-                      child: Icon(Icons.arrow_back_ios, size: 18, color: theme.textPrimary),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                       Text('${widget.occasion} ${AppLocalizations.t(context, 'calendar_chat')}', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: theme.textPrimary)),
-                       Container(margin: const EdgeInsets.only(top: 5, bottom: 4), width: 36, height: 2.5, decoration: BoxDecoration(color: theme.accent.primary, borderRadius: BorderRadius.circular(2))),
-                       Row(
-                         children: [
-                           Container(width: 6, height: 6, decoration: BoxDecoration(color: theme.accent.tertiary, shape: BoxShape.circle, boxShadow: [BoxShadow(color: theme.accent.tertiary, blurRadius: 6)])),
-                           const SizedBox(width: 6),
-                           Text(AppLocalizations.t(context, 'calendar_chat_subtitle'), style: TextStyle(fontSize: 13, color: theme.mutedText))
-                         ],
-                       )
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          
-          // Chat list
-          Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-              itemCount: _msgs.length,
-              itemBuilder: (ctx, i) {
-                final m = _msgs[i];
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: Row(
-                    mainAxisAlignment: m.isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      if (!m.isUser)
-                        Container(
-                          width: 28, height: 28, margin: const EdgeInsets.only(right: 8),
-                          decoration: BoxDecoration(color: theme.card, border: Border.all(color: theme.cardBorder), shape: BoxShape.circle),
-                          alignment: Alignment.center,
-                          child: Icon(widget.icon, size: 14, color: theme.textPrimary),
+          children: [
+            // Header
+            Padding(
+              padding: const EdgeInsets.fromLTRB(18, 28, 18, 10),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  GestureDetector(
+                    onTap: widget.onBack,
+                    behavior: HitTestBehavior.opaque,
+                    child: Container(
+                      width: 40,
+                      height: 40,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: theme.card,
+                        border: Border.all(color: theme.cardBorder),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.only(left: 6.0),
+                        child: Icon(
+                          Icons.arrow_back_ios,
+                          size: 18,
+                          color: theme.textPrimary,
                         ),
-                      
-                      Column(
-                        crossAxisAlignment: m.isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
-                        children: [
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '${widget.occasion} ${AppLocalizations.t(context, 'calendar_chat')}',
+                          style: TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w700,
+                            color: theme.textPrimary,
+                          ),
+                        ),
+                        Container(
+                          margin: const EdgeInsets.only(top: 5, bottom: 4),
+                          width: 36,
+                          height: 2.5,
+                          decoration: BoxDecoration(
+                            color: theme.accent.primary,
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
+                        Row(
+                          children: [
+                            Container(
+                              width: 6,
+                              height: 6,
+                              decoration: BoxDecoration(
+                                color: theme.accent.tertiary,
+                                shape: BoxShape.circle,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: theme.accent.tertiary,
+                                    blurRadius: 6,
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              AppLocalizations.t(
+                                context,
+                                'calendar_chat_subtitle',
+                              ),
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: theme.mutedText,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // Chat list
+            Expanded(
+              child: ListView.builder(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 18,
+                  vertical: 10,
+                ),
+                itemCount: _msgs.length,
+                itemBuilder: (ctx, i) {
+                  final m = _msgs[i];
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: Row(
+                      mainAxisAlignment: m.isUser
+                          ? MainAxisAlignment.end
+                          : MainAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        if (!m.isUser)
                           Container(
-                            constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.7),
-                            padding: const EdgeInsets.all(12),
+                            width: 28,
+                            height: 28,
+                            margin: const EdgeInsets.only(right: 8),
                             decoration: BoxDecoration(
                               color: theme.card,
                               border: Border.all(color: theme.cardBorder),
-                              borderRadius: BorderRadius.only(
-                                topLeft: const Radius.circular(18),
-                                topRight: const Radius.circular(18),
-                                bottomLeft: Radius.circular(m.isUser ? 18 : 5),
-                                bottomRight: Radius.circular(m.isUser ? 5 : 18),
-                              ),
-                              boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, 2))],
+                              shape: BoxShape.circle,
                             ),
-                            child: Text(m.text, style: TextStyle(color: theme.textPrimary, fontSize: 13.5)),
+                            alignment: Alignment.center,
+                            child: Icon(
+                              widget.icon,
+                              size: 14,
+                              color: theme.textPrimary,
+                            ),
                           ),
-                          Padding(
-                            padding: const EdgeInsets.only(top: 4, left: 4, right: 4),
-                            child: Text(m.time, style: TextStyle(fontSize: 10, color: theme.mutedText)),
-                          )
-                        ],
-                      ),
-                    ],
-                  ),
-                );
-              },
-            ),
-          ),
 
-          // Input bar
-          Container(
-            padding: const EdgeInsets.fromLTRB(18, 10, 18, 20),
-            child: Column(
-              children: [
-                 // Suggestion Chips
-                 SingleChildScrollView(
-                   scrollDirection: Axis.horizontal,
-                   child: Row(
-                     children: [
-                       _chip(AppLocalizations.t(context, 'calendar_chip_wear'), theme),
-                       _chip(AppLocalizations.t(context, 'calendar_chip_casual'), theme),
-                       _chip(AppLocalizations.t(context, 'calendar_chip_work'), theme),
-                     ],
-                   ),
-                 ),
-                 const SizedBox(height: 10),
-                 Container(
-                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                   decoration: BoxDecoration(
-                     color: theme.card,
-                     border: Border.all(color: theme.cardBorder),
-                     borderRadius: BorderRadius.circular(18),
-                   ),
-                   child: Row(
-                     children: [
-                       Icon(Icons.edit_note, color: theme.mutedText, size: 20),
-                       const SizedBox(width: 8),
-                       Expanded(
-                         child: TextField(
-                           controller: _textCtrl,
-                           decoration: InputDecoration(border: InputBorder.none, hintText: AppLocalizations.t(context, 'calendar_chat_input_hint'), hintStyle: TextStyle(color: theme.mutedText), isDense: true),
-                           style: TextStyle(fontSize: 14, color: theme.textPrimary),
-                           onSubmitted: (_) => _sendMsg(),
-                         ),
-                       ),
-                       GestureDetector(
-                         onTap: () => setState(() => _isListening = !_isListening),
-                         child: Container(
-                           width: 32, height: 32, margin: const EdgeInsets.only(right: 6),
-                           decoration: BoxDecoration(color: _isListening ? theme.accent.primary : theme.card, borderRadius: BorderRadius.circular(10), border: Border.all(color: theme.cardBorder)),
-                           child: Icon(Icons.mic, size: 16, color: _isListening ? Colors.white : theme.accent.secondary),
-                         ),
-                       ),
-                       GestureDetector(
-                         onTap: _sendMsg,
-                         child: Container(
-                           width: 32, height: 32,
-                           decoration: BoxDecoration(gradient: LinearGradient(colors: [theme.accent.secondary, theme.accent.tertiary]), borderRadius: BorderRadius.circular(10)),
-                           child: const Icon(Icons.send, size: 14, color: Colors.white),
-                         ),
-                       )
-                     ],
-                   ),
-                 )
-              ],
+                        Column(
+                          crossAxisAlignment: m.isUser
+                              ? CrossAxisAlignment.end
+                              : CrossAxisAlignment.start,
+                          children: [
+                            Container(
+                              constraints: BoxConstraints(
+                                maxWidth:
+                                    MediaQuery.of(context).size.width * 0.7,
+                              ),
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: theme.card,
+                                border: Border.all(color: theme.cardBorder),
+                                borderRadius: BorderRadius.only(
+                                  topLeft: const Radius.circular(18),
+                                  topRight: const Radius.circular(18),
+                                  bottomLeft: Radius.circular(
+                                    m.isUser ? 18 : 5,
+                                  ),
+                                  bottomRight: Radius.circular(
+                                    m.isUser ? 5 : 18,
+                                  ),
+                                ),
+                                boxShadow: const [
+                                  BoxShadow(
+                                    color: Colors.black12,
+                                    blurRadius: 10,
+                                    offset: Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: Text(
+                                m.text,
+                                style: TextStyle(
+                                  color: theme.textPrimary,
+                                  fontSize: 13.5,
+                                ),
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.only(
+                                top: 4,
+                                left: 4,
+                                right: 4,
+                              ),
+                              child: Text(
+                                m.time,
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  color: theme.mutedText,
+                                ),
+                              ),
+                            ),
+                            if (!m.isUser && m.chips.isNotEmpty)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 8),
+                                child: Wrap(
+                                  spacing: 8,
+                                  runSpacing: 8,
+                                  children: m.chips
+                                      .map(
+                                        (chip) => _chip(
+                                          chip.label,
+                                          theme,
+                                          onTap: () => _handleChip(chip),
+                                        ),
+                                      )
+                                      .toList(),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
             ),
-          )
-        ],
+
+            // Input bar
+            Container(
+              padding: const EdgeInsets.fromLTRB(18, 10, 18, 20),
+              child: Column(
+                children: [
+                  // Suggestion Chips
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        _chip(
+                          AppLocalizations.t(context, 'calendar_chip_wear'),
+                          theme,
+                        ),
+                        _chip(
+                          AppLocalizations.t(context, 'calendar_chip_casual'),
+                          theme,
+                        ),
+                        _chip(
+                          AppLocalizations.t(context, 'calendar_chip_work'),
+                          theme,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: theme.card,
+                      border: Border.all(color: theme.cardBorder),
+                      borderRadius: BorderRadius.circular(18),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.edit_note, color: theme.mutedText, size: 20),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: TextField(
+                            controller: _textCtrl,
+                            decoration: InputDecoration(
+                              border: InputBorder.none,
+                              hintText: AppLocalizations.t(
+                                context,
+                                'calendar_chat_input_hint',
+                              ),
+                              hintStyle: TextStyle(color: theme.mutedText),
+                              isDense: true,
+                            ),
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: theme.textPrimary,
+                            ),
+                            onSubmitted: (_) => _sendMsg(),
+                          ),
+                        ),
+                        GestureDetector(
+                          onTap: () =>
+                              setState(() => _isListening = !_isListening),
+                          child: Container(
+                            width: 32,
+                            height: 32,
+                            margin: const EdgeInsets.only(right: 6),
+                            decoration: BoxDecoration(
+                              color: _isListening
+                                  ? theme.accent.primary
+                                  : theme.card,
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: theme.cardBorder),
+                            ),
+                            child: Icon(
+                              Icons.mic,
+                              size: 16,
+                              color: _isListening
+                                  ? Colors.white
+                                  : theme.accent.secondary,
+                            ),
+                          ),
+                        ),
+                        GestureDetector(
+                          onTap: _sendMsg,
+                          child: Container(
+                            width: 32,
+                            height: 32,
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [
+                                  theme.accent.secondary,
+                                  theme.accent.tertiary,
+                                ],
+                              ),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: const Icon(
+                              Icons.send,
+                              size: 14,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
-    ));
+    );
   }
 
-  Widget _chip(String txt, dynamic theme) {
+  Widget _chip(String txt, dynamic theme, {VoidCallback? onTap}) {
     return GestureDetector(
-      onTap: () => _textCtrl.text = txt,
+      onTap: onTap ?? () => _textCtrl.text = txt,
       child: Container(
         margin: const EdgeInsets.only(right: 8),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-        decoration: BoxDecoration(color: theme.card, border: Border.all(color: theme.cardBorder), borderRadius: BorderRadius.circular(20)),
-        child: Text(txt, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: theme.textPrimary)),
+        decoration: BoxDecoration(
+          color: theme.card,
+          border: Border.all(color: theme.cardBorder),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Text(
+          txt,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: theme.textPrimary,
+          ),
+        ),
       ),
     );
   }
 }
-

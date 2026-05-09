@@ -13,6 +13,7 @@ import 'package:myapp/widgets/ahvi_chat_prompt_bar.dart';
 import 'package:myapp/widgets/ahvi_home_text.dart';
 import 'package:myapp/widgets/ahvi_header.dart';
 import 'package:myapp/services/appwrite_service.dart';
+import 'package:myapp/services/ahvi_response_parser.dart';
 import 'package:myapp/services/backend_service.dart';
 import 'package:myapp/skincare.dart' as skincare_page;
 import 'package:myapp/fitness_page.dart' as fitness_page;
@@ -79,6 +80,10 @@ bool _isStyleMoreChip(String value) {
       text.contains('different shoe') ||
       text.contains('different footwear');
 }
+
+String _chipLabel(dynamic chip) => AhviChip.fromDynamic(chip).label;
+
+String _chipValue(dynamic chip) => AhviChip.fromDynamic(chip).value;
 
 List<dynamic> _extractStyleBoardsFromResponse(Map<String, dynamic> response) {
   final data = response['data'] is Map
@@ -846,6 +851,7 @@ class _ChatScreenState extends State<ChatScreen>
       if (!mounted) return;
 
       final newBoards = _extractStyleBoardsFromResponse(response);
+      final parsed = AhviResponse.fromMap(response);
       final mergedBoards = _mergeStyleBoards(
         sourceCards,
         newBoards,
@@ -877,7 +883,7 @@ class _ChatScreenState extends State<ChatScreen>
             _ChatMessage(
               text: aiText.isNotEmpty ? aiText : 'I added fresh style options.',
               isMe: false,
-              chips: response['chips'] ?? [],
+              chips: parsed.chips.map((chip) => chip.toJson()).toList(),
             ),
           );
         } else {
@@ -885,7 +891,7 @@ class _ChatScreenState extends State<ChatScreen>
             _ChatMessage(
               text: "I've shown the strongest options from this wardrobe.",
               isMe: false,
-              chips: response['chips'] ?? [],
+              chips: parsed.chips.map((chip) => chip.toJson()).toList(),
             ),
           );
         }
@@ -921,20 +927,21 @@ class _ChatScreenState extends State<ChatScreen>
     return null;
   }
 
-  void _sendMessage([String? chipText]) async {
-    final text = chipText ?? _chatController.text.trim();
-    if (text.isEmpty) return;
+  void _sendMessage([String? chipText, String? displayText]) async {
+    final queryText = chipText ?? _chatController.text.trim();
+    final visibleText = displayText ?? queryText;
+    if (queryText.isEmpty || visibleText.isEmpty) return;
     _chatController.clear();
     setState(() {
-      _messages.add(_ChatMessage(text: text, isMe: true));
-      _chatHistory.add({'role': 'user', 'content': text});
+      _messages.add(_ChatMessage(text: visibleText, isMe: true));
+      _chatHistory.add({'role': 'user', 'content': visibleText});
       _isTyping = true;
     });
     _scrollToBottom();
     try {
       final backend = Provider.of<BackendService>(context, listen: false);
       final response = await backend.sendChatQuery(
-        text,
+        queryText,
         'user_$_userName',
         List<Map<String, String>>.from(_chatHistory),
         _runningMemory,
@@ -944,6 +951,7 @@ class _ChatScreenState extends State<ChatScreen>
       if (response['updated_memory'] != null) {
         _runningMemory = response['updated_memory'];
       }
+      final parsed = AhviResponse.fromMap(response);
       final rawMessage = response['message'];
       final aiText =
           (response['message_text'] ??
@@ -956,7 +964,7 @@ class _ChatScreenState extends State<ChatScreen>
           _ChatMessage(
             text: aiText,
             isMe: false,
-            chips: response['chips'] ?? [],
+            chips: parsed.chips.map((chip) => chip.toJson()).toList(),
             boardId: response['board_ids'],
             packId: response['pack_ids'],
             cards: _extractStyleBoardsFromResponse(response),
@@ -1354,14 +1362,14 @@ class _ChatScreenState extends State<ChatScreen>
           child: Wrap(
             spacing: 8,
             runSpacing: 8,
-            children: m.chips
-                .map(
-                  (c) => GestureDetector(
-                    onTap: () => _sendMessage(c.toString()),
-                    child: _chip(c.toString(), t),
-                  ),
-                )
-                .toList(),
+            children: m.chips.map((c) {
+              final label = _chipLabel(c);
+              final value = _chipValue(c);
+              return GestureDetector(
+                onTap: () => _sendMessage(value, label),
+                child: _chip(label, t),
+              );
+            }).toList(),
           ),
         ),
     ],

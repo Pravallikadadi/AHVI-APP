@@ -12,6 +12,14 @@ String _encodeBytes(Uint8List bytes) => base64Encode(bytes);
 String _demoChatFallback(String query, String moduleContext) {
   final q = query.toLowerCase();
   final isStyle = moduleContext == 'style' || moduleContext == 'wardrobe';
+  final isPlanPrep =
+      moduleContext == 'plan' ||
+      moduleContext == 'prepare' ||
+      moduleContext == 'prep' ||
+      q.contains('plan') ||
+      q.contains('prep') ||
+      q.contains('prepare') ||
+      q.contains('checklist');
   if (q.contains('joke')) {
     return 'Here is a tiny one: Why did the shirt get promoted? Because it had outstanding style.';
   }
@@ -22,9 +30,12 @@ String _demoChatFallback(String query, String moduleContext) {
       q.contains('outfit') ||
       q.contains('wear') ||
       q.contains('style')) {
-    return 'I will assume a smart casual look for now: choose one clean hero piece, pair it with a neutral base, and finish with footwear or an accessory that matches the occasion. If your wardrobe is synced, I will use those saved pieces first.';
+    return 'AHVI is still styling this. Try again in a moment.';
   }
-  return 'I can help with that. Tell me a little more, or ask me to style an outfit, plan your day, or build a capsule wardrobe.';
+  if (isPlanPrep) {
+    return 'AHVI is still preparing this. Try again in a moment.';
+  }
+  return 'AHVI is still thinking this through. Try again in a moment.';
 }
 
 class BackendService {
@@ -222,6 +233,10 @@ class BackendService {
         'error': 'Backend fallback: $e',
         'message': {'role': 'assistant', 'content': fallback},
         'message_text': fallback,
+        'chips': [
+          {'label': 'Try again', 'value': query},
+        ],
+        'type': 'retry',
         'meta': {'used_local_fallback': true},
       };
     }
@@ -375,7 +390,6 @@ class BackendService {
     }
   }
 
-
   // Calendar events persisted through AHVI backend/Appwrite.
   Future<List<Map<String, dynamic>>> getCalendarEvents({
     DateTime? startTime,
@@ -399,7 +413,9 @@ class BackendService {
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
         final data = await compute(_parseJsonMap, response.body);
-        return List<Map<String, dynamic>>.from(data['events'] as List? ?? const []);
+        return List<Map<String, dynamic>>.from(
+          data['events'] as List? ?? const [],
+        );
       }
 
       debugPrint(
@@ -431,7 +447,9 @@ class BackendService {
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
         final data = await compute(_parseJsonMap, response.body);
-        return List<Map<String, dynamic>>.from(data['events'] as List? ?? const []);
+        return List<Map<String, dynamic>>.from(
+          data['events'] as List? ?? const [],
+        );
       }
 
       debugPrint(

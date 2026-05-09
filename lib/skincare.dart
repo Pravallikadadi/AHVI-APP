@@ -8,49 +8,49 @@ import 'package:myapp/theme/theme_controller.dart';
 import 'package:myapp/widgets/ahvi_stylist_chat.dart';
 import 'package:myapp/widgets/ahvi_lens_sheet.dart';
 
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 //  BEHAVIORAL DIFF ANALYSIS REPORT
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 //
-// PHASE 1 — STRUCTURAL SCAN SUMMARY
+// PHASE 1 â€” STRUCTURAL SCAN SUMMARY
 //
 // CSS Transitions / Animations found:
-//   • .back-btn:hover              → scale(1.06) translateX(-1px), 0.2s
-//   • .step                        → @keyframes slideUp (opacity 0→1, translateY 16px→0), 0.35s, staggered delay i*0.06s
-//   • .step:hover                  → translateY(-3px), 0.28s
-//   • .progress-fill               → width transition, 0.5s cubic-bezier(.25,.8,.25,1)
-//   • .chat-btn:hover              → translateY(-2px), 0.25s cubic-bezier(0.34,1.56,0.64,1)
-//   • .chat-btn-pulse              → @keyframes pulse (scale 1→1.04, opacity 0.6→0), 2.5s infinite
-//   • .chat-overlay                → opacity 0→1, 0.3s  +  .chat-modal translateY(100%)→0, 0.42s
-//   • .qpill:active                → gradient fill flash
-//   • .send-btn:active             → scale(0.9), 0.2s
-//   • .send-btn:disabled           → opacity 0.28
-//   • .mic-btn.listening           → gradient bg + @keyframes micPulse scale 1→1.08, 1.2s infinite
-//   • .typing-dot                  → @keyframes typBounce translateY(0→-5px→0) + color change, 1.2s staggered
-//   • .msg-row                     → @keyframes slideUp on each new message
-//   • .chat-input-wrap:focus-within → border-color accent blue
+//   â€¢ .back-btn:hover              â†’ scale(1.06) translateX(-1px), 0.2s
+//   â€¢ .step                        â†’ @keyframes slideUp (opacity 0â†’1, translateY 16pxâ†’0), 0.35s, staggered delay i*0.06s
+//   â€¢ .step:hover                  â†’ translateY(-3px), 0.28s
+//   â€¢ .progress-fill               â†’ width transition, 0.5s cubic-bezier(.25,.8,.25,1)
+//   â€¢ .chat-btn:hover              â†’ translateY(-2px), 0.25s cubic-bezier(0.34,1.56,0.64,1)
+//   â€¢ .chat-btn-pulse              â†’ @keyframes pulse (scale 1â†’1.04, opacity 0.6â†’0), 2.5s infinite
+//   â€¢ .chat-overlay                â†’ opacity 0â†’1, 0.3s  +  .chat-modal translateY(100%)â†’0, 0.42s
+//   â€¢ .qpill:active                â†’ gradient fill flash
+//   â€¢ .send-btn:active             â†’ scale(0.9), 0.2s
+//   â€¢ .send-btn:disabled           â†’ opacity 0.28
+//   â€¢ .mic-btn.listening           â†’ gradient bg + @keyframes micPulse scale 1â†’1.08, 1.2s infinite
+//   â€¢ .typing-dot                  â†’ @keyframes typBounce translateY(0â†’-5pxâ†’0) + color change, 1.2s staggered
+//   â€¢ .msg-row                     â†’ @keyframes slideUp on each new message
+//   â€¢ .chat-input-wrap:focus-within â†’ border-color accent blue
 //
 // JS Behaviors found:
-//   • openChat()        → on chat-btn click, adds .open to overlay (opacity + slide modal up), auto-sends welcome AI msg
-//   • closeChat()       → removes .open (fade + slide down)
-//   • sendMsg()         → real Anthropic API call with conversation history + skin context, disables send-btn while busy
-//   • sendQ(btn)        → quick-pill click fills input and calls sendMsg(), hides quick-pills after first send
-//   • chatKey(e)        → Enter key (no shift) submits message
-//   • autoResize(el)    → textarea auto-resizes up to 120px height
-//   • toggleVoice()     → SpeechRecognition toggle; mic-btn gets .listening class (gradient + micPulse animation)
-//   • renderSteps()     → re-renders step cards with slideUp animation and staggered delay on routine change
-//   • markStep(el)      → one-way toggle done state, increments counter
-//   • getCtx()          → builds system prompt context from current skin/concern/routine state
+//   â€¢ openChat()        â†’ on chat-btn click, adds .open to overlay (opacity + slide modal up), auto-sends welcome AI msg
+//   â€¢ closeChat()       â†’ removes .open (fade + slide down)
+//   â€¢ sendMsg()         â†’ real Anthropic API call with conversation history + skin context, disables send-btn while busy
+//   â€¢ sendQ(btn)        â†’ quick-pill click fills input and calls sendMsg(), hides quick-pills after first send
+//   â€¢ chatKey(e)        â†’ Enter key (no shift) submits message
+//   â€¢ autoResize(el)    â†’ textarea auto-resizes up to 120px height
+//   â€¢ toggleVoice()     â†’ SpeechRecognition toggle; mic-btn gets .listening class (gradient + micPulse animation)
+//   â€¢ renderSteps()     â†’ re-renders step cards with slideUp animation and staggered delay on routine change
+//   â€¢ markStep(el)      â†’ one-way toggle done state, increments counter
+//   â€¢ getCtx()          â†’ builds system prompt context from current skin/concern/routine state
 //
-// PHASE 2 — INTERACTION EXTRACTION
+// PHASE 2 â€” INTERACTION EXTRACTION
 //
 // F01 | .back-btn        | hover      | CSS  | scale(1.06) + translateX(-1px) | transform | 0.2s
 // F02 | .step (each)     | render     | CSS  | slideUp (opacity+translateY)   | keyframe  | 0.35s + stagger i*0.06s
 // F03 | .step            | hover      | CSS  | translateY(-3px)              | transform | 0.28s
-// F04 | .progress-fill   | state change| CSS | width 0→pct%                  | layout    | 0.5s cubic
+// F04 | .progress-fill   | state change| CSS | width 0â†’pct%                  | layout    | 0.5s cubic
 // F05 | .chat-btn        | hover      | CSS  | translateY(-2px) + shadow     | transform | 0.25s spring
 // F06 | .chat-btn-pulse  | always     | CSS  | scale + opacity loop          | keyframe  | 2.5s infinite
-// F07 | .chat-overlay    | openChat() | JS   | opacity 0→1 + modal slide up  | combined  | 0.3s / 0.42s
+// F07 | .chat-overlay    | openChat() | JS   | opacity 0â†’1 + modal slide up  | combined  | 0.3s / 0.42s
 // F08 | .send-btn        | tap        | CSS  | scale(0.9)                    | transform | 0.2s
 // F09 | .send-btn        | busy       | CSS  | opacity 0.28                  | opacity   | instant
 // F10 | .mic-btn         | listening  | CSS  | gradient + scale pulse 1.08   | keyframe  | 1.2s infinite
@@ -65,53 +65,52 @@ import 'package:myapp/widgets/ahvi_lens_sheet.dart';
 // F19 | chat-input focus | tap input  | CSS  | border-color accent 0.45      | border    | instant
 // F20 | renderSteps      | toggle     | JS   | re-render + slideUp stagger   | combined  | on switch
 //
-// PHASE 3 — FLUTTER COMPARISON
+// PHASE 3 â€” FLUTTER COMPARISON
 //
-// F01 back-btn hover          → MISSING   (MouseRegion not used; no scale/translate effect)
-// F02 step slideUp on render  → MISSING   (AnimationController per step with stagger not present)
-// F03 step hover lift         → MISSING   (No MouseRegion/hover on step cards)
-// F04 progress width anim     → PARTIAL   (FractionallySizedBox used but no explicit curve/duration)
-// F05 chat-btn hover lift     → MISSING   (No MouseRegion on chat button)
-// F06 chat-btn pulse ring     → MISSING   (Pulse animation widget absent)
-// F07 chat overlay slide+fade → PARTIAL   (SlideTransition present; backdrop opacity fade MISSING)
-// F08 send-btn tap scale      → MISSING   (GestureDetector present but no scale feedback)
-// F09 send-btn disabled opacity→ MISSING  (No opacity change when _isBusy)
-// F10 mic listening pulse     → MISSING   (No animation when listening; no state change in Flutter)
-// F11 typing dot color change → PARTIAL   (Bounce present; color transition at peak MISSING)
-// F12 msg-row slideUp         → MISSING   (New messages appear without slideUp animation)
-// F13 real Anthropic API call → MISSING   (Fallback tips only; no real HTTP call, no history, no context)
-// F14 quick-pill sends text   → IMPLEMENTED
-// F15 Enter key submit        → IMPLEMENTED (onSubmitted)
-// F16 voice / mic toggle      → MISSING   (mic button is static; no speech recognition)
-// F17 quick-pills hide        → IMPLEMENTED
-// F18 welcome AI greeting     → MISSING   (static welcome widget; no AI-generated greeting on open)
-// F19 input focus border      → MISSING   (no FocusNode border change)
-// F20 step re-render stagger  → MISSING   (steps re-render but no slideUp stagger on routine switch)
+// F01 back-btn hover          â†’ MISSING   (MouseRegion not used; no scale/translate effect)
+// F02 step slideUp on render  â†’ MISSING   (AnimationController per step with stagger not present)
+// F03 step hover lift         â†’ MISSING   (No MouseRegion/hover on step cards)
+// F04 progress width anim     â†’ PARTIAL   (FractionallySizedBox used but no explicit curve/duration)
+// F05 chat-btn hover lift     â†’ MISSING   (No MouseRegion on chat button)
+// F06 chat-btn pulse ring     â†’ MISSING   (Pulse animation widget absent)
+// F07 chat overlay slide+fade â†’ PARTIAL   (SlideTransition present; backdrop opacity fade MISSING)
+// F08 send-btn tap scale      â†’ MISSING   (GestureDetector present but no scale feedback)
+// F09 send-btn disabled opacityâ†’ MISSING  (No opacity change when _isBusy)
+// F10 mic listening pulse     â†’ MISSING   (No animation when listening; no state change in Flutter)
+// F11 typing dot color change â†’ PARTIAL   (Bounce present; color transition at peak MISSING)
+// F12 msg-row slideUp         â†’ MISSING   (New messages appear without slideUp animation)
+// F13 real Anthropic API call â†’ MISSING   (Fallback tips only; no real HTTP call, no history, no context)
+// F14 quick-pill sends text   â†’ IMPLEMENTED
+// F15 Enter key submit        â†’ IMPLEMENTED (onSubmitted)
+// F16 voice / mic toggle      â†’ MISSING   (mic button is static; no speech recognition)
+// F17 quick-pills hide        â†’ IMPLEMENTED
+// F18 welcome AI greeting     â†’ MISSING   (static welcome widget; no AI-generated greeting on open)
+// F19 input focus border      â†’ MISSING   (no FocusNode border change)
+// F20 step re-render stagger  â†’ MISSING   (steps re-render but no slideUp stagger on routine switch)
 //
-// PHASE 4 — FLUTTER IMPLEMENTATION PLAN
+// PHASE 4 â€” FLUTTER IMPLEMENTATION PLAN
 //
-// F01 → MouseRegion + AnimatedContainer (scale + translateX)
-// F02 → Per-step AnimationController list rebuilt on routine change, staggered forward()
-// F03 → MouseRegion(_hovering) + AnimatedContainer translateY on each step card
-// F04 → AnimatedFractionallySizedBox or TweenAnimationBuilder with cubic curve 0.5s
-// F05 → MouseRegion + AnimatedContainer translateY on chat button
-// F06 → AnimationController.repeat() + ScaleTransition + FadeTransition pulse ring
-// F07 → AnimatedOpacity for backdrop + existing SlideTransition (already present)
-// F08 → GestureDetector onTapDown/onTapUp + AnimatedScale
-// F09 → AnimatedOpacity wrapping send button, opacity driven by _isBusy
-// F10 → AnimationController.repeat() in _ChatOverlayState, driven by _isListening
-// F11 → Tween color at peak via ColorTween in _TypingDotState
-// F12 → Wrap each new message row in a _SlideUpMessage widget with its own controller
-// F13 → http.post to Anthropic API, maintain List<Map> _chatHistory, use getCtx() system prompt
-// F16 → speech_to_text package stub (graceful no-op if unavailable; visual state only)
-// F18 → openChat triggers Future.delayed(400ms) → sendMessage with empty trigger → AI greeting
-// F19 → FocusNode + AnimatedContainer border color
-// F20 → _rebuildStepAnimations() called in _setRoutine()
+// F01 â†’ MouseRegion + AnimatedContainer (scale + translateX)
+// F02 â†’ Per-step AnimationController list rebuilt on routine change, staggered forward()
+// F03 â†’ MouseRegion(_hovering) + AnimatedContainer translateY on each step card
+// F04 â†’ AnimatedFractionallySizedBox or TweenAnimationBuilder with cubic curve 0.5s
+// F05 â†’ MouseRegion + AnimatedContainer translateY on chat button
+// F06 â†’ AnimationController.repeat() + ScaleTransition + FadeTransition pulse ring
+// F07 â†’ AnimatedOpacity for backdrop + existing SlideTransition (already present)
+// F08 â†’ GestureDetector onTapDown/onTapUp + AnimatedScale
+// F09 â†’ AnimatedOpacity wrapping send button, opacity driven by _isBusy
+// F10 â†’ AnimationController.repeat() in _ChatOverlayState, driven by _isListening
+// F11 â†’ Tween color at peak via ColorTween in _TypingDotState
+// F12 â†’ Wrap each new message row in a _SlideUpMessage widget with its own controller
+// F13 â†’ http.post to Anthropic API, maintain List<Map> _chatHistory, use getCtx() system prompt
+// F16 â†’ speech_to_text package stub (graceful no-op if unavailable; visual state only)
+// F18 â†’ openChat triggers Future.delayed(400ms) â†’ sendMessage with empty trigger â†’ AI greeting
+// F19 â†’ FocusNode + AnimatedContainer border color
+// F20 â†’ _rebuildStepAnimations() called in _setRoutine()
 //
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 //  Color constants
 AppThemeTokens? _skinTokens;
 void _setSkinTokens(AppThemeTokens t) => _skinTokens = t;
@@ -133,11 +132,11 @@ Color get _accent4 => Color.lerp(_accent, _accent2, 0.55)!;
 Color get _accent5 => Color.lerp(_accent2, _accent3, 0.55)!;
 Color get _phoneShell => _t.phoneShell;
 Color get _phoneShell2 => _t.phoneShellInner;
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 //  Data
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const _dayRoutineKeys = [
   'skin_cleanser',
   'skin_toner',
@@ -175,9 +174,9 @@ List<Color> get _stepBorderColors => [
   _accent5.withValues(alpha: 0.22),
 ];
 
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 //  Main Screen
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 class SkincareScreen extends StatefulWidget {
   const SkincareScreen({super.key});
   @override
@@ -192,25 +191,26 @@ class _SkincareScreenState extends State<SkincareScreen>
   Set<int> _completedSteps = {};
   bool _chatOpen = false;
 
-  // ── F01: back-btn hover state ──────────────────────────────────────────────
+  // â”€â”€ F01: back-btn hover state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-  // ── F06: chat-btn pulse animation controller ───────────────────────────────
+  // â”€â”€ F06: chat-btn pulse animation controller â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   late AnimationController _pulseCtrl;
   late Animation<double> _pulseScale;
   late Animation<double> _pulseOpacity;
 
-  // ── F05: chat-btn hover state ──────────────────────────────────────────────
+  // â”€â”€ F05: chat-btn hover state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   final bool _chatBtnHovered = false;
 
-  // ── F02/F20: per-step slide-up controllers (rebuilt on routine toggle) ─────
+  // â”€â”€ F02/F20: per-step slide-up controllers (rebuilt on routine toggle) â”€â”€â”€â”€â”€
   late List<AnimationController> _stepAnimCtrls;
   late List<Animation<double>> _stepSlideAnims;
   late List<Animation<double>> _stepFadeAnims;
 
-  // Raw keys — safe to use in initState / animation setup (no context needed)
-  List<String> get _currentRoutineKeys => _isNight ? _nightRoutineKeys : _dayRoutineKeys;
+  // Raw keys â€” safe to use in initState / animation setup (no context needed)
+  List<String> get _currentRoutineKeys =>
+      _isNight ? _nightRoutineKeys : _dayRoutineKeys;
 
-  // Translated labels — only call inside build() or methods called from build()
+  // Translated labels â€” only call inside build() or methods called from build()
   List<String> _currentRoutine(BuildContext ctx) =>
       _currentRoutineKeys.map((k) => AppLocalizations.t(ctx, k)).toList();
   int get _completed => _completedSteps.length;
@@ -222,23 +222,26 @@ class _SkincareScreenState extends State<SkincareScreen>
       return AppLocalizations.t(context, 'skin_select_type_hint');
     }
     if (_concerns.isEmpty) {
-      return '$_skinType skin · ${_isNight ? 'night' : 'day'} routine · Pick your concerns';
+      return '$_skinType skin Â· ${_isNight ? 'night' : 'day'} routine Â· Pick your concerns';
     }
     if (_completed == 0) {
-      return '$_skinType · ${_concerns.join(', ')} · Tap a step to start!';
+      return '$_skinType Â· ${_concerns.join(', ')} Â· Tap a step to start!';
     }
     if (_completed < _total) {
       final rem = _total - _completed;
-      return '${(_progressPct * 100).round()}% done · $rem step${rem > 1 ? 's' : ''} remaining';
+      return '${(_progressPct * 100).round()}% done Â· $rem step${rem > 1 ? 's' : ''} remaining';
     }
-    return AppLocalizations.t(context, _isNight ? 'skin_all_done_night' : 'skin_all_done_day');
+    return AppLocalizations.t(
+      context,
+      _isNight ? 'skin_all_done_night' : 'skin_all_done_day',
+    );
   }
 
   @override
   void initState() {
     super.initState();
 
-    // ── F06: Init pulse animation (2.5s infinite) ──────────────────────────
+    // â”€â”€ F06: Init pulse animation (2.5s infinite) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     _pulseCtrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 2500),
@@ -256,12 +259,12 @@ class _SkincareScreenState extends State<SkincareScreen>
       ),
     );
 
-    // ── F02: Init step animations ──────────────────────────────────────────
+    // â”€â”€ F02: Init step animations â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     _buildStepAnimations();
     _playStepAnimations();
   }
 
-  // ── F02/F20: Build and stagger step slide-up animations ───────────────────
+  // â”€â”€ F02/F20: Build and stagger step slide-up animations â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   void _buildStepAnimations() {
     // Dispose old controllers if rebuilding
     if (mounted) {
@@ -319,7 +322,7 @@ class _SkincareScreenState extends State<SkincareScreen>
       _isNight = night;
       _completedSteps = {};
     });
-    // ── F20: Re-trigger step slideUp animations on routine switch ─────────
+    // â”€â”€ F20: Re-trigger step slideUp animations on routine switch â”€â”€â”€â”€â”€â”€â”€â”€â”€
     _buildStepAnimations();
     setState(() {}); // Rebuild with new controllers
     _playStepAnimations();
@@ -368,7 +371,7 @@ class _SkincareScreenState extends State<SkincareScreen>
                 children: [_buildHeader(), _buildContent()],
               ),
             ),
-            // ── Chat FAB ────────────────────────────────────────────────────────
+            // â”€â”€ Chat FAB â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             Positioned.fill(
               child: IgnorePointer(
                 ignoring: _chatOpen,
@@ -377,13 +380,16 @@ class _SkincareScreenState extends State<SkincareScreen>
                   child: Padding(
                     padding: const EdgeInsets.only(right: 20, bottom: 30),
                     child: _AskAhviFab(
-                      onTap: () => showAhviStylistChatSheet(context, moduleContext: 'skincare'),
+                      onTap: () => showAhviStylistChatSheet(
+                        context,
+                        moduleContext: 'skincare',
+                      ),
                     ),
                   ),
                 ),
               ),
             ),
-            // ── F07: Chat overlay – AnimatedOpacity for backdrop fade ──────────
+            // â”€â”€ F07: Chat overlay â€“ AnimatedOpacity for backdrop fade â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             AnimatedOpacity(
               duration: const Duration(milliseconds: 300),
               opacity: _chatOpen ? 1.0 : 0.0,
@@ -404,10 +410,15 @@ class _SkincareScreenState extends State<SkincareScreen>
     );
   }
 
-  // ── Header ──────────────────────────────────────────────────────────────────
+  // â”€â”€ Header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   Widget _buildHeader() {
     return Padding(
-      padding: EdgeInsets.fromLTRB(20, MediaQuery.of(context).padding.top + 4, 20, 10),
+      padding: EdgeInsets.fromLTRB(
+        20,
+        MediaQuery.of(context).padding.top + 4,
+        20,
+        10,
+      ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
@@ -439,7 +450,7 @@ class _SkincareScreenState extends State<SkincareScreen>
     );
   }
 
-  // ── Content ─────────────────────────────────────────────────────────────────
+  // â”€â”€ Content â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   Widget _buildContent() {
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 4, 20, 40),
@@ -452,14 +463,20 @@ class _SkincareScreenState extends State<SkincareScreen>
             padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: [_buildSecLabel(AppLocalizations.t(context, 'skin_skin_type')), _buildSkinBar()],
+              children: [
+                _buildSecLabel(AppLocalizations.t(context, 'skin_skin_type')),
+                _buildSkinBar(),
+              ],
             ),
           ),
           const SizedBox(height: 16),
           _buildSection(
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: [_buildSecLabel(AppLocalizations.t(context, 'skin_concerns')), _buildConcernPills()],
+              children: [
+                _buildSecLabel(AppLocalizations.t(context, 'skin_concerns')),
+                _buildConcernPills(),
+              ],
             ),
           ),
           const SizedBox(height: 16),
@@ -499,7 +516,12 @@ class _SkincareScreenState extends State<SkincareScreen>
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildSecLabel(AppLocalizations.t(context, _isNight ? 'skin_night_routine' : 'skin_morning_routine')),
+                _buildSecLabel(
+                  AppLocalizations.t(
+                    context,
+                    _isNight ? 'skin_night_routine' : 'skin_morning_routine',
+                  ),
+                ),
                 _buildStepsGrid(),
               ],
             ),
@@ -512,7 +534,7 @@ class _SkincareScreenState extends State<SkincareScreen>
     );
   }
 
-  // ── Routine Toggle ──────────────────────────────────────────────────────────
+  // â”€â”€ Routine Toggle â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   Widget _buildRoutineToggle() {
     return Container(
       decoration: BoxDecoration(
@@ -591,7 +613,9 @@ class _SkincareScreenState extends State<SkincareScreen>
             ),
             const SizedBox(width: 7),
             Text(
-              isDay ? AppLocalizations.t(context, 'skin_morning') : AppLocalizations.t(context, 'skin_night'),
+              isDay
+                  ? AppLocalizations.t(context, 'skin_morning')
+                  : AppLocalizations.t(context, 'skin_night'),
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
@@ -604,7 +628,7 @@ class _SkincareScreenState extends State<SkincareScreen>
     );
   }
 
-  // ── Skin Bar ────────────────────────────────────────────────────────────────
+  // â”€â”€ Skin Bar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   Widget _buildSkinBar() {
     final List<_SkinData> skins = [
       _SkinData(
@@ -625,7 +649,12 @@ class _SkincareScreenState extends State<SkincareScreen>
         _accent3,
         _accent3.withValues(alpha: 0.40),
       ),
-      _SkinData(AppLocalizations.t(context, 'skin_type_combo'), Icons.add, _accent2, _accent2.withValues(alpha: 0.40)),
+      _SkinData(
+        AppLocalizations.t(context, 'skin_type_combo'),
+        Icons.add,
+        _accent2,
+        _accent2.withValues(alpha: 0.40),
+      ),
       _SkinData(
         AppLocalizations.t(context, 'skin_type_sensitive'),
         Icons.favorite_outline,
@@ -689,7 +718,7 @@ class _SkincareScreenState extends State<SkincareScreen>
     );
   }
 
-  // ── Concern Pills ───────────────────────────────────────────────────────────
+  // â”€â”€ Concern Pills â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   Widget _buildConcernPills() {
     final List<_ConcernData> concerns = [
       _ConcernData(
@@ -786,7 +815,7 @@ class _SkincareScreenState extends State<SkincareScreen>
     );
   }
 
-  // ── Info Bar ────────────────────────────────────────────────────────────────
+  // â”€â”€ Info Bar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   Widget _buildInfoBar() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
@@ -810,7 +839,7 @@ class _SkincareScreenState extends State<SkincareScreen>
     );
   }
 
-  // ── Progress Track ──────────────────────────────────────────────────────────
+  // â”€â”€ Progress Track â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   Widget _buildProgressTrack() {
     return Container(
       height: 7,
@@ -846,7 +875,7 @@ class _SkincareScreenState extends State<SkincareScreen>
     );
   }
 
-  // ── Steps Grid ──────────────────────────────────────────────────────────────
+  // â”€â”€ Steps Grid â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   Widget _buildStepsGrid() {
     final steps = _currentRoutine(context);
     final List<Widget> rows = [];
@@ -891,14 +920,38 @@ class _SkincareScreenState extends State<SkincareScreen>
 
   String? _stepImageUrl(String name) {
     final Map<String, String> urlMap = {
-      AppLocalizations.t(context, 'skin_cleanser'): 'https://images.unsplash.com/photo-1556228724-4f3e2f3bb7f1?auto=format&fit=crop&w=120&q=80',
-      AppLocalizations.t(context, 'skin_toner'): 'https://images.unsplash.com/photo-1629198735660-e39ea93f5b49?auto=format&fit=crop&w=120&q=80',
-      AppLocalizations.t(context, 'skin_vitamin_c'): 'https://images.unsplash.com/photo-1571781418606-70265b9cce90?auto=format&fit=crop&w=120&q=80',
-      AppLocalizations.t(context, 'skin_moisturizer'): 'https://images.unsplash.com/photo-1625772452859-1c03d5bf1137?auto=format&fit=crop&w=120&q=80',
-      AppLocalizations.t(context, 'skin_sunscreen'): 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=120&q=80',
-      AppLocalizations.t(context, 'skin_retinol'): 'https://images.unsplash.com/photo-1612817288484-6f916006741a?auto=format&fit=crop&w=120&q=80',
-      AppLocalizations.t(context, 'skin_night_cream'): 'https://images.unsplash.com/photo-1611080541599-8c6dbde6ed28?auto=format&fit=crop&w=120&q=80',
-      AppLocalizations.t(context, 'skin_lip_care'): 'https://images.unsplash.com/photo-1586495777744-4413f21062fa?auto=format&fit=crop&w=120&q=80',
+      AppLocalizations.t(
+        context,
+        'skin_cleanser',
+      ): 'https://images.unsplash.com/photo-1556228724-4f3e2f3bb7f1?auto=format&fit=crop&w=120&q=80',
+      AppLocalizations.t(
+        context,
+        'skin_toner',
+      ): 'https://images.unsplash.com/photo-1629198735660-e39ea93f5b49?auto=format&fit=crop&w=120&q=80',
+      AppLocalizations.t(
+        context,
+        'skin_vitamin_c',
+      ): 'https://images.unsplash.com/photo-1571781418606-70265b9cce90?auto=format&fit=crop&w=120&q=80',
+      AppLocalizations.t(
+        context,
+        'skin_moisturizer',
+      ): 'https://images.unsplash.com/photo-1625772452859-1c03d5bf1137?auto=format&fit=crop&w=120&q=80',
+      AppLocalizations.t(
+        context,
+        'skin_sunscreen',
+      ): 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=120&q=80',
+      AppLocalizations.t(
+        context,
+        'skin_retinol',
+      ): 'https://images.unsplash.com/photo-1612817288484-6f916006741a?auto=format&fit=crop&w=120&q=80',
+      AppLocalizations.t(
+        context,
+        'skin_night_cream',
+      ): 'https://images.unsplash.com/photo-1611080541599-8c6dbde6ed28?auto=format&fit=crop&w=120&q=80',
+      AppLocalizations.t(
+        context,
+        'skin_lip_care',
+      ): 'https://images.unsplash.com/photo-1586495777744-4413f21062fa?auto=format&fit=crop&w=120&q=80',
     };
     return urlMap[name];
   }
@@ -912,12 +965,13 @@ class _SkincareScreenState extends State<SkincareScreen>
       AppLocalizations.t(context, 'skin_sunscreen'): Icons.light_mode_outlined,
       AppLocalizations.t(context, 'skin_retinol'): Icons.biotech_outlined,
       AppLocalizations.t(context, 'skin_night_cream'): Icons.bedtime_outlined,
-      AppLocalizations.t(context, 'skin_lip_care'): Icons.face_retouching_natural,
+      AppLocalizations.t(context, 'skin_lip_care'):
+          Icons.face_retouching_natural,
     };
     return iconMap[name] ?? Icons.spa_outlined;
   }
 
-  // ── Tip Card ────────────────────────────────────────────────────────────────
+  // â”€â”€ Tip Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   Widget _buildTipCard() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -944,12 +998,12 @@ class _SkincareScreenState extends State<SkincareScreen>
               borderRadius: BorderRadius.circular(12),
             ),
             child: const Center(
-              child: Text('💡', style: TextStyle(fontSize: 16)),
+              child: Text('ðŸ’¡', style: TextStyle(fontSize: 16)),
             ),
           ),
           const SizedBox(width: 10),
           Expanded(
-            // FIX: removed `const` — RichText uses runtime color getters _muted and _accent5
+            // FIX: removed `const` â€” RichText uses runtime color getters _muted and _accent5
             child: RichText(
               text: TextSpan(
                 style: TextStyle(fontSize: 12, color: _muted, height: 1.5),
@@ -962,8 +1016,7 @@ class _SkincareScreenState extends State<SkincareScreen>
                     ),
                   ),
                   TextSpan(
-                    text:
-                        AppLocalizations.t(context, 'skin_pro_tip_text'),
+                    text: AppLocalizations.t(context, 'skin_pro_tip_text'),
                   ),
                 ],
               ),
@@ -974,7 +1027,7 @@ class _SkincareScreenState extends State<SkincareScreen>
     );
   }
 
-  // ── Chat Button ─────────────────────────────────────────────────────────────
+  // â”€â”€ Chat Button â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   Widget _buildSection(Widget child) => child;
 
   Widget _buildCard({
@@ -1030,9 +1083,9 @@ class _SkincareScreenState extends State<SkincareScreen>
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-//  F02 + F03: Step Card — SlideUp on render + Hover lift (-3px)
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+//  F02 + F03: Step Card â€” SlideUp on render + Hover lift (-3px)
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 class _StepCard extends StatefulWidget {
   final int index;
   final String name;
@@ -1164,9 +1217,9 @@ class _StepCardState extends State<_StepCard> {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 //  Chat Overlay
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 class _ChatMessage {
   final bool isUser;
   final String text;
@@ -1295,11 +1348,12 @@ class _ChatOverlayState extends State<_ChatOverlay>
         moduleContext: 'skincare',
       );
       final rawMessage = response['message'];
-      final text = (response['message_text'] ??
-              (rawMessage is Map ? rawMessage['content'] : rawMessage) ??
-              '')
-          .toString()
-          .trim();
+      final text =
+          (response['message_text'] ??
+                  (rawMessage is Map ? rawMessage['content'] : rawMessage) ??
+                  '')
+              .toString()
+              .trim();
 
       if (mounted && text.isNotEmpty) {
         setState(() {
@@ -1372,14 +1426,17 @@ class _ChatOverlayState extends State<_ChatOverlay>
         moduleContext: 'skincare',
       );
       final rawMessage = response['message'];
-      final aiText = (response['message_text'] ??
-              (rawMessage is Map ? rawMessage['content'] : rawMessage) ??
-              '')
-          .toString()
-          .trim();
+      final aiText =
+          (response['message_text'] ??
+                  (rawMessage is Map ? rawMessage['content'] : rawMessage) ??
+                  '')
+              .toString()
+              .trim();
 
       if (mounted) {
-        final reply = aiText.isNotEmpty ? aiText : "I'm having a moment - please try again.";
+        final reply = aiText.isNotEmpty
+            ? aiText
+            : 'AHVI is still preparing this. Try again in a moment.';
         setState(() {
           _isBusy = false;
           _messages.add(_ChatMessage(isUser: false, text: reply, time: _ts()));
@@ -1388,12 +1445,7 @@ class _ChatOverlayState extends State<_ChatOverlay>
         _scrollToBottom();
       }
     } catch (_) {
-      final fallbacks = [
-        'For oily skin, a lightweight niacinamide serum is transformative — it regulates sebum and minimises pores. 💧',
-        'Always apply SPF last in your morning routine. Reapply every 2 hours outdoors! ☀️',
-        'Retinol is best introduced gradually — start 2× per week at a low concentration to avoid irritation. 🌙',
-      ];
-      final fallback = fallbacks[DateTime.now().second % fallbacks.length];
+      const fallback = 'AHVI is still preparing this. Try again in a moment.';
       if (mounted) {
         setState(() {
           _isBusy = false;
@@ -1494,9 +1546,12 @@ class _ChatOverlayState extends State<_ChatOverlay>
                 ),
               ],
             ),
-            // FIX: removed `const` — Text style uses runtime color getter _accent
+            // FIX: removed `const` â€” Text style uses runtime color getter _accent
             child: Center(
-              child: Text('✦', style: TextStyle(fontSize: 18, color: _accent)),
+              child: Text(
+                'âœ¦',
+                style: TextStyle(fontSize: 18, color: _accent),
+              ),
             ),
           ),
           const SizedBox(width: 12),
@@ -1549,9 +1604,12 @@ class _ChatOverlayState extends State<_ChatOverlay>
                 shape: BoxShape.circle,
                 border: Border.all(color: _cardBorder),
               ),
-              // FIX: removed `const` — Text style uses runtime color getter _muted
+              // FIX: removed `const` â€” Text style uses runtime color getter _muted
               child: Center(
-                child: Text('✕', style: TextStyle(fontSize: 14, color: _muted)),
+                child: Text(
+                  'âœ•',
+                  style: TextStyle(fontSize: 14, color: _muted),
+                ),
               ),
             ),
           ),
@@ -1603,9 +1661,9 @@ class _ChatOverlayState extends State<_ChatOverlay>
               ),
             ],
           ),
-          // FIX: removed `const` — Text style uses runtime color getter _accent
+          // FIX: removed `const` â€” Text style uses runtime color getter _accent
           child: Center(
-            child: Text('✦', style: TextStyle(fontSize: 24, color: _accent)),
+            child: Text('âœ¦', style: TextStyle(fontSize: 24, color: _accent)),
           ),
         ),
         const SizedBox(height: 8),
@@ -1657,7 +1715,7 @@ class _ChatOverlayState extends State<_ChatOverlay>
                             bottomLeft: Radius.circular(18),
                             bottomRight: Radius.circular(18),
                           ),
-                          // FIX: removed `const` from BoxShadow list — uses runtime getter _bg
+                          // FIX: removed `const` from BoxShadow list â€” uses runtime getter _bg
                           boxShadow: [
                             BoxShadow(
                               color: _bg.withValues(alpha: 0.15),
@@ -1695,7 +1753,7 @@ class _ChatOverlayState extends State<_ChatOverlay>
                     border: Border.all(color: _cardBorder),
                   ),
                   child: const Center(
-                    child: Text('👤', style: TextStyle(fontSize: 11)),
+                    child: Text('ðŸ‘¤', style: TextStyle(fontSize: 11)),
                   ),
                 ),
               ]
@@ -1707,10 +1765,10 @@ class _ChatOverlayState extends State<_ChatOverlay>
                     color: _phoneShell2,
                     shape: BoxShape.circle,
                   ),
-                  // FIX: removed `const` — Text style uses runtime getter _accent
+                  // FIX: removed `const` â€” Text style uses runtime getter _accent
                   child: Center(
                     child: Text(
-                      '✦',
+                      'âœ¦',
                       style: TextStyle(fontSize: 12, color: _accent),
                     ),
                   ),
@@ -1735,7 +1793,7 @@ class _ChatOverlayState extends State<_ChatOverlay>
                             bottomLeft: Radius.circular(18),
                             bottomRight: Radius.circular(18),
                           ),
-                          // FIX: removed `const` from BoxShadow list — uses runtime getter _bg
+                          // FIX: removed `const` from BoxShadow list â€” uses runtime getter _bg
                           boxShadow: [
                             BoxShadow(
                               color: _bg.withValues(alpha: 0.15),
@@ -1779,9 +1837,9 @@ class _ChatOverlayState extends State<_ChatOverlay>
             color: _phoneShell2,
             shape: BoxShape.circle,
           ),
-          // FIX: removed `const` — Text style uses runtime getter _accent
+          // FIX: removed `const` â€” Text style uses runtime getter _accent
           child: Center(
-            child: Text('✦', style: TextStyle(fontSize: 12, color: _accent)),
+            child: Text('âœ¦', style: TextStyle(fontSize: 12, color: _accent)),
           ),
         ),
         const SizedBox(width: 9),
@@ -1842,7 +1900,8 @@ class _ChatOverlayState extends State<_ChatOverlay>
             accent: _accent,
             text: _text,
             muted: _muted,
-            onCameraSelected: () => showAhviLensSheet(context, t: context.themeTokens),
+            onCameraSelected: () =>
+                showAhviLensSheet(context, t: context.themeTokens),
           ),
           const SizedBox(width: 9),
           GestureDetector(
@@ -1917,7 +1976,7 @@ class _ChatOverlayState extends State<_ChatOverlay>
             ),
           ),
           const SizedBox(width: 9),
-          // ── AHVI Lens search button ──
+          // â”€â”€ AHVI Lens search button â”€â”€
           _ScaleOnTapButton(
             onTap: () => showAhviLensSheet(context, t: context.themeTokens),
             child: Container(
@@ -1969,9 +2028,9 @@ class _ChatOverlayState extends State<_ChatOverlay>
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 //  F12: SlideUp wrapper for each new chat message
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 class _SlideUpMessage extends StatefulWidget {
   final Widget child;
   const _SlideUpMessage({required this.child});
@@ -2024,9 +2083,9 @@ class _SlideUpMessageState extends State<_SlideUpMessage>
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 //  F08: Scale-on-tap button
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 class _ScaleOnTapButton extends StatefulWidget {
   final Widget child;
   final VoidCallback? onTap;
@@ -2056,9 +2115,9 @@ class _ScaleOnTapButtonState extends State<_ScaleOnTapButton> {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 //  F14: Quick pill button
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 class _QuickPillButton extends StatefulWidget {
   final String label;
   final VoidCallback onTap;
@@ -2110,9 +2169,9 @@ class _QuickPillButtonState extends State<_QuickPillButton> {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-//  F11: Typing dot — bounce + color change at peak
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+//  F11: Typing dot â€” bounce + color change at peak
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 class _TypingDot extends StatefulWidget {
   final Duration delay;
   const _TypingDot({required this.delay});
@@ -2189,9 +2248,9 @@ class _TypingDotState extends State<_TypingDot>
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 //  Helper data classes
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 class _SkinData {
   final String label;
   final IconData icon;
@@ -2216,9 +2275,10 @@ class _ConcernData {
     this.shadowColor,
   );
 }
-// ─────────────────────────────────────────────────────────────────────────────
+
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // ASK AHVI FAB
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 class _AskAhviFab extends StatefulWidget {
   final VoidCallback onTap;
   const _AskAhviFab({required this.onTap});
@@ -2241,12 +2301,14 @@ class _AskAhviFabState extends State<_AskAhviFab>
       vsync: this,
       duration: const Duration(milliseconds: 2500),
     )..repeat();
-    _pulseScale = Tween<double>(begin: 1.0, end: 1.12).animate(
-      CurvedAnimation(parent: _pulseCtrl, curve: Curves.easeOut),
-    );
-    _pulseOpacity = Tween<double>(begin: 0.55, end: 0.0).animate(
-      CurvedAnimation(parent: _pulseCtrl, curve: Curves.easeOut),
-    );
+    _pulseScale = Tween<double>(
+      begin: 1.0,
+      end: 1.12,
+    ).animate(CurvedAnimation(parent: _pulseCtrl, curve: Curves.easeOut));
+    _pulseOpacity = Tween<double>(
+      begin: 0.55,
+      end: 0.0,
+    ).animate(CurvedAnimation(parent: _pulseCtrl, curve: Curves.easeOut));
   }
 
   @override
@@ -2257,7 +2319,10 @@ class _AskAhviFabState extends State<_AskAhviFab>
 
   @override
   Widget build(BuildContext context) {
-    context.watch<ThemeController>(); // theme change అయినప్పుడు rebuild అవుతుంది
+    context
+        .watch<
+          ThemeController
+        >(); // theme change à°…à°¯à°¿à°¨à°ªà±à°ªà±à°¡à± rebuild à°…à°µà±à°¤à±à°‚à°¦à°¿
     final t = context.themeTokens;
     return GestureDetector(
       onTapDown: (_) => setState(() => _pressed = true),
@@ -2275,7 +2340,7 @@ class _AskAhviFabState extends State<_AskAhviFab>
           builder: (_, child) => Stack(
             clipBehavior: Clip.none,
             children: [
-              // Pulse ring — Positioned.fill, same as Daily Wear
+              // Pulse ring â€” Positioned.fill, same as Daily Wear
               Positioned.fill(
                 child: Opacity(
                   opacity: _pulseOpacity.value,
@@ -2316,7 +2381,7 @@ class _AskAhviFabState extends State<_AskAhviFab>
                   radius: 11,
                   backgroundColor: Colors.white.withValues(alpha: 0.18),
                   child: const Text(
-                    '✦',
+                    'âœ¦',
                     style: TextStyle(fontSize: 11, color: Colors.white),
                   ),
                 ),
@@ -2337,9 +2402,10 @@ class _AskAhviFabState extends State<_AskAhviFab>
     );
   }
 }
-// ─────────────────────────────────────────────────────────────────────────────
+
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 //  Skincare Chat Plus Button (ChatGPT-style attach menu)
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 class _SkincarePlusButton extends StatefulWidget {
   final Color panel, panel2, cardBorder, accent, text, muted;
   final VoidCallback? onCameraSelected;
@@ -2370,8 +2436,10 @@ class _SkincarePlusButtonState extends State<_SkincarePlusButton>
       vsync: this,
       duration: const Duration(milliseconds: 250),
     );
-    _rotateAnim = Tween<double>(begin: 0.0, end: 0.125)
-        .animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOut));
+    _rotateAnim = Tween<double>(
+      begin: 0.0,
+      end: 0.125,
+    ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOut));
   }
 
   @override
@@ -2382,7 +2450,10 @@ class _SkincarePlusButtonState extends State<_SkincarePlusButton>
   }
 
   void _openMenu() {
-    if (_menuOpen) { _closeMenu(); return; }
+    if (_menuOpen) {
+      _closeMenu();
+      return;
+    }
     setState(() => _menuOpen = true);
     _ctrl.forward();
     final renderBox = context.findRenderObject() as RenderBox;
@@ -2395,51 +2466,61 @@ class _SkincarePlusButtonState extends State<_SkincarePlusButton>
       (Icons.search_rounded, 'Search Skincare', const Color(0xFF96CEB4)),
     ];
 
-    _overlay = OverlayEntry(builder: (_) {
-      return GestureDetector(
-        onTap: _closeMenu,
-        behavior: HitTestBehavior.translucent,
-        child: Stack(children: [
-          Positioned(
-            left: offset.dx - 10,
-            bottom: MediaQuery.of(context).size.height - offset.dy + 8,
-            child: GestureDetector(
-              onTap: () {},
-              child: Material(
-                color: Colors.transparent,
-                child: Container(
-                  width: 200,
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: widget.panel,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: widget.cardBorder, width: 1),
-                    boxShadow: [BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.25),
-                      blurRadius: 24,
-                      offset: const Offset(0, 8),
-                    )],
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: actions.map((a) => _SkincarePlusMenuRow(
-                      icon: a.$1,
-                      label: a.$2,
-                      color: a.$3,
-                      text: widget.text,
-                      onTap: () {
-                        _closeMenu();
-                        widget.onCameraSelected?.call();
-                      },
-                    )).toList(),
+    _overlay = OverlayEntry(
+      builder: (_) {
+        return GestureDetector(
+          onTap: _closeMenu,
+          behavior: HitTestBehavior.translucent,
+          child: Stack(
+            children: [
+              Positioned(
+                left: offset.dx - 10,
+                bottom: MediaQuery.of(context).size.height - offset.dy + 8,
+                child: GestureDetector(
+                  onTap: () {},
+                  child: Material(
+                    color: Colors.transparent,
+                    child: Container(
+                      width: 200,
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: widget.panel,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: widget.cardBorder, width: 1),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.25),
+                            blurRadius: 24,
+                            offset: const Offset(0, 8),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: actions
+                            .map(
+                              (a) => _SkincarePlusMenuRow(
+                                icon: a.$1,
+                                label: a.$2,
+                                color: a.$3,
+                                text: widget.text,
+                                onTap: () {
+                                  _closeMenu();
+                                  widget.onCameraSelected?.call();
+                                },
+                              ),
+                            )
+                            .toList(),
+                      ),
+                    ),
                   ),
                 ),
               ),
-            ),
+            ],
           ),
-        ]),
-      );
-    });
+        );
+      },
+    );
     Overlay.of(context).insert(_overlay!);
   }
 
@@ -2504,7 +2585,10 @@ class _SkincarePlusMenuRowState extends State<_SkincarePlusMenuRow> {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTapDown: (_) => setState(() => _hovered = true),
-      onTapUp: (_) { setState(() => _hovered = false); widget.onTap(); },
+      onTapUp: (_) {
+        setState(() => _hovered = false);
+        widget.onTap();
+      },
       onTapCancel: () => setState(() => _hovered = false),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 120),
@@ -2515,26 +2599,28 @@ class _SkincarePlusMenuRowState extends State<_SkincarePlusMenuRow> {
               : Colors.transparent,
           borderRadius: BorderRadius.circular(10),
         ),
-        child: Row(children: [
-          Container(
-            width: 32,
-            height: 32,
-            decoration: BoxDecoration(
-              color: widget.color.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(9),
+        child: Row(
+          children: [
+            Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                color: widget.color.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(9),
+              ),
+              child: Icon(widget.icon, color: widget.color, size: 16),
             ),
-            child: Icon(widget.icon, color: widget.color, size: 16),
-          ),
-          const SizedBox(width: 10),
-          Text(
-            widget.label,
-            style: TextStyle(
-              color: widget.text,
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
+            const SizedBox(width: 10),
+            Text(
+              widget.label,
+              style: TextStyle(
+                color: widget.text,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
             ),
-          ),
-        ]),
+          ],
+        ),
       ),
     );
   }
