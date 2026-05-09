@@ -484,7 +484,7 @@ class _AhviStylistChatSheetState extends State<_AhviStylistChatSheet>
 
   Future<void> _pickFile() async {
     try {
-      final result = await FilePicker.platform.pickFiles(
+      final result = await FilePicker.pickFiles(
         type: FileType.custom,
         allowedExtensions: [
           'pdf',

@@ -1690,23 +1690,35 @@ class _DetectedItem {
     return payload;
   }
 
-  static String mapCategory(String raw) {
-    final s = raw.toLowerCase();
+  static String mapCategory(Object? raw, [Object? subCategory, Object? name]) {
+    final s = [raw, subCategory, name]
+        .where((v) => v != null)
+        .map((v) => v.toString().toLowerCase().trim())
+        .where((v) => v.isNotEmpty)
+        .join(' ');
+
     if (s.contains('top') ||
         s.contains('shirt') ||
         s.contains('blouse') ||
         s.contains('tee') ||
+        s.contains('t-shirt') ||
+        s.contains('tshirt') ||
         s.contains('sweater') ||
-        s.contains('hoodie')) {
+        s.contains('hoodie') ||
+        s.contains('kurta')) {
       return 'Tops';
     }
+
     if (s.contains('pant') ||
         s.contains('trouser') ||
         s.contains('jean') ||
         s.contains('short') ||
-        s.contains('skirt')) {
+        s.contains('skirt') ||
+        s.contains('jogger') ||
+        s.contains('chino')) {
       return 'Bottoms';
     }
+
     if (s.contains('jacket') ||
         s.contains('coat') ||
         s.contains('blazer') ||
@@ -1714,32 +1726,71 @@ class _DetectedItem {
         s.contains('cardigan')) {
       return 'Outerwear';
     }
+
     if (s.contains('shoe') ||
+        s.contains('shoes') ||
         s.contains('boot') ||
+        s.contains('boots') ||
         s.contains('sneaker') ||
+        s.contains('sneakers') ||
         s.contains('sandal') ||
-        s.contains('heel')) {
+        s.contains('sandals') ||
+        s.contains('heel') ||
+        s.contains('heels') ||
+        s.contains('loafer') ||
+        s.contains('loafers') ||
+        s.contains('slipper') ||
+        s.contains('slippers') ||
+        s.contains('birkenstock') ||
+        s.contains('footwear') ||
+        s.contains('oxford')) {
       return 'Footwear';
     }
-    if (s.contains('dress') || s.contains('gown') || s.contains('jumpsuit')) {
+
+    if (s.contains('dress') ||
+        s.contains('gown') ||
+        s.contains('jumpsuit') ||
+        s.contains('saree') ||
+        s.contains('lehenga')) {
       return 'Dresses';
     }
+
+    if (s.contains('jewelry') ||
+        s.contains('jewellery') ||
+        s.contains('necklace') ||
+        s.contains('chain') ||
+        s.contains('pendant') ||
+        s.contains('ring') ||
+        s.contains('bracelet') ||
+        s.contains('bangle') ||
+        s.contains('earring') ||
+        s.contains('earrings') ||
+        s.contains('hoop') ||
+        s.contains('hoops')) {
+      return 'Jewelry';
+    }
+
     if (s.contains('bag') ||
         s.contains('purse') ||
         s.contains('clutch') ||
         s.contains('backpack')) {
       return 'Bags';
     }
-    if (s.contains('jewelry') ||
-        s.contains('necklace') ||
-        s.contains('ring') ||
-        s.contains('bracelet') ||
-        s.contains('earring') ||
-        s.contains('watch')) {
-      return 'Jewelry';
+
+    if (s.contains('watch') ||
+        s.contains('belt') ||
+        s.contains('cap') ||
+        s.contains('hat') ||
+        s.contains('sunglasses') ||
+        s.contains('scarf') ||
+        s.contains('accessory') ||
+        s.contains('accessories')) {
+      return 'Accessories';
     }
+
     if (s.contains('makeup') || s.contains('lipstick')) return 'Makeup';
     if (s.contains('skincare') || s.contains('moisturizer')) return 'Skincare';
+
     return 'Accessories';
   }
 
