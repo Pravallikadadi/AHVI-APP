@@ -17,10 +17,10 @@ import 'package:myapp/wardrobe.dart';
 import 'package:myapp/config/env.dart';
 
 // ─── NEW FEATURE IMPORTS ───
-import 'package:myapp/daily_wear.dart' show DailyWearScreen;
 import 'package:myapp/skincare.dart';
 import 'package:myapp/bills_page.dart';
 import 'package:myapp/calendar.dart';
+import 'package:myapp/diet_fitness.dart';
 
 import 'package:myapp/theme/accent_palette.dart';
 import 'package:myapp/theme/base_theme.dart';
@@ -119,9 +119,7 @@ class _MyAppState extends State<MyApp> {
         ChangeNotifierProvider<ConnectivityWatcher>(
           create: (_) => ConnectivityWatcher()..init(),
         ),
-        ChangeNotifierProvider<OfflineCache>(
-          create: (_) => OfflineCache(),
-        ),
+        ChangeNotifierProvider<OfflineCache>(create: (_) => OfflineCache()),
       ],
       child: Consumer<ThemeController>(
         builder: (context, controller, child) {
@@ -201,7 +199,7 @@ class _MyAppState extends State<MyApp> {
                   if (settings.name == AppRoutes.workout) {
                     return PageRouteBuilder(
                       settings: settings,
-                      pageBuilder: (_, _, _) => DailyWearScreen(),
+                      pageBuilder: (_, _, _) => const DietAndFitnessScreen(),
                       transitionDuration: Duration.zero,
                       reverseTransitionDuration: Duration.zero,
                       transitionsBuilder: (_, _, _, child) => child,

@@ -52,6 +52,7 @@ class ChatMessage {
   final DateTime time;
   final WorkoutStyleboard? styleboard;
   final List<String> checklistItems;
+  final List<AhviWorkoutCard> workoutCards;
   ChatMessage({
     required this.text,
     required this.isBot,
@@ -59,6 +60,7 @@ class ChatMessage {
     DateTime? time,
     this.styleboard,
     this.checklistItems = const [],
+    this.workoutCards = const [],
   }) : time = time ?? DateTime.now();
 }
 
@@ -88,6 +90,84 @@ class WorkoutStyleboard {
     required this.colors,
     required this.gradientColors,
   });
+}
+
+class AhviWorkoutCard {
+  final String id;
+  final String title;
+  final String subtitle;
+  final int durationMinutes;
+  final String intensity;
+  final String whyThis;
+  final List<Map<String, dynamic>> exercises;
+  final List<String> prepNotes;
+  final List<String> reminders;
+  final Map<String, dynamic> outfitPairing;
+
+  const AhviWorkoutCard({
+    required this.id,
+    required this.title,
+    required this.subtitle,
+    required this.durationMinutes,
+    required this.intensity,
+    required this.whyThis,
+    required this.exercises,
+    required this.prepNotes,
+    required this.reminders,
+    required this.outfitPairing,
+  });
+
+  factory AhviWorkoutCard.fromMap(Map<String, dynamic> raw) {
+    final exercises = (raw['exercises'] is List ? raw['exercises'] as List : [])
+        .whereType<Map>()
+        .map((item) => Map<String, dynamic>.from(item))
+        .toList(growable: false);
+    return AhviWorkoutCard(
+      id: (raw['id'] ?? raw['key'] ?? '').toString(),
+      title: (raw['title'] ?? 'Today’s Workout').toString(),
+      subtitle: (raw['subtitle'] ?? '').toString(),
+      durationMinutes:
+          int.tryParse(
+            (raw['duration_minutes'] ?? raw['duration_min'] ?? 0).toString(),
+          ) ??
+          0,
+      intensity: (raw['intensity'] ?? '').toString(),
+      whyThis: (raw['why_this'] ?? '').toString(),
+      exercises: exercises,
+      prepNotes: _stringList(raw['prep_notes']),
+      reminders: _stringList(raw['reminders']),
+      outfitPairing: raw['outfit_pairing'] is Map
+          ? Map<String, dynamic>.from(raw['outfit_pairing'] as Map)
+          : <String, dynamic>{},
+    );
+  }
+}
+
+List<String> _stringList(dynamic raw) {
+  if (raw is! List) return const [];
+  return raw
+      .map((item) => item.toString().trim())
+      .where((item) => item.isNotEmpty)
+      .toList(growable: false);
+}
+
+List<AhviWorkoutCard> _workoutCardsFromResponse(Map<String, dynamic> response) {
+  final cards = <AhviWorkoutCard>[];
+  final today = response['today_workout'];
+  if (today is Map) {
+    cards.add(AhviWorkoutCard.fromMap(Map<String, dynamic>.from(today)));
+  }
+  final recommendations = response['recommendations'];
+  if (recommendations is List) {
+    cards.addAll(
+      recommendations.whereType<Map>().map(
+        (item) => AhviWorkoutCard.fromMap(Map<String, dynamic>.from(item)),
+      ),
+    );
+  }
+  return cards
+      .where((card) => card.id.isNotEmpty || card.title.isNotEmpty)
+      .toList();
 }
 
 // ─── THEME COLORS (FIXED — dynamic via AppThemeTokens) ────────────────────────
@@ -160,8 +240,82 @@ class WorkoutStudioScreen extends StatefulWidget {
 class _WorkoutStudioScreenState extends State<WorkoutStudioScreen> {
   String _activePage = 'home';
   String _selectedTab = 'all';
+  AhviWorkoutCard? _todayWorkout;
+  bool _todayWorkoutLoading = false;
+  bool _todayWorkoutLoaded = false;
 
   late List<WorkoutCategory> _categories;
+
+  Future<void> _loadTodayWorkout() async {
+    if (_todayWorkoutLoading || _todayWorkoutLoaded) return;
+    setState(() => _todayWorkoutLoading = true);
+    final response = await Provider.of<BackendService>(
+      context,
+      listen: false,
+    ).getTodayWorkout();
+    final cards = _workoutCardsFromResponse(response);
+    if (!mounted) return;
+    setState(() {
+      _todayWorkout = cards.isNotEmpty ? cards.first : null;
+      _todayWorkoutLoading = false;
+      _todayWorkoutLoaded = true;
+    });
+  }
+
+  Future<void> _completeWorkout(AhviWorkoutCard card) async {
+    final ok = await Provider.of<BackendService>(
+      context,
+      listen: false,
+    ).completeWorkout(card.id, difficultyFeedback: 'good');
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(ok ? 'Workout completed.' : 'Could not save yet.'),
+      ),
+    );
+  }
+
+  Future<void> _skipWorkout(AhviWorkoutCard card) async {
+    final ok = await Provider.of<BackendService>(
+      context,
+      listen: false,
+    ).skipWorkout(card.id, reason: 'not_today');
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(ok ? 'Skipped for today.' : 'Could not save yet.'),
+      ),
+    );
+  }
+
+  Future<void> _addWorkoutToPlanner(AhviWorkoutCard card) async {
+    final now = DateTime.now();
+    final start = now.add(const Duration(hours: 1));
+    final minutes = card.durationMinutes.clamp(10, 90).toInt();
+    final ok =
+        await Provider.of<BackendService>(
+          context,
+          listen: false,
+        ).createCalendarEvent(
+          title: card.title,
+          description: card.whyThis,
+          startTime: start,
+          endTime: start.add(Duration(minutes: minutes)),
+          type: 'fitness',
+          source: 'ahvi_workout',
+          metadata: {
+            'workout_id': card.id,
+            'duration_minutes': card.durationMinutes,
+            'intensity': card.intensity,
+          },
+        ) !=
+        null;
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(ok ? 'Added to planner.' : 'Could not add yet.')),
+    );
+  }
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -195,6 +349,7 @@ class _WorkoutStudioScreenState extends State<WorkoutStudioScreen> {
         accent: Colors.white,
       ),
     ];
+    WidgetsBinding.instance.addPostFrameCallback((_) => _loadTodayWorkout());
   }
 
   void _addCategory(WorkoutCategory c) {
@@ -226,11 +381,16 @@ class _WorkoutStudioScreenState extends State<WorkoutStudioScreen> {
               categories: _categories,
               outfits: _outfits,
               selectedTab: _selectedTab,
+              todayWorkout: _todayWorkout,
+              todayWorkoutLoading: _todayWorkoutLoading,
               onTabSelected: (id) => setState(() => _selectedTab = id),
               onShowPage: (name) => setState(() => _activePage = name),
               onAddOutfit: _addOutfit,
               onDeleteOutfit: _deleteOutfit,
               onAddCategory: _addCategory,
+              onCompleteWorkout: _completeWorkout,
+              onSkipWorkout: _skipWorkout,
+              onAddWorkoutToPlanner: _addWorkoutToPlanner,
             ),
           ),
           // Chat view slides up from bottom
@@ -315,20 +475,30 @@ class _HomeView extends StatelessWidget {
   final List<WorkoutCategory> categories;
   final List<WorkoutOutfit> outfits;
   final String selectedTab;
+  final AhviWorkoutCard? todayWorkout;
+  final bool todayWorkoutLoading;
   final Function(String) onTabSelected;
   final Function(String) onShowPage;
   final Function(WorkoutOutfit) onAddOutfit;
   final Function(String) onDeleteOutfit;
   final Function(WorkoutCategory) onAddCategory;
+  final Function(AhviWorkoutCard) onCompleteWorkout;
+  final Function(AhviWorkoutCard) onSkipWorkout;
+  final Function(AhviWorkoutCard) onAddWorkoutToPlanner;
   const _HomeView({
     required this.categories,
     required this.outfits,
     required this.selectedTab,
+    required this.todayWorkout,
+    required this.todayWorkoutLoading,
     required this.onTabSelected,
     required this.onShowPage,
     required this.onAddOutfit,
     required this.onDeleteOutfit,
     required this.onAddCategory,
+    required this.onCompleteWorkout,
+    required this.onSkipWorkout,
+    required this.onAddWorkoutToPlanner,
   });
   @override
   Widget build(BuildContext context) {
@@ -344,6 +514,18 @@ class _HomeView extends StatelessWidget {
           const SizedBox(height: 12),
           // Hero Card: Dress well, train better
           _HeroCard(),
+          const SizedBox(height: 16),
+          if (todayWorkoutLoading)
+            _WorkoutLoadingCard()
+          else if (todayWorkout != null)
+            _WorkoutRecommendationCard(
+              card: todayWorkout!,
+              compact: true,
+              onStart: () => onShowPage('chat'),
+              onComplete: () => onCompleteWorkout(todayWorkout!),
+              onSkip: () => onSkipWorkout(todayWorkout!),
+              onAddToPlanner: () => onAddWorkoutToPlanner(todayWorkout!),
+            ),
           const SizedBox(height: 24),
           // Saved Label row
           Row(
@@ -592,6 +774,363 @@ class _HeroCardState extends State<_HeroCard> {
 }
 
 // ─── STUBS FOR COMPLETION IN NEXT TURN ────────────────────────────────────────
+class _WorkoutLoadingCard extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: context.fCard,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: context.fBorder),
+      ),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 18,
+            height: 18,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              color: context.fAccent,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              'AHVI is preparing today’s workout.',
+              style: TextStyle(
+                color: context.fText,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _WorkoutRecommendationCard extends StatelessWidget {
+  final AhviWorkoutCard card;
+  final bool compact;
+  final VoidCallback? onStart;
+  final VoidCallback? onComplete;
+  final VoidCallback? onSkip;
+  final VoidCallback? onAddToPlanner;
+
+  const _WorkoutRecommendationCard({
+    required this.card,
+    this.compact = false,
+    this.onStart,
+    this.onComplete,
+    this.onSkip,
+    this.onAddToPlanner,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final outfit = _outfitSummary(card.outfitPairing);
+    return Container(
+      width: double.infinity,
+      margin: EdgeInsets.only(top: compact ? 0 : 10),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: context.fCard,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: context.fBorder),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 18,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [context.fAccent, context.fAccent2],
+                  ),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: const Icon(
+                  Icons.fitness_center,
+                  color: Colors.white,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      compact ? 'Today’s Workout' : card.title,
+                      style: TextStyle(
+                        color: context.fMuted,
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 1.1,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      compact ? card.title : card.subtitle,
+                      style: TextStyle(
+                        color: context.fText,
+                        fontSize: compact ? 17 : 15,
+                        fontWeight: FontWeight.w800,
+                        height: 1.15,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _WorkoutPill('${card.durationMinutes} min'),
+              if (card.intensity.isNotEmpty) _WorkoutPill(card.intensity),
+              if (card.subtitle.isNotEmpty && compact)
+                _WorkoutPill(card.subtitle),
+            ],
+          ),
+          if (card.whyThis.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Text(
+              card.whyThis,
+              style: TextStyle(
+                color: context.fTextSoft,
+                fontSize: 13,
+                height: 1.4,
+              ),
+            ),
+          ],
+          if (!compact && card.exercises.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            ...card.exercises.take(6).map((exercise) {
+              final name = (exercise['name'] ?? '').toString();
+              final reps = exercise['reps'];
+              final seconds = exercise['duration_seconds'];
+              final detail = reps != null
+                  ? '$reps reps'
+                  : seconds != null
+                  ? '$seconds sec'
+                  : '';
+              return Padding(
+                padding: const EdgeInsets.only(top: 7),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.check_circle_outline,
+                      size: 16,
+                      color: context.fAccent,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        detail.isEmpty ? name : '$name · $detail',
+                        style: TextStyle(
+                          color: context.fText,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
+          ],
+          if (!compact && card.prepNotes.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            _WorkoutNote(title: 'Prep', items: card.prepNotes.take(3).toList()),
+          ],
+          if (outfit.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Text(
+              'Wear: $outfit',
+              style: TextStyle(
+                color: context.fText,
+                fontSize: 12.5,
+                fontWeight: FontWeight.w700,
+                height: 1.35,
+              ),
+            ),
+          ],
+          if (card.reminders.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(
+              card.reminders.first,
+              style: TextStyle(
+                color: context.fMuted,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+          const SizedBox(height: 14),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _WorkoutAction(
+                label: 'Start',
+                icon: Icons.play_arrow,
+                onTap: onStart,
+              ),
+              _WorkoutAction(
+                label: 'Complete',
+                icon: Icons.check,
+                onTap: onComplete,
+              ),
+              _WorkoutAction(
+                label: 'Skip',
+                icon: Icons.skip_next,
+                onTap: onSkip,
+              ),
+              _WorkoutAction(
+                label: 'Add to planner',
+                icon: Icons.event_available,
+                onTap: onAddToPlanner,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _outfitSummary(Map<String, dynamic> outfit) {
+    final parts = [outfit['top'], outfit['bottom'], outfit['footwear']]
+        .map((item) => item?.toString().trim() ?? '')
+        .where((item) => item.isNotEmpty)
+        .toList();
+    return parts.join(' + ');
+  }
+}
+
+class _WorkoutPill extends StatelessWidget {
+  final String label;
+  const _WorkoutPill(this.label);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+      decoration: BoxDecoration(
+        color: context.fAccent.withValues(alpha: 0.11),
+        borderRadius: BorderRadius.circular(99),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: context.fAccent,
+          fontSize: 11,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+    );
+  }
+}
+
+class _WorkoutNote extends StatelessWidget {
+  final String title;
+  final List<String> items;
+  const _WorkoutNote({required this.title, required this.items});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(11),
+      decoration: BoxDecoration(
+        color: context.fPanel,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: context.fBorder),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: TextStyle(
+              color: context.fText,
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 6),
+          ...items.map(
+            (item) => Padding(
+              padding: const EdgeInsets.only(top: 3),
+              child: Text(
+                '• $item',
+                style: TextStyle(
+                  color: context.fMuted,
+                  fontSize: 12,
+                  height: 1.35,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _WorkoutAction extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final VoidCallback? onTap;
+  const _WorkoutAction({required this.label, required this.icon, this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+        decoration: BoxDecoration(
+          color: context.fPanel,
+          borderRadius: BorderRadius.circular(99),
+          border: Border.all(color: context.fBorder),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 14, color: context.fText),
+            const SizedBox(width: 5),
+            Text(
+              label,
+              style: TextStyle(
+                color: context.fText,
+                fontSize: 11.5,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _AskAhviFab extends StatefulWidget {
   final VoidCallback onTap;
   const _AskAhviFab({required this.onTap});
@@ -2004,6 +2543,113 @@ class _ChatViewState extends State<_ChatView> {
     return items.take(10).toList(growable: false);
   }
 
+  bool _shouldUseWorkoutApi(String text) {
+    final q = text.toLowerCase();
+    return q.contains('workout') ||
+        q.contains('gym') ||
+        q.contains('fitness') ||
+        q.contains('exercise') ||
+        q.contains('training') ||
+        q.contains('hiit') ||
+        q.contains('yoga') ||
+        q.contains('run') ||
+        RegExp(r'\b\d{1,2}\s*(min|minute)').hasMatch(q);
+  }
+
+  int _durationFromText(String text) {
+    final match = RegExp(
+      r'\b(\d{1,2})\s*(min|minute)',
+      caseSensitive: false,
+    ).firstMatch(text);
+    return int.tryParse(match?.group(1) ?? '') ?? 20;
+  }
+
+  String _goalFromText(String text) {
+    final q = text.toLowerCase();
+    if (q.contains('fat') || q.contains('weight loss')) return 'fat_loss';
+    if (q.contains('stress') || q.contains('calm')) return 'anti_stress';
+    if (q.contains('strength') || q.contains('muscle')) return 'strength';
+    if (q.contains('travel')) return 'travel_fitness';
+    return 'general_fitness';
+  }
+
+  String _locationFromText(String text) {
+    final q = text.toLowerCase();
+    if (q.contains('gym')) return 'gym';
+    if (q.contains('hotel')) return 'hotel_room';
+    if (q.contains('outdoor') || q.contains('park') || q.contains('run')) {
+      return 'outdoor';
+    }
+    return 'home';
+  }
+
+  String? _constraintFromText(String text) {
+    final q = text.toLowerCase();
+    if (q.contains('low impact') || q.contains('knee')) return 'low_impact';
+    if (q.contains('beginner')) return 'beginner';
+    return null;
+  }
+
+  Future<void> _completeWorkout(AhviWorkoutCard card) async {
+    final ok = await Provider.of<BackendService>(
+      context,
+      listen: false,
+    ).completeWorkout(card.id, difficultyFeedback: 'good');
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(ok ? 'Workout completed.' : 'Could not save yet.'),
+      ),
+    );
+  }
+
+  Future<void> _skipWorkout(AhviWorkoutCard card) async {
+    final ok = await Provider.of<BackendService>(
+      context,
+      listen: false,
+    ).skipWorkout(card.id, reason: 'not_today');
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(ok ? 'Skipped for today.' : 'Could not save yet.'),
+      ),
+    );
+  }
+
+  Future<void> _addWorkoutToPlanner(AhviWorkoutCard card) async {
+    final now = DateTime.now();
+    final start = now.add(const Duration(hours: 1));
+    final minutes = card.durationMinutes.clamp(10, 90).toInt();
+    final created = await Provider.of<BackendService>(context, listen: false)
+        .createCalendarEvent(
+          title: card.title,
+          description: card.whyThis,
+          startTime: start,
+          endTime: start.add(Duration(minutes: minutes)),
+          type: 'fitness',
+          source: 'ahvi_workout',
+          metadata: {
+            'workout_id': card.id,
+            'duration_minutes': card.durationMinutes,
+            'intensity': card.intensity,
+          },
+        );
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          created != null ? 'Added to planner.' : 'Could not add yet.',
+        ),
+      ),
+    );
+  }
+
+  void _startWorkout(AhviWorkoutCard card) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text('Start ${card.title}.')));
+  }
+
   Future<void> _sendMessage([String? text]) async {
     final raw = text ?? _inputController.text.trim();
     if (raw.isEmpty) return;
@@ -2020,19 +2666,33 @@ class _ChatViewState extends State<_ChatView> {
     final wantsOutfit = _isOutfitRequest(msg);
     String reply = '';
     List<String> checklistItems = const [];
+    List<AhviWorkoutCard> workoutCards = const [];
     try {
-      final response = await Provider.of<BackendService>(context, listen: false)
-          .sendChatQuery(
-            msg,
-            '',
-            List<Map<String, String>>.from(_chatHistory),
-            '',
-            moduleContext: 'fitness',
-          );
+      final backend = Provider.of<BackendService>(context, listen: false);
+      final response = _shouldUseWorkoutApi(msg)
+          ? await backend.recommendWorkout(
+              goal: _goalFromText(msg),
+              duration: _durationFromText(msg),
+              location: _locationFromText(msg),
+              equipment: 'none',
+              constraint: _constraintFromText(msg),
+            )
+          : await backend.sendChatQuery(
+              msg,
+              '',
+              List<Map<String, String>>.from(_chatHistory),
+              '',
+              moduleContext: 'fitness',
+            );
       reply = _responseText(response);
       checklistItems = _workoutChecklistFromResponse(response);
+      workoutCards = _workoutCardsFromResponse(response);
+      if (reply.isEmpty && workoutCards.isNotEmpty) {
+        reply = "I found a workout that fits your day.";
+      }
     } catch (_) {}
 
+    if (!mounted) return;
     if (reply.isEmpty) {
       if (wantsOutfit) {
         final label = key != null
@@ -2047,11 +2707,15 @@ class _ChatViewState extends State<_ChatView> {
       }
     }
 
-    if (!mounted) return;
     setState(() {
       _isTyping = false;
       _messages.add(
-        ChatMessage(text: reply, isBot: true, checklistItems: checklistItems),
+        ChatMessage(
+          text: reply,
+          isBot: true,
+          checklistItems: checklistItems,
+          workoutCards: workoutCards,
+        ),
       );
       _chatHistory.add({'role': 'assistant', 'content': reply});
     });
@@ -2276,7 +2940,13 @@ class _ChatViewState extends State<_ChatView> {
                   itemCount: _messages.length + (_isTyping ? 1 : 0),
                   itemBuilder: (ctx, i) {
                     if (i == _messages.length) return _TypingIndicator();
-                    return _ChatBubble(message: _messages[i]);
+                    return _ChatBubble(
+                      message: _messages[i],
+                      onStartWorkout: _startWorkout,
+                      onCompleteWorkout: _completeWorkout,
+                      onSkipWorkout: _skipWorkout,
+                      onAddWorkoutToPlanner: _addWorkoutToPlanner,
+                    );
                   },
                 ),
               ),
@@ -2322,7 +2992,18 @@ class _ChatViewState extends State<_ChatView> {
 
 class _ChatBubble extends StatelessWidget {
   final ChatMessage message;
-  const _ChatBubble({required this.message});
+  final ValueChanged<AhviWorkoutCard>? onStartWorkout;
+  final ValueChanged<AhviWorkoutCard>? onCompleteWorkout;
+  final ValueChanged<AhviWorkoutCard>? onSkipWorkout;
+  final ValueChanged<AhviWorkoutCard>? onAddWorkoutToPlanner;
+
+  const _ChatBubble({
+    required this.message,
+    this.onStartWorkout,
+    this.onCompleteWorkout,
+    this.onSkipWorkout,
+    this.onAddWorkoutToPlanner,
+  });
   @override
   Widget build(BuildContext context) {
     return Align(
@@ -2425,6 +3106,16 @@ class _ChatBubble extends StatelessWidget {
               ],
             ),
           ),
+          if (message.workoutCards.isNotEmpty)
+            ...message.workoutCards.map(
+              (card) => _WorkoutRecommendationCard(
+                card: card,
+                onStart: () => onStartWorkout?.call(card),
+                onComplete: () => onCompleteWorkout?.call(card),
+                onSkip: () => onSkipWorkout?.call(card),
+                onAddToPlanner: () => onAddWorkoutToPlanner?.call(card),
+              ),
+            ),
           if (message.styleboard != null)
             _StyleboardCard(sb: message.styleboard!),
           const SizedBox(height: 12),

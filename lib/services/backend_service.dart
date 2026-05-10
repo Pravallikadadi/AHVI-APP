@@ -515,6 +515,112 @@ class BackendService {
     }
   }
 
+  Future<Map<String, dynamic>> getTodayWorkout() async {
+    try {
+      final response = await http
+          .get(
+            Uri.parse('$baseUrl/api/workouts/today'),
+            headers: await _authHeaders(),
+          )
+          .timeout(const Duration(seconds: 20));
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        return await compute(_parseJsonMap, response.body);
+      }
+
+      debugPrint(
+        'Today workout load failed: ${response.statusCode} ${response.body}',
+      );
+      return <String, dynamic>{};
+    } catch (e) {
+      debugPrint('Today workout load error: $e');
+      return <String, dynamic>{};
+    }
+  }
+
+  Future<Map<String, dynamic>> recommendWorkout({
+    String goal = 'general_fitness',
+    int duration = 20,
+    String location = 'home',
+    String equipment = 'none',
+    String? constraint,
+    Map<String, dynamic>? weather,
+  }) async {
+    try {
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/api/workouts/recommend'),
+            headers: await _authHeaders(),
+            body: jsonEncode({
+              'goal': goal,
+              'duration': duration,
+              'location': location,
+              'equipment': equipment,
+              if (constraint != null && constraint.trim().isNotEmpty)
+                'constraint': constraint,
+              if (weather != null) 'weather': weather,
+            }),
+          )
+          .timeout(const Duration(seconds: 25));
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        return await compute(_parseJsonMap, response.body);
+      }
+
+      debugPrint(
+        'Workout recommendation failed: ${response.statusCode} ${response.body}',
+      );
+      return <String, dynamic>{};
+    } catch (e) {
+      debugPrint('Workout recommendation error: $e');
+      return <String, dynamic>{};
+    }
+  }
+
+  Future<bool> completeWorkout(
+    String workoutId, {
+    String? difficultyFeedback,
+  }) async {
+    try {
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/api/workouts/complete'),
+            headers: await _authHeaders(),
+            body: jsonEncode({
+              'workout_id': workoutId,
+              'completed': true,
+              if (difficultyFeedback != null)
+                'difficulty_feedback': difficultyFeedback,
+            }),
+          )
+          .timeout(const Duration(seconds: 20));
+      return response.statusCode >= 200 && response.statusCode < 300;
+    } catch (e) {
+      debugPrint('Workout complete error: $e');
+      return false;
+    }
+  }
+
+  Future<bool> skipWorkout(String workoutId, {String? reason}) async {
+    try {
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/api/workouts/skip'),
+            headers: await _authHeaders(),
+            body: jsonEncode({
+              'workout_id': workoutId,
+              'skipped': true,
+              if (reason != null) 'reason': reason,
+            }),
+          )
+          .timeout(const Duration(seconds: 20));
+      return response.statusCode >= 200 && response.statusCode < 300;
+    } catch (e) {
+      debugPrint('Workout skip error: $e');
+      return false;
+    }
+  }
+
   Future<Map<String, dynamic>?> updateCalendarEvent(
     String eventId,
     Map<String, dynamic> fields,
