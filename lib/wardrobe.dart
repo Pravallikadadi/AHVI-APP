@@ -50,6 +50,7 @@ class _OfflineDimmer extends StatelessWidget {
     );
   }
 }
+
 Color _accent5(AppThemeTokens t) =>
     Color.lerp(t.accent.secondary, t.accent.tertiary, 0.55)!;
 
@@ -325,11 +326,12 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
     // wardrobe state before re-fetching for the new user.
     final appwrite = Provider.of<AppwriteService>(context, listen: true);
     final cachedUser = appwrite.cachedUserProfileData;
-    final newUid = (cachedUser != null
-            ? (cachedUser['userId'] ?? cachedUser['\$id'] ?? '')
-            : '')
-        .toString()
-        .trim();
+    final newUid =
+        (cachedUser != null
+                ? (cachedUser['userId'] ?? cachedUser['\$id'] ?? '')
+                : '')
+            .toString()
+            .trim();
     if (newUid.isEmpty) return;
     if (_currentUserId != null && _currentUserId != newUid) {
       // Different authed user than last build. Hard reset.
@@ -552,8 +554,10 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
   }
 
   void _openAddModal() {
-    final connectivity =
-        Provider.of<ConnectivityWatcher>(context, listen: false);
+    final connectivity = Provider.of<ConnectivityWatcher>(
+      context,
+      listen: false,
+    );
     if (!connectivity.isOnline) {
       _showToast('Need internet to add new items');
       return;
@@ -934,8 +938,10 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
   }
 
   void _showDeleteConfirm(String id) {
-    final connectivity =
-        Provider.of<ConnectivityWatcher>(context, listen: false);
+    final connectivity = Provider.of<ConnectivityWatcher>(
+      context,
+      listen: false,
+    );
     if (!connectivity.isOnline) {
       _showToast('Need internet to delete items');
       return;
@@ -1514,8 +1520,10 @@ class _ItemDetailPanelState extends State<_ItemDetailPanel>
                         ),
                         _OfflineDimmer(
                           child: _HoverTintButton(
-                            label:
-                                AppLocalizations.t(context, 'wardrobe_remove'),
+                            label: AppLocalizations.t(
+                              context,
+                              'wardrobe_remove',
+                            ),
                             bgColor: accent4.withValues(alpha: 0.08),
                             hoverBgColor: accent4.withValues(alpha: 0.18),
                             fgColor: accent4,
@@ -1959,7 +1967,12 @@ class _AddItemModalState extends State<_AddItemModal>
   Future<void> _pickGallery() async {
     try {
       final picker = ImagePicker();
-      final files = await picker.pickMultiImage(imageQuality: 90, limit: 6);
+      final files = await picker.pickMultiImage(
+        maxWidth: 1600,
+        maxHeight: 1600,
+        imageQuality: 82,
+        limit: 6,
+      );
       if (files.isEmpty) return;
       if (!mounted) return;
 
@@ -2015,7 +2028,19 @@ class _AddItemModalState extends State<_AddItemModal>
       context,
       listen: false,
     ).analyzeImage(bytes);
-    final raw = data?['items'];
+    return _detectedItemsFromAnalyzeResponse(data);
+  }
+
+  List<_DetectedItem> _detectedItemsFromAnalyzeResponse(
+    Map<String, dynamic>? data,
+  ) {
+    if (data == null) {
+      throw Exception('Backend returned no scan response');
+    }
+    if (data['success'] == false) {
+      throw Exception(data['error']?.toString() ?? 'Backend scan failed');
+    }
+    final raw = data['items'];
     if (raw is! List) throw Exception('No detected items');
 
     return raw.whereType<Map>().map((r) {
@@ -2069,53 +2094,86 @@ class _AddItemModalState extends State<_AddItemModal>
         });
       }
     } catch (e) {
-      if (mounted) {
-        setState(() {
-          _detectError =
-              'Detection failed. Please retake with better lighting.';
-          _step = _ModalStep.results;
-          _detected = [];
-        });
-      }
+      debugPrint('Wardrobe single detection failed: $e');
+      if (!mounted) return;
+
+      final fallbackId = DateTime.now().millisecondsSinceEpoch.toString();
+      setState(() {
+        _detected = [
+          _DetectedItem(
+            id: fallbackId,
+            name: 'Review item',
+            category: 'Uncategorized',
+            subCategory: '',
+            occasions: const [],
+            labelSource: 'manual_review',
+            requiresManualEntry: true,
+            confidence: 0.0,
+            raw: {
+              'item_id': fallbackId,
+              'id': fallbackId,
+              'name': 'Review item',
+              'category': 'Uncategorized',
+              'sub_category': '',
+              'requires_manual_entry': true,
+              'confidence': 0.0,
+            },
+            selected: true,
+          ),
+        ];
+        _detectError =
+            'AI needs a quick review. Edit labels if needed, then save.';
+        _step = _ModalStep.results;
+      });
     }
   }
 
   // Multi-image flow ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â all images scanned in parallel, results merged
   Future<void> _runDetectionMulti(List<Uint8List> bytesList) async {
     try {
-      // Run all detections in parallel
-      final results = await Future.wait(
-        bytesList.map(
-          (b) => _detectOneImage(b).catchError((_) => <_DetectedItem>[]),
-        ),
-      );
+      List<_DetectedItem> allItems = [];
+      try {
+        final data = await Provider.of<BackendService>(
+          context,
+          listen: false,
+        ).analyzeImagesBatch(bytesList);
+        allItems = _detectedItemsFromAnalyzeResponse(data);
+      } catch (e) {
+        debugPrint('Batch detection fallback: $e');
+      }
 
-      // Merge all items, re-assign unique IDs to avoid collisions
-      final allItems = <_DetectedItem>[];
-      var counter = 1;
-      for (final list in results) {
-        for (final item in list) {
-          allItems.add(
-            _DetectedItem(
-              id: (counter++).toString(),
-              name: item.name,
-              category: item.category,
-              subCategory: item.subCategory,
-              color: item.color,
-              colorCode: item.colorCode,
-              pattern: item.pattern,
-              occasions: List<String>.from(item.occasions),
-              labelSource: item.labelSource,
-              requiresManualEntry: item.requiresManualEntry,
-              confidence: item.confidence,
-              rawUrl: item.rawUrl,
-              maskedUrl: item.maskedUrl,
-              maskedImageBase64: item.maskedImageBase64,
-              raw: item.raw,
-              selected: true,
-            ),
-          );
-        }
+      if (allItems.isEmpty) {
+        final results = await Future.wait(
+          bytesList.map(
+            (bytes) => _detectOneImage(bytes).catchError((error) {
+              debugPrint('Single image fallback failed: $error');
+              return <_DetectedItem>[];
+            }),
+          ),
+        );
+        var counter = 1;
+        allItems = [
+          for (final list in results)
+            for (final item in list)
+              _DetectedItem(
+                id: (counter++).toString(),
+                name: item.name,
+                category: item.category,
+                subCategory: item.subCategory,
+                color: item.color,
+                colorCode: item.colorCode,
+                pattern: item.pattern,
+                occasions: List<String>.from(item.occasions),
+                labelSource: item.labelSource,
+                requiresManualEntry: item.requiresManualEntry,
+                confidence: item.confidence,
+                rawUrl: item.rawUrl,
+                maskedUrl: item.maskedUrl,
+                maskedImageBase64: item.maskedImageBase64,
+                raw: item.raw,
+                selected: true,
+              ),
+        ];
       }
 
       if (mounted) {
@@ -2128,14 +2186,21 @@ class _AddItemModalState extends State<_AddItemModal>
         });
       }
     } catch (e) {
+      debugPrint('Wardrobe multi detection failed: $e');
       if (mounted) {
         setState(() {
-          _detectError = 'Detection failed. Please try again.';
+          _detectError = 'Detection failed: ${_shortScanError(e)}';
           _step = _ModalStep.results;
           _detected = [];
         });
       }
     }
+  }
+
+  String _shortScanError(Object error) {
+    final text = error.toString().replaceFirst('Exception: ', '').trim();
+    if (text.length <= 160) return text;
+    return '${text.substring(0, 160)}...';
   }
 
   void _retake() {
@@ -5266,8 +5331,10 @@ class _EmptyState extends StatelessWidget {
             child: GestureDetector(
               onTap: onAddTap,
               child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 28, vertical: 13),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 28,
+                  vertical: 13,
+                ),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [t.accent.primary, t.accent.tertiary],

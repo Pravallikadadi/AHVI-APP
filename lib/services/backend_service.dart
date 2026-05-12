@@ -9,6 +9,14 @@ Map<String, dynamic> _parseJsonMap(String payload) =>
 
 String _encodeBytes(Uint8List bytes) => base64Encode(bytes);
 
+class BackendRequestException implements Exception {
+  final String message;
+  const BackendRequestException(this.message);
+
+  @override
+  String toString() => message;
+}
+
 String _demoChatFallback(String query, String moduleContext) {
   final q = query.toLowerCase();
   final isStyle = moduleContext == 'style' || moduleContext == 'wardrobe';
@@ -274,7 +282,8 @@ class BackendService {
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
         final data = await compute(_parseJsonMap, response.body);
-        final text = (data['response'] ?? data['message_text'] ?? '').toString();
+        final text = (data['response'] ?? data['message_text'] ?? '')
+            .toString();
         return _normalizeChatResponse({
           ...data,
           'message': {'role': 'assistant', 'content': text},
@@ -341,19 +350,68 @@ class BackendService {
               'save_duplicates': saveDuplicates,
             }),
           )
-          .timeout(const Duration(seconds: 55));
+          .timeout(const Duration(seconds: 90));
 
       if (response.statusCode == 200) {
-        return await compute(_parseJsonMap, response.body);
+        final data = await compute(_parseJsonMap, response.body);
+        debugPrint(
+          'Analyze API ok: items=${(data['items'] as List?)?.length ?? 0}',
+        );
+        return data;
       }
 
       debugPrint(
         'Analyze API failed: ${response.statusCode} - ${response.body}',
       );
-      return null;
+      throw BackendRequestException(
+        'Scan API ${response.statusCode}: ${response.body}',
+      );
     } catch (e) {
       debugPrint('Garment analysis error: $e');
-      return null;
+      throw BackendRequestException('Scan request failed: $e');
+    }
+  }
+
+  Future<Map<String, dynamic>?> analyzeImagesBatch(
+    List<Uint8List> images, {
+    bool autoSave = false,
+    bool saveDuplicates = false,
+  }) async {
+    if (images.isEmpty) return null;
+    try {
+      final encoded = await Future.wait(
+        images.take(6).map((bytes) => compute(_encodeBytes, bytes)),
+      );
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/api/wardrobe/capture/analyze-batch'),
+            headers: await _authHeaders(),
+            body: jsonEncode({
+              'user_id': await _currentUserId(),
+              'image_base64s': encoded,
+              'auto_save': autoSave,
+              'save_duplicates': saveDuplicates,
+            }),
+          )
+          .timeout(const Duration(seconds: 150));
+
+      if (response.statusCode == 200) {
+        final data = await compute(_parseJsonMap, response.body);
+        debugPrint(
+          'Analyze batch API ok: items=${(data['items'] as List?)?.length ?? 0}',
+        );
+        return data;
+      }
+
+      debugPrint(
+        'Analyze batch API failed: ${response.statusCode} - ${response.body}',
+      );
+      throw BackendRequestException(
+        'Batch scan API ${response.statusCode}: ${response.body}',
+      );
+    } catch (e) {
+      debugPrint('Garment batch analysis error: $e');
+      throw BackendRequestException('Batch scan request failed: $e');
     }
   }
 
