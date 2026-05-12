@@ -242,6 +242,66 @@ class BackendService {
     }
   }
 
+  Future<Map<String, dynamic>> sendModuleChatQuery({
+    required String module,
+    required String query,
+    required List<Map<String, String>> chatHistory,
+    Map<String, dynamic> contextData = const {},
+    Map<String, dynamic>? userProfile,
+  }) async {
+    try {
+      final authedUserId = await _currentUserId();
+      final historyForRequest = List<Map<String, String>>.from(chatHistory);
+      if (historyForRequest.isEmpty ||
+          historyForRequest.last['role'] != 'user' ||
+          historyForRequest.last['content'] != query) {
+        historyForRequest.add({'role': 'user', 'content': query});
+      }
+
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/api/chat/module-chat'),
+            headers: await _authHeaders(),
+            body: jsonEncode({
+              'module': module,
+              'message': query,
+              'history': historyForRequest,
+              'context_data': contextData,
+              'user_profile': {...?userProfile, 'user_id': authedUserId},
+            }),
+          )
+          .timeout(const Duration(seconds: 45));
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final data = await compute(_parseJsonMap, response.body);
+        final text = (data['response'] ?? data['message_text'] ?? '').toString();
+        return _normalizeChatResponse({
+          ...data,
+          'message': {'role': 'assistant', 'content': text},
+          'message_text': text,
+          'chips': data['chips'] ?? const [],
+        });
+      }
+
+      throw Exception(
+        'Failed module chat: ${response.statusCode} ${response.body}',
+      );
+    } catch (e) {
+      debugPrint('Module chat error: $e');
+      const fallback = 'AHVI is still preparing this. Try again in a moment.';
+      return {
+        'error': 'Backend module chat failed: $e',
+        'message': {'role': 'assistant', 'content': fallback},
+        'message_text': fallback,
+        'chips': [
+          {'label': 'Try again', 'value': query},
+        ],
+        'type': 'retry',
+        'meta': {'used_local_fallback': true},
+      };
+    }
+  }
+
   // Wardrobe vision and background removal.
   Future<String?> removeBackground(String base64Image) async {
     try {

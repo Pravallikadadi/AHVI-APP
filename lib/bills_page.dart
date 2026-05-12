@@ -1155,7 +1155,11 @@ class _BillsScreenState extends State<BillsScreen>
           _AskAhviFab(
             accent: _chatAccent,
             accent2: _chatAccent2,
-            onTap: () => showAhviStylistChatSheet(context, moduleContext: 'bills'),
+            onTap: () => showAhviStylistChatSheet(
+              context,
+              moduleContext: 'bills',
+              contextData: const {'screen': 'bills'},
+            ),
           ),
         ],
       ),
@@ -1163,7 +1167,15 @@ class _BillsScreenState extends State<BillsScreen>
   }
 
   Widget _buildChatFab() {
-    return _AskAhviFab(accent: _chatAccent, accent2: _chatAccent2, onTap: () => showAhviStylistChatSheet(context, moduleContext: 'bills'));
+    return _AskAhviFab(
+      accent: _chatAccent,
+      accent2: _chatAccent2,
+      onTap: () => showAhviStylistChatSheet(
+        context,
+        moduleContext: 'bills',
+        contextData: const {'screen': 'bills'},
+      ),
+    );
   }
 
   Widget _buildChatPanel() {

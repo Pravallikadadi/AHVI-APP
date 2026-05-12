@@ -188,6 +188,7 @@ AhviModuleConfig _configFor(String moduleContext) =>
 Future<void> showAhviStylistChatSheet(
   BuildContext context, {
   String moduleContext = 'style',
+  Map<String, dynamic> contextData = const {},
 }) {
   return showModalBottomSheet<void>(
     context: context,
@@ -205,6 +206,7 @@ Future<void> showAhviStylistChatSheet(
           height: sheetH,
           child: _AhviStylistChatSheet(
             moduleContext: moduleContext,
+            contextData: contextData,
             rootContext: context,
           ),
         ),
@@ -313,10 +315,12 @@ class _ChatSession {
 
 class _AhviStylistChatSheet extends StatefulWidget {
   final String moduleContext;
+  final Map<String, dynamic> contextData;
   final BuildContext rootContext;
 
   const _AhviStylistChatSheet({
     this.moduleContext = 'style',
+    this.contextData = const {},
     required this.rootContext,
   });
 
@@ -650,13 +654,24 @@ class _AhviStylistChatSheetState extends State<_AhviStylistChatSheet>
 
     try {
       final backend = Provider.of<BackendService>(context, listen: false);
-      final response = await backend.sendChatQuery(
-        prompt.isNotEmpty ? prompt : trimmed,
-        '',
-        List<Map<String, String>>.from(_chatHistory),
-        _runningMemory,
-        moduleContext: widget.moduleContext,
-      );
+      final query = prompt.isNotEmpty ? prompt : trimmed;
+      final styleModules = {'style', 'wardrobe', 'daily_wear'};
+      final response = styleModules.contains(widget.moduleContext)
+          ? await backend.sendChatQuery(
+              query,
+              '',
+              List<Map<String, String>>.from(_chatHistory),
+              _runningMemory,
+              moduleContext: widget.moduleContext == 'daily_wear'
+                  ? 'style'
+                  : widget.moduleContext,
+            )
+          : await backend.sendModuleChatQuery(
+              module: widget.moduleContext,
+              query: query,
+              chatHistory: List<Map<String, String>>.from(_chatHistory),
+              contextData: widget.contextData,
+            );
       if (!mounted) return;
 
       final rawMessage = response['message'];

@@ -2210,7 +2210,16 @@ class _MediTrackScreenState extends State<MediTrackScreen>
 
   Widget _buildChatFab() {
     return _AskAhviFab(
-      onTap: () => showAhviStylistChatSheet(context, moduleContext: 'medi'),
+      onTap: () => showAhviStylistChatSheet(
+        context,
+        moduleContext: 'medi',
+        contextData: {
+          'medications': meds,
+          'recent_log': _log.take(10).toList(),
+          'taken_today': meds.where((m) => m['taken'] == true).length,
+          'pending_today': meds.where((m) => m['taken'] != true).length,
+        },
+      ),
     );
   }
 

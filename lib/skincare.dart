@@ -383,6 +383,16 @@ class _SkincareScreenState extends State<SkincareScreen>
                       onTap: () => showAhviStylistChatSheet(
                         context,
                         moduleContext: 'skincare',
+                        contextData: {
+                          'profile': {
+                            'type': _skinType.isNotEmpty ? _skinType : 'Unknown',
+                            'concerns': _concerns.isNotEmpty
+                                ? _concerns.join(', ')
+                                : 'None specified',
+                          },
+                          'routine': _currentRoutine(context),
+                          'routine_mode': _isNight ? 'night' : 'morning',
+                        },
                       ),
                     ),
                   ),
