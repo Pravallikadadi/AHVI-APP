@@ -2995,11 +2995,11 @@ class _AddItemModalState extends State<_AddItemModal>
               ],
             ),
           ),
-          Flexible(
+          Expanded(
             child: ListView.separated(
-              padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 120),
+              primary: false,
+              physics: const ClampingScrollPhysics(),
               itemCount: _detected.length,
               separatorBuilder: (_, _) => const SizedBox(height: 8),
               itemBuilder: (_, i) {
