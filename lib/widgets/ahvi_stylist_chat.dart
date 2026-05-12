@@ -688,6 +688,7 @@ class _AhviStylistChatSheetState extends State<_AhviStylistChatSheet>
       final updatedMemory = response['updated_memory'];
       if (updatedMemory != null) _runningMemory = updatedMemory.toString();
       final boardPayload = _StyleBoardPayload.fromResponse(response);
+      final gapPayload = _WardrobeGapPayload.fromResponse(response);
 
       setState(() {
         _typing = false;
@@ -695,7 +696,10 @@ class _AhviStylistChatSheetState extends State<_AhviStylistChatSheet>
           _SheetMessage(
             text: aiText,
             isUser: false,
-            boardPayload: boardPayload.hasBoards ? boardPayload : null,
+            boardPayload: boardPayload.hasBoards && !gapPayload.hasContent
+                ? boardPayload
+                : null,
+            wardrobeGapPayload: gapPayload.hasContent ? gapPayload : null,
           ),
         );
         _chatHistory.add({'role': 'assistant', 'content': aiText});
@@ -1125,7 +1129,9 @@ class _AhviStylistChatSheetState extends State<_AhviStylistChatSheet>
                     controller: _scrollController,
                     padding: EdgeInsets.fromLTRB(16, 8, 16, inputAreaH + 12),
                     children: [
-                      ..._messages.map((msg) => _Bubble(msg: msg)),
+                      ..._messages.map(
+                        (msg) => _Bubble(msg: msg, onPrompt: _sendMessage),
+                      ),
                       if (_typing) _TypingBubble(color: t.accent.secondary),
                     ],
                   ),
@@ -1261,12 +1267,14 @@ class _SheetMessage {
   final String? textKey;
   final bool isUser;
   final _StyleBoardPayload? boardPayload;
+  final _WardrobeGapPayload? wardrobeGapPayload;
 
   _SheetMessage({
     this.text,
     this.textKey,
     required this.isUser,
     this.boardPayload,
+    this.wardrobeGapPayload,
   }) : assert(text != null || textKey != null);
 
   String resolve(BuildContext context) {
@@ -1304,6 +1312,35 @@ class _StyleBoardPayload {
   }
 }
 
+class _WardrobeGapPayload {
+  final List<Map<String, dynamic>> missingItems;
+  final List<Map<String, dynamic>> chips;
+  final String closestSafeBrief;
+
+  const _WardrobeGapPayload({
+    required this.missingItems,
+    required this.chips,
+    required this.closestSafeBrief,
+  });
+
+  bool get hasContent => missingItems.isNotEmpty;
+
+  static _WardrobeGapPayload fromResponse(Map<String, dynamic> response) {
+    final data = response['data'] is Map
+        ? Map<String, dynamic>.from(response['data'] as Map)
+        : <String, dynamic>{};
+    final type = response['type']?.toString();
+    final missing = _mapList(
+      data['missing_items'] ?? data['find_this_recommendations'],
+    );
+    return _WardrobeGapPayload(
+      missingItems: type == 'missing_occasion_wardrobe' ? missing : const [],
+      chips: _mapList(response['chips']),
+      closestSafeBrief: (data['closest_safe_brief'] ?? '').toString(),
+    );
+  }
+}
+
 List<Map<String, dynamic>> _mapList(dynamic value) {
   if (value is! List) return const [];
   return value
@@ -1314,8 +1351,9 @@ List<Map<String, dynamic>> _mapList(dynamic value) {
 
 class _Bubble extends StatelessWidget {
   final _SheetMessage msg;
+  final ValueChanged<String> onPrompt;
 
-  const _Bubble({required this.msg});
+  const _Bubble({required this.msg, required this.onPrompt});
 
   @override
   Widget build(BuildContext context) {
@@ -1361,6 +1399,11 @@ class _Bubble extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         bubble,
+        if (msg.wardrobeGapPayload != null)
+          _WardrobeGapCard(
+            payload: msg.wardrobeGapPayload!,
+            onPrompt: onPrompt,
+          ),
         if (msg.boardPayload != null)
           _StyleBoardCarousel(payload: msg.boardPayload!),
       ],
@@ -1403,6 +1446,156 @@ class _Bubble extends StatelessWidget {
 // ════════════════════════════════════════════════════════════════════
 //  ADD MENU ROW  — list style matching design
 // ════════════════════════════════════════════════════════════════════
+
+class _WardrobeGapCard extends StatelessWidget {
+  final _WardrobeGapPayload payload;
+  final ValueChanged<String> onPrompt;
+
+  const _WardrobeGapCard({required this.payload, required this.onPrompt});
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.themeTokens;
+    return Container(
+      width: 280,
+      margin: const EdgeInsets.only(top: 4, bottom: 14),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: t.panel,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: t.cardBorder, width: 1.1),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.search_rounded, size: 18, color: t.accent.secondary),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Find this instead',
+                  style: TextStyle(
+                    color: t.textPrimary,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Your wardrobe is missing the pieces that would make this occasion read correctly.',
+            style: TextStyle(color: t.mutedText, fontSize: 11.5, height: 1.35),
+          ),
+          if (payload.closestSafeBrief.trim().isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(
+              'Closest safe brief: ${payload.closestSafeBrief}',
+              style: TextStyle(
+                color: t.textPrimary,
+                fontSize: 11.5,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+          const SizedBox(height: 12),
+          ...payload.missingItems.take(4).map((item) {
+            final label = (item['label'] ?? 'Occasion-ready piece').toString();
+            final reason =
+                (item['reason'] ?? 'Adds the missing occasion signal')
+                    .toString();
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 8,
+                    height: 8,
+                    margin: const EdgeInsets.only(top: 5),
+                    decoration: BoxDecoration(
+                      color: t.accent.secondary,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 9),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          label,
+                          style: TextStyle(
+                            color: t.textPrimary,
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          reason,
+                          style: TextStyle(
+                            color: t.mutedText,
+                            fontSize: 11,
+                            height: 1.3,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }),
+          if (payload.chips.isNotEmpty) ...[
+            const SizedBox(height: 2),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: payload.chips.take(3).map((chip) {
+                final label = (chip['label'] ?? chip['value'] ?? '').toString();
+                final value = (chip['value'] ?? label).toString();
+                return GestureDetector(
+                  onTap: label.trim().isEmpty ? null : () => onPrompt(value),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 7,
+                    ),
+                    decoration: BoxDecoration(
+                      color: t.accent.primary.withValues(alpha: 0.10),
+                      borderRadius: BorderRadius.circular(999),
+                      border: Border.all(
+                        color: t.accent.primary.withValues(alpha: 0.24),
+                      ),
+                    ),
+                    child: Text(
+                      label,
+                      style: TextStyle(
+                        color: t.accent.secondary,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
 
 class _StyleBoardCarousel extends StatelessWidget {
   final _StyleBoardPayload payload;
@@ -1498,14 +1691,21 @@ class _StyleBoardViewModel {
     }
 
     String boardSignature(String title, List<Map<String, dynamic>> items) {
-      final names = items
-          .map((item) => _text(
-                item['name'] ?? item['label'] ?? item['title'] ?? item['id'] ?? item[r'$id'],
-                '',
-              ).toLowerCase().trim())
-          .where((name) => name.isNotEmpty)
-          .toList()
-        ..sort();
+      final names =
+          items
+              .map(
+                (item) => _text(
+                  item['name'] ??
+                      item['label'] ??
+                      item['title'] ??
+                      item['id'] ??
+                      item[r'$id'],
+                  '',
+                ).toLowerCase().trim(),
+              )
+              .where((name) => name.isNotEmpty)
+              .toList()
+            ..sort();
 
       if (names.isNotEmpty) return names.join('|');
       return title.toLowerCase().trim();
@@ -1524,12 +1724,21 @@ class _StyleBoardViewModel {
     for (final card in payload.cards) {
       addBoard(
         _StyleBoardViewModel(
-          title: _text(card['title'] ?? card['name'] ?? card['label'], 'Styled Look'),
+          title: _text(
+            card['title'] ?? card['name'] ?? card['label'],
+            'Styled Look',
+          ),
           imageBase64: null,
           imageUrl: null,
           score: _intOrNull(card['score']),
-          vibe: _text(card['vibe'] ?? card['subtitle'] ?? card['reason'], 'wardrobe ready'),
-          aesthetic: _text(card['aesthetic'] ?? card['style'], 'personal style'),
+          vibe: _text(
+            card['vibe'] ?? card['subtitle'] ?? card['reason'],
+            'wardrobe ready',
+          ),
+          aesthetic: _text(
+            card['aesthetic'] ?? card['style'],
+            'personal style',
+          ),
           items: mergedBoardItems(card),
         ),
       );
@@ -1538,12 +1747,21 @@ class _StyleBoardViewModel {
     for (final outfit in payload.outfits) {
       addBoard(
         _StyleBoardViewModel(
-          title: _text(outfit['title'] ?? outfit['name'] ?? outfit['label'], 'Styled Look'),
+          title: _text(
+            outfit['title'] ?? outfit['name'] ?? outfit['label'],
+            'Styled Look',
+          ),
           imageBase64: null,
           imageUrl: null,
           score: _intOrNull(outfit['score']),
-          vibe: _text(outfit['vibe'] ?? outfit['reason'] ?? outfit['subtitle'], 'wardrobe ready'),
-          aesthetic: _text(outfit['aesthetic'] ?? outfit['style'], 'personal style'),
+          vibe: _text(
+            outfit['vibe'] ?? outfit['reason'] ?? outfit['subtitle'],
+            'wardrobe ready',
+          ),
+          aesthetic: _text(
+            outfit['aesthetic'] ?? outfit['style'],
+            'personal style',
+          ),
           items: mergedBoardItems(outfit),
         ),
       );
@@ -1572,7 +1790,10 @@ class _StyleBoardViewModel {
             ),
             score: _intOrNull(board['score']),
             vibe: _text(board['vibe'] ?? board['subtitle'], 'styled look'),
-            aesthetic: _text(board['aesthetic'] ?? board['style'], 'modern refined'),
+            aesthetic: _text(
+              board['aesthetic'] ?? board['style'],
+              'modern refined',
+            ),
             items: mergedBoardItems(board),
           ),
         );
@@ -1583,15 +1804,11 @@ class _StyleBoardViewModel {
   }
 }
 
-
 class _EditorialStyleBoardCard extends StatelessWidget {
   final _StyleBoardViewModel board;
   final double width;
 
-  const _EditorialStyleBoardCard({
-    required this.board,
-    required this.width,
-  });
+  const _EditorialStyleBoardCard({required this.board, required this.width});
 
   @override
   Widget build(BuildContext context) {
@@ -1639,7 +1856,9 @@ class _EditorialStyleBoardCard extends StatelessWidget {
 
     final accessories = _dedupEditorialAccessories(
       board.items.where((item) {
-        if (identical(item, top) || identical(item, bottom) || identical(item, footwear)) {
+        if (identical(item, top) ||
+            identical(item, bottom) ||
+            identical(item, footwear)) {
           return false;
         }
         final role = _editorialItemText(item);
@@ -1690,10 +1909,7 @@ class _EditorialStyleBoardCard extends StatelessWidget {
             _EditorialWhyBox(text: why),
             const SizedBox(height: 12),
             Expanded(
-              child: _EditorialMainOutfitZone(
-                top: top,
-                bottom: bottom,
-              ),
+              child: _EditorialMainOutfitZone(top: top, bottom: bottom),
             ),
             const SizedBox(height: 10),
             _EditorialSectionLabel(label: 'ACCESSORIES'),
@@ -1899,10 +2115,7 @@ class _EditorialMainOutfitZone extends StatelessWidget {
   final Map<String, dynamic>? top;
   final Map<String, dynamic>? bottom;
 
-  const _EditorialMainOutfitZone({
-    required this.top,
-    required this.bottom,
-  });
+  const _EditorialMainOutfitZone({required this.top, required this.bottom});
 
   @override
   Widget build(BuildContext context) {
@@ -2008,10 +2221,7 @@ class _EditorialWardrobeImage extends StatelessWidget {
   final Map<String, dynamic> item;
   final BoxFit fit;
 
-  const _EditorialWardrobeImage({
-    required this.item,
-    required this.fit,
-  });
+  const _EditorialWardrobeImage({required this.item, required this.fit});
 
   @override
   Widget build(BuildContext context) {
@@ -2159,12 +2369,21 @@ String _editorialLookName(
     return existing;
   }
 
-  final topColor = _text(top?['color'] ?? top?['dominant_color'], '').toLowerCase();
-  final bottomColor = _text(bottom?['color'] ?? bottom?['dominant_color'], '').toLowerCase();
+  final topColor = _text(
+    top?['color'] ?? top?['dominant_color'],
+    '',
+  ).toLowerCase();
+  final bottomColor = _text(
+    bottom?['color'] ?? bottom?['dominant_color'],
+    '',
+  ).toLowerCase();
 
   String prettyColor(String value) {
     if (value.contains('green') || value.contains('emerald')) return 'Emerald';
-    if (value.contains('beige') || value.contains('cream') || value.contains('tan')) return 'Sand';
+    if (value.contains('beige') ||
+        value.contains('cream') ||
+        value.contains('tan'))
+      return 'Sand';
     if (value.contains('black')) return 'Noir';
     if (value.contains('white')) return 'Ivory';
     if (value.contains('blue') || value.contains('denim')) return 'Denim';
@@ -2188,8 +2407,10 @@ String _editorialOccasion(_StyleBoardViewModel board) {
   final text = '${board.vibe} ${board.aesthetic} ${board.title}'.toLowerCase();
 
   if (text.contains('date')) return 'Date Night';
-  if (text.contains('office') || text.contains('business')) return 'Office Casual';
-  if (text.contains('evening') || text.contains('dinner')) return 'Evening Casual';
+  if (text.contains('office') || text.contains('business'))
+    return 'Office Casual';
+  if (text.contains('evening') || text.contains('dinner'))
+    return 'Evening Casual';
   if (text.contains('brunch')) return 'Brunch';
   if (text.contains('street')) return 'Streetwear';
 
@@ -2207,13 +2428,21 @@ String _editorialWhyItWorks(
     return existing;
   }
 
-  final topName = _text(top?['name'] ?? top?['label'] ?? top?['category'], 'top');
-  final bottomName = _text(bottom?['name'] ?? bottom?['label'] ?? bottom?['category'], 'bottom');
-  final footwearName = _text(footwear?['name'] ?? footwear?['label'] ?? footwear?['category'], 'footwear');
+  final topName = _text(
+    top?['name'] ?? top?['label'] ?? top?['category'],
+    'top',
+  );
+  final bottomName = _text(
+    bottom?['name'] ?? bottom?['label'] ?? bottom?['category'],
+    'bottom',
+  );
+  final footwearName = _text(
+    footwear?['name'] ?? footwear?['label'] ?? footwear?['category'],
+    'footwear',
+  );
 
   return 'The $topName creates the focal point, the $bottomName balances the silhouette, and the $footwearName finishes the look for a clean styled outfit.';
 }
-
 
 class _PinterestStyleBoardCard extends StatelessWidget {
   final _StyleBoardViewModel board;

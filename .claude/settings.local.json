@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -oE '[0-9.]+$')",
+      "Bash(grep -v -E '^[a-z0-9_]+\\(\\\\.dart\\)?$')",
+      "Bash(grep -v -E '/[a-z][a-z0-9_]*\\\\.dart$')",
+      "Bash(ls \"C:\\\\Users\\\\USER\\\\Downloads\\\\AHVI-main\\\\AHVI-main\")",
+      "Read(//c/tmp/AHVI-demo-branch/**)",
+      "Bash(flutter analyze *)",
+      "Bash(flutter pub *)",
+      "Bash(flutter build *)",
+      "Bash(cp 'C:\\\\tmp\\\\AHVI-frontend-clean\\\\.env' 'C:\\\\tmp\\\\AHVI-demo-branch\\\\.env' && ls -la 'C:\\\\tmp\\\\AHVI-demo-branch\\\\.env')",
+      "Bash(git add *)",
+      "Bash(git commit -m 'Fix Explore tab blank screen — shift coming-soon index 4 -> 3 *)",
+      "Bash(git commit -m 'Fix calendar chat send + add Explore placeholder *)",
+      "Bash(git commit -m 'Fix existing users re-routed to onboarding *)",
+      "Skill(gsd-code-review)",
+      "Skill(gsd-code-review:*)",
+      "Read(//c/tmp/**)",
+      "Read(//c/Users/USER/Downloads/**)",
+      "Bash(python -c \"import ast; ast.parse\\(open\\('brain/intent_engine.py', encoding='utf-8'\\).read\\(\\)\\); ast.parse\\(open\\('routers/chat.py', encoding='utf-8'\\).read\\(\\)\\); ast.parse\\(open\\('services/llm_service.py', encoding='utf-8'\\).read\\(\\)\\); print\\('SYNTAX OK'\\)\")"
+    ]
+  }
+}
