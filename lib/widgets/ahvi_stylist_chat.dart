@@ -2546,7 +2546,7 @@ class _PinterestStyleBoardCard extends StatelessWidget {
     final t = context.themeTokens;
     final itemLine = _itemLine(board.items);
     final chips = _chipsFor(board);
-    final imageHeight = width * 1.22;
+    final imageHeight = width * 1.34;
 
     return Container(
       width: width,
@@ -2618,7 +2618,7 @@ class _PinterestStyleBoardCard extends StatelessWidget {
                       ),
                   ],
                 ),
-                const SizedBox(height: 7),
+                const SizedBox(height: 6),
                 Text(
                   itemLine,
                   maxLines: 2,
@@ -2626,22 +2626,43 @@ class _PinterestStyleBoardCard extends StatelessWidget {
                   style: TextStyle(
                     color: t.mutedText,
                     fontSize: 11,
-                    height: 1.32,
+                    height: 1.3,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
-                const SizedBox(height: 9),
-                Wrap(
-                  spacing: 6,
-                  runSpacing: 6,
-                  children: chips
-                      .map(
-                        (chip) =>
-                            _BoardChip(label: chip, color: t.accent.secondary),
-                      )
-                      .toList(),
-                ),
-                const SizedBox(height: 12),
+                if (board.vibe.trim().isNotEmpty &&
+                    board.vibe.trim().toLowerCase() != 'wardrobe ready' &&
+                    board.vibe.trim().toLowerCase() != 'styled look') ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    'Why it works · ${board.vibe.trim()}',
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: t.textPrimary.withValues(alpha: 0.78),
+                      fontSize: 11,
+                      height: 1.3,
+                      fontWeight: FontWeight.w600,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ],
+                if (chips.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: chips
+                        .map(
+                          (chip) => _BoardChip(
+                            label: chip,
+                            color: t.accent.secondary,
+                          ),
+                        )
+                        .toList(),
+                  ),
+                ],
+                const SizedBox(height: 10),
                 Row(
                   children: [
                     Expanded(
