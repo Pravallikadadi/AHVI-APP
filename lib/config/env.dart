@@ -2,6 +2,11 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class Env {
+  static const String appBuildVersion = String.fromEnvironment(
+    'AHVI_APP_BUILD_VERSION',
+    defaultValue: '1.0.0+1',
+  );
+
   static String get appwriteEndpoint =>
       dotenv.env['EXPO_PUBLIC_APPWRITE_ENDPOINT'] ?? '';
   static String get appwriteProjectId =>
@@ -31,9 +36,9 @@ class Env {
   static String get lifeGoalsCollection =>
       dotenv.env['EXPO_PUBLIC_APPWRITE_COLLECTION_LIFE_GOALS'] ?? '';
   static String get backendApiUrl =>
-    dotenv.env['EXPO_PUBLIC_BACKEND_API_URL'] ??
-    dotenv.env['BACKEND_URL'] ??
-    '';
+      dotenv.env['EXPO_PUBLIC_BACKEND_API_URL'] ??
+      dotenv.env['BACKEND_URL'] ??
+      '';
   static String get mealPlansCollection =>
       dotenv.env['EXPO_PUBLIC_APPWRITE_COLLECTION_MEAL_PLANS'] ?? '';
 
@@ -67,5 +72,10 @@ class Env {
     final missing = missingRequiredKeys;
     if (missing.isEmpty) return;
     debugPrint('AHVI config missing: ${missing.join(', ')}');
+  }
+
+  static void debugPrintRuntimeTarget() {
+    debugPrint('AHVI Backend URL: $backendApiUrl');
+    debugPrint('AHVI App build version: $appBuildVersion');
   }
 }

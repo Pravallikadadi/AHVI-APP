@@ -42,6 +42,7 @@ Future<void> main() async {
   // Load the .env file
   await dotenv.load(fileName: ".env");
   Env.debugPrintMissingConfig();
+  Env.debugPrintRuntimeTarget();
 
   runApp(const MyApp());
 }
