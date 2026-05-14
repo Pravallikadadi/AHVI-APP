@@ -694,7 +694,9 @@ class _AhviStylistChatSheetState extends State<_AhviStylistChatSheet>
         _typing = false;
         _messages.add(
           _SheetMessage(
-            text: aiText,
+            text: gapPayload.active && gapPayload.message.trim().isNotEmpty
+                ? gapPayload.message.trim()
+                : aiText,
             isUser: false,
             boardPayload: boardPayload.hasBoards && !gapPayload.hasContent
                 ? boardPayload
@@ -702,7 +704,12 @@ class _AhviStylistChatSheetState extends State<_AhviStylistChatSheet>
             wardrobeGapPayload: gapPayload.hasContent ? gapPayload : null,
           ),
         );
-        _chatHistory.add({'role': 'assistant', 'content': aiText});
+        _chatHistory.add({
+          'role': 'assistant',
+          'content': gapPayload.active && gapPayload.message.trim().isNotEmpty
+              ? gapPayload.message.trim()
+              : aiText,
+        });
       });
       _scrollToBottom();
       _saveCurrentSession();
@@ -1313,28 +1320,95 @@ class _StyleBoardPayload {
 }
 
 class _WardrobeGapPayload {
+  final bool active;
+  final String type;
+  final String message;
   final List<Map<String, dynamic>> missingItems;
   final List<Map<String, dynamic>> chips;
   final String closestSafeBrief;
 
   const _WardrobeGapPayload({
+    required this.active,
+    required this.type,
+    required this.message,
     required this.missingItems,
     required this.chips,
     required this.closestSafeBrief,
   });
 
-  bool get hasContent => missingItems.isNotEmpty;
+  bool get hasContent =>
+      active &&
+      (message.trim().isNotEmpty ||
+          missingItems.isNotEmpty ||
+          closestSafeBrief.trim().isNotEmpty ||
+          chips.isNotEmpty);
 
   static _WardrobeGapPayload fromResponse(Map<String, dynamic> response) {
     final data = response['data'] is Map
         ? Map<String, dynamic>.from(response['data'] as Map)
         : <String, dynamic>{};
-    final type = response['type']?.toString();
+
+    final type = response['type']?.toString() ?? '';
+    final isBackendGap = type == 'missing_occasion_wardrobe' ||
+        type == 'missing_core_wardrobe_slots';
+
     final missing = _mapList(
       data['missing_items'] ?? data['find_this_recommendations'],
     );
+
+    final rawMessage = response['message'];
+    var backendMessage =
+        (response['message_text'] ??
+                (rawMessage is Map ? rawMessage['content'] : rawMessage) ??
+                data['message'] ??
+                '')
+            .toString()
+            .trim();
+
+    final lowerMessage = backendMessage.toLowerCase();
+    final isCoreSlotCopy = lowerMessage.contains('top, bottom, and footwear') ||
+        lowerMessage.contains('complete style board from your wardrobe');
+
+    final occasionRaw =
+        (data['occasion'] ??
+                (data['wardrobe_gap'] is Map
+                    ? (data['wardrobe_gap'] as Map)['occasion']
+                    : null) ??
+                '')
+            .toString()
+            .toLowerCase()
+            .replaceAll('-', '_')
+            .replaceAll(' ', '_');
+
+    if (type == 'missing_occasion_wardrobe' &&
+        (backendMessage.isEmpty || isCoreSlotCopy)) {
+      if (occasionRaw == 'date' ||
+          occasionRaw == 'date_night' ||
+          occasionRaw == 'datenight') {
+        backendMessage =
+            "I don't see enough strong date-night options yet. I'd avoid forcing office styling into an evening brief.";
+      } else if (occasionRaw == 'beach' ||
+          occasionRaw == 'beach_wear' ||
+          occasionRaw == 'beachwear' ||
+          occasionRaw == 'coastal') {
+        backendMessage =
+            "I don't see enough beach-ready pieces yet. I'd rather not force formal trousers or loafers into a beach brief.";
+      } else {
+        backendMessage =
+            "I don't see enough occasion-ready options yet. I'd rather not force a weak look.";
+      }
+    }
+
+    if (type == 'missing_core_wardrobe_slots' && backendMessage.isEmpty) {
+      backendMessage =
+          "I couldn't build a complete style board from your wardrobe yet. Please add at least one top, bottom, and footwear item.";
+    }
+
     return _WardrobeGapPayload(
-      missingItems: type == 'missing_occasion_wardrobe' ? missing : const [],
+      active: isBackendGap,
+      type: type,
+      message: isBackendGap ? backendMessage : '',
+      missingItems: isBackendGap ? missing : const [],
       chips: _mapList(response['chips']),
       closestSafeBrief: (data['closest_safe_brief'] ?? '').toString(),
     );
@@ -1619,8 +1693,17 @@ class _StyleBoardCarousel extends StatelessWidget {
         physics: const BouncingScrollPhysics(),
         itemCount: boards.length,
         separatorBuilder: (_, _) => const SizedBox(width: 12),
-        itemBuilder: (_, index) =>
-            _EditorialStyleBoardCard(board: boards[index], width: width),
+        itemBuilder: (_, index) {
+          final board = boards[index];
+
+          debugPrint(
+            'AHVI_RENDER using=pinterest_board '
+            'title=${board.title} '
+            'items=${board.items.length}',
+          );
+
+          return _PinterestStyleBoardCard(board: board, width: width);
+        },
       ),
     );
   }
@@ -1628,6 +1711,7 @@ class _StyleBoardCarousel extends StatelessWidget {
 
 class _StyleBoardViewModel {
   final String title;
+  final String? badge;
   final String? imageBase64;
   final String? imageUrl;
   final int? score;
@@ -1637,6 +1721,7 @@ class _StyleBoardViewModel {
 
   const _StyleBoardViewModel({
     required this.title,
+    this.badge,
     this.imageBase64,
     this.imageUrl,
     this.score,
@@ -1718,83 +1803,89 @@ class _StyleBoardViewModel {
       }
     }
 
-    // Demo-safe contract:
-    // Prefer live backend cards first because rendered_boards may contain stale
-    // pre-rendered 3-piece images. Cards contain the full item payload.
-    for (final card in payload.cards) {
+    // Prefer backend-rendered board layout when present. Fall back to live
+    // cards/outfits only when the backend did not send board layout data.
+    for (final board in payload.renderedBoards) {
       addBoard(
         _StyleBoardViewModel(
           title: _text(
-            card['title'] ?? card['name'] ?? card['label'],
-            'Styled Look',
+            board['label'] ?? board['title'] ?? board['name'],
+            'AHVI Style Board',
           ),
-          imageBase64: null,
-          imageUrl: null,
-          score: _intOrNull(card['score']),
-          vibe: _text(
-            card['vibe'] ?? card['subtitle'] ?? card['reason'],
-            'wardrobe ready',
+          badge: _nullableText(
+            board['badge'] ?? board['occasion_label'] ?? board['occasion'],
           ),
+          imageBase64: _nullableText(
+            board['image_base64'] ??
+                board['imageBase64'] ??
+                board['board_image_base64'],
+          ),
+          imageUrl: _nullableText(
+            board['image_url'] ??
+                board['imageUrl'] ??
+                board['board_image_url'] ??
+                board['boardImageUrl'],
+          ),
+          score: _intOrNull(board['score']),
+          vibe: _text(board['vibe'] ?? board['subtitle'], 'styled look'),
           aesthetic: _text(
-            card['aesthetic'] ?? card['style'],
-            'personal style',
+            board['aesthetic'] ?? board['style'],
+            'modern refined',
           ),
-          items: mergedBoardItems(card),
+          items: mergedBoardItems(board),
         ),
       );
     }
 
-    for (final outfit in payload.outfits) {
-      addBoard(
-        _StyleBoardViewModel(
-          title: _text(
-            outfit['title'] ?? outfit['name'] ?? outfit['label'],
-            'Styled Look',
-          ),
-          imageBase64: null,
-          imageUrl: null,
-          score: _intOrNull(outfit['score']),
-          vibe: _text(
-            outfit['vibe'] ?? outfit['reason'] ?? outfit['subtitle'],
-            'wardrobe ready',
-          ),
-          aesthetic: _text(
-            outfit['aesthetic'] ?? outfit['style'],
-            'personal style',
-          ),
-          items: mergedBoardItems(outfit),
-        ),
-      );
-    }
-
-    // Only use rendered boards if no live cards/outfits are available.
-    // This prevents stale 3-piece board images from hiding accessories.
     if (boards.isEmpty) {
-      for (final board in payload.renderedBoards) {
+      for (final card in payload.cards) {
         addBoard(
           _StyleBoardViewModel(
             title: _text(
-              board['label'] ?? board['title'] ?? board['name'],
-              'AHVI Style Board',
+              card['title'] ?? card['name'] ?? card['label'],
+              'Styled Look',
             ),
-            imageBase64: _nullableText(
-              board['image_base64'] ??
-                  board['imageBase64'] ??
-                  board['board_image_base64'],
+            badge: _nullableText(
+              card['badge'] ?? card['occasion_label'] ?? card['occasion'],
             ),
-            imageUrl: _nullableText(
-              board['image_url'] ??
-                  board['imageUrl'] ??
-                  board['board_image_url'] ??
-                  board['boardImageUrl'],
+            imageBase64: null,
+            imageUrl: null,
+            score: _intOrNull(card['score']),
+            vibe: _text(
+              card['vibe'] ?? card['subtitle'] ?? card['reason'],
+              'wardrobe ready',
             ),
-            score: _intOrNull(board['score']),
-            vibe: _text(board['vibe'] ?? board['subtitle'], 'styled look'),
             aesthetic: _text(
-              board['aesthetic'] ?? board['style'],
-              'modern refined',
+              card['aesthetic'] ?? card['style'],
+              'personal style',
             ),
-            items: mergedBoardItems(board),
+            items: mergedBoardItems(card),
+          ),
+        );
+      }
+
+      for (final outfit in payload.outfits) {
+        addBoard(
+          _StyleBoardViewModel(
+            title: _text(
+              outfit['title'] ?? outfit['name'] ?? outfit['label'],
+              'Styled Look',
+            ),
+            badge: _nullableText(
+              outfit['badge'] ?? outfit['occasion_label'] ?? outfit['occasion'],
+            ),
+            imageBase64: null,
+            imageUrl: null,
+            score: _intOrNull(outfit['score']),
+            vibe: _text(
+              outfit['vibe'] ?? outfit['reason'] ?? outfit['subtitle'],
+              'wardrobe ready',
+            ),
+            aesthetic: _text(
+              outfit['aesthetic'] ?? outfit['style'],
+              'personal style',
+            ),
+            items: mergedBoardItems(outfit),
           ),
         );
       }
@@ -2501,7 +2592,7 @@ class _PinterestStyleBoardCard extends StatelessWidget {
                         ),
                       ),
                     ),
-                    if (board.score != null)
+                    if (board.badge != null && board.badge!.trim().isNotEmpty)
                       Container(
                         margin: const EdgeInsets.only(left: 8),
                         padding: const EdgeInsets.symmetric(
@@ -2516,11 +2607,12 @@ class _PinterestStyleBoardCard extends StatelessWidget {
                           ),
                         ),
                         child: Text(
-                          '${board.score}% match',
+                          board.badge!.toUpperCase(),
                           style: TextStyle(
                             color: t.accent.primary,
                             fontSize: 10,
                             fontWeight: FontWeight.w800,
+                            letterSpacing: 0.6,
                           ),
                         ),
                       ),
@@ -2554,21 +2646,21 @@ class _PinterestStyleBoardCard extends StatelessWidget {
                   children: [
                     Expanded(
                       child: _BoardActionButton(
-                        label: 'Save Board',
+                        label: 'Save Look',
                         filled: true,
                         onTap: () => _toast(
                           context,
-                          'Board ready to save after Appwrite sync.',
+                          'Look saved to your boards.',
                         ),
                       ),
                     ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: _BoardActionButton(
-                        label: 'Wear This',
+                        label: 'Share',
                         filled: false,
                         onTap: () =>
-                            _toast(context, 'Look selected for today.'),
+                            _toast(context, 'Share sheet coming soon.'),
                       ),
                     ),
                   ],
