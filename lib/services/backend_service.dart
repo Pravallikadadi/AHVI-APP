@@ -231,11 +231,15 @@ class BackendService {
         return _normalizeChatResponse(data);
       }
 
+      debugPrint(
+        'AHVI_BACKEND_FAIL endpoint=/api/chat/chat status=${response.statusCode} body=${response.body}',
+      );
       throw Exception(
         'Failed to get AI response: ${response.statusCode} ${response.body}',
       );
-    } catch (e) {
-      debugPrint('Backend Error: $e');
+    } catch (e, st) {
+      debugPrint('AHVI_BACKEND_EXCEPTION endpoint=/api/chat/chat error=$e');
+      debugPrint('AHVI_BACKEND_EXCEPTION stack=$st');
       final fallback = _demoChatFallback(query, moduleContext);
       return {
         'error': 'Backend fallback: $e',
@@ -292,11 +296,15 @@ class BackendService {
         });
       }
 
+      debugPrint(
+        'AHVI_BACKEND_FAIL endpoint=/api/chat/module-chat status=${response.statusCode} body=${response.body}',
+      );
       throw Exception(
         'Failed module chat: ${response.statusCode} ${response.body}',
       );
-    } catch (e) {
-      debugPrint('Module chat error: $e');
+    } catch (e, st) {
+      debugPrint('AHVI_BACKEND_EXCEPTION endpoint=/api/chat/module-chat error=$e');
+      debugPrint('AHVI_BACKEND_EXCEPTION stack=$st');
       const fallback = 'AHVI is still preparing this. Try again in a moment.';
       return {
         'error': 'Backend module chat failed: $e',
@@ -350,7 +358,7 @@ class BackendService {
               'save_duplicates': saveDuplicates,
             }),
           )
-          .timeout(const Duration(seconds: 90));
+          .timeout(const Duration(seconds: 120));
 
       if (response.statusCode == 200) {
         final data = await compute(_parseJsonMap, response.body);
@@ -432,7 +440,7 @@ class BackendService {
               'detected_items': detectedItems,
             }),
           )
-          .timeout(const Duration(seconds: 30));
+          .timeout(const Duration(seconds: 120));
 
       if (response.statusCode == 200) {
         return await compute(_parseJsonMap, response.body);
