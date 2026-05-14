@@ -2,7 +2,6 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:myapp/bills_page.dart' as bills_page;
 import 'package:myapp/calendar.dart' as calendar_page;
@@ -14,6 +13,7 @@ import 'package:myapp/widgets/ahvi_home_text.dart';
 import 'package:myapp/widgets/ahvi_header.dart';
 import 'package:myapp/services/appwrite_service.dart';
 import 'package:myapp/services/ahvi_response_parser.dart';
+import 'package:myapp/services/ahvi_speech_service.dart';
 import 'package:myapp/services/backend_service.dart';
 import 'package:myapp/skincare.dart' as skincare_page;
 import 'package:myapp/fitness_page.dart' as fitness_page;
@@ -610,9 +610,7 @@ class _ChatScreenState extends State<ChatScreen>
   final Map<String, bool> _checklistSavedByTitle = {};
 
   // ── Voice ──────────────────────────────────────────────────────────────────
-  final stt.SpeechToText _speech = stt.SpeechToText();
   bool _isListening = false;
-  bool _speechAvailable = false;
 
   // ── History ────────────────────────────────────────────────────────────────
   List<_ChatSession> _sessions = [];
@@ -628,7 +626,6 @@ class _ChatScreenState extends State<ChatScreen>
     WidgetsBinding.instance.addObserver(this);
     _currentSessionId = DateTime.now().millisecondsSinceEpoch.toString();
     _loadSessions();
-    _initSpeech();
 
     // Keyboard వచ్చినప్పుడు scroll to bottom
     _chatFocusNode.addListener(() {
@@ -666,46 +663,33 @@ class _ChatScreenState extends State<ChatScreen>
     }
   }
 
-  Future<void> _initSpeech() async {
-    _speechAvailable = await _speech.initialize(
-      onStatus: (status) {
-        if (status == 'done' || status == 'notListening') {
-          if (mounted) setState(() => _isListening = false);
-        }
+  Future<void> _toggleListening() async {
+    if (_isListening) {
+      await AhviSpeechService.instance.stop();
+      if (mounted) setState(() => _isListening = false);
+      return;
+    }
+
+    if (mounted) setState(() => _isListening = true);
+
+    await AhviSpeechService.instance.start(
+      onText: (text) {
+        if (!mounted) return;
+
+        setState(() {
+          _chatController.text = text;
+          _chatController.selection = TextSelection.fromPosition(
+            TextPosition(offset: _chatController.text.length),
+          );
+        });
       },
-      onError: (e) {
+      onDone: () {
         if (mounted) setState(() => _isListening = false);
       },
     );
-    if (mounted) setState(() {});
-  }
 
-  Future<void> _toggleListening() async {
-    if (!_speechAvailable) return;
-    if (_isListening) {
-      await _speech.stop();
+    if (mounted && !AhviSpeechService.instance.isListening) {
       setState(() => _isListening = false);
-    } else {
-      setState(() => _isListening = true);
-      await _speech.listen(
-        onResult: (result) {
-          setState(() {
-            _chatController.text = result.recognizedWords;
-            _chatController.selection = TextSelection.fromPosition(
-              TextPosition(offset: _chatController.text.length),
-            );
-          });
-          if (result.finalResult && result.recognizedWords.trim().isNotEmpty) {
-            _speech.stop();
-            setState(() => _isListening = false);
-          }
-        },
-        listenFor: const Duration(seconds: 30),
-        pauseFor: const Duration(seconds: 4),
-        localeId: 'en_IN',
-        cancelOnError: true,
-        partialResults: true,
-      );
     }
   }
 
@@ -1027,7 +1011,9 @@ class _ChatScreenState extends State<ChatScreen>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    _speech.stop();
+    if (_isListening) {
+      AhviSpeechService.instance.cancel();
+    }
     _chatController.dispose();
     _chatFocusNode.dispose();
     _scrollController.dispose();

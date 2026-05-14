@@ -6,6 +6,7 @@ import 'package:myapp/app_localizations.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:myapp/services/appwrite_service.dart';
+import 'package:myapp/services/ahvi_speech_service.dart';
 import 'package:myapp/theme/theme_tokens.dart';
 import 'package:myapp/widgets/ahvi_stylist_chat.dart';
 import 'package:image_picker/image_picker.dart';
@@ -1328,17 +1329,20 @@ class _BillsScreenState extends State<BillsScreen>
                     child: Row(
                 children: [
                   SizedBox(width: 8),
-                  Container(
-                    width: 32,
-                    height: 32,
-                    decoration: BoxDecoration(
-                      color: _t.panel,
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Icon(
-                      Icons.mic_rounded,
-                      color: _t.mutedText,
-                      size: 14,
+                  GestureDetector(
+                    onTap: _startChatVoiceInput,
+                    child: Container(
+                      width: 32,
+                      height: 32,
+                      decoration: BoxDecoration(
+                        color: _t.panel,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Icon(
+                        Icons.mic_rounded,
+                        color: _t.mutedText,
+                        size: 14,
+                      ),
                     ),
                   ),
                   SizedBox(width: 8),
@@ -1406,6 +1410,21 @@ class _BillsScreenState extends State<BillsScreen>
       });
     });
     _chatInputCtrl.clear();
+  }
+
+  Future<void> _startChatVoiceInput() async {
+    await AhviSpeechService.instance.start(
+      onText: (text) {
+        if (!mounted) return;
+
+        setState(() {
+          _chatInputCtrl.text = text;
+          _chatInputCtrl.selection = TextSelection.fromPosition(
+            TextPosition(offset: _chatInputCtrl.text.length),
+          );
+        });
+      },
+    );
   }
 
 

@@ -3,7 +3,6 @@ import 'dart:io';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'package:flutter/services.dart';
 import 'package:myapp/boards.dart';
 import 'package:myapp/profile.dart' as profile;
@@ -12,6 +11,7 @@ import 'package:myapp/widgets/ahvi_chat_prompt_bar.dart';
 import 'package:myapp/widgets/ahvi_lens_sheet.dart';
 import 'package:myapp/widgets/ahvi_home_text.dart';
 import 'package:myapp/widgets/ahvi_header.dart';
+import 'package:myapp/services/ahvi_speech_service.dart';
 import 'package:myapp/theme/theme_tokens.dart';
 import 'package:provider/provider.dart';
 import 'package:myapp/services/appwrite_service.dart';
@@ -192,9 +192,7 @@ class _Screen4State extends State<Screen4>
   final ValueNotifier<double> _keyboardHeight = ValueNotifier<double>(0.0);
 
   // ── Voice ──────────────────────────────────────────────────────────────────
-  final stt.SpeechToText _speech = stt.SpeechToText();
   bool _isListening = false;
-  bool _speechAvailable = false;
   final Map<String, List<List<bool>>> _prepareExactChecksByTitle = {};
   final Map<String, List<List<String>>> _prepareExactItemsByTitle = {};
   final Map<String, List<TextEditingController>>
@@ -263,7 +261,6 @@ class _Screen4State extends State<Screen4>
   @override
   void initState() {
     super.initState();
-    _initSpeech();
     // Keyboard height track చేయడానికి FocusNode listener
     _chatFocusNode.addListener(_onChatFocusChange);
     WidgetsBinding.instance.addObserver(this);
@@ -464,46 +461,33 @@ class _Screen4State extends State<Screen4>
   }
 
   // ── Voice methods ──────────────────────────────────────────────────────────
-  Future<void> _initSpeech() async {
-    _speechAvailable = await _speech.initialize(
-      onStatus: (status) {
-        if (status == 'done' || status == 'notListening') {
-          if (mounted) setState(() => _isListening = false);
-        }
+  Future<void> _toggleListening() async {
+    if (_isListening) {
+      await AhviSpeechService.instance.stop();
+      if (mounted) setState(() => _isListening = false);
+      return;
+    }
+
+    if (mounted) setState(() => _isListening = true);
+
+    await AhviSpeechService.instance.start(
+      onText: (text) {
+        if (!mounted) return;
+
+        setState(() {
+          _chatController.text = text;
+          _chatController.selection = TextSelection.fromPosition(
+            TextPosition(offset: _chatController.text.length),
+          );
+        });
       },
-      onError: (_) {
+      onDone: () {
         if (mounted) setState(() => _isListening = false);
       },
     );
-    if (mounted) setState(() {});
-  }
 
-  Future<void> _toggleListening() async {
-    if (!_speechAvailable) return;
-    if (_isListening) {
-      await _speech.stop();
+    if (mounted && !AhviSpeechService.instance.isListening) {
       setState(() => _isListening = false);
-    } else {
-      setState(() => _isListening = true);
-      await _speech.listen(
-        onResult: (result) {
-          setState(() {
-            _chatController.text = result.recognizedWords;
-            _chatController.selection = TextSelection.fromPosition(
-              TextPosition(offset: _chatController.text.length),
-            );
-          });
-          if (result.finalResult && result.recognizedWords.trim().isNotEmpty) {
-            _speech.stop();
-            setState(() => _isListening = false);
-          }
-        },
-        listenFor: const Duration(seconds: 30),
-        pauseFor: const Duration(seconds: 4),
-        localeId: 'en_IN',
-        cancelOnError: true,
-        partialResults: true,
-      );
     }
   }
 
@@ -529,11 +513,14 @@ class _Screen4State extends State<Screen4>
     });
   }
 
+  @override
   void dispose() {
     _chatFocusNode.removeListener(_onChatFocusChange);
     WidgetsBinding.instance.removeObserver(this);
     _keyboardHeight.dispose();
-    _speech.stop();
+    if (_isListening) {
+      AhviSpeechService.instance.cancel();
+    }
     _aurora1Ctrl.dispose();
     _aurora2Ctrl.dispose();
     _aurora3Ctrl.dispose();

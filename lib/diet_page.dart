@@ -4,7 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:myapp/app_localizations.dart';
 import 'package:myapp/services/backend_service.dart';
 import 'package:http/http.dart' as http;
-import 'package:speech_to_text/speech_to_text.dart' as stt;
+import 'package:myapp/services/ahvi_speech_service.dart';
 // theme_tokens.dart — use package import below if in a sub-folder
 // Update this path to match your project structure, e.g.:
 // import 'package:your_app/theme/theme_tokens.dart';
@@ -1626,14 +1626,11 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   // ── Voice ──────────────────────────────────────────────────────────
-  final stt.SpeechToText _speech = stt.SpeechToText();
   bool _isListening = false;
-  bool _speechAvailable = false;
 
   @override
   void initState() {
     super.initState();
-    _initSpeech();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted && _messages.isEmpty) {
         setState(() {
@@ -1648,50 +1645,38 @@ class _ChatScreenState extends State<ChatScreen> {
     });
   }
 
-  Future<void> _initSpeech() async {
-    _speechAvailable = await _speech.initialize(
-      onStatus: (status) {
-        if (status == 'done' || status == 'notListening') {
-          if (mounted) setState(() => _isListening = false);
-        }
+  Future<void> _toggleListening() async {
+    if (_isListening) {
+      await AhviSpeechService.instance.stop();
+      if (mounted) setState(() => _isListening = false);
+      return;
+    }
+
+    if (mounted) setState(() => _isListening = true);
+
+    await AhviSpeechService.instance.start(
+      onText: (text) {
+        if (!mounted) return;
+
+        setState(() {
+          _msgCtrl.text = text;
+          _msgCtrl.selection = TextSelection.fromPosition(
+            TextPosition(offset: _msgCtrl.text.length),
+          );
+        });
       },
-      onError: (e) {
+      onDone: () {
         if (mounted) setState(() => _isListening = false);
       },
     );
-    if (mounted) setState(() {});
-  }
 
-  Future<void> _toggleListening() async {
-    if (!_speechAvailable) return;
-    if (_isListening) {
-      await _speech.stop();
+    if (mounted && !AhviSpeechService.instance.isListening) {
       setState(() => _isListening = false);
-    } else {
-      setState(() => _isListening = true);
-      await _speech.listen(
-        onResult: (result) {
-          setState(() {
-            _msgCtrl.text = result.recognizedWords;
-            _msgCtrl.selection = TextSelection.fromPosition(
-              TextPosition(offset: _msgCtrl.text.length),
-            );
-          });
-          if (result.finalResult && result.recognizedWords.trim().isNotEmpty) {
-            _speech.stop();
-            setState(() => _isListening = false);
-          }
-        },
-        listenFor: const Duration(seconds: 30),
-        pauseFor: const Duration(seconds: 4),
-        localeId: 'en_IN',
-      );
     }
   }
 
   @override
   void dispose() {
-    _speech.stop();
     _msgCtrl.dispose();
     _msgFocus.dispose();
     _removeOverlay();

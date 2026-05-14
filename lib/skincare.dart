@@ -103,7 +103,7 @@ import 'package:myapp/widgets/ahvi_lens_sheet.dart';
 // F11 â†’ Tween color at peak via ColorTween in _TypingDotState
 // F12 â†’ Wrap each new message row in a _SlideUpMessage widget with its own controller
 // F13 â†’ http.post to Anthropic API, maintain List<Map> _chatHistory, use getCtx() system prompt
-// F16 â†’ speech_to_text package stub (graceful no-op if unavailable; visual state only)
+// F16 â†’ voice input placeholder (graceful no-op if unavailable; visual state only)
 // F18 â†’ openChat triggers Future.delayed(400ms) â†’ sendMessage with empty trigger â†’ AI greeting
 // F19 â†’ FocusNode + AnimatedContainer border color
 // F20 â†’ _rebuildStepAnimations() called in _setRoutine()
