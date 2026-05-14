@@ -157,10 +157,10 @@ String _cleanCategory(Object? value, {String fallback = 'Tops'}) {
     'Makeup',
     'Skincare',
     'Indian Wear',
+    'Needs Review',
   };
 
   if (allowed.contains(raw)) {
-    if (raw == 'Bags' || raw == 'Jewelry') return 'Accessories';
     return raw;
   }
 
@@ -227,15 +227,22 @@ String _cleanCategory(Object? value, {String fallback = 'Tops'}) {
     return 'Footwear';
   }
 
+  if (_hasAnyCategoryToken(tokens, ['watch', 'watches'])) {
+    return 'Accessories';
+  }
+
   if (_hasAnyCategoryToken(tokens, [
-    'watch',
-    'watches',
     'bag',
     'bags',
-    'belt',
-    'belts',
-    'scarf',
-    'scarves',
+    'purse',
+    'tote',
+    'clutch',
+    'backpack',
+  ])) {
+    return 'Bags';
+  }
+
+  if (_hasAnyCategoryToken(tokens, [
     'jewelry',
     'jewellery',
     'jewel',
@@ -245,6 +252,15 @@ String _cleanCategory(Object? value, {String fallback = 'Tops'}) {
     'bracelet',
     'earring',
     'earrings',
+  ])) {
+    return 'Jewelry';
+  }
+
+  if (_hasAnyCategoryToken(tokens, [
+    'belt',
+    'belts',
+    'scarf',
+    'scarves',
     'accessory',
     'accessories',
     'hat',
@@ -881,21 +897,17 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
         .toList();
 
     try {
-      final client = Client()
-          .setEndpoint(Env.appwriteEndpoint)
-          .setProject(Env.appwriteProjectId);
-      final databases = Databases(client);
-      await databases.updateDocument(
-        databaseId: Env.appwriteDatabaseId,
-        collectionId: Env.outfitsCollection,
-        documentId: item.id,
-        data: {
-          'name': nextName,
-          'category': selectedCat,
-          'notes': nextNotes,
-          'occasions': nextOccasions,
-        },
+      final backend = Provider.of<BackendService>(context, listen: false);
+      final result = await backend.updateWardrobeLabels(
+        itemId: item.id,
+        name: nextName,
+        category: selectedCat,
+        tags: nextOccasions,
       );
+      if (result == null || result['success'] == false) {
+        _showToast('Could not update labels. Try again.');
+        return;
+      }
       setState(() {
         item.name = nextName;
         item.cat = selectedCat;
@@ -905,7 +917,7 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
       await _saveWardrobeCache();
       _showToast('Labels updated');
     } catch (e) {
-      _showToast('Could not update labels. Check Appwrite permissions.');
+      _showToast('Could not update labels. Try again.');
     }
   }
 
@@ -1758,6 +1770,7 @@ class _DetectedItem {
     if (s.contains('dress') ||
         s.contains('gown') ||
         s.contains('jumpsuit') ||
+        s.contains('sari') ||
         s.contains('saree') ||
         s.contains('lehenga')) {
       return 'Dresses';
@@ -1799,7 +1812,7 @@ class _DetectedItem {
     if (s.contains('makeup') || s.contains('lipstick')) return 'Makeup';
     if (s.contains('skincare') || s.contains('moisturizer')) return 'Skincare';
 
-    return 'Accessories';
+    return 'Needs Review';
   }
 
   static String catEmoji(String cat) =>
@@ -1814,11 +1827,127 @@ class _DetectedItem {
         'Jewelry': 'JWL',
         'Makeup': 'MKP',
         'Skincare': 'SKN',
+        'Needs Review': 'REV',
       }[cat] ??
       'ITM';
 }
 
 // ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ MODAL STEP ENUM ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬
+class _DetectedTaxonomy {
+  final String name;
+  final String category;
+  final String subCategory;
+  final bool requiresManualEntry;
+
+  const _DetectedTaxonomy({
+    required this.name,
+    required this.category,
+    required this.subCategory,
+    required this.requiresManualEntry,
+  });
+}
+
+String _taxonomyText(Map<String, dynamic> data) {
+  return [
+    data['name'],
+    data['category'],
+    data['sub_category'],
+    data['subcategory'],
+    data['label'],
+    data['garment_type'],
+    data['type'],
+  ].where((v) => v != null).map((v) => v.toString()).join(' ').toLowerCase();
+}
+
+bool _hasAnyText(String text, List<String> words) {
+  return words.any((word) => text.contains(word));
+}
+
+_DetectedTaxonomy _normalizeDetectedTaxonomy(Map<String, dynamic> data) {
+  final text = _taxonomyText(data);
+  final rawName = _cleanUiText(data['name'], fallback: 'Review item');
+  final confidence = data['confidence'] is num
+      ? (data['confidence'] as num).toDouble()
+      : 0.0;
+
+  String category = _DetectedItem.mapCategory(text);
+  var subCategory = _cleanUiText(data['sub_category']);
+
+  if (_hasAnyText(text, ['sari', 'saree'])) {
+    category = 'Dresses';
+    subCategory = subCategory.isNotEmpty ? subCategory : 'Saree';
+  } else if (_hasAnyText(text, [
+    'one-piece',
+    'one piece',
+    'mini dress',
+    'gown',
+    'dress',
+  ])) {
+    category = 'Dresses';
+    subCategory = subCategory.isNotEmpty ? subCategory : 'Dress';
+  } else if (_hasAnyText(text, ['bag', 'purse', 'tote', 'clutch'])) {
+    category = 'Bags';
+    subCategory = subCategory.isNotEmpty ? subCategory : 'Bag';
+  } else if (_hasAnyText(text, [
+    'jewelry',
+    'jewellery',
+    'ring',
+    'bracelet',
+    'necklace',
+    'earring',
+  ])) {
+    category = 'Jewelry';
+    subCategory = subCategory.isNotEmpty ? subCategory : 'Jewelry';
+  } else if (_hasAnyText(text, ['watch'])) {
+    category = 'Accessories';
+    subCategory = subCategory.isNotEmpty ? subCategory : 'Watch';
+  } else if (_hasAnyText(text, ['belt'])) {
+    category = 'Accessories';
+    subCategory = subCategory.isNotEmpty ? subCategory : 'Belt';
+  }
+
+  final lowerName = rawName.toLowerCase();
+  final genericUnknown = _hasAnyText(text, [
+    'unknown',
+    'uncategorized',
+    'generic item',
+    'item accessories',
+  ]);
+  final weakAccessory =
+      category == 'Accessories' &&
+      !_hasAnyText(text, [
+        'watch',
+        'belt',
+        'scarf',
+        'hat',
+        'cap',
+        'sunglass',
+        'accessory',
+      ]);
+  final needsReview =
+      genericUnknown ||
+      category == 'Needs Review' ||
+      (confidence > 0 && confidence < 0.35 && weakAccessory);
+
+  if (needsReview) {
+    return _DetectedTaxonomy(
+      name: lowerName == 'unknown' || lowerName == 'item'
+          ? 'Review item'
+          : rawName,
+      category: 'Needs Review',
+      subCategory: '',
+      requiresManualEntry: true,
+    );
+  }
+
+  return _DetectedTaxonomy(
+    name: rawName,
+    category: category,
+    subCategory: subCategory,
+    requiresManualEntry: data['requires_manual_entry'] == true,
+  );
+}
+
 enum _ModalStep { camera, detecting, results, editing }
 
 // ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ ADD ITEM MODAL ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â Camera embedded inside ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬
@@ -1875,6 +2004,7 @@ class _AddItemModalState extends State<_AddItemModal>
     'Jewelry',
     'Makeup',
     'Skincare',
+    'Needs Review',
   ];
   static const _occs = ['Casual', 'Work', 'Dinner', 'Sport', 'Travel'];
 
@@ -2045,6 +2175,7 @@ class _AddItemModalState extends State<_AddItemModal>
 
     return raw.whereType<Map>().map((r) {
       final data = Map<String, dynamic>.from(r);
+      final taxonomy = _normalizeDetectedTaxonomy(data);
       final occasions = data['occasions'] is List
           ? List<String>.from(
               (data['occasions'] as List).map((v) => v.toString()),
@@ -2055,22 +2186,15 @@ class _AddItemModalState extends State<_AddItemModal>
             data['item_id']?.toString() ??
             data['id']?.toString() ??
             UniqueKey().toString(),
-        name: data['name']?.toString() ?? 'Unknown',
-        category: _DetectedItem.mapCategory(
-          [
-            data['name'],
-            data['category'],
-            data['sub_category'],
-            data['label'],
-          ].where((v) => v != null).join(' '),
-        ),
-        subCategory: data['sub_category']?.toString() ?? '',
+        name: taxonomy.name,
+        category: taxonomy.category,
+        subCategory: taxonomy.subCategory,
         color: data['color_name']?.toString() ?? data['color']?.toString(),
         colorCode: data['color_code']?.toString(),
         pattern: data['pattern']?.toString(),
         occasions: occasions,
         labelSource: data['label_source']?.toString(),
-        requiresManualEntry: data['requires_manual_entry'] == true,
+        requiresManualEntry: taxonomy.requiresManualEntry,
         confidence: (data['confidence'] is num)
             ? (data['confidence'] as num).toDouble()
             : 0,

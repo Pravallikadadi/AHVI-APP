@@ -456,6 +456,51 @@ class BackendService {
     }
   }
 
+  Future<Map<String, dynamic>?> updateWardrobeLabels({
+    required String itemId,
+    String? name,
+    String? category,
+    String? subcategory,
+    String? color,
+    String? material,
+    List<String>? tags,
+  }) async {
+    try {
+      final payload = <String, dynamic>{
+        'user_id': await _currentUserId(),
+        'item_id': itemId,
+      };
+      if (name != null) payload['name'] = name;
+      if (category != null) payload['category'] = category;
+      if (subcategory != null) payload['subcategory'] = subcategory;
+      if (color != null) payload['color'] = color;
+      if (material != null) payload['material'] = material;
+      if (tags != null) payload['tags'] = tags;
+
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/api/wardrobe/update-labels'),
+            headers: await _authHeaders(),
+            body: jsonEncode(payload),
+          )
+          .timeout(const Duration(seconds: 30));
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        return await compute(_parseJsonMap, response.body);
+      }
+
+      debugPrint(
+        'AHVI_BACKEND_FAIL endpoint=/api/wardrobe/update-labels '
+        'status=${response.statusCode} body=${response.body}',
+      );
+      return null;
+    } catch (e, st) {
+      debugPrint('AHVI_BACKEND_EXCEPTION endpoint=/api/wardrobe/update-labels error=$e');
+      debugPrint('AHVI_BACKEND_EXCEPTION stack=$st');
+      return null;
+    }
+  }
+
   Future<Map<String, dynamic>?> deleteWardrobeItems(
     List<Map<String, dynamic>> items, {
     bool deleteR2 = true,
