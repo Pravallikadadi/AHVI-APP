@@ -1128,6 +1128,10 @@ class _AuthWrapperState extends State<AuthWrapper> {
           ? await appwrite.isCurrentUserOnboardingComplete()
           : false;
 
+      debugPrint(
+        'AHVI_AUTH_START user=${user?.$id} onboardingDone=$onboardingDone',
+      );
+
       if (mounted) {
         setState(() {
           _isLoggedIn = user != null;

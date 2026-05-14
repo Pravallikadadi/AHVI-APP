@@ -4,6 +4,7 @@ import 'package:flutter/services.dart'; // [ADDED B12] for input formatters
 import 'package:provider/provider.dart';
 import 'package:myapp/app_routes.dart';
 import 'package:myapp/profile.dart';
+import 'package:myapp/services/appwrite_service.dart';
 
 void main() {
   runApp(const MaterialApp(
@@ -311,7 +312,19 @@ class _Screen1State extends State<Screen1> with TickerProviderStateMixin {
     return _nameCtrl.text.trim().isNotEmpty &&
         _selectedDay != null &&
         _selectedMonth != null &&
-        _selectedYear != null;
+        _selectedYear != null &&
+        _shopPrefs.isNotEmpty;
+  }
+
+  String _genderFromShopPrefs() {
+    final hasWomen = _shopPrefs.contains('Women');
+    final hasMen = _shopPrefs.contains('Men');
+
+    if (hasWomen && hasMen) return 'both';
+    if (hasWomen) return 'female';
+    if (hasMen) return 'male';
+
+    return '';
   }
 
   void _showValidationError(String message) {
@@ -320,14 +333,22 @@ class _Screen1State extends State<Screen1> with TickerProviderStateMixin {
     );
   }
 
-  void _onContinue() {
+  Future<void> _onContinue() async {
     if (!_isValid) {
-      _showValidationError('Please complete your name and date of birth.');
+      _showValidationError('Please complete your name, date of birth, and shop preferences.');
       return;
     }
     final genders = ['Male', 'Female', 'Others'];
     final gender = _selectedGender >= 0 ? genders[_selectedGender.clamp(0, genders.length - 1)] : '';
     final dob = '${_selectedDay!} ${_selectedMonth!} ${_selectedYear!}';
+    final appwrite = context.read<AppwriteService>();
+    final shoppingGender = _genderFromShopPrefs();
+
+    if (shoppingGender.isEmpty) {
+      _showValidationError('Please select who you shop for.');
+      return;
+    }
+
     context.read<ProfileController>().updateBasics(
       name: _nameCtrl.text.trim(),
       phone: _phoneCtrl.text.trim().isNotEmpty
@@ -339,6 +360,23 @@ class _Screen1State extends State<Screen1> with TickerProviderStateMixin {
       bodyShape: _selectedBodyShape,
       shopPrefs: _shopPrefs,
     );
+
+    debugPrint(
+      'AHVI_ONBOARDING1_SAVE '
+      'gender=$shoppingGender '
+      'skinTone=$_selectedSkinTone '
+      'bodyShape=$_selectedBodyShape '
+      'shopPrefs=${_shopPrefs.join(',')}',
+    );
+
+    await appwrite.updateCurrentUserProfileFields({
+      'gender': shoppingGender,
+      'skinTone': _selectedSkinTone,
+      'bodyShape': _selectedBodyShape,
+      'onboarding1': true,
+    });
+
+    if (!mounted) return;
     Navigator.of(context).pushNamed(AppRoutes.onboarding2);
   }
 

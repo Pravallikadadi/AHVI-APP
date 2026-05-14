@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:provider/provider.dart';
 import 'package:myapp/app_routes.dart';
 import 'package:myapp/profile.dart';
+import 'package:myapp/services/appwrite_service.dart';
 
 void main() {
   runApp(const MaterialApp(
@@ -715,18 +716,28 @@ class _CtaSectionState extends State<_CtaSection>
             () { if (mounted) Navigator.of(context).maybePop(); });
   }
 
-  void _onContinueTap() {
+  Future<void> _onContinueTap() async {
     if (!_isValidSelection) {
       _showValidationError('Please select at least one style to continue.');
       return;
     }
-    _squeezeContinue();
-    Future.delayed(const Duration(milliseconds: 180), () {
-      if (mounted) {
-        context.read<ProfileController>().updateStyles(widget.selected);
-        Navigator.of(context).pushNamed(AppRoutes.onboarding3);
-      }
+
+    await _squeezeContinue();
+    if (!mounted) return;
+
+    context.read<ProfileController>().updateStyles(widget.selected);
+
+    debugPrint(
+      'AHVI_ONBOARDING2_SAVE stylePreferences=${widget.selected.join(',')}',
+    );
+
+    await context.read<AppwriteService>().updateCurrentUserProfileFields({
+      'stylePreferences': widget.selected.toList(),
+      'onboarding2': true,
     });
+
+    if (!mounted) return;
+    Navigator.of(context).pushNamed(AppRoutes.onboarding3);
   }
 
   @override

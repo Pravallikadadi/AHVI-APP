@@ -230,6 +230,10 @@ class AppwriteService extends ChangeNotifier {
         debugPrint("deleteSession('current') also failed: $e2");
       }
     }
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('onboardingComplete');
+    await prefs.remove('user_id');
+    await prefs.remove('user_profile');
     clearUserCache();
     notifyListeners();
   }
@@ -322,9 +326,23 @@ class AppwriteService extends ChangeNotifier {
   }
 
   bool isOnboardingCompleteFromProfile(Map<String, dynamic>? profile) {
-    return profile?['onboarding1'] == true &&
+    final gender = (profile?['gender'] ?? '').toString().trim();
+
+    final done = profile?['onboarding1'] == true &&
         profile?['onboarding2'] == true &&
-        profile?['onboarding3'] == true;
+        profile?['onboarding3'] == true &&
+        gender.isNotEmpty;
+
+    debugPrint(
+      'AHVI_ONBOARDING_PROFILE '
+      'gender=${profile?['gender']} '
+      'onboarding1=${profile?['onboarding1']} '
+      'onboarding2=${profile?['onboarding2']} '
+      'onboarding3=${profile?['onboarding3']} '
+      'done=$done',
+    );
+
+    return done;
   }
 
   Future<bool> isCurrentUserOnboardingComplete() async {
@@ -351,6 +369,8 @@ class AppwriteService extends ChangeNotifier {
 
     final cleaned = Map<String, dynamic>.from(data)
       ..removeWhere((key, value) => value == null);
+
+    debugPrint('AHVI_PROFILE_UPDATE fields=$cleaned');
 
     await databases.updateDocument(
       databaseId: Env.appwriteDatabaseId,
@@ -389,6 +409,7 @@ class AppwriteService extends ChangeNotifier {
         'email': user.email,
         // Keep onboarding/profile fields persistent in Appwrite.
         // These are defaults only for first-time users; existing users are never reset.
+        'gender': '',
         'onboarding1': false,
         'onboarding2': false,
         'onboarding3': false,
