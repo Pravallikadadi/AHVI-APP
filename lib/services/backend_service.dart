@@ -544,6 +544,11 @@ class BackendService {
       final payload = <String, dynamic>{
         'user_id': await _currentUserId(),
         'item_id': itemId,
+        // Tell backend exactly where this item lives so it doesn't
+        // depend on Cloud Run env vars matching our Env.* values.
+        // Eliminates the 'Update failed: Not Found' env-mismatch bug.
+        'database_id': Env.appwriteDatabaseId,
+        'collection_id': Env.outfitsCollection,
       };
       if (name != null) payload['name'] = name;
       if (category != null) payload['category'] = category;
