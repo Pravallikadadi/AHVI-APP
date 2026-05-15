@@ -5,7 +5,6 @@ import 'package:myapp/app_routes.dart';
 import 'package:provider/provider.dart';
 import 'package:myapp/services/appwrite_service.dart';
 import 'package:myapp/services/notification_service.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:myapp/profile.dart';
 
 void main() => runApp(const AhviApp());
@@ -17,6 +16,41 @@ class AhviApp extends StatelessWidget {
     return const MaterialApp(
       debugShowCheckedModeBanner: false,
       home: SignInScreen(),
+    );
+  }
+}
+
+/// Source-of-truth onboarding gate.
+///
+/// Routes the user to onboarding1 ONLY if their Appwrite profile is
+/// incomplete (missing gender or onboarding1/2/3 flags). Otherwise sends
+/// them straight to the main shell. Relying on SharedPreferences alone is
+/// wrong because a returning user on a fresh install / new device has no
+/// local cache, even though Appwrite already has onboardingComplete=true.
+Future<void> _routeAfterSignIn(BuildContext context) async {
+  if (!context.mounted) return;
+  final appwrite = Provider.of<AppwriteService>(context, listen: false);
+
+  bool onboardingDone = false;
+  try {
+    onboardingDone = await appwrite.isCurrentUserOnboardingComplete();
+  } catch (e) {
+    debugPrint('AHVI_SIGNIN_GATE failed to read onboarding state: $e');
+    onboardingDone = false;
+  }
+
+  debugPrint('AHVI_SIGNIN_GATE onboardingDone=$onboardingDone');
+
+  if (!context.mounted) return;
+  if (onboardingDone) {
+    Navigator.of(context).pushNamedAndRemoveUntil(
+      AppRoutes.main,
+      (route) => false,
+    );
+  } else {
+    Navigator.of(context).pushNamedAndRemoveUntil(
+      AppRoutes.onboarding1,
+      (route) => false,
     );
   }
 }
@@ -59,24 +93,7 @@ class SignInScreen extends StatelessWidget {
       } catch (_) {}
 
       if (!context.mounted) return;
-      final prefs = await SharedPreferences.getInstance();
-      final isFirstTime = prefs.getBool('onboardingComplete') == true
-          ? false
-          : true;
-
-      if (isFirstTime) {
-        if (context.mounted) {
-          Navigator.of(
-            context,
-          ).pushNamedAndRemoveUntil(AppRoutes.onboarding1, (route) => false);
-        }
-      } else {
-        if (context.mounted) {
-          Navigator.of(
-            context,
-          ).pushNamedAndRemoveUntil(AppRoutes.main, (route) => false);
-        }
-      }
+      await _routeAfterSignIn(context);
     } else if (context.mounted) {
       // If it fails or the user cancels, show an error
       ScaffoldMessenger.of(context).showSnackBar(
@@ -107,24 +124,7 @@ class SignInScreen extends StatelessWidget {
       } catch (_) {}
 
       if (!context.mounted) return;
-      final prefs = await SharedPreferences.getInstance();
-      final isFirstTime = prefs.getBool('onboardingComplete') == true
-          ? false
-          : true;
-
-      if (isFirstTime) {
-        if (context.mounted) {
-          Navigator.of(
-            context,
-          ).pushNamedAndRemoveUntil(AppRoutes.onboarding1, (route) => false);
-        }
-      } else {
-        if (context.mounted) {
-          Navigator.of(
-            context,
-          ).pushNamedAndRemoveUntil(AppRoutes.main, (route) => false);
-        }
-      }
+      await _routeAfterSignIn(context);
     } else if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -251,22 +251,7 @@ class _EmailAuthScreenState extends State<EmailAuthScreen> {
         } catch (_) {}
 
         if (!mounted) return;
-        // Check if first-time user → show onboarding, else go to main
-        final prefs = await SharedPreferences.getInstance();
-        final isFirstTime = prefs.getBool('onboardingComplete') == true
-            ? false
-            : true;
-        if (!mounted) return;
-        if (isFirstTime) {
-          if (!mounted) return;
-          Navigator.of(
-            context,
-          ).pushNamedAndRemoveUntil(AppRoutes.onboarding1, (route) => false);
-        } else {
-          Navigator.of(
-            context,
-          ).pushNamedAndRemoveUntil(AppRoutes.main, (route) => false);
-        }
+        await _routeAfterSignIn(context);
       }
     } on AppwriteException catch (e) {
       if (e.code == 401) {
