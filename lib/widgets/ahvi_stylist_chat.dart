@@ -1827,10 +1827,10 @@ class _StyleBoardViewModel {
                 board['boardImageUrl'],
           ),
           score: _intOrNull(board['score']),
-          vibe: _text(board['vibe'] ?? board['subtitle'], 'styled look'),
+          vibe: _text(board['vibe'] ?? board['subtitle'], ''),
           aesthetic: _text(
             board['aesthetic'] ?? board['style'],
-            'modern refined',
+            '',
           ),
           items: mergedBoardItems(board),
         ),
@@ -1853,11 +1853,11 @@ class _StyleBoardViewModel {
             score: _intOrNull(card['score']),
             vibe: _text(
               card['vibe'] ?? card['subtitle'] ?? card['reason'],
-              'wardrobe ready',
+              '',
             ),
             aesthetic: _text(
               card['aesthetic'] ?? card['style'],
-              'personal style',
+              '',
             ),
             items: mergedBoardItems(card),
           ),
@@ -1879,11 +1879,11 @@ class _StyleBoardViewModel {
             score: _intOrNull(outfit['score']),
             vibe: _text(
               outfit['vibe'] ?? outfit['reason'] ?? outfit['subtitle'],
-              'wardrobe ready',
+              '',
             ),
             aesthetic: _text(
               outfit['aesthetic'] ?? outfit['style'],
-              'personal style',
+              '',
             ),
             items: mergedBoardItems(outfit),
           ),
@@ -2742,7 +2742,12 @@ class _FallbackFashionCollage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final normalized = items.isEmpty ? _demoItems : items.take(6).toList();
+    // Production rule: no demo items. If backend gave us nothing, render
+    // a neutral empty card instead of "Hero outfit / Gold hoops" mock data.
+    if (items.isEmpty) {
+      return const SizedBox.expand();
+    }
+    final normalized = items.take(6).toList();
     return LayoutBuilder(
       builder: (context, constraints) {
         final w = constraints.maxWidth;
@@ -2968,7 +2973,7 @@ String _itemLine(List<Map<String, dynamic>> items) {
       )
       .take(4)
       .toList();
-  if (names.isEmpty) return 'Complete wardrobe look styled by AHVI';
+  if (names.isEmpty) return '';
   return names.join(' · ');
 }
 
@@ -3028,13 +3033,6 @@ void _toast(BuildContext context, String message) {
     ),
   );
 }
-
-const _demoItems = <Map<String, dynamic>>[
-  {'name': 'Hero outfit', 'category': 'Dress', 'color_code': '#1F1F1F'},
-  {'name': 'Heels', 'category': 'Footwear', 'color_code': '#7A1E2B'},
-  {'name': 'Shoulder bag', 'category': 'Bags', 'color_code': '#8C2633'},
-  {'name': 'Gold hoops', 'category': 'Jewelry', 'color_code': '#C8A24A'},
-];
 
 class _AddMenuRow extends StatefulWidget {
   final IconData icon;

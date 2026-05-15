@@ -1452,7 +1452,7 @@ class _ChatOverlayState extends State<_ChatOverlay>
       if (mounted) {
         final reply = aiText.isNotEmpty
             ? aiText
-            : 'AHVI is still preparing this. Try again in a moment.';
+            : "AHVI didn't return a skincare answer this time. Please try again.";
         setState(() {
           _isBusy = false;
           _messages.add(_ChatMessage(isUser: false, text: reply, time: _ts()));
@@ -1461,7 +1461,7 @@ class _ChatOverlayState extends State<_ChatOverlay>
         _scrollToBottom();
       }
     } catch (_) {
-      const fallback = 'AHVI is still preparing this. Try again in a moment.';
+      const fallback = "I couldn't reach AHVI for skincare right now. Please try again.";
       if (mounted) {
         setState(() {
           _isBusy = false;

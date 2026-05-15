@@ -3412,19 +3412,17 @@ class _ChatScreenState extends State<ChatScreen> {
       planName = 'Healthy Balanced Plan';
     } else {
       try {
-        final response = await BackendService().sendChatQuery(
-          t,
-          '',
-          List<Map<String, String>>.from(_chatHistory),
-          '',
-          moduleContext: 'diet',
+        final response = await BackendService().sendModuleChatQuery(
+          module: 'diet',
+          query: t,
+          chatHistory: List<Map<String, String>>.from(_chatHistory),
         );
         reply = _responseText(response);
       } catch (_) {
         reply = '';
       }
       if (reply.isEmpty) {
-        reply = 'AHVI is still preparing this. Try again in a moment.';
+        reply = "I couldn't reach AHVI for this request. Please try again.";
       }
       if (mounted) {
         setState(() {
@@ -3437,12 +3435,10 @@ class _ChatScreenState extends State<ChatScreen> {
     }
 
     try {
-      final response = await BackendService().sendChatQuery(
-        t,
-        '',
-        List<Map<String, String>>.from(_chatHistory),
-        '',
-        moduleContext: 'diet',
+      final response = await BackendService().sendModuleChatQuery(
+        module: 'diet',
+        query: t,
+        chatHistory: List<Map<String, String>>.from(_chatHistory),
       );
       final backendReply = _responseText(response);
       if (backendReply.isNotEmpty) reply = backendReply;

@@ -1064,7 +1064,7 @@ class _DailyWearScreenState extends State<DailyWearScreen>
       if (!mounted) return;
       final message = _ChatMessage(
         id: DateTime.now().microsecondsSinceEpoch,
-        text: 'AHVI is still styling this. Try again in a moment.',
+        text: "I couldn't reach AHVI for this request. Please try again.",
         isUser: false,
         createdAt: DateTime.now(),
       );

@@ -1467,19 +1467,17 @@ class _StyleChatScreenState extends State<StyleChatScreen> {
     String reply = '';
     List<AhviChip> responseChips = const [];
     try {
-      final response = await BackendService().sendChatQuery(
-        'Occasion: ${widget.occasion}\n\n$userText',
-        '',
-        _msgs
+      final response = await BackendService().sendModuleChatQuery(
+        module: 'calendar',
+        query: 'Occasion: ${widget.occasion}\n\n$userText',
+        chatHistory: _msgs
             .map(
-              (m) => {
+              (m) => <String, String>{
                 'role': m.isUser ? 'user' : 'assistant',
                 'content': m.text,
               },
             )
             .toList(),
-        '',
-        moduleContext: 'calendar',
       );
       final parsed = AhviResponse.fromMap(response);
       reply = parsed.messageText.isNotEmpty

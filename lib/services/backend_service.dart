@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:myapp/config/env.dart';
@@ -17,34 +18,30 @@ class BackendRequestException implements Exception {
   String toString() => message;
 }
 
-String _demoChatFallback(String query, String moduleContext) {
-  final q = query.toLowerCase();
-  final isStyle = moduleContext == 'style' || moduleContext == 'wardrobe';
-  final isPlanPrep =
-      moduleContext == 'plan' ||
-      moduleContext == 'prepare' ||
-      moduleContext == 'prep' ||
-      q.contains('plan') ||
-      q.contains('prep') ||
-      q.contains('prepare') ||
-      q.contains('checklist');
-  if (q.contains('joke')) {
-    return 'Here is a tiny one: Why did the shirt get promoted? Because it had outstanding style.';
+/// Honest, debuggable fallback copy. Replaces the previous
+/// "AHVI is still styling/preparing this" placeholders that hid real
+/// HTTP / timeout / parser failures.
+///
+/// [reason] should describe the actual failure: 'timeout', 'unauthorized',
+/// 'server_error', 'parse_error', 'empty_response', or 'network'.
+String _honestChatFallback(String reason, String moduleContext) {
+  switch (reason) {
+    case 'unauthorized':
+      return 'Your session expired. Please log in again.';
+    case 'timeout':
+      return "AHVI couldn't respond in time. Please try again.";
+    case 'parse_error':
+      return "AHVI received an unexpected response. We're looking into it — please try again.";
+    case 'server_error':
+      return "AHVI's server hit an error. Please try again in a moment.";
+    case 'empty_response':
+      return "AHVI didn't return a result for this. Try rephrasing or try again.";
+    case 'network':
+    default:
+      return "I couldn't reach AHVI for this request. Please try again.";
   }
-  if (q.contains('how are you') || q == 'hi' || q == 'hello' || q == 'hey') {
-    return 'I am here and ready. Ask me for an outfit, a capsule wardrobe, or just talk to me.';
-  }
-  if (isStyle ||
-      q.contains('outfit') ||
-      q.contains('wear') ||
-      q.contains('style')) {
-    return 'AHVI is still styling this. Try again in a moment.';
-  }
-  if (isPlanPrep) {
-    return 'AHVI is still preparing this. Try again in a moment.';
-  }
-  return 'AHVI is still thinking this through. Try again in a moment.';
 }
+
 
 class BackendService {
   final String baseUrl = Env.backendApiUrl;
@@ -159,6 +156,7 @@ class BackendService {
     List<String> excludeStyleSignatures = const [],
     int? requestedBoardCount,
   }) async {
+    final startedAt = DateTime.now();
     try {
       final authedUserId = await _currentUserId();
       var wardrobeForRequest = fetchedWardrobe;
@@ -208,6 +206,8 @@ class BackendService {
           )
           .timeout(const Duration(seconds: 120));
 
+      final elapsedSec = DateTime.now().difference(startedAt).inMilliseconds / 1000;
+
       if (response.statusCode == 200) {
         Map<String, dynamic> data;
         try {
@@ -233,6 +233,9 @@ class BackendService {
           'chips=${(data['chips'] as List?)?.length ?? 0} '
           'requires_wardrobe=${data['requires_wardrobe']} '
           'body_len=${response.body.length}',
+        );
+        debugPrint(
+          'AHVI_RESPONSE_TIME endpoint=/api/text seconds=${elapsedSec.toStringAsFixed(2)}',
         );
 
         if (data['requires_wardrobe'] == true && !isRetry) {
@@ -267,18 +270,45 @@ class BackendService {
         'Failed to get AI response: ${response.statusCode} ${response.body}',
       );
     } catch (e, st) {
+      final failedAfter =
+          DateTime.now().difference(startedAt).inMilliseconds / 1000;
       debugPrint('AHVI_BACKEND_EXCEPTION endpoint=/api/text error=$e');
       debugPrint('AHVI_BACKEND_EXCEPTION stack=$st');
-      final fallback = _demoChatFallback(query, moduleContext);
+      debugPrint(
+        'AHVI_FAILURE_AFTER endpoint=/api/text seconds=${failedAfter.toStringAsFixed(2)} error=$e',
+      );
+
+      final errStr = e.toString().toLowerCase();
+      String reason;
+      if (e is TimeoutException || errStr.contains('timeout')) {
+        reason = 'timeout';
+      } else if (errStr.contains('401') || errStr.contains('unauthorized')) {
+        reason = 'unauthorized';
+      } else if (errStr.contains('5') && errStr.contains('failed to get')) {
+        reason = 'server_error';
+      } else if (errStr.contains('formatexception') ||
+          errStr.contains('jsondecodeerror') ||
+          errStr.contains('unexpected character') ||
+          errStr.contains('parse')) {
+        reason = 'parse_error';
+      } else {
+        reason = 'network';
+      }
+
+      final fallback = _honestChatFallback(reason, moduleContext);
       return {
-        'error': 'Backend fallback: $e',
+        'error': 'Backend fallback ($reason): $e',
         'message': {'role': 'assistant', 'content': fallback},
         'message_text': fallback,
         'chips': [
           {'label': 'Try again', 'value': query},
         ],
-        'type': 'retry',
-        'meta': {'used_local_fallback': true},
+        'type': reason == 'unauthorized' ? 'session_expired' : 'retry',
+        'meta': {
+          'used_local_fallback': true,
+          'fallback_reason': reason,
+          'failed_after_seconds': failedAfter,
+        },
       };
     }
   }
@@ -334,16 +364,32 @@ class BackendService {
     } catch (e, st) {
       debugPrint('AHVI_BACKEND_EXCEPTION endpoint=/api/chat/module-chat error=$e');
       debugPrint('AHVI_BACKEND_EXCEPTION stack=$st');
-      const fallback = 'AHVI is still preparing this. Try again in a moment.';
+
+      final errStr = e.toString().toLowerCase();
+      String reason;
+      if (e is TimeoutException || errStr.contains('timeout')) {
+        reason = 'timeout';
+      } else if (errStr.contains('401') || errStr.contains('unauthorized')) {
+        reason = 'unauthorized';
+      } else if (errStr.contains('parse') || errStr.contains('formatexception')) {
+        reason = 'parse_error';
+      } else {
+        reason = 'network';
+      }
+
+      final fallback = _honestChatFallback(reason, module);
       return {
-        'error': 'Backend module chat failed: $e',
+        'error': 'Backend module chat failed ($reason): $e',
         'message': {'role': 'assistant', 'content': fallback},
         'message_text': fallback,
         'chips': [
           {'label': 'Try again', 'value': query},
         ],
-        'type': 'retry',
-        'meta': {'used_local_fallback': true},
+        'type': reason == 'unauthorized' ? 'session_expired' : 'retry',
+        'meta': {
+          'used_local_fallback': true,
+          'fallback_reason': reason,
+        },
       };
     }
   }

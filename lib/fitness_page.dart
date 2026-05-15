@@ -2709,12 +2709,10 @@ class _ChatViewState extends State<_ChatView> {
               equipment: 'none',
               constraint: _constraintFromText(msg),
             )
-          : await backend.sendChatQuery(
-              msg,
-              '',
-              List<Map<String, String>>.from(_chatHistory),
-              '',
-              moduleContext: 'fitness',
+          : await backend.sendModuleChatQuery(
+              module: 'fitness',
+              query: msg,
+              chatHistory: List<Map<String, String>>.from(_chatHistory),
             );
       reply = _responseText(response);
       checklistItems = _workoutChecklistFromResponse(response);
