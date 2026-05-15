@@ -823,6 +823,7 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
       'Bags',
       'Jewelry',
       'Skincare',
+      'Makeup',
       'Accessories',
     ];
     // Migrate legacy 'Indian Wear' / 'Traditional' to Dresses so the
