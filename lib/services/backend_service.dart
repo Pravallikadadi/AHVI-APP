@@ -329,6 +329,7 @@ class BackendService {
         historyForRequest.add({'role': 'user', 'content': query});
       }
 
+      final moduleStarted = DateTime.now();
       final response = await http
           .post(
             Uri.parse('$baseUrl/api/chat/module-chat'),
@@ -341,12 +342,23 @@ class BackendService {
               'user_profile': {...?userProfile, 'user_id': authedUserId},
             }),
           )
-          .timeout(const Duration(seconds: 45));
+          // Backend's chat_completion has a 45s budget. Give the network +
+          // serialization 30s of headroom so the frontend never wins the race
+          // and shows 'AHVI couldn't respond in time' while the backend is
+          // still happily streaming back a perfectly good answer.
+          .timeout(const Duration(seconds: 75));
+
+      final moduleElapsed =
+          DateTime.now().difference(moduleStarted).inMilliseconds / 1000;
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
         final data = await compute(_parseJsonMap, response.body);
         final text = (data['response'] ?? data['message_text'] ?? '')
             .toString();
+        debugPrint(
+          'AHVI_MODULE_CHAT_OK module=$module seconds=${moduleElapsed.toStringAsFixed(2)} '
+          'text_len=${text.length} status=${response.statusCode}',
+        );
         return _normalizeChatResponse({
           ...data,
           'message': {'role': 'assistant', 'content': text},
@@ -356,7 +368,9 @@ class BackendService {
       }
 
       debugPrint(
-        'AHVI_BACKEND_FAIL endpoint=/api/chat/module-chat status=${response.statusCode} body=${response.body}',
+        'AHVI_BACKEND_FAIL endpoint=/api/chat/module-chat module=$module '
+        'status=${response.statusCode} seconds=${moduleElapsed.toStringAsFixed(2)} '
+        'body=${response.body}',
       );
       throw Exception(
         'Failed module chat: ${response.statusCode} ${response.body}',

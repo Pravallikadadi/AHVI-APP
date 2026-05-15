@@ -924,13 +924,26 @@ class _ChatScreenState extends State<ChatScreen>
     _scrollToBottom();
     try {
       final backend = Provider.of<BackendService>(context, listen: false);
-      final response = await backend.sendChatQuery(
-        queryText,
-        'user_$_userName',
-        List<Map<String, String>>.from(_chatHistory),
-        _runningMemory,
-        moduleContext: _module,
-      );
+      // Only style / wardrobe / daily_wear flows go through /api/text which
+      // builds boards. Every other module (home, utilities, fitness, diet,
+      // skincare, medi, bills, calendar) goes through /api/chat/module-chat
+      // which runs a module-aware LLM prompt. Same routing as the AHVI
+      // stylist sheet, brought to the ChatScreen so Home/Utilities chats
+      // actually return text instead of an empty style response.
+      const styleModules = {'style', 'wardrobe', 'daily_wear'};
+      final response = styleModules.contains(_module)
+          ? await backend.sendChatQuery(
+              queryText,
+              'user_$_userName',
+              List<Map<String, String>>.from(_chatHistory),
+              _runningMemory,
+              moduleContext: _module == 'daily_wear' ? 'style' : _module,
+            )
+          : await backend.sendModuleChatQuery(
+              module: _module,
+              query: queryText,
+              chatHistory: List<Map<String, String>>.from(_chatHistory),
+            );
       if (!mounted) return;
       if (response['updated_memory'] != null) {
         _runningMemory = response['updated_memory'];
@@ -939,6 +952,7 @@ class _ChatScreenState extends State<ChatScreen>
       final rawMessage = response['message'];
       final aiText =
           (response['message_text'] ??
+                  response['response'] ??
                   (rawMessage is Map ? rawMessage['content'] : rawMessage) ??
                   AppLocalizations.t(context, 'chat_connection_error'))
               .toString();
