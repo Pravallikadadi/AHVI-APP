@@ -156,7 +156,6 @@ String _cleanCategory(Object? value, {String fallback = 'Tops'}) {
     'Jewelry',
     'Makeup',
     'Skincare',
-    'Indian Wear',
     'Needs Review',
   };
 
@@ -821,11 +820,16 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
       'Outerwear',
       'Footwear',
       'Dresses',
-      'Indian Wear',
       'Bags',
       'Jewelry',
+      'Skincare',
       'Accessories',
     ];
+    // Migrate legacy 'Indian Wear' / 'Traditional' to Dresses so the
+    // existing items still match a visible option.
+    if (selectedCat == 'Indian Wear' || selectedCat == 'Traditional') {
+      selectedCat = 'Dresses';
+    }
     if (!cats.contains(selectedCat)) selectedCat = 'Accessories';
 
     final saved = await showDialog<bool>(
@@ -2020,12 +2024,11 @@ class _AddItemModalState extends State<_AddItemModal>
     'Outerwear',
     'Footwear',
     'Dresses',
-    'Indian Wear',
-    'Accessories',
     'Bags',
     'Jewelry',
     'Makeup',
     'Skincare',
+    'Accessories',
     'Needs Review',
   ];
   static const _occs = ['Casual', 'Work', 'Dinner', 'Sport', 'Travel'];
