@@ -898,14 +898,34 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
 
     try {
       final backend = Provider.of<BackendService>(context, listen: false);
+      debugPrint(
+        'AHVI_LABEL_UPDATE item=${item.id} category=$selectedCat '
+        'name="$nextName" occasions=${nextOccasions.join(',')}',
+      );
       final result = await backend.updateWardrobeLabels(
         itemId: item.id,
         name: nextName,
         category: selectedCat,
         tags: nextOccasions,
       );
-      if (result == null || result['success'] == false) {
-        _showToast('Could not update labels. Try again.');
+      if (result == null) {
+        _showToast(
+          "Couldn't reach backend to update labels. Try again.",
+        );
+        return;
+      }
+      if (result['success'] != true) {
+        final reason = (result['detail'] ??
+                result['error'] ??
+                result['message'] ??
+                '')
+            .toString();
+        debugPrint('AHVI_LABEL_UPDATE_FAIL reason="$reason" raw=$result');
+        _showToast(
+          reason.isNotEmpty
+              ? 'Update failed: $reason'
+              : 'Could not update labels. Try again.',
+        );
         return;
       }
       setState(() {
@@ -916,8 +936,10 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
       });
       await _saveWardrobeCache();
       _showToast('Labels updated');
-    } catch (e) {
-      _showToast('Could not update labels. Try again.');
+    } catch (e, st) {
+      debugPrint('AHVI_LABEL_UPDATE_EXCEPTION err=$e');
+      debugPrint('AHVI_LABEL_UPDATE_EXCEPTION stack=$st');
+      _showToast('Could not update labels: $e');
     }
   }
 

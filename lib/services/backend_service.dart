@@ -561,18 +561,38 @@ class BackendService {
           .timeout(const Duration(seconds: 30));
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
-        return await compute(_parseJsonMap, response.body);
+        final body = await compute(_parseJsonMap, response.body);
+        debugPrint(
+          'AHVI_LABEL_UPDATE_OK status=${response.statusCode} body=${response.body}',
+        );
+        return body;
       }
 
+      // Surface backend reason to the caller instead of swallowing it.
+      String detail = response.body;
+      try {
+        final parsed = await compute(_parseJsonMap, response.body);
+        detail = (parsed['detail'] ?? parsed['error'] ?? parsed['message'] ?? response.body)
+            .toString();
+      } catch (_) {
+        // body wasn't JSON; keep raw
+      }
       debugPrint(
         'AHVI_BACKEND_FAIL endpoint=/api/wardrobe/update-labels '
         'status=${response.statusCode} body=${response.body}',
       );
-      return null;
+      return {
+        'success': false,
+        'status': response.statusCode,
+        'detail': detail,
+      };
     } catch (e, st) {
       debugPrint('AHVI_BACKEND_EXCEPTION endpoint=/api/wardrobe/update-labels error=$e');
       debugPrint('AHVI_BACKEND_EXCEPTION stack=$st');
-      return null;
+      return {
+        'success': false,
+        'detail': e.toString(),
+      };
     }
   }
 
