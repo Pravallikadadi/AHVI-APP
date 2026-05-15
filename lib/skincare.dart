@@ -1350,17 +1350,16 @@ class _ChatOverlayState extends State<_ChatOverlay>
         'Be friendly and use 1 emoji max.';
 
     try {
-      final response = await BackendService().sendChatQuery(
-        greetPrompt,
-        '',
-        const [],
-        '',
-        moduleContext: 'skincare',
+      final response = await BackendService().sendModuleChatQuery(
+        module: 'skincare',
+        query: greetPrompt,
+        chatHistory: const [],
       );
       final rawMessage = response['message'];
       final text =
           (response['message_text'] ??
                   (rawMessage is Map ? rawMessage['content'] : rawMessage) ??
+                  response['response'] ??
                   '')
               .toString()
               .trim();
@@ -1428,12 +1427,10 @@ class _ChatOverlayState extends State<_ChatOverlay>
     _scrollToBottom();
 
     try {
-      final response = await BackendService().sendChatQuery(
-        'Context: ${_getCtx()}\n\n${text.trim()}',
-        '',
-        List<Map<String, String>>.from(_chatHistory),
-        '',
-        moduleContext: 'skincare',
+      final response = await BackendService().sendModuleChatQuery(
+        module: 'skincare',
+        query: 'Context: ${_getCtx()}\n\n${text.trim()}',
+        chatHistory: List<Map<String, String>>.from(_chatHistory),
       );
       final rawMessage = response['message'];
       final aiText =
