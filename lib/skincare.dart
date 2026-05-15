@@ -1439,9 +1439,18 @@ class _ChatOverlayState extends State<_ChatOverlay>
       final aiText =
           (response['message_text'] ??
                   (rawMessage is Map ? rawMessage['content'] : rawMessage) ??
+                  response['response'] ??
+                  response['reply'] ??
                   '')
               .toString()
               .trim();
+
+      debugPrint(
+        'AHVI_SKINCARE_RESP type=${response['type']} '
+        'has_text=${aiText.isNotEmpty} '
+        'used_fallback=${response['meta']?['used_local_fallback']} '
+        'keys=${response.keys.toList()}',
+      );
 
       if (mounted) {
         final reply = aiText.isNotEmpty

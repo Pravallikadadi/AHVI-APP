@@ -206,10 +206,34 @@ class BackendService {
                 'wardrobe': safeWardrobePayload,
             }),
           )
-          .timeout(const Duration(seconds: 90));
+          .timeout(const Duration(seconds: 120));
 
       if (response.statusCode == 200) {
-        final data = await compute(_parseJsonMap, response.body);
+        Map<String, dynamic> data;
+        try {
+          data = await compute(_parseJsonMap, response.body);
+        } catch (parseErr) {
+          debugPrint(
+            'AHVI_BACKEND_PARSE_ERR endpoint=/api/text err=$parseErr '
+            'body_len=${response.body.length} '
+            'body_head=${response.body.substring(0, response.body.length.clamp(0, 400))}',
+          );
+          rethrow;
+        }
+
+        // Visibility for the intermittent "AHVI is still styling this" toast.
+        debugPrint(
+          'AHVI_BACKEND_OK endpoint=/api/text '
+          'type=${data['type']} '
+          'success=${data['success']} '
+          'has_message=${data['message'] != null || data['message_text'] != null} '
+          'cards=${(data['cards'] as List?)?.length ?? 0} '
+          'style_boards=${(data['style_boards'] as List?)?.length ?? 0} '
+          'rendered_boards=${((data['data'] as Map?)?['rendered_boards'] as List?)?.length ?? 0} '
+          'chips=${(data['chips'] as List?)?.length ?? 0} '
+          'requires_wardrobe=${data['requires_wardrobe']} '
+          'body_len=${response.body.length}',
+        );
 
         if (data['requires_wardrobe'] == true && !isRetry) {
           final items = await _appwriteService.getWardrobeItems();
@@ -228,17 +252,22 @@ class BackendService {
           );
         }
 
-        return _normalizeChatResponse(data);
+        try {
+          return _normalizeChatResponse(data);
+        } catch (normErr, normSt) {
+          debugPrint('AHVI_NORMALIZE_ERR err=$normErr stack=$normSt');
+          rethrow;
+        }
       }
 
       debugPrint(
-        'AHVI_BACKEND_FAIL endpoint=/api/chat/chat status=${response.statusCode} body=${response.body}',
+        'AHVI_BACKEND_FAIL endpoint=/api/text status=${response.statusCode} body=${response.body}',
       );
       throw Exception(
         'Failed to get AI response: ${response.statusCode} ${response.body}',
       );
     } catch (e, st) {
-      debugPrint('AHVI_BACKEND_EXCEPTION endpoint=/api/chat/chat error=$e');
+      debugPrint('AHVI_BACKEND_EXCEPTION endpoint=/api/text error=$e');
       debugPrint('AHVI_BACKEND_EXCEPTION stack=$st');
       final fallback = _demoChatFallback(query, moduleContext);
       return {
