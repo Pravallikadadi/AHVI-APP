@@ -332,7 +332,7 @@ class BackendService {
       final moduleStarted = DateTime.now();
       final response = await http
           .post(
-            Uri.parse('$baseUrl/api/chat/module-chat'),
+            Uri.parse('$baseUrl/api/module-chat'),
             headers: await _authHeaders(),
             body: jsonEncode({
               'module': module,
@@ -368,7 +368,7 @@ class BackendService {
       }
 
       debugPrint(
-        'AHVI_BACKEND_FAIL endpoint=/api/chat/module-chat module=$module '
+        'AHVI_BACKEND_FAIL endpoint=/api/module-chat module=$module '
         'status=${response.statusCode} seconds=${moduleElapsed.toStringAsFixed(2)} '
         'body=${response.body}',
       );
@@ -376,7 +376,7 @@ class BackendService {
         'Failed module chat: ${response.statusCode} ${response.body}',
       );
     } catch (e, st) {
-      debugPrint('AHVI_BACKEND_EXCEPTION endpoint=/api/chat/module-chat error=$e');
+      debugPrint('AHVI_BACKEND_EXCEPTION endpoint=/api/module-chat error=$e');
       debugPrint('AHVI_BACKEND_EXCEPTION stack=$st');
 
       final errStr = e.toString().toLowerCase();
