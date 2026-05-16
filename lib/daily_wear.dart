@@ -43,7 +43,18 @@ class _DailyWearScreenState extends State<DailyWearScreen>
 
   Color get bgColor => _bg;
   Color get bg2Color => _bg2;
-  Color get panelColor => _panel;
+  // On light themes the raw `_panel` token resolves to a flat grey/cream
+  // and paints across 10+ card surfaces, which read as a grey overlay.
+  // Blend a sliver of accent over a near-white base for light themes so
+  // panels feel airy instead of muddy; keep raw `_panel` for dark.
+  Color get panelColor {
+    final isDark = _bg.computeLuminance() < 0.18;
+    if (isDark) return _panel;
+    return Color.alphaBlend(
+      accentColor.withValues(alpha: 0.06),
+      const Color(0xE6FFFFFF),
+    );
+  }
   Color get panel2Color => _panel2;
   Color get cardBorderColor => _cardBorder;
   Color get textColor => _text;
