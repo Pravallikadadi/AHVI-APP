@@ -914,17 +914,13 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
         tags: nextOccasions,
       );
       if (result == null) {
-        _showToast(
-          "Couldn't reach backend to update labels. Try again.",
-        );
+        _showToast("Couldn't reach backend to update labels. Try again.");
         return;
       }
       if (result['success'] != true) {
-        final reason = (result['detail'] ??
-                result['error'] ??
-                result['message'] ??
-                '')
-            .toString();
+        final reason =
+            (result['detail'] ?? result['error'] ?? result['message'] ?? '')
+                .toString();
         debugPrint('AHVI_LABEL_UPDATE_FAIL reason="$reason" raw=$result');
         _showToast(
           reason.isNotEmpty
@@ -940,6 +936,7 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
         item.occasions = nextOccasions;
       });
       await _saveWardrobeCache();
+      await _fetchWardrobeItems();
       _showToast('Labels updated');
     } catch (e, st) {
       debugPrint('AHVI_LABEL_UPDATE_EXCEPTION err=$e');

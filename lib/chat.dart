@@ -926,7 +926,7 @@ class _ChatScreenState extends State<ChatScreen>
       final backend = Provider.of<BackendService>(context, listen: false);
       // Only style / wardrobe / daily_wear flows go through /api/text which
       // builds boards. Every other module (home, utilities, fitness, diet,
-      // skincare, medi, bills, calendar) goes through /api/chat/module-chat
+      // skincare, medi, bills, calendar) goes through the shared module chat
       // which runs a module-aware LLM prompt. Same routing as the AHVI
       // stylist sheet, brought to the ChatScreen so Home/Utilities chats
       // actually return text instead of an empty style response.
@@ -939,9 +939,9 @@ class _ChatScreenState extends State<ChatScreen>
               _runningMemory,
               moduleContext: _module == 'daily_wear' ? 'style' : _module,
             )
-          : await backend.sendModuleChatQuery(
-              module: _module,
-              query: queryText,
+          : await backend.sendModuleChat(
+              domain: _module,
+              message: queryText,
               chatHistory: List<Map<String, String>>.from(_chatHistory),
             );
       if (!mounted) return;

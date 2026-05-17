@@ -42,7 +42,6 @@ String _honestChatFallback(String reason, String moduleContext) {
   }
 }
 
-
 class BackendService {
   final String baseUrl = Env.backendApiUrl;
   final AppwriteService _appwriteService;
@@ -90,6 +89,10 @@ class BackendService {
     final message = data['message'];
     if (message is String) return message;
     if (message is Map) return (message['content'] ?? '').toString();
+    final nestedData = data['data'];
+    if (nestedData is Map && nestedData['message'] != null) {
+      return nestedData['message'].toString();
+    }
     return data['response']?.toString() ??
         "I'm having trouble thinking right now.";
   }
@@ -206,7 +209,8 @@ class BackendService {
           )
           .timeout(const Duration(seconds: 120));
 
-      final elapsedSec = DateTime.now().difference(startedAt).inMilliseconds / 1000;
+      final elapsedSec =
+          DateTime.now().difference(startedAt).inMilliseconds / 1000;
 
       if (response.statusCode == 200) {
         Map<String, dynamic> data;
@@ -320,8 +324,34 @@ class BackendService {
     Map<String, dynamic> contextData = const {},
     Map<String, dynamic>? userProfile,
   }) async {
+    return sendModuleChat(
+      domain: module,
+      message: query,
+      context: contextData,
+      chatHistory: chatHistory,
+      userProfile: userProfile,
+    );
+  }
+
+  Future<Map<String, dynamic>> sendModuleChat({
+    required String domain,
+    required String message,
+    Map<String, dynamic>? context,
+    List<Map<String, String>> chatHistory = const [],
+    Map<String, dynamic>? userProfile,
+  }) async {
+    final module = domain.trim().toLowerCase();
+    final query = message.trim();
     try {
       final authedUserId = await _currentUserId();
+      if (query.isEmpty) {
+        return {
+          'message': {'role': 'assistant', 'content': ''},
+          'message_text': '',
+          'chips': const [],
+          'type': 'module_response',
+        };
+      }
       final historyForRequest = List<Map<String, String>>.from(chatHistory);
       if (historyForRequest.isEmpty ||
           historyForRequest.last['role'] != 'user' ||
@@ -335,10 +365,12 @@ class BackendService {
             Uri.parse('$baseUrl/api/module-chat'),
             headers: await _authHeaders(),
             body: jsonEncode({
+              'domain': module,
               'module': module,
               'message': query,
               'history': historyForRequest,
-              'context_data': contextData,
+              'context': context ?? const {},
+              'context_data': context ?? const {},
               'user_profile': {...?userProfile, 'user_id': authedUserId},
             }),
           )
@@ -353,8 +385,7 @@ class BackendService {
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
         final data = await compute(_parseJsonMap, response.body);
-        final text = (data['response'] ?? data['message_text'] ?? '')
-            .toString();
+        final text = _messageText(data);
         debugPrint(
           'AHVI_MODULE_CHAT_OK module=$module seconds=${moduleElapsed.toStringAsFixed(2)} '
           'text_len=${text.length} status=${response.statusCode}',
@@ -385,7 +416,8 @@ class BackendService {
         reason = 'timeout';
       } else if (errStr.contains('401') || errStr.contains('unauthorized')) {
         reason = 'unauthorized';
-      } else if (errStr.contains('parse') || errStr.contains('formatexception')) {
+      } else if (errStr.contains('parse') ||
+          errStr.contains('formatexception')) {
         reason = 'parse_error';
       } else {
         reason = 'network';
@@ -400,10 +432,7 @@ class BackendService {
           {'label': 'Try again', 'value': query},
         ],
         'type': reason == 'unauthorized' ? 'session_expired' : 'retry',
-        'meta': {
-          'used_local_fallback': true,
-          'fallback_reason': reason,
-        },
+        'meta': {'used_local_fallback': true, 'fallback_reason': reason},
       };
     }
   }
@@ -591,8 +620,12 @@ class BackendService {
       String detail = response.body;
       try {
         final parsed = await compute(_parseJsonMap, response.body);
-        detail = (parsed['detail'] ?? parsed['error'] ?? parsed['message'] ?? response.body)
-            .toString();
+        detail =
+            (parsed['detail'] ??
+                    parsed['error'] ??
+                    parsed['message'] ??
+                    response.body)
+                .toString();
       } catch (_) {
         // body wasn't JSON; keep raw
       }
@@ -606,12 +639,11 @@ class BackendService {
         'detail': detail,
       };
     } catch (e, st) {
-      debugPrint('AHVI_BACKEND_EXCEPTION endpoint=/api/wardrobe/update-labels error=$e');
+      debugPrint(
+        'AHVI_BACKEND_EXCEPTION endpoint=/api/wardrobe/update-labels error=$e',
+      );
       debugPrint('AHVI_BACKEND_EXCEPTION stack=$st');
-      return {
-        'success': false,
-        'detail': e.toString(),
-      };
+      return {'success': false, 'detail': e.toString()};
     }
   }
 

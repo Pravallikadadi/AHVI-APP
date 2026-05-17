@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:myapp/services/appwrite_service.dart';
 import 'package:myapp/services/ahvi_speech_service.dart';
+import 'package:myapp/services/backend_service.dart';
 import 'package:myapp/theme/theme_tokens.dart';
 import 'package:myapp/widgets/ahvi_stylist_chat.dart';
 import 'package:image_picker/image_picker.dart';
@@ -18,46 +19,69 @@ import 'package:image_picker/image_picker.dart';
 // ════════════════════════════════════════════════════════════════════
 String _translateCategory(BuildContext context, String key) {
   switch (key.toLowerCase()) {
-    case 'shopping': return AppLocalizations.t(context, 'bills_cat_shopping');
-    case 'food':     return AppLocalizations.t(context, 'bills_cat_food');
-    case 'utility':  return AppLocalizations.t(context, 'bills_cat_utility');
-    case 'medical':  return AppLocalizations.t(context, 'bills_cat_medical');
-    default:         return AppLocalizations.t(context, 'bills_cat_other');
+    case 'shopping':
+      return AppLocalizations.t(context, 'bills_cat_shopping');
+    case 'food':
+      return AppLocalizations.t(context, 'bills_cat_food');
+    case 'utility':
+      return AppLocalizations.t(context, 'bills_cat_utility');
+    case 'medical':
+      return AppLocalizations.t(context, 'bills_cat_medical');
+    default:
+      return AppLocalizations.t(context, 'bills_cat_other');
   }
 }
 
 String _translatePayment(BuildContext context, String key) {
   switch (key) {
-    case 'UPI':         return AppLocalizations.t(context, 'bills_pay_upi');
-    case 'Credit Card': return AppLocalizations.t(context, 'bills_pay_credit');
-    case 'Debit Card':  return AppLocalizations.t(context, 'bills_pay_debit');
-    case 'Cash':        return AppLocalizations.t(context, 'bills_pay_cash');
-    case 'Net Banking': return AppLocalizations.t(context, 'bills_pay_netbanking');
-    default:            return key;
+    case 'UPI':
+      return AppLocalizations.t(context, 'bills_pay_upi');
+    case 'Credit Card':
+      return AppLocalizations.t(context, 'bills_pay_credit');
+    case 'Debit Card':
+      return AppLocalizations.t(context, 'bills_pay_debit');
+    case 'Cash':
+      return AppLocalizations.t(context, 'bills_pay_cash');
+    case 'Net Banking':
+      return AppLocalizations.t(context, 'bills_pay_netbanking');
+    default:
+      return key;
   }
 }
 
 String _categoryDbKey(BuildContext context, String localizedCat) {
-  if (localizedCat == AppLocalizations.t(context, 'bills_cat_shopping')) return 'shopping';
-  if (localizedCat == AppLocalizations.t(context, 'bills_cat_food'))     return 'food';
-  if (localizedCat == AppLocalizations.t(context, 'bills_cat_utility'))  return 'utility';
-  if (localizedCat == AppLocalizations.t(context, 'bills_cat_medical'))  return 'medical';
+  if (localizedCat == AppLocalizations.t(context, 'bills_cat_shopping'))
+    return 'shopping';
+  if (localizedCat == AppLocalizations.t(context, 'bills_cat_food'))
+    return 'food';
+  if (localizedCat == AppLocalizations.t(context, 'bills_cat_utility'))
+    return 'utility';
+  if (localizedCat == AppLocalizations.t(context, 'bills_cat_medical'))
+    return 'medical';
   return 'other';
 }
 
 String _couponTypeDbKey(BuildContext context, String localizedType) {
-  if (localizedType == AppLocalizations.t(context, 'bills_coupon_type_percent')) return 'percent';
-  if (localizedType == AppLocalizations.t(context, 'bills_coupon_type_flat'))    return 'flat';
-  if (localizedType == AppLocalizations.t(context, 'bills_coupon_type_free'))    return 'free';
+  if (localizedType == AppLocalizations.t(context, 'bills_coupon_type_percent'))
+    return 'percent';
+  if (localizedType == AppLocalizations.t(context, 'bills_coupon_type_flat'))
+    return 'flat';
+  if (localizedType == AppLocalizations.t(context, 'bills_coupon_type_free'))
+    return 'free';
   return localizedType.toLowerCase();
 }
 
 String _paymentDbKey(BuildContext context, String localizedPay) {
-  if (localizedPay == AppLocalizations.t(context, 'bills_pay_upi'))        return 'UPI';
-  if (localizedPay == AppLocalizations.t(context, 'bills_pay_credit'))     return 'Credit Card';
-  if (localizedPay == AppLocalizations.t(context, 'bills_pay_debit'))      return 'Debit Card';
-  if (localizedPay == AppLocalizations.t(context, 'bills_pay_cash'))       return 'Cash';
-  if (localizedPay == AppLocalizations.t(context, 'bills_pay_netbanking')) return 'Net Banking';
+  if (localizedPay == AppLocalizations.t(context, 'bills_pay_upi'))
+    return 'UPI';
+  if (localizedPay == AppLocalizations.t(context, 'bills_pay_credit'))
+    return 'Credit Card';
+  if (localizedPay == AppLocalizations.t(context, 'bills_pay_debit'))
+    return 'Debit Card';
+  if (localizedPay == AppLocalizations.t(context, 'bills_pay_cash'))
+    return 'Cash';
+  if (localizedPay == AppLocalizations.t(context, 'bills_pay_netbanking'))
+    return 'Net Banking';
   return localizedPay;
 }
 
@@ -75,7 +99,7 @@ class _BillsScreenState extends State<BillsScreen>
   AppThemeTokens get _t => context.themeTokens;
 
   // ── Palette (driven by theme tokens — matches DailyWearScreen) ──────
-  Color get _accent  => _t.accent.primary;
+  Color get _accent => _t.accent.primary;
   Color get _accent2 => _t.accent.secondary;
   Color get _accent3 => _t.accent.tertiary;
   Color get _accent4 => _t.accent.primary;
@@ -83,14 +107,22 @@ class _BillsScreenState extends State<BillsScreen>
   static const Color _deleteRed = Color(0xFFFF6B7A);
 
   // ── Palette-specific hardcoded colors for chat button ───────────────
-  static const Color _futureCandyPink  = Color(0xFFFF80C0); // futureCandy light pink (hardcoded)
-  static const Color _futureCandyPink2 = Color(0xFFFFB3D9); // futureCandy pink lighter
-  static const Color _coolBlue         = Color(0xFF6B91FF); // coolBlue primary
-  static const Color _coolBlue2        = Color(0xFF8D7DFF); // coolBlue secondary
-  static const Color _sunsetOrange     = Color(0xFFFFAB76); // sunset primary orange (light)
-  static const Color _sunsetOrange2    = Color(0xFFFF8C5A); // sunset secondary orange (mid)
+  static const Color _futureCandyPink = Color(
+    0xFFFF80C0,
+  ); // futureCandy light pink (hardcoded)
+  static const Color _futureCandyPink2 = Color(
+    0xFFFFB3D9,
+  ); // futureCandy pink lighter
+  static const Color _coolBlue = Color(0xFF6B91FF); // coolBlue primary
+  static const Color _coolBlue2 = Color(0xFF8D7DFF); // coolBlue secondary
+  static const Color _sunsetOrange = Color(
+    0xFFFFAB76,
+  ); // sunset primary orange (light)
+  static const Color _sunsetOrange2 = Color(
+    0xFFFF8C5A,
+  ); // sunset secondary orange (mid)
 
-  bool get _isCoolBlue  => _t.accent.primary == _coolBlue;
+  bool get _isCoolBlue => _t.accent.primary == _coolBlue;
   // Sunset detection: checks if primary is orange-ish (hue 5°–40°, decent saturation)
   bool get _isSunset {
     final HSVColor hsv = HSVColor.fromColor(_t.accent.primary);
@@ -98,10 +130,16 @@ class _BillsScreenState extends State<BillsScreen>
   }
 
   // Chat FAB accent — Future Candy = light pink, Cool Blue = blue, Sunset = orange, others = palette
-  Color get _chatAccent  => _isCoolBlue ? _coolBlue  : _isSunset ? _sunsetOrange  : _futureCandyPink;
-  Color get _chatAccent2 => _isCoolBlue ? _coolBlue2 : _isSunset ? _sunsetOrange2 : _futureCandyPink2;
-
-
+  Color get _chatAccent => _isCoolBlue
+      ? _coolBlue
+      : _isSunset
+      ? _sunsetOrange
+      : _futureCandyPink;
+  Color get _chatAccent2 => _isCoolBlue
+      ? _coolBlue2
+      : _isSunset
+      ? _sunsetOrange2
+      : _futureCandyPink2;
 
   // ── STATE ──────────────────────────────────────────────────────────
   bool _isLoading = true;
@@ -113,7 +151,8 @@ class _BillsScreenState extends State<BillsScreen>
   // match the first item in the localized dropdown lists.
   String? _selCategory;
   String? _selPayment;
-  String? _couponTypeVal; // Initialized in didChangeDependencies from localized list
+  String?
+  _couponTypeVal; // Initialized in didChangeDependencies from localized list
   DateTime _selectedDate = DateTime.now();
 
   String _toastMsg = '';
@@ -202,10 +241,26 @@ class _BillsScreenState extends State<BillsScreen>
 
   Map<String, dynamic> _getCategoryMeta(String cat) {
     final meta = {
-      'shopping': {'icon': '🛍️', 'color': _accent2, 'bg': _accent2.withValues(alpha: 0.15)},
-      'food': {'icon': '🍔', 'color': _accent5, 'bg': _accent5.withValues(alpha: 0.15)},
-      'utility': {'icon': '⚡', 'color': _accent3, 'bg': _accent3.withValues(alpha: 0.15)},
-      'medical': {'icon': '💊', 'color': _accent4, 'bg': _accent4.withValues(alpha: 0.15)},
+      'shopping': {
+        'icon': '🛍️',
+        'color': _accent2,
+        'bg': _accent2.withValues(alpha: 0.15),
+      },
+      'food': {
+        'icon': '🍔',
+        'color': _accent5,
+        'bg': _accent5.withValues(alpha: 0.15),
+      },
+      'utility': {
+        'icon': '⚡',
+        'color': _accent3,
+        'bg': _accent3.withValues(alpha: 0.15),
+      },
+      'medical': {
+        'icon': '💊',
+        'color': _accent4,
+        'bg': _accent4.withValues(alpha: 0.15),
+      },
       'other': {'icon': '📄', 'color': _t.textPrimary, 'bg': Color(0x1AFFFFFF)},
     };
     return meta[cat.toLowerCase()] ?? meta['other']!;
@@ -264,7 +319,6 @@ class _BillsScreenState extends State<BillsScreen>
       duration: Duration(seconds: 2),
     )..repeat(reverse: true);
 
-
     _chatCtrl = AnimationController(
       vsync: this,
       duration: Duration(milliseconds: 350),
@@ -286,7 +340,6 @@ class _BillsScreenState extends State<BillsScreen>
     _overlay?.remove();
     _overlay = null;
   }
-
 
   // ── APPWRITE ACTIONS ──────────────────────────────────────────────
 
@@ -467,7 +520,8 @@ class _BillsScreenState extends State<BillsScreen>
         _showToast('✦ Coupon "$code" saved!');
       }
     } catch (e) {
-      if (mounted) _showToast(AppLocalizations.t(context, 'bills_coupon_save_error'));
+      if (mounted)
+        _showToast(AppLocalizations.t(context, 'bills_coupon_save_error'));
       debugPrint("Coupon Error: $e");
     } finally {
       if (mounted) _setOverlayState(() => _isSavingCoupon = false);
@@ -508,9 +562,7 @@ class _BillsScreenState extends State<BillsScreen>
               padding: EdgeInsets.only(
                 bottom: MediaQuery.of(ctx).viewInsets.bottom,
               ),
-              child: type == 'add'
-                  ? _buildAddSheet()
-                  : _buildCouponMgrSheet(),
+              child: type == 'add' ? _buildAddSheet() : _buildCouponMgrSheet(),
             );
           },
         );
@@ -545,7 +597,9 @@ class _BillsScreenState extends State<BillsScreen>
       _setOverlayState(() => _pickedImage = File(picked.path));
       _showToast('✦ Image ready for AI scan!');
     } catch (e) {
-      _showToast('Could not access ${source == ImageSource.camera ? 'camera' : 'gallery'}. Check permissions.');
+      _showToast(
+        'Could not access ${source == ImageSource.camera ? 'camera' : 'gallery'}. Check permissions.',
+      );
     }
   }
 
@@ -613,9 +667,10 @@ class _BillsScreenState extends State<BillsScreen>
                       transform: Matrix4.identity()
                         ..translate(0.0, 16.0 * (1 - _chatSlide.value), 0.0)
                         ..scale(
-                            0.95 + 0.05 * _chatSlide.value,
-                            0.95 + 0.05 * _chatSlide.value,
-                            1.0),
+                          0.95 + 0.05 * _chatSlide.value,
+                          0.95 + 0.05 * _chatSlide.value,
+                          1.0,
+                        ),
                       child: IgnorePointer(
                         ignoring: !_chatOpen,
                         child: _buildChatPanel(),
@@ -725,37 +780,48 @@ class _BillsScreenState extends State<BillsScreen>
                     ),
                   ),
                   _PressScaleButton(
-                      onTap: () => _openOverlay('add'),
-                      child: Container(
-                        padding: EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [_accent, _accent3],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
+                    onTap: () => _openOverlay('add'),
+                    child: Container(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [_accent, _accent3],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(14),
+                        boxShadow: [
+                          BoxShadow(
+                            color: _accent2.withValues(alpha: 0.35),
+                            blurRadius: 12,
+                            offset: Offset(0, 4),
                           ),
-                          borderRadius: BorderRadius.circular(14),
-                          boxShadow: [
-                            BoxShadow(
-                              color: _accent2.withValues(alpha: 0.35),
-                              blurRadius: 12,
-                              offset: Offset(0, 4),
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.add_circle_outline_rounded,
+                            color: Colors.white,
+                            size: 15,
+                          ),
+                          SizedBox(width: 5),
+                          Text(
+                            AppLocalizations.t(context, 'bills_btn_add_bill'),
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
                             ),
-                          ],
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.add_circle_outline_rounded, color: Colors.white, size: 15),
-                            SizedBox(width: 5),
-                            Text(
-                              AppLocalizations.t(context, 'bills_btn_add_bill'),
-                              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.white),
-                            ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
                     ),
+                  ),
                 ],
               ),
               SizedBox(height: 10),
@@ -768,17 +834,13 @@ class _BillsScreenState extends State<BillsScreen>
             padding: EdgeInsets.fromLTRB(16, 0, 16, 160),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildBillsList(),
-                SizedBox(height: 8),
-              ],
+              children: [_buildBillsList(), SizedBox(height: 8)],
             ),
           ),
         ),
       ],
     );
   }
-
 
   Widget _buildSpendingCard() {
     final bills = _filteredBills;
@@ -877,11 +939,26 @@ class _BillsScreenState extends State<BillsScreen>
                 SizedBox(height: 14),
                 Row(
                   children: [
-                    Expanded(child: _buildStatPill('$count', AppLocalizations.t(context, 'bills_stat_bills'))),
+                    Expanded(
+                      child: _buildStatPill(
+                        '$count',
+                        AppLocalizations.t(context, 'bills_stat_bills'),
+                      ),
+                    ),
                     SizedBox(width: 8),
-                    Expanded(child: _buildStatPill(_avgBill, AppLocalizations.t(context, 'bills_stat_avg'))),
+                    Expanded(
+                      child: _buildStatPill(
+                        _avgBill,
+                        AppLocalizations.t(context, 'bills_stat_avg'),
+                      ),
+                    ),
                     SizedBox(width: 8),
-                    Expanded(child: _buildStatPill(_topCategory, AppLocalizations.t(context, 'bills_stat_top'))),
+                    Expanded(
+                      child: _buildStatPill(
+                        _topCategory,
+                        AppLocalizations.t(context, 'bills_stat_top'),
+                      ),
+                    ),
                   ],
                 ),
               ],
@@ -929,7 +1006,12 @@ class _BillsScreenState extends State<BillsScreen>
 
   Widget _buildFilterTabs() {
     final tabs = [
-      {'key': 'all', 'label': AppLocalizations.t(context, 'bills_filter_all'), 'color': Colors.white, 'bg': _t.backgroundSecondary},
+      {
+        'key': 'all',
+        'label': AppLocalizations.t(context, 'bills_filter_all'),
+        'color': Colors.white,
+        'bg': _t.backgroundSecondary,
+      },
       {
         'key': 'shopping',
         'label': AppLocalizations.t(context, 'bills_filter_shopping'),
@@ -1067,7 +1149,6 @@ class _BillsScreenState extends State<BillsScreen>
               height: 1.6,
             ),
           ),
-
         ],
       ),
     );
@@ -1122,35 +1203,32 @@ class _BillsScreenState extends State<BillsScreen>
                   ),
                 ),
                 Positioned(
-                    top: -6,
-                    right: 14,
-                    child: Container(
-                      padding: EdgeInsets.symmetric(horizontal: 5),
-                      height: 18,
-                      constraints: BoxConstraints(minWidth: 18),
-                      decoration: BoxDecoration(
-                        color: _accent4,
-                        borderRadius: BorderRadius.circular(9),
-                        border: Border.all(
-                          color: _t.backgroundPrimary,
-                          width: 2,
-                        ),
-                      ),
-                      child: Center(
-                        child: Text(
-                          '${_coupons.length}',
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w800,
-                            color: Colors.white,
-                          ),
+                  top: -6,
+                  right: 14,
+                  child: Container(
+                    padding: EdgeInsets.symmetric(horizontal: 5),
+                    height: 18,
+                    constraints: BoxConstraints(minWidth: 18),
+                    decoration: BoxDecoration(
+                      color: _accent4,
+                      borderRadius: BorderRadius.circular(9),
+                      border: Border.all(color: _t.backgroundPrimary, width: 2),
+                    ),
+                    child: Center(
+                      child: Text(
+                        '${_coupons.length}',
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white,
                         ),
                       ),
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
+          ),
           const Spacer(),
           // ── Ask Ahvi chat button (Future Candy = pink, others = palette accent) ──
           _AskAhviFab(
@@ -1188,7 +1266,7 @@ class _BillsScreenState extends State<BillsScreen>
         border: Border.all(color: _t.cardBorder, width: 1.5),
         boxShadow: [
           BoxShadow(
-          color: Colors.black.withValues(alpha: 0.40),
+            color: Colors.black.withValues(alpha: 0.40),
             blurRadius: 60,
             offset: Offset(0, 20),
           ),
@@ -1203,11 +1281,16 @@ class _BillsScreenState extends State<BillsScreen>
               padding: EdgeInsets.fromLTRB(16, 14, 16, 12),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [_accent2.withValues(alpha: 0.10), _accent4.withValues(alpha: 0.06)],
+                  colors: [
+                    _accent2.withValues(alpha: 0.10),
+                    _accent4.withValues(alpha: 0.06),
+                  ],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
-                border: Border(bottom: BorderSide(color: _t.cardBorder, width: 1)),
+                border: Border(
+                  bottom: BorderSide(color: _t.cardBorder, width: 1),
+                ),
               ),
               child: Row(
                 children: [
@@ -1327,72 +1410,78 @@ class _BillsScreenState extends State<BillsScreen>
                   Padding(
                     padding: EdgeInsets.fromLTRB(10, 8, 10, 12),
                     child: Row(
-                children: [
-                  SizedBox(width: 8),
-                  GestureDetector(
-                    onTap: _startChatVoiceInput,
-                    child: Container(
-                      width: 32,
-                      height: 32,
-                      decoration: BoxDecoration(
-                        color: _t.panel,
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Icon(
-                        Icons.mic_rounded,
-                        color: _t.mutedText,
-                        size: 14,
-                      ),
-                    ),
-                  ),
-                  SizedBox(width: 8),
-                  Expanded(
-                    child: TextField(
-                      controller: _chatInputCtrl,
-                      style: TextStyle(fontSize: 12, color: _t.textPrimary),
-                      decoration: InputDecoration(
-                        hintText: 'Ask about your bills…',
-                        hintStyle: TextStyle(color: _t.mutedText, fontSize: 12),
-                        border: InputBorder.none,
-                        isDense: true,
-                        contentPadding: EdgeInsets.symmetric(vertical: 6),
-                      ),
-                      onSubmitted: (v) => _sendChatMsg(v),
-                    ),
-                  ),
-                  SizedBox(width: 8),
-                  GestureDetector(
-                    onTap: () => _sendChatMsg(_chatInputCtrl.text),
-                    child: Container(
-                      width: 32,
-                      height: 32,
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [_accent, _accent3],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: [
-                          BoxShadow(
-                            color: _accent2.withValues(alpha: 0.35),
-                            blurRadius: 10,
-                            offset: Offset(0, 3),
+                      children: [
+                        SizedBox(width: 8),
+                        GestureDetector(
+                          onTap: _startChatVoiceInput,
+                          child: Container(
+                            width: 32,
+                            height: 32,
+                            decoration: BoxDecoration(
+                              color: _t.panel,
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: Icon(
+                              Icons.mic_rounded,
+                              color: _t.mutedText,
+                              size: 14,
+                            ),
                           ),
-                        ],
-                      ),
-                      child: Icon(
-                        Icons.send_rounded,
-                        color: Colors.white,
-                        size: 13,
-                      ),
+                        ),
+                        SizedBox(width: 8),
+                        Expanded(
+                          child: TextField(
+                            controller: _chatInputCtrl,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: _t.textPrimary,
+                            ),
+                            decoration: InputDecoration(
+                              hintText: 'Ask about your bills…',
+                              hintStyle: TextStyle(
+                                color: _t.mutedText,
+                                fontSize: 12,
+                              ),
+                              border: InputBorder.none,
+                              isDense: true,
+                              contentPadding: EdgeInsets.symmetric(vertical: 6),
+                            ),
+                            onSubmitted: (v) => _sendChatMsg(v),
+                          ),
+                        ),
+                        SizedBox(width: 8),
+                        GestureDetector(
+                          onTap: () => _sendChatMsg(_chatInputCtrl.text),
+                          child: Container(
+                            width: 32,
+                            height: 32,
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [_accent, _accent3],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                              borderRadius: BorderRadius.circular(16),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: _accent2.withValues(alpha: 0.35),
+                                  blurRadius: 10,
+                                  offset: Offset(0, 3),
+                                ),
+                              ],
+                            ),
+                            child: Icon(
+                              Icons.send_rounded,
+                              color: Colors.white,
+                              size: 13,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
+                  ), // Padding
                 ],
-              ),
-                  ),   // Padding
-                ],
-              ),   // Column
+              ), // Column
             ),
           ],
         ),
@@ -1400,16 +1489,55 @@ class _BillsScreenState extends State<BillsScreen>
     );
   }
 
-  void _sendChatMsg(String text) {
-    if (text.trim().isEmpty) return;
+  Map<String, dynamic> _currentBillsBoard() {
+    return {
+      'bills': _bills.take(20).toList(),
+      'coupons': _coupons.take(20).toList(),
+      'active_filter': _activeFilter,
+      'total_amount': _totalAmount,
+      'avg_bill': _avgBill,
+      'top_category': _topCategory,
+    };
+  }
+
+  String _moduleResponseText(Map<String, dynamic> response) {
+    final rawMessage = response['message'];
+    final rawData = response['data'];
+    return (response['message_text'] ??
+            response['response'] ??
+            (rawMessage is Map ? rawMessage['content'] : rawMessage) ??
+            (rawData is Map ? rawData['message'] : null) ??
+            '')
+        .toString()
+        .trim();
+  }
+
+  Future<void> _sendChatMsg(String text) async {
+    final trimmed = text.trim();
+    if (trimmed.isEmpty) return;
     setState(() {
-      _chatMessages.add({'from': 'user', 'text': text.trim()});
-      _chatMessages.add({
-        'from': 'ahvi',
-        'text': 'Got it! I\'m reviewing your bills now… ✦',
-      });
+      _chatMessages.add({'from': 'user', 'text': trimmed});
     });
     _chatInputCtrl.clear();
+    String reply = '';
+    try {
+      final response = await Provider.of<BackendService>(context, listen: false)
+          .sendModuleChat(
+            domain: 'bills',
+            message: trimmed,
+            context: _currentBillsBoard(),
+          );
+      reply = _moduleResponseText(response);
+    } catch (e) {
+      debugPrint('AHVI_BILLS_CHAT_ERROR $e');
+    }
+    if (!mounted) return;
+    if (reply.isEmpty) {
+      reply = "I couldn't reach AHVI for this request. Please try again.";
+    }
+    setState(() {
+      _chatMessages.add({'from': 'ahvi', 'text': reply});
+    });
   }
 
   Future<void> _startChatVoiceInput() async {
@@ -1426,8 +1554,6 @@ class _BillsScreenState extends State<BillsScreen>
       },
     );
   }
-
-
 
   // ════════════════════════════════════════════════════════════════════
   //  ADD BILL SHEET
@@ -1495,7 +1621,10 @@ class _BillsScreenState extends State<BillsScreen>
               AppLocalizations.t(context, 'bills_field_store'),
               child: _glassInput(
                 controller: _storeCtrl,
-                placeholder: AppLocalizations.t(context, 'bills_field_store_hint'),
+                placeholder: AppLocalizations.t(
+                  context,
+                  'bills_field_store_hint',
+                ),
               ),
             ),
             SizedBox(height: 10),
@@ -1513,7 +1642,10 @@ class _BillsScreenState extends State<BillsScreen>
                 ),
                 SizedBox(width: 10),
                 Expanded(
-                  child: _buildFormGroup(AppLocalizations.t(context, 'bills_field_date'), child: _datePickerTrigger()),
+                  child: _buildFormGroup(
+                    AppLocalizations.t(context, 'bills_field_date'),
+                    child: _datePickerTrigger(),
+                  ),
                 ),
               ],
             ),
@@ -1532,7 +1664,8 @@ class _BillsScreenState extends State<BillsScreen>
                         AppLocalizations.t(context, 'bills_cat_medical'),
                         AppLocalizations.t(context, 'bills_cat_other'),
                       ],
-                      onChanged: (v) => _setOverlayState(() => _selCategory = v!),
+                      onChanged: (v) =>
+                          _setOverlayState(() => _selCategory = v!),
                     ),
                   ),
                 ),
@@ -1549,7 +1682,8 @@ class _BillsScreenState extends State<BillsScreen>
                         AppLocalizations.t(context, 'bills_pay_cash'),
                         AppLocalizations.t(context, 'bills_pay_netbanking'),
                       ],
-                      onChanged: (v) => _setOverlayState(() => _selPayment = v!),
+                      onChanged: (v) =>
+                          _setOverlayState(() => _selPayment = v!),
                     ),
                   ),
                 ),
@@ -1560,7 +1694,10 @@ class _BillsScreenState extends State<BillsScreen>
               AppLocalizations.t(context, 'bills_field_items'),
               child: _glassInput(
                 controller: _itemsCtrl,
-                placeholder: AppLocalizations.t(context, 'bills_field_items_hint'),
+                placeholder: AppLocalizations.t(
+                  context,
+                  'bills_field_items_hint',
+                ),
               ),
             ),
             SizedBox(height: 10),
@@ -1568,7 +1705,10 @@ class _BillsScreenState extends State<BillsScreen>
               AppLocalizations.t(context, 'bills_field_notes'),
               child: _glassInput(
                 controller: _notesCtrl,
-                placeholder: AppLocalizations.t(context, 'bills_field_notes_hint'),
+                placeholder: AppLocalizations.t(
+                  context,
+                  'bills_field_notes_hint',
+                ),
                 maxLines: 3,
               ),
             ),
@@ -1677,7 +1817,9 @@ class _BillsScreenState extends State<BillsScreen>
                 padding: EdgeInsets.symmetric(vertical: 10),
                 decoration: BoxDecoration(
                   color: isActive
-                      ? (mode == 'ai' ? _accent2.withValues(alpha: 0.15) : _accent3.withValues(alpha: 0.15))
+                      ? (mode == 'ai'
+                            ? _accent2.withValues(alpha: 0.15)
+                            : _accent3.withValues(alpha: 0.15))
                       : Colors.transparent,
                   borderRadius: BorderRadius.circular(13),
                 ),
@@ -1735,8 +1877,12 @@ class _BillsScreenState extends State<BillsScreen>
               child: _uploadOptBtn(
                 icon: Icons.camera_alt_outlined,
                 iconColor: _accent3,
-                bg: isDark ? _accent3.withValues(alpha: 0.12) : _accent3.withValues(alpha: 0.08),
-                border: isDark ? _accent3.withValues(alpha: 0.20) : _accent3.withValues(alpha: 0.30),
+                bg: isDark
+                    ? _accent3.withValues(alpha: 0.12)
+                    : _accent3.withValues(alpha: 0.08),
+                border: isDark
+                    ? _accent3.withValues(alpha: 0.20)
+                    : _accent3.withValues(alpha: 0.30),
                 label: AppLocalizations.t(context, 'bills_camera_label'),
                 sub: AppLocalizations.t(context, 'bills_camera_sub'),
                 onTap: () => _pickImage(ImageSource.camera),
@@ -1747,8 +1893,12 @@ class _BillsScreenState extends State<BillsScreen>
               child: _uploadOptBtn(
                 icon: Icons.upload_file_outlined,
                 iconColor: _accent,
-                bg: isDark ? _accent.withValues(alpha: 0.12) : _accent.withValues(alpha: 0.08),
-                border: isDark ? _accent.withValues(alpha: 0.20) : _accent.withValues(alpha: 0.30),
+                bg: isDark
+                    ? _accent.withValues(alpha: 0.12)
+                    : _accent.withValues(alpha: 0.08),
+                border: isDark
+                    ? _accent.withValues(alpha: 0.20)
+                    : _accent.withValues(alpha: 0.30),
                 label: AppLocalizations.t(context, 'bills_upload_label'),
                 sub: AppLocalizations.t(context, 'bills_upload_sub'),
                 onTap: () => _pickImage(ImageSource.gallery),
@@ -1782,7 +1932,11 @@ class _BillsScreenState extends State<BillsScreen>
                       color: Colors.black.withValues(alpha: 0.55),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(Icons.close_rounded, color: Colors.white, size: 14),
+                    child: const Icon(
+                      Icons.close_rounded,
+                      color: Colors.white,
+                      size: 14,
+                    ),
                   ),
                 ),
               ),
@@ -1790,14 +1944,21 @@ class _BillsScreenState extends State<BillsScreen>
                 bottom: 6,
                 left: 8,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: _accent2.withValues(alpha: 0.85),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: const Text(
                     '✦ Ready to scan',
-                    style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Colors.white),
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                    ),
                   ),
                 ),
               ),
@@ -1950,7 +2111,20 @@ class _BillsScreenState extends State<BillsScreen>
   }
 
   Widget _datePickerTrigger() {
-    final months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    final months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
     final d = _selectedDate;
     final label = '${months[d.month - 1]} ${d.day}, ${d.year}';
 
@@ -1994,222 +2168,269 @@ class _BillsScreenState extends State<BillsScreen>
       context: context,
       barrierColor: _t.backgroundPrimary.withValues(alpha: 0.70),
       builder: (ctx) {
-        return StatefulBuilder(builder: (ctx, setDlgState) {
-          final daysInMonth = DateUtils.getDaysInMonth(_viewMonth.year, _viewMonth.month);
-          final firstWeekday = DateTime(_viewMonth.year, _viewMonth.month, 1).weekday % 7; // 0=Sun
-          final monthLabel = [
-            'January','February','March','April','May','June',
-            'July','August','September','October','November','December'
-          ][_viewMonth.month - 1];
+        return StatefulBuilder(
+          builder: (ctx, setDlgState) {
+            final daysInMonth = DateUtils.getDaysInMonth(
+              _viewMonth.year,
+              _viewMonth.month,
+            );
+            final firstWeekday =
+                DateTime(_viewMonth.year, _viewMonth.month, 1).weekday %
+                7; // 0=Sun
+            final monthLabel = [
+              'January',
+              'February',
+              'March',
+              'April',
+              'May',
+              'June',
+              'July',
+              'August',
+              'September',
+              'October',
+              'November',
+              'December',
+            ][_viewMonth.month - 1];
 
-          return Dialog(
-            backgroundColor: Colors.transparent,
-            insetPadding: EdgeInsets.symmetric(horizontal: 24, vertical: 40),
-            child: Container(
-              decoration: BoxDecoration(
-                color: _t.backgroundSecondary,
-                borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: _t.cardBorder, width: 1.5),
-                boxShadow: [
-                  BoxShadow(
-                    color: _accent2.withValues(alpha: 0.18),
-                    blurRadius: 40,
-                    offset: Offset(0, 12),
-                  ),
-                ],
-              ),
-              padding: EdgeInsets.fromLTRB(20, 20, 20, 16),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // ── Month nav ─────────────────────────────────────
-                  Row(
-                    children: [
-                      _calNavBtn(
-                        icon: Icons.chevron_left_rounded,
-                        onTap: () => setDlgState(() {
-                          _viewMonth = DateTime(_viewMonth.year, _viewMonth.month - 1, 1);
-                        }),
-                      ),
-                      Expanded(
-                        child: Text(
-                          '$monthLabel ${_viewMonth.year}',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: _t.textPrimary,
-                            fontSize: 15,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                      _calNavBtn(
-                        icon: Icons.chevron_right_rounded,
-                        onTap: () => setDlgState(() {
-                          final next = DateTime(_viewMonth.year, _viewMonth.month + 1, 1);
-                          if (!next.isAfter(DateTime(now.year, now.month + 1, 1))) {
-                            _viewMonth = next;
-                          }
-                        }),
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: 14),
-
-                  // ── Weekday headers ───────────────────────────────
-                  Row(
-                    children: ['Su','Mo','Tu','We','Th','Fr','Sa'].map((w) =>
-                      Expanded(
-                        child: Center(
-                          child: Text(
-                            w,
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                              color: _t.mutedText,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ).toList(),
-                  ),
-                  SizedBox(height: 8),
-
-                  // ── Day grid ──────────────────────────────────────
-                  GridView.builder(
-                    shrinkWrap: true,
-                    physics: NeverScrollableScrollPhysics(),
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 7,
-                      mainAxisSpacing: 4,
-                      crossAxisSpacing: 4,
-                      childAspectRatio: 1,
+            return Dialog(
+              backgroundColor: Colors.transparent,
+              insetPadding: EdgeInsets.symmetric(horizontal: 24, vertical: 40),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: _t.backgroundSecondary,
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(color: _t.cardBorder, width: 1.5),
+                  boxShadow: [
+                    BoxShadow(
+                      color: _accent2.withValues(alpha: 0.18),
+                      blurRadius: 40,
+                      offset: Offset(0, 12),
                     ),
-                    itemCount: firstWeekday + daysInMonth,
-                    itemBuilder: (_, i) {
-                      if (i < firstWeekday) return SizedBox.shrink();
-                      final day = i - firstWeekday + 1;
-                      final date = DateTime(_viewMonth.year, _viewMonth.month, day);
-                      final isSelected = date.year == _tempSelected.year &&
-                          date.month == _tempSelected.month &&
-                          date.day == _tempSelected.day;
-                      final isToday = date.year == now.year &&
-                          date.month == now.month &&
-                          date.day == now.day;
-                      final isFuture = date.isAfter(now);
-
-                      return GestureDetector(
-                        onTap: isFuture ? null : () => setDlgState(() => _tempSelected = date),
-                        child: AnimatedContainer(
-                          duration: Duration(milliseconds: 180),
-                          decoration: BoxDecoration(
-                            gradient: isSelected
-                                ? LinearGradient(
-                                    colors: [_accent, _accent3],
-                                    begin: Alignment.topLeft,
-                                    end: Alignment.bottomRight,
-                                  )
-                                : null,
-                            color: isSelected
-                                ? null
-                                : isToday
-                                    ? _accent.withValues(alpha: 0.15)
-                                    : Colors.transparent,
-                            borderRadius: BorderRadius.circular(10),
-                            border: isToday && !isSelected
-                                ? Border.all(color: _accent.withValues(alpha: 0.50), width: 1.5)
-                                : null,
-                          ),
-                          child: Center(
-                            child: Text(
-                              '$day',
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: isSelected || isToday
-                                    ? FontWeight.w700
-                                    : FontWeight.w500,
-                                color: isSelected
-                                    ? Colors.white
-                                    : isFuture
-                                        ? _t.mutedText.withValues(alpha: 0.35)
-                                        : _t.textPrimary,
-                              ),
+                  ],
+                ),
+                padding: EdgeInsets.fromLTRB(20, 20, 20, 16),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // ── Month nav ─────────────────────────────────────
+                    Row(
+                      children: [
+                        _calNavBtn(
+                          icon: Icons.chevron_left_rounded,
+                          onTap: () => setDlgState(() {
+                            _viewMonth = DateTime(
+                              _viewMonth.year,
+                              _viewMonth.month - 1,
+                              1,
+                            );
+                          }),
+                        ),
+                        Expanded(
+                          child: Text(
+                            '$monthLabel ${_viewMonth.year}',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: _t.textPrimary,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
                             ),
                           ),
                         ),
-                      );
-                    },
-                  ),
+                        _calNavBtn(
+                          icon: Icons.chevron_right_rounded,
+                          onTap: () => setDlgState(() {
+                            final next = DateTime(
+                              _viewMonth.year,
+                              _viewMonth.month + 1,
+                              1,
+                            );
+                            if (!next.isAfter(
+                              DateTime(now.year, now.month + 1, 1),
+                            )) {
+                              _viewMonth = next;
+                            }
+                          }),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 14),
 
-                  SizedBox(height: 16),
-                  Divider(color: _t.cardBorder, height: 1),
-                  SizedBox(height: 12),
+                    // ── Weekday headers ───────────────────────────────
+                    Row(
+                      children: ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
+                          .map(
+                            (w) => Expanded(
+                              child: Center(
+                                child: Text(
+                                  w,
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                    color: _t.mutedText,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          )
+                          .toList(),
+                    ),
+                    SizedBox(height: 8),
 
-                  // ── Actions ───────────────────────────────────────
-                  Row(
-                    children: [
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: () => Navigator.of(ctx).pop(),
-                          child: Container(
-                            padding: EdgeInsets.symmetric(vertical: 11),
+                    // ── Day grid ──────────────────────────────────────
+                    GridView.builder(
+                      shrinkWrap: true,
+                      physics: NeverScrollableScrollPhysics(),
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 7,
+                        mainAxisSpacing: 4,
+                        crossAxisSpacing: 4,
+                        childAspectRatio: 1,
+                      ),
+                      itemCount: firstWeekday + daysInMonth,
+                      itemBuilder: (_, i) {
+                        if (i < firstWeekday) return SizedBox.shrink();
+                        final day = i - firstWeekday + 1;
+                        final date = DateTime(
+                          _viewMonth.year,
+                          _viewMonth.month,
+                          day,
+                        );
+                        final isSelected =
+                            date.year == _tempSelected.year &&
+                            date.month == _tempSelected.month &&
+                            date.day == _tempSelected.day;
+                        final isToday =
+                            date.year == now.year &&
+                            date.month == now.month &&
+                            date.day == now.day;
+                        final isFuture = date.isAfter(now);
+
+                        return GestureDetector(
+                          onTap: isFuture
+                              ? null
+                              : () => setDlgState(() => _tempSelected = date),
+                          child: AnimatedContainer(
+                            duration: Duration(milliseconds: 180),
                             decoration: BoxDecoration(
-                              color: _t.panel,
-                              border: Border.all(color: _t.cardBorder, width: 1.5),
-                              borderRadius: BorderRadius.circular(12),
+                              gradient: isSelected
+                                  ? LinearGradient(
+                                      colors: [_accent, _accent3],
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                    )
+                                  : null,
+                              color: isSelected
+                                  ? null
+                                  : isToday
+                                  ? _accent.withValues(alpha: 0.15)
+                                  : Colors.transparent,
+                              borderRadius: BorderRadius.circular(10),
+                              border: isToday && !isSelected
+                                  ? Border.all(
+                                      color: _accent.withValues(alpha: 0.50),
+                                      width: 1.5,
+                                    )
+                                  : null,
                             ),
                             child: Center(
                               child: Text(
-                                'Cancel',
+                                '$day',
                                 style: TextStyle(
                                   fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                  color: _t.mutedText,
+                                  fontWeight: isSelected || isToday
+                                      ? FontWeight.w700
+                                      : FontWeight.w500,
+                                  color: isSelected
+                                      ? Colors.white
+                                      : isFuture
+                                      ? _t.mutedText.withValues(alpha: 0.35)
+                                      : _t.textPrimary,
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+
+                    SizedBox(height: 16),
+                    Divider(color: _t.cardBorder, height: 1),
+                    SizedBox(height: 12),
+
+                    // ── Actions ───────────────────────────────────────
+                    Row(
+                      children: [
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () => Navigator.of(ctx).pop(),
+                            child: Container(
+                              padding: EdgeInsets.symmetric(vertical: 11),
+                              decoration: BoxDecoration(
+                                color: _t.panel,
+                                border: Border.all(
+                                  color: _t.cardBorder,
+                                  width: 1.5,
+                                ),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Center(
+                                child: Text(
+                                  'Cancel',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    color: _t.mutedText,
+                                  ),
                                 ),
                               ),
                             ),
                           ),
                         ),
-                      ),
-                      SizedBox(width: 10),
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: () {
-                            _setOverlayState(() => _selectedDate = _tempSelected);
-                            Navigator.of(ctx).pop();
-                          },
-                          child: Container(
-                            padding: EdgeInsets.symmetric(vertical: 11),
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(colors: [_accent, _accent3]),
-                              borderRadius: BorderRadius.circular(12),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: _accent.withValues(alpha: 0.30),
-                                  blurRadius: 14,
-                                  offset: Offset(0, 4),
+                        SizedBox(width: 10),
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () {
+                              _setOverlayState(
+                                () => _selectedDate = _tempSelected,
+                              );
+                              Navigator.of(ctx).pop();
+                            },
+                            child: Container(
+                              padding: EdgeInsets.symmetric(vertical: 11),
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [_accent, _accent3],
                                 ),
-                              ],
-                            ),
-                            child: Center(
-                              child: Text(
-                                'OK',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w700,
-                                  color: Colors.white,
+                                borderRadius: BorderRadius.circular(12),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: _accent.withValues(alpha: 0.30),
+                                    blurRadius: 14,
+                                    offset: Offset(0, 4),
+                                  ),
+                                ],
+                              ),
+                              child: Center(
+                                child: Text(
+                                  'OK',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w700,
+                                    color: Colors.white,
+                                  ),
                                 ),
                               ),
                             ),
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-                ],
+                      ],
+                    ),
+                  ],
+                ),
               ),
-            ),
-          );
-        });
+            );
+          },
+        );
       },
     );
   }
@@ -2302,7 +2523,10 @@ class _BillsScreenState extends State<BillsScreen>
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            AppLocalizations.t(context, 'bills_my_coupons_title'),
+                            AppLocalizations.t(
+                              context,
+                              'bills_my_coupons_title',
+                            ),
                             style: TextStyle(
                               fontSize: 22,
                               fontWeight: FontWeight.w700,
@@ -2311,7 +2535,10 @@ class _BillsScreenState extends State<BillsScreen>
                           ),
                           SizedBox(height: 3),
                           Text(
-                            AppLocalizations.t(context, 'bills_saved_coupons_count').replaceFirst('{count}', '${_coupons.length}'),
+                            AppLocalizations.t(
+                              context,
+                              'bills_saved_coupons_count',
+                            ).replaceFirst('{count}', '${_coupons.length}'),
                             style: TextStyle(
                               fontSize: 12,
                               color: _t.mutedText,
@@ -2382,11 +2609,16 @@ class _BillsScreenState extends State<BillsScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _couponFieldLabel(AppLocalizations.t(context, 'bills_coupon_code_label')),
+          _couponFieldLabel(
+            AppLocalizations.t(context, 'bills_coupon_code_label'),
+          ),
           SizedBox(height: 5),
           _couponInput(
             controller: _newCodeCtrl,
-            placeholder: AppLocalizations.t(context, 'bills_coupon_code_placeholder'),
+            placeholder: AppLocalizations.t(
+              context,
+              'bills_coupon_code_placeholder',
+            ),
             isBold: true,
           ),
           SizedBox(height: 10),
@@ -2396,7 +2628,9 @@ class _BillsScreenState extends State<BillsScreen>
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _couponFieldLabel(AppLocalizations.t(context, 'bills_coupon_type_label')),
+                    _couponFieldLabel(
+                      AppLocalizations.t(context, 'bills_coupon_type_label'),
+                    ),
                     SizedBox(height: 5),
                     Container(
                       decoration: BoxDecoration(
@@ -2406,7 +2640,12 @@ class _BillsScreenState extends State<BillsScreen>
                       ),
                       child: DropdownButtonHideUnderline(
                         child: DropdownButton<String>(
-                          value: _couponTypeVal ?? AppLocalizations.t(context, 'bills_coupon_type_percent'),
+                          value:
+                              _couponTypeVal ??
+                              AppLocalizations.t(
+                                context,
+                                'bills_coupon_type_percent',
+                              ),
                           dropdownColor: _t.backgroundSecondary,
                           icon: Icon(
                             Icons.keyboard_arrow_down_rounded,
@@ -2423,12 +2662,30 @@ class _BillsScreenState extends State<BillsScreen>
                             fontWeight: FontWeight.w500,
                             color: _t.textPrimary,
                           ),
-                          items: [
-                                AppLocalizations.t(context, 'bills_coupon_type_percent'),
-                                AppLocalizations.t(context, 'bills_coupon_type_flat'),
-                                AppLocalizations.t(context, 'bills_coupon_type_free'),
-                              ].map((o) => DropdownMenuItem(value: o, child: Text(o))).toList(),
-                          onChanged: (v) => _setOverlayState(() => _couponTypeVal = v!),
+                          items:
+                              [
+                                    AppLocalizations.t(
+                                      context,
+                                      'bills_coupon_type_percent',
+                                    ),
+                                    AppLocalizations.t(
+                                      context,
+                                      'bills_coupon_type_flat',
+                                    ),
+                                    AppLocalizations.t(
+                                      context,
+                                      'bills_coupon_type_free',
+                                    ),
+                                  ]
+                                  .map(
+                                    (o) => DropdownMenuItem(
+                                      value: o,
+                                      child: Text(o),
+                                    ),
+                                  )
+                                  .toList(),
+                          onChanged: (v) =>
+                              _setOverlayState(() => _couponTypeVal = v!),
                         ),
                       ),
                     ),
@@ -2440,7 +2697,9 @@ class _BillsScreenState extends State<BillsScreen>
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _couponFieldLabel(AppLocalizations.t(context, 'bills_coupon_value_label')),
+                    _couponFieldLabel(
+                      AppLocalizations.t(context, 'bills_coupon_value_label'),
+                    ),
                     SizedBox(height: 5),
                     _couponInput(
                       controller: _newValueCtrl,
@@ -2453,11 +2712,16 @@ class _BillsScreenState extends State<BillsScreen>
             ],
           ),
           SizedBox(height: 10),
-          _couponFieldLabel(AppLocalizations.t(context, 'bills_coupon_note_label')),
+          _couponFieldLabel(
+            AppLocalizations.t(context, 'bills_coupon_note_label'),
+          ),
           SizedBox(height: 5),
           _couponInput(
             controller: _newNoteCtrl,
-            placeholder: AppLocalizations.t(context, 'bills_coupon_note_placeholder'),
+            placeholder: AppLocalizations.t(
+              context,
+              'bills_coupon_note_placeholder',
+            ),
           ),
           SizedBox(height: 12),
           _PressScaleButton(
@@ -2613,8 +2877,8 @@ class _BillsScreenState extends State<BillsScreen>
     final unitTxt = coupon['type'] == 'free'
         ? AppLocalizations.t(context, 'bills_coupon_type_special')
         : (coupon['type'] == 'flat'
-            ? AppLocalizations.t(context, 'bills_coupon_type_flat')
-            : AppLocalizations.t(context, 'bills_coupon_type_off'));
+              ? AppLocalizations.t(context, 'bills_coupon_type_flat')
+              : AppLocalizations.t(context, 'bills_coupon_type_off'));
 
     return Container(
       margin: EdgeInsets.only(bottom: 12),
@@ -2630,177 +2894,187 @@ class _BillsScreenState extends State<BillsScreen>
       ),
       child: IntrinsicHeight(
         child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.horizontal(left: Radius.circular(20)),
-            child: Container(
-              width: 82,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: gradientColors,
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.horizontal(left: Radius.circular(20)),
+              child: Container(
+                width: 82,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: gradientColors,
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
                 ),
-              ),
-              child: Stack(
-                children: [
-                  Positioned(
-                    top: -18,
-                    right: -18,
-                    child: Container(
-                      width: 56,
-                      height: 56,
-                      decoration: BoxDecoration(
-                        color: Color(0x1FFFFFFF),
-                        shape: BoxShape.circle,
+                child: Stack(
+                  children: [
+                    Positioned(
+                      top: -18,
+                      right: -18,
+                      child: Container(
+                        width: 56,
+                        height: 56,
+                        decoration: BoxDecoration(
+                          color: Color(0x1FFFFFFF),
+                          shape: BoxShape.circle,
+                        ),
                       ),
                     ),
-                  ),
-                  Positioned(
-                    bottom: -22,
-                    left: -10,
-                    child: Container(
-                      width: 64,
-                      height: 64,
-                      decoration: BoxDecoration(
-                        color: Color(0x14FFFFFF),
-                        shape: BoxShape.circle,
+                    Positioned(
+                      bottom: -22,
+                      left: -10,
+                      child: Container(
+                        width: 64,
+                        height: 64,
+                        decoration: BoxDecoration(
+                          color: Color(0x14FFFFFF),
+                          shape: BoxShape.circle,
+                        ),
                       ),
                     ),
-                  ),
-                  Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          bigNum,
-                          style: TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.w900,
-                            color: Colors.white,
-                            height: 1.0,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                        SizedBox(height: 2),
-                        Text(
-                          unitTxt,
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w700,
-                            color: Color(0xD9FFFFFF),
-                            letterSpacing: 0.64,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          SizedBox(
-            width: 14,
-            child: CustomPaint(painter: _PerforationPainter(notchColor: _t.backgroundSecondary, dashColor: _t.cardBorder)),
-          ),
-          Expanded(
-            child: Container(
-              padding: EdgeInsets.fromLTRB(16, 14, 14, 14),
-              decoration: BoxDecoration(
-                color: _t.backgroundSecondary,
-                borderRadius: BorderRadius.horizontal(
-                  right: Radius.circular(20),
-                ),
-                border: Border.all(color: _t.cardBorder, width: 1.5),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          coupon['code'] as String,
-                          style: TextStyle(
-                            fontFamily: 'Courier New',
-                            fontSize: 15,
-                            fontWeight: FontWeight.w800,
-                            color: _t.textPrimary,
-                            letterSpacing: 1.28,
-                          ),
-                        ),
-                        if ((coupon['note'] as String).isNotEmpty) ...[
-                          SizedBox(height: 3),
+                    Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
                           Text(
-                            coupon['note'] as String,
-                            overflow: TextOverflow.ellipsis,
+                            bigNum,
+                            style: TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.w900,
+                              color: Colors.white,
+                              height: 1.0,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          SizedBox(height: 2),
+                          Text(
+                            unitTxt,
                             style: TextStyle(
                               fontSize: 10,
-                              color: _t.mutedText,
-                              fontWeight: FontWeight.w500,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xD9FFFFFF),
+                              letterSpacing: 0.64,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            SizedBox(
+              width: 14,
+              child: CustomPaint(
+                painter: _PerforationPainter(
+                  notchColor: _t.backgroundSecondary,
+                  dashColor: _t.cardBorder,
+                ),
+              ),
+            ),
+            Expanded(
+              child: Container(
+                padding: EdgeInsets.fromLTRB(16, 14, 14, 14),
+                decoration: BoxDecoration(
+                  color: _t.backgroundSecondary,
+                  borderRadius: BorderRadius.horizontal(
+                    right: Radius.circular(20),
+                  ),
+                  border: Border.all(color: _t.cardBorder, width: 1.5),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            coupon['code'] as String,
+                            style: TextStyle(
+                              fontFamily: 'Courier New',
+                              fontSize: 15,
+                              fontWeight: FontWeight.w800,
+                              color: _t.textPrimary,
+                              letterSpacing: 1.28,
+                            ),
+                          ),
+                          if ((coupon['note'] as String).isNotEmpty) ...[
+                            SizedBox(height: 3),
+                            Text(
+                              coupon['note'] as String,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: _t.mutedText,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                          SizedBox(height: 4),
+                          Container(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 7,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: gradientColors.first.withValues(
+                                alpha: 0.12,
+                              ),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.local_offer,
+                                  size: 8,
+                                  color: gradientColors.first,
+                                ),
+                                SizedBox(width: 3),
+                                Text(
+                                  '${coupon['value'].toInt()}${coupon['type'] == 'percent' ? '%' : '₹'} Off',
+                                  style: TextStyle(
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.w700,
+                                    letterSpacing: 0.96,
+                                    color: gradientColors.first,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ],
-                        SizedBox(height: 4),
-                        Container(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 7,
-                            vertical: 2,
+                      ),
+                    ),
+                    _PressScaleButton(
+                      onTap: () => _deleteCoupon(coupon['id'] as String),
+                      child: Container(
+                        width: 28,
+                        height: 28,
+                        decoration: BoxDecoration(
+                          color: _deleteRed.withValues(alpha: 0.08),
+                          border: Border.all(
+                            color: _deleteRed.withValues(alpha: 0.20),
+                            width: 1,
                           ),
-                          decoration: BoxDecoration(
-                            color: gradientColors.first.withValues(alpha: 0.12),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                Icons.local_offer,
-                                size: 8,
-                                color: gradientColors.first,
-                              ),
-                              SizedBox(width: 3),
-                              Text(
-                                '${coupon['value'].toInt()}${coupon['type'] == 'percent' ? '%' : '₹'} Off',
-                                style: TextStyle(
-                                  fontSize: 9,
-                                  fontWeight: FontWeight.w700,
-                                  letterSpacing: 0.96,
-                                  color: gradientColors.first,
-                                ),
-                              ),
-                            ],
-                          ),
+                          borderRadius: BorderRadius.circular(14),
                         ),
-                      ],
-                    ),
-                  ),
-                  _PressScaleButton(
-                    onTap: () => _deleteCoupon(coupon['id'] as String),
-                    child: Container(
-                      width: 28,
-                      height: 28,
-                      decoration: BoxDecoration(
-                        color: _deleteRed.withValues(alpha: 0.08),
-                        border: Border.all(color: _deleteRed.withValues(alpha: 0.20), width: 1),
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: Icon(
-                        Icons.delete_outline_rounded,
-                        size: 13,
-                        color: _deleteRed.withValues(alpha: 0.60),
+                        child: Icon(
+                          Icons.delete_outline_rounded,
+                          size: 13,
+                          color: _deleteRed.withValues(alpha: 0.60),
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
-      ),
+          ],
+        ),
       ),
     );
   }
@@ -2828,7 +3102,12 @@ class _BillsScreenState extends State<BillsScreen>
         color: _t.backgroundSecondary,
         border: Border.all(color: _t.cardBorder, width: 1),
         borderRadius: BorderRadius.circular(22),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.20), blurRadius: 20)],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.20),
+            blurRadius: 20,
+          ),
+        ],
       ),
       child: Text(
         _toastMsg,
@@ -2931,167 +3210,177 @@ class _AnimatedBillCardState extends State<_AnimatedBillCard>
           child: AnimatedScale(
             scale: _pressed ? 0.98 : 1.0,
             duration: Duration(milliseconds: 120),
-            child: Builder(builder: (context) {
-              final t = context.themeTokens;
-              return Container(
-              margin: EdgeInsets.only(bottom: 10),
-              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              decoration: BoxDecoration(
-                color: t.card,
-                border: Border.all(color: t.cardBorder, width: 1.5),
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: _pressed
-                        ? t.accent.primary.withValues(alpha: 0.14)
-                        : Colors.black.withValues(alpha: 0.10),
-                    blurRadius: _pressed ? 24 : 12,
-                    offset: Offset(0, _pressed ? 8 : 3),
-                  ),
-                ],
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Container(
-                    width: 52,
-                    height: 62,
-                    decoration: BoxDecoration(
-                      color: meta['bg'] as Color,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: t.cardBorder, width: 1.5),
-                      boxShadow: [
-                        BoxShadow(
-                          color: (meta['color'] as Color).withValues(alpha: 0.12),
-                          blurRadius: 9,
-                          offset: Offset(0, 3),
-                        ),
-                      ],
-                    ),
-                    child: Center(
-                      child: Text(
-                        meta['icon'] as String,
-                        style: TextStyle(fontSize: 26),
+            child: Builder(
+              builder: (context) {
+                final t = context.themeTokens;
+                return Container(
+                  margin: EdgeInsets.only(bottom: 10),
+                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  decoration: BoxDecoration(
+                    color: t.card,
+                    border: Border.all(color: t.cardBorder, width: 1.5),
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: _pressed
+                            ? t.accent.primary.withValues(alpha: 0.14)
+                            : Colors.black.withValues(alpha: 0.10),
+                        blurRadius: _pressed ? 24 : 12,
+                        offset: Offset(0, _pressed ? 8 : 3),
                       ),
-                    ),
+                    ],
                   ),
-                  SizedBox(width: 13),
-
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          bill['store'] as String,
-                          overflow: TextOverflow.ellipsis,
-                          maxLines: 1,
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
-                            color: t.textPrimary,
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Container(
+                        width: 52,
+                        height: 62,
+                        decoration: BoxDecoration(
+                          color: meta['bg'] as Color,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: t.cardBorder, width: 1.5),
+                          boxShadow: [
+                            BoxShadow(
+                              color: (meta['color'] as Color).withValues(
+                                alpha: 0.12,
+                              ),
+                              blurRadius: 9,
+                              offset: Offset(0, 3),
+                            ),
+                          ],
+                        ),
+                        child: Center(
+                          child: Text(
+                            meta['icon'] as String,
+                            style: TextStyle(fontSize: 26),
                           ),
                         ),
-                        SizedBox(height: 3),
-                        Row(
+                      ),
+                      SizedBox(width: 13),
+
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Flexible(
-                              child: Text(
-                                bill['date'] as String,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w500,
-                                  color: t.mutedText,
-                                ),
+                            Text(
+                              bill['store'] as String,
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 1,
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: t.textPrimary,
                               ),
                             ),
-                            SizedBox(width: 6),
-                            Container(
-                              padding: EdgeInsets.symmetric(
-                                horizontal: 7,
-                                vertical: 2,
-                              ),
-                              decoration: BoxDecoration(
-                                color: meta['bg'] as Color,
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: Text(
-                                _translateCategory(context, bill['category'] as String).toUpperCase(),
-                                style: TextStyle(
-                                  fontSize: 9,
-                                  fontWeight: FontWeight.w700,
-                                  letterSpacing: 0.96,
-                                  color: meta['color'] as Color,
+                            SizedBox(height: 3),
+                            Row(
+                              children: [
+                                Flexible(
+                                  child: Text(
+                                    bill['date'] as String,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w500,
+                                      color: t.mutedText,
+                                    ),
+                                  ),
                                 ),
+                                SizedBox(width: 6),
+                                Container(
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: 7,
+                                    vertical: 2,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: meta['bg'] as Color,
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: Text(
+                                    _translateCategory(
+                                      context,
+                                      bill['category'] as String,
+                                    ).toUpperCase(),
+                                    style: TextStyle(
+                                      fontSize: 9,
+                                      fontWeight: FontWeight.w700,
+                                      letterSpacing: 0.96,
+                                      color: meta['color'] as Color,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            SizedBox(height: 4),
+                            Text(
+                              bill['note'] as String,
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 1,
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: t.mutedText,
+                                fontWeight: FontWeight.w500,
                               ),
                             ),
                           ],
                         ),
-                        SizedBox(height: 4),
-                        Text(
-                          bill['note'] as String,
-                          overflow: TextOverflow.ellipsis,
-                          maxLines: 1,
-                          style: TextStyle(
-                            fontSize: 10,
-                            color: t.mutedText,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  SizedBox(width: 10),
-
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Text(
-                        '₹${_fmtAmount(bill['amount'] as double)}',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                          color: t.textPrimary,
-                          height: 1.0,
-                        ),
                       ),
-                      SizedBox(height: 2),
-                      Text(
-                        _translatePayment(context, bill['payment'] as String),
-                        style: TextStyle(
-                          fontSize: 9,
-                          color: t.mutedText,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      SizedBox(height: 6),
-                      GestureDetector(
-                        onTap: widget.onDelete,
-                        child: Container(
-                          width: 22,
-                          height: 22,
-                          decoration: BoxDecoration(
-                            color: _deleteRed.withValues(alpha: 0.15),
-                            border: Border.all(
-                              color: _deleteRed.withValues(alpha: 0.30),
-                              width: 1,
+
+                      SizedBox(width: 10),
+
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text(
+                            '₹${_fmtAmount(bill['amount'] as double)}',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              color: t.textPrimary,
+                              height: 1.0,
                             ),
-                            borderRadius: BorderRadius.circular(11),
                           ),
-                          child: Icon(
-                            Icons.close_rounded,
-                            size: 11,
-                            color: _deleteRed,
+                          SizedBox(height: 2),
+                          Text(
+                            _translatePayment(
+                              context,
+                              bill['payment'] as String,
+                            ),
+                            style: TextStyle(
+                              fontSize: 9,
+                              color: t.mutedText,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
-                        ),
+                          SizedBox(height: 6),
+                          GestureDetector(
+                            onTap: widget.onDelete,
+                            child: Container(
+                              width: 22,
+                              height: 22,
+                              decoration: BoxDecoration(
+                                color: _deleteRed.withValues(alpha: 0.15),
+                                border: Border.all(
+                                  color: _deleteRed.withValues(alpha: 0.30),
+                                  width: 1,
+                                ),
+                                borderRadius: BorderRadius.circular(11),
+                              ),
+                              child: Icon(
+                                Icons.close_rounded,
+                                size: 11,
+                                color: _deleteRed,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
-                ],
-              ),
-            );
-            }),
+                );
+              },
+            ),
           ),
         ),
       ),
@@ -3176,7 +3465,10 @@ class _DetailSheet extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: meta['bg'] as Color,
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: _accent2.withValues(alpha: 0.30), width: 1.5),
+                    border: Border.all(
+                      color: _accent2.withValues(alpha: 0.30),
+                      width: 1.5,
+                    ),
                     boxShadow: [
                       BoxShadow(
                         color: _accent.withValues(alpha: 0.14),
@@ -3233,7 +3525,10 @@ class _DetailSheet extends StatelessWidget {
               decoration: BoxDecoration(
                 color: _accent2.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: _accent2.withValues(alpha: 0.22), width: 1),
+                border: Border.all(
+                  color: _accent2.withValues(alpha: 0.22),
+                  width: 1,
+                ),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -3263,12 +3558,35 @@ class _DetailSheet extends StatelessWidget {
                 ),
               ),
             ),
-            _detailRow(context, AppLocalizations.t(context, 'bills_detail_category'), _translateCategory(context, bill['category'] as String).toUpperCase()),
-            _detailRow(context, AppLocalizations.t(context, 'bills_detail_payment'), _translatePayment(context, bill['payment'] as String)),
-            _detailRow(context, AppLocalizations.t(context, 'bills_detail_amount'), '₹${_fmtAmount(bill['amount'] as double)}'),
-            _detailRow(context, AppLocalizations.t(context, 'bills_detail_date'), bill['date'] as String),
+            _detailRow(
+              context,
+              AppLocalizations.t(context, 'bills_detail_category'),
+              _translateCategory(
+                context,
+                bill['category'] as String,
+              ).toUpperCase(),
+            ),
+            _detailRow(
+              context,
+              AppLocalizations.t(context, 'bills_detail_payment'),
+              _translatePayment(context, bill['payment'] as String),
+            ),
+            _detailRow(
+              context,
+              AppLocalizations.t(context, 'bills_detail_amount'),
+              '₹${_fmtAmount(bill['amount'] as double)}',
+            ),
+            _detailRow(
+              context,
+              AppLocalizations.t(context, 'bills_detail_date'),
+              bill['date'] as String,
+            ),
             if ((bill['items'] as String).isNotEmpty) ...[
-              _detailRow(context, AppLocalizations.t(context, 'bills_detail_items'), bill['items'] as String),
+              _detailRow(
+                context,
+                AppLocalizations.t(context, 'bills_detail_items'),
+                bill['items'] as String,
+              ),
             ],
             if ((bill['note'] as String).isNotEmpty) ...[
               Padding(
@@ -3288,11 +3606,17 @@ class _DetailSheet extends StatelessWidget {
                 padding: EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [_accent2.withValues(alpha: 0.08), _accent4.withValues(alpha: 0.05)],
+                    colors: [
+                      _accent2.withValues(alpha: 0.08),
+                      _accent4.withValues(alpha: 0.05),
+                    ],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
-                  border: Border.all(color: _accent2.withValues(alpha: 0.14), width: 1),
+                  border: Border.all(
+                    color: _accent2.withValues(alpha: 0.14),
+                    width: 1,
+                  ),
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: Text(
@@ -3309,7 +3633,13 @@ class _DetailSheet extends StatelessWidget {
             SizedBox(height: 18),
             Row(
               children: [
-                Expanded(child: _detailBtn(context, AppLocalizations.t(context, 'bills_detail_share'), false)),
+                Expanded(
+                  child: _detailBtn(
+                    context,
+                    AppLocalizations.t(context, 'bills_detail_share'),
+                    false,
+                  ),
+                ),
                 SizedBox(width: 9),
                 Expanded(
                   child: _detailBtn(
@@ -3375,7 +3705,10 @@ class _DetailSheet extends StatelessWidget {
         decoration: BoxDecoration(
           gradient: isPrimary
               ? LinearGradient(
-                  colors: [_deleteRed.withValues(alpha: 0.80), _deleteRedLight.withValues(alpha: 0.80)],
+                  colors: [
+                    _deleteRed.withValues(alpha: 0.80),
+                    _deleteRedLight.withValues(alpha: 0.80),
+                  ],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 )
@@ -3519,7 +3852,10 @@ class _PressScaleButtonState extends State<_PressScaleButton> {
 class _PerforationPainter extends CustomPainter {
   final Color notchColor;
   final Color dashColor;
-  const _PerforationPainter({required this.notchColor, required this.dashColor});
+  const _PerforationPainter({
+    required this.notchColor,
+    required this.dashColor,
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -3550,6 +3886,7 @@ class _PerforationPainter extends CustomPainter {
   @override
   bool shouldRepaint(_) => false;
 }
+
 // ─────────────────────────────────────────────────────────────────────────────
 //  Bills Chat Plus Button — Ahvi-style bottom sheet (same as ahvi_stylist_chat)
 // ─────────────────────────────────────────────────────────────────────────────
@@ -3588,11 +3925,15 @@ class _BillsPlusButtonState extends State<_BillsPlusButton> {
       isScrollControlled: true,
       builder: (ctx) => SafeArea(
         child: Padding(
-          padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(ctx).viewInsets.bottom,
+          ),
           child: Container(
             decoration: BoxDecoration(
               color: widget.background,
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(24),
+              ),
               border: Border.all(color: widget.cardBorder),
             ),
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
@@ -3831,6 +4172,7 @@ class _BillsMenuRowState extends State<_BillsMenuRow> {
     );
   }
 }
+
 // ─── ASK AHVI FAB (matches Skincare style exactly) ───────────────────────────
 class _AskAhviFab extends StatefulWidget {
   final VoidCallback onTap;
@@ -3855,12 +4197,14 @@ class _AskAhviFabState extends State<_AskAhviFab>
       vsync: this,
       duration: const Duration(milliseconds: 2500),
     )..repeat();
-    _pulseScale = Tween<double>(begin: 1.0, end: 1.12).animate(
-      CurvedAnimation(parent: _pulseCtrl, curve: Curves.easeOut),
-    );
-    _pulseOpacity = Tween<double>(begin: 0.55, end: 0.0).animate(
-      CurvedAnimation(parent: _pulseCtrl, curve: Curves.easeOut),
-    );
+    _pulseScale = Tween<double>(
+      begin: 1.0,
+      end: 1.12,
+    ).animate(CurvedAnimation(parent: _pulseCtrl, curve: Curves.easeOut));
+    _pulseOpacity = Tween<double>(
+      begin: 0.55,
+      end: 0.0,
+    ).animate(CurvedAnimation(parent: _pulseCtrl, curve: Curves.easeOut));
   }
 
   @override
@@ -3872,7 +4216,7 @@ class _AskAhviFabState extends State<_AskAhviFab>
   @override
   Widget build(BuildContext context) {
     final t = context.themeTokens;
-    final accent  = widget.accent  ?? t.accent.primary;
+    final accent = widget.accent ?? t.accent.primary;
     final accent2 = widget.accent2 ?? t.accent.secondary;
     return GestureDetector(
       onTapDown: (_) => setState(() => _pressed = true),
@@ -3955,6 +4299,7 @@ class _AskAhviFabState extends State<_AskAhviFab>
     );
   }
 }
+
 // ─── Bills Chat FAB — inline in bottom bar (square pill, pulse ring) ──────────
 class _BillsChatFabInline extends StatefulWidget {
   final VoidCallback onTap;
@@ -3978,12 +4323,14 @@ class _BillsChatFabInlineState extends State<_BillsChatFabInline>
       vsync: this,
       duration: const Duration(milliseconds: 2500),
     )..repeat();
-    _pulseScale = Tween<double>(begin: 1.0, end: 1.18).animate(
-      CurvedAnimation(parent: _pulseCtrl, curve: Curves.easeOut),
-    );
-    _pulseOpacity = Tween<double>(begin: 0.55, end: 0.0).animate(
-      CurvedAnimation(parent: _pulseCtrl, curve: Curves.easeOut),
-    );
+    _pulseScale = Tween<double>(
+      begin: 1.0,
+      end: 1.18,
+    ).animate(CurvedAnimation(parent: _pulseCtrl, curve: Curves.easeOut));
+    _pulseOpacity = Tween<double>(
+      begin: 0.55,
+      end: 0.0,
+    ).animate(CurvedAnimation(parent: _pulseCtrl, curve: Curves.easeOut));
   }
 
   @override
@@ -3997,7 +4344,10 @@ class _BillsChatFabInlineState extends State<_BillsChatFabInline>
     final accent = widget.accent;
     return GestureDetector(
       onTapDown: (_) => setState(() => _pressed = true),
-      onTapUp: (_) { setState(() => _pressed = false); widget.onTap(); },
+      onTapUp: (_) {
+        setState(() => _pressed = false);
+        widget.onTap();
+      },
       onTapCancel: () => setState(() => _pressed = false),
       child: AnimatedScale(
         scale: _pressed ? 0.92 : 1.0,
@@ -4044,7 +4394,10 @@ class _BillsChatFabInlineState extends State<_BillsChatFabInline>
               ],
             ),
             child: const Center(
-              child: Text('✦', style: TextStyle(fontSize: 20, color: Colors.white)),
+              child: Text(
+                '✦',
+                style: TextStyle(fontSize: 20, color: Colors.white),
+              ),
             ),
           ),
         ),

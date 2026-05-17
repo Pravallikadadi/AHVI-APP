@@ -5,7 +5,7 @@ import 'package:myapp/app_localizations.dart';
 import 'dart:ui';
 import 'package:image_picker/image_picker.dart';
 import 'package:myapp/services/ahvi_response_parser.dart';
-import 'package:myapp/services/ahvi_speech_service.dart';
+import 'package:myapp/services/appwrite_service.dart';
 import 'package:myapp/services/backend_service.dart';
 import 'package:provider/provider.dart';
 import 'theme/theme_tokens.dart';
@@ -171,6 +171,35 @@ List<AhviWorkoutCard> _workoutCardsFromResponse(Map<String, dynamic> response) {
       .toList();
 }
 
+AhviWorkoutCard _personalizedWorkoutCard(AhviWorkoutCard card, String gender) {
+  final normalizedGender = gender.trim().toLowerCase();
+  if (normalizedGender == 'female') return card;
+
+  var title = card.title
+      .replaceFirst(RegExp(r'^\s*Women\s*[—-]\s*', caseSensitive: false), '')
+      .replaceAll(
+        RegExp(r'\b10\s*Min\s*Glute\s*Activation\b', caseSensitive: false),
+        '10 Min Strength Activation',
+      );
+  if (title.toLowerCase().contains('women') ||
+      title.toLowerCase().contains('glute')) {
+    title = '10 Min Strength Activation';
+  }
+
+  return AhviWorkoutCard(
+    id: card.id,
+    title: title,
+    subtitle: card.subtitle,
+    durationMinutes: card.durationMinutes,
+    intensity: card.intensity,
+    whyThis: card.whyThis,
+    exercises: card.exercises,
+    prepNotes: card.prepNotes,
+    reminders: card.reminders,
+    outfitPairing: card.outfitPairing,
+  );
+}
+
 // ─── THEME COLORS (FIXED — dynamic via AppThemeTokens) ────────────────────────
 // kAccent & navy palette stay constant; surface/text/bg colors come from context
 const kAccent = Color(0xFF7B6EF6);
@@ -250,11 +279,18 @@ class _WorkoutStudioScreenState extends State<WorkoutStudioScreen> {
   Future<void> _loadTodayWorkout() async {
     if (_todayWorkoutLoading || _todayWorkoutLoaded) return;
     setState(() => _todayWorkoutLoading = true);
+    final profile = await Provider.of<AppwriteService>(
+      context,
+      listen: false,
+    ).refreshCurrentUserProfile();
+    final gender = (profile?['gender'] ?? '').toString().toLowerCase();
     final response = await Provider.of<BackendService>(
       context,
       listen: false,
     ).getTodayWorkout();
-    final cards = _workoutCardsFromResponse(response);
+    final cards = _workoutCardsFromResponse(response)
+        .map((card) => _personalizedWorkoutCard(card, gender))
+        .toList(growable: false);
     if (!mounted) return;
     setState(() {
       _todayWorkout = cards.isNotEmpty ? cards.first : null;
@@ -2368,33 +2404,11 @@ class _ChatViewState extends State<_ChatView> {
   }
 
   Future<void> _toggleListening() async {
-    if (_isListening) {
-      await AhviSpeechService.instance.stop();
-      if (mounted) setState(() => _isListening = false);
-      return;
-    }
-
-    if (mounted) setState(() => _isListening = true);
-
-    await AhviSpeechService.instance.start(
-      onText: (text) {
-        if (!mounted) return;
-
-        setState(() {
-          _inputController.text = text;
-          _inputController.selection = TextSelection.fromPosition(
-            TextPosition(offset: _inputController.text.length),
-          );
-        });
-      },
-      onDone: () {
-        if (mounted) setState(() => _isListening = false);
-      },
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Voice input is being polished. Please type for now.'),
+      ),
     );
-
-    if (mounted && !AhviSpeechService.instance.isListening) {
-      setState(() => _isListening = false);
-    }
   }
 
   void _deleteSession(String id) =>
@@ -2701,6 +2715,11 @@ class _ChatViewState extends State<_ChatView> {
     List<AhviWorkoutCard> workoutCards = const [];
     try {
       final backend = Provider.of<BackendService>(context, listen: false);
+      final profile = await Provider.of<AppwriteService>(
+        context,
+        listen: false,
+      ).refreshCurrentUserProfile();
+      final gender = (profile?['gender'] ?? '').toString().toLowerCase();
       final response = _shouldUseWorkoutApi(msg)
           ? await backend.recommendWorkout(
               goal: _goalFromText(msg),
@@ -2709,14 +2728,16 @@ class _ChatViewState extends State<_ChatView> {
               equipment: 'none',
               constraint: _constraintFromText(msg),
             )
-          : await backend.sendModuleChatQuery(
-              module: 'fitness',
-              query: msg,
+          : await backend.sendModuleChat(
+              domain: 'fitness',
+              message: msg,
               chatHistory: List<Map<String, String>>.from(_chatHistory),
             );
       reply = _responseText(response);
       checklistItems = _workoutChecklistFromResponse(response);
-      workoutCards = _workoutCardsFromResponse(response);
+      workoutCards = _workoutCardsFromResponse(response)
+          .map((card) => _personalizedWorkoutCard(card, gender))
+          .toList(growable: false);
       if (reply.isEmpty && workoutCards.isNotEmpty) {
         reply = "I found a workout that fits your day.";
       }

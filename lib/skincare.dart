@@ -385,7 +385,9 @@ class _SkincareScreenState extends State<SkincareScreen>
                         moduleContext: 'skincare',
                         contextData: {
                           'profile': {
-                            'type': _skinType.isNotEmpty ? _skinType : 'Unknown',
+                            'type': _skinType.isNotEmpty
+                                ? _skinType
+                                : 'Unknown',
                             'concerns': _concerns.isNotEmpty
                                 ? _concerns.join(', ')
                                 : 'None specified',
@@ -1350,9 +1352,9 @@ class _ChatOverlayState extends State<_ChatOverlay>
         'Be friendly and use 1 emoji max.';
 
     try {
-      final response = await BackendService().sendModuleChatQuery(
-        module: 'skincare',
-        query: greetPrompt,
+      final response = await BackendService().sendModuleChat(
+        domain: 'skincare',
+        message: greetPrompt,
         chatHistory: const [],
       );
       final rawMessage = response['message'];
@@ -1427,9 +1429,9 @@ class _ChatOverlayState extends State<_ChatOverlay>
     _scrollToBottom();
 
     try {
-      final response = await BackendService().sendModuleChatQuery(
-        module: 'skincare',
-        query: 'Context: ${_getCtx()}\n\n${text.trim()}',
+      final response = await BackendService().sendModuleChat(
+        domain: 'skincare',
+        message: 'Context: ${_getCtx()}\n\n${text.trim()}',
         chatHistory: List<Map<String, String>>.from(_chatHistory),
       );
       final rawMessage = response['message'];
@@ -1461,7 +1463,8 @@ class _ChatOverlayState extends State<_ChatOverlay>
         _scrollToBottom();
       }
     } catch (_) {
-      const fallback = "I couldn't reach AHVI for skincare right now. Please try again.";
+      const fallback =
+          "I couldn't reach AHVI for skincare right now. Please try again.";
       if (mounted) {
         setState(() {
           _isBusy = false;

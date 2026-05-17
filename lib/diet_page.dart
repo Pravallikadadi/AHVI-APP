@@ -4,7 +4,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:myapp/app_localizations.dart';
 import 'package:myapp/services/backend_service.dart';
 import 'package:http/http.dart' as http;
-import 'package:myapp/services/ahvi_speech_service.dart';
 // theme_tokens.dart — use package import below if in a sub-folder
 // Update this path to match your project structure, e.g.:
 // import 'package:your_app/theme/theme_tokens.dart';
@@ -1646,33 +1645,11 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Future<void> _toggleListening() async {
-    if (_isListening) {
-      await AhviSpeechService.instance.stop();
-      if (mounted) setState(() => _isListening = false);
-      return;
-    }
-
-    if (mounted) setState(() => _isListening = true);
-
-    await AhviSpeechService.instance.start(
-      onText: (text) {
-        if (!mounted) return;
-
-        setState(() {
-          _msgCtrl.text = text;
-          _msgCtrl.selection = TextSelection.fromPosition(
-            TextPosition(offset: _msgCtrl.text.length),
-          );
-        });
-      },
-      onDone: () {
-        if (mounted) setState(() => _isListening = false);
-      },
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Voice input is being polished. Please type for now.'),
+      ),
     );
-
-    if (mounted && !AhviSpeechService.instance.isListening) {
-      setState(() => _isListening = false);
-    }
   }
 
   @override
@@ -3412,9 +3389,9 @@ class _ChatScreenState extends State<ChatScreen> {
       planName = 'Healthy Balanced Plan';
     } else {
       try {
-        final response = await BackendService().sendModuleChatQuery(
-          module: 'diet',
-          query: t,
+        final response = await BackendService().sendModuleChat(
+          domain: 'diet',
+          message: t,
           chatHistory: List<Map<String, String>>.from(_chatHistory),
         );
         reply = _responseText(response);
@@ -3435,9 +3412,9 @@ class _ChatScreenState extends State<ChatScreen> {
     }
 
     try {
-      final response = await BackendService().sendModuleChatQuery(
-        module: 'diet',
-        query: t,
+      final response = await BackendService().sendModuleChat(
+        domain: 'diet',
+        message: t,
         chatHistory: List<Map<String, String>>.from(_chatHistory),
       );
       final backendReply = _responseText(response);

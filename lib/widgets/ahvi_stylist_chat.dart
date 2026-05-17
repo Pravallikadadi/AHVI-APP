@@ -666,11 +666,11 @@ class _AhviStylistChatSheetState extends State<_AhviStylistChatSheet>
                   ? 'style'
                   : widget.moduleContext,
             )
-          : await backend.sendModuleChatQuery(
-              module: widget.moduleContext,
-              query: query,
+          : await backend.sendModuleChat(
+              domain: widget.moduleContext,
+              message: query,
               chatHistory: List<Map<String, String>>.from(_chatHistory),
-              contextData: widget.contextData,
+              context: widget.contextData,
             );
       if (!mounted) return;
 
@@ -1349,7 +1349,8 @@ class _WardrobeGapPayload {
         : <String, dynamic>{};
 
     final type = response['type']?.toString() ?? '';
-    final isBackendGap = type == 'missing_occasion_wardrobe' ||
+    final isBackendGap =
+        type == 'missing_occasion_wardrobe' ||
         type == 'missing_core_wardrobe_slots';
 
     final missing = _mapList(
@@ -1366,7 +1367,8 @@ class _WardrobeGapPayload {
             .trim();
 
     final lowerMessage = backendMessage.toLowerCase();
-    final isCoreSlotCopy = lowerMessage.contains('top, bottom, and footwear') ||
+    final isCoreSlotCopy =
+        lowerMessage.contains('top, bottom, and footwear') ||
         lowerMessage.contains('complete style board from your wardrobe');
 
     final occasionRaw =
@@ -1828,10 +1830,7 @@ class _StyleBoardViewModel {
           ),
           score: _intOrNull(board['score']),
           vibe: _text(board['vibe'] ?? board['subtitle'], ''),
-          aesthetic: _text(
-            board['aesthetic'] ?? board['style'],
-            '',
-          ),
+          aesthetic: _text(board['aesthetic'] ?? board['style'], ''),
           items: mergedBoardItems(board),
         ),
       );
@@ -1851,14 +1850,8 @@ class _StyleBoardViewModel {
             imageBase64: null,
             imageUrl: null,
             score: _intOrNull(card['score']),
-            vibe: _text(
-              card['vibe'] ?? card['subtitle'] ?? card['reason'],
-              '',
-            ),
-            aesthetic: _text(
-              card['aesthetic'] ?? card['style'],
-              '',
-            ),
+            vibe: _text(card['vibe'] ?? card['subtitle'] ?? card['reason'], ''),
+            aesthetic: _text(card['aesthetic'] ?? card['style'], ''),
             items: mergedBoardItems(card),
           ),
         );
@@ -1881,10 +1874,7 @@ class _StyleBoardViewModel {
               outfit['vibe'] ?? outfit['reason'] ?? outfit['subtitle'],
               '',
             ),
-            aesthetic: _text(
-              outfit['aesthetic'] ?? outfit['style'],
-              '',
-            ),
+            aesthetic: _text(outfit['aesthetic'] ?? outfit['style'], ''),
             items: mergedBoardItems(outfit),
           ),
         );
@@ -2669,10 +2659,8 @@ class _PinterestStyleBoardCard extends StatelessWidget {
                       child: _BoardActionButton(
                         label: 'Save Look',
                         filled: true,
-                        onTap: () => _toast(
-                          context,
-                          'Look saved to your boards.',
-                        ),
+                        onTap: () =>
+                            _toast(context, 'Look saved to your boards.'),
                       ),
                     ),
                     const SizedBox(width: 8),
