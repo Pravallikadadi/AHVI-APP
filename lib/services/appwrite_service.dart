@@ -1055,14 +1055,26 @@ class AppwriteService extends ChangeNotifier {
       if (user == null) throw Exception("User not authenticated");
       data['userId'] = user.$id; // FIXED to userId
 
-      return await databases.createDocument(
+      debugPrint(
+        'AHVI_MEDLOG_CREATE userId=${user.$id} '
+        'medId=${data['medId']} status=${data['status']} '
+        'collection=${Env.medLogsCollection}',
+      );
+
+      final doc = await databases.createDocument(
         databaseId: Env.appwriteDatabaseId,
         collectionId: Env.medLogsCollection,
         documentId: ID.unique(),
         data: data,
       );
-    } catch (e) {
-      debugPrint("Error creating med log: $e");
+      debugPrint('AHVI_MEDLOG_OK id=${doc.$id}');
+      return doc;
+    } catch (e, st) {
+      // Appwrite errors usually carry a `.code` + `.message`. Stringify
+      // so adb logcat shows EXACTLY why the write failed — most common
+      // case is collection permission (Users role lacks create).
+      debugPrint('AHVI_MEDLOG_FAIL err=$e');
+      debugPrint('AHVI_MEDLOG_FAIL stack=$st');
       rethrow;
     }
   }
