@@ -3345,11 +3345,15 @@ class _ChatScreenState extends State<ChatScreen> {
         .trim();
   }
 
-  void _send() async {
-    final t = _msgCtrl.text.trim();
+  void _send([String? incoming]) async {
+    // AhviChatPromptBar's _trySend clears the controller BEFORE calling
+    // onSendMessage, so we MUST use the text it passes us. Reading
+    // _msgCtrl.text here always returned empty, so every Diet message
+    // silently bailed out at the `if (t.isEmpty) return` guard.
+    final t = (incoming ?? _msgCtrl.text).trim();
     if (t.isEmpty) return;
     final displayText = t;
-    _msgCtrl.clear();
+    if (_msgCtrl.text.isNotEmpty) _msgCtrl.clear();
     setState(() {
       _messages.add(ChatMessage(text: displayText, isBot: false));
       _chatHistory.add({'role': 'user', 'content': displayText});
@@ -3661,7 +3665,7 @@ class _ChatScreenState extends State<ChatScreen> {
                 textMuted: context.dMuted,
                 shadowMedium: Colors.black.withValues(alpha: 0.06),
                 onAccent: Colors.white,
-                onSendMessage: (_) => _send(),
+                onSendMessage: _send,
                 themeTokens: Theme.of(context).extension<AppThemeTokens>()!,
                 onVoiceTap: _toggleListening,
                 isListening: _isListening,
