@@ -24,13 +24,13 @@ class AhviHomeText extends StatelessWidget {
       behavior: HitTestBehavior.opaque,
       onTap: () {
         HapticFeedback.lightImpact();
-        Navigator.of(context).pushNamedAndRemoveUntil(
-          AppRoutes.main,
-          (route) => false,
-        );
+        Navigator.of(
+          context,
+        ).pushNamedAndRemoveUntil(AppRoutes.main, (route) => false);
       },
       child: Material(
-        type: MaterialType.transparency, // inherited elevation/shadow తీసేస్తుంది
+        type:
+            MaterialType.transparency, // inherited elevation/shadow తీసేస్తుంది
         child: Text(
           'AHVI',
           style: GoogleFonts.anton(

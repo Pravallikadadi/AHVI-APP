@@ -328,7 +328,8 @@ class AppwriteService extends ChangeNotifier {
   bool isOnboardingCompleteFromProfile(Map<String, dynamic>? profile) {
     final gender = (profile?['gender'] ?? '').toString().trim();
 
-    final done = profile?['onboarding1'] == true &&
+    final done =
+        profile?['onboarding1'] == true &&
         profile?['onboarding2'] == true &&
         profile?['onboarding3'] == true &&
         gender.isNotEmpty;
@@ -634,13 +635,14 @@ class AppwriteService extends ChangeNotifier {
     try {
       final user = await getCurrentUser();
       if (user == null) throw Exception("User not authenticated");
+      final normalizedOccasion = _savedBoardOccasionLabel(occasion);
 
       final result = await databases.listDocuments(
         databaseId: Env.appwriteDatabaseId,
         collectionId: Env.savedBoardsCollection,
         queries: [
           Query.equal('userId', user.$id), // FIXED to userId
-          Query.equal('occasion', occasion),
+          Query.equal('occasion', normalizedOccasion),
           Query.orderDesc('\$createdAt'),
         ],
       );
@@ -681,6 +683,10 @@ class AppwriteService extends ChangeNotifier {
     required String outfitDescription,
     String? imageUrl,
     String? emoji,
+    String? boardCategory,
+    String? boardCategoryLabel,
+    String? title,
+    String? prompt,
     Map<String, dynamic>? extra,
   }) async {
     try {
@@ -700,16 +706,52 @@ class AppwriteService extends ChangeNotifier {
                 .toList()
           : <String>[];
 
-      // Current Appwrite saved_boards schema supports only:
-      // userId, imageUrl, itemIds, occasion.
-      // Keep this direct Appwrite fallback schema-safe.
+      final storageOccasion = _savedBoardOccasionLabel(occasion);
+      final categoryLabel = boardCategoryLabel?.trim().isNotEmpty == true
+          ? boardCategoryLabel!.trim()
+          : storageOccasion;
+      final categoryKey = boardCategory?.trim().isNotEmpty == true
+          ? boardCategory!.trim()
+          : _savedBoardCategoryKey(categoryLabel);
+      final nowIso = DateTime.now().toIso8601String();
+
+      final richData = <String, dynamic>{
+        'userId': user.$id,
+        'occasion': storageOccasion,
+        'imageUrl': cleanImageUrl,
+        'itemIds': itemIds,
+        'boardCategory': categoryKey,
+        'boardCategoryLabel': categoryLabel,
+        'title': (title ?? '').trim().isEmpty
+            ? _fallbackSavedBoardTitle(categoryLabel, outfitDescription)
+            : title!.trim(),
+        'prompt': (prompt ?? '').trim(),
+        'outfitDescription': outfitDescription.trim(),
+        'thumbnailUrl': cleanImageUrl,
+        'emoji': (emoji ?? '').trim().isEmpty ? '✨' : emoji!.trim(),
+        'createdAt': nowIso,
+      };
+
+      try {
+        return await databases.createDocument(
+          databaseId: Env.appwriteDatabaseId,
+          collectionId: Env.savedBoardsCollection,
+          documentId: ID.unique(),
+          data: richData,
+        );
+      } catch (e) {
+        debugPrint(
+          'Rich saved board write failed, retrying minimal schema: $e',
+        );
+      }
+
       return await databases.createDocument(
         databaseId: Env.appwriteDatabaseId,
         collectionId: Env.savedBoardsCollection,
         documentId: ID.unique(),
         data: {
           'userId': user.$id,
-          'occasion': occasion,
+          'occasion': storageOccasion,
           'imageUrl': cleanImageUrl,
           'itemIds': itemIds,
         },
@@ -718,6 +760,66 @@ class AppwriteService extends ChangeNotifier {
       debugPrint('Error saving board: $e');
       return null;
     }
+  }
+
+  String _savedBoardOccasionLabel(String value) {
+    final raw = value.trim();
+    final key = raw.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]+'), '_');
+    switch (key) {
+      case 'party':
+      case 'party_looks':
+      case 'date':
+      case 'date_night':
+        return 'Party';
+      case 'office':
+      case 'office_fit':
+      case 'office_fits':
+      case 'work':
+        return 'Office';
+      case 'vacation':
+      case 'travel':
+      case 'airport':
+      case 'holiday':
+        return 'Vacation';
+      case 'occasion':
+      case 'wedding':
+      case 'event':
+      case 'festival':
+        return 'Occasion';
+      case 'everything_else':
+      case 'everything':
+      case 'other':
+      case 'unclear':
+        return 'Everything Else';
+      default:
+        return raw.isEmpty ? 'Everything Else' : raw;
+    }
+  }
+
+  String _savedBoardCategoryKey(String label) {
+    switch (_savedBoardOccasionLabel(label).toLowerCase()) {
+      case 'party':
+        return 'party_looks';
+      case 'office':
+        return 'office_fits';
+      case 'vacation':
+        return 'vacation';
+      case 'occasion':
+        return 'occasion';
+      default:
+        return 'everything_else';
+    }
+  }
+
+  String _fallbackSavedBoardTitle(String categoryLabel, String desc) {
+    final cleanDesc = desc
+        .split('+')
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .take(2)
+        .join(' ');
+    final stem = cleanDesc.isEmpty ? categoryLabel : cleanDesc;
+    return '$stem Look';
   }
 
   Future<void> deleteSavedBoard(String documentId) async {

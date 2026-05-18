@@ -1530,10 +1530,11 @@ class _BillsScreenState extends State<BillsScreen>
       reply = _moduleResponseText(response);
     } catch (e) {
       debugPrint('AHVI_BILLS_CHAT_ERROR $e');
+      reply = 'AHVI bills request failed: $e';
     }
     if (!mounted) return;
     if (reply.isEmpty) {
-      reply = "I couldn't reach AHVI for this request. Please try again.";
+      reply = 'AHVI returned an empty bills response. Please try again.';
     }
     setState(() {
       _chatMessages.add({'from': 'ahvi', 'text': reply});

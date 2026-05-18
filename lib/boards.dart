@@ -63,9 +63,7 @@ class _CalendarCardState extends State<CalendarCard> {
   void _openCalendar() {
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (_) => const CalendarShell(),
-      ),
+      MaterialPageRoute(builder: (_) => const CalendarShell()),
     );
   }
 
@@ -150,8 +148,6 @@ class _CalendarCardState extends State<CalendarCard> {
   }
 }
 
-
-
 class _GlassCard extends StatelessWidget {
   final Widget child;
   final Color borderColor;
@@ -182,7 +178,9 @@ class _GlassCard extends StatelessWidget {
             border: Border.all(color: borderColor, width: 1.2),
             boxShadow: [
               BoxShadow(
-                color: context.themeTokens.accent.primary.withValues(alpha: 0.4),
+                color: context.themeTokens.accent.primary.withValues(
+                  alpha: 0.4,
+                ),
                 blurRadius: 32,
                 spreadRadius: 1,
                 offset: const Offset(0, 10),
@@ -387,7 +385,9 @@ class _BoardsScreenState extends State<BoardsScreen>
     final trimmed = _createBoardController.text.trim();
     if (trimmed.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppLocalizations.t(context, 'boards_please_enter'))),
+        SnackBar(
+          content: Text(AppLocalizations.t(context, 'boards_please_enter')),
+        ),
       );
       return;
     }
@@ -397,7 +397,9 @@ class _BoardsScreenState extends State<BoardsScreen>
     );
     if (alreadyExists) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppLocalizations.t(context, 'boards_already_exists'))),
+        SnackBar(
+          content: Text(AppLocalizations.t(context, 'boards_already_exists')),
+        ),
       );
       return;
     }
@@ -431,11 +433,11 @@ class _BoardsScreenState extends State<BoardsScreen>
         subtitle: AppLocalizations.t(context, 'boards_party_looks_sub'),
         onTap: () => _push(
           OccasionBoard(
-              occasion: 'Party',
-              titleKey: 'boards_party_looks',
-              subtitleKey: 'boards_party_looks_sub',
-              emptyEmoji: '🎊',
-            ),
+            occasion: 'Party',
+            titleKey: 'boards_party_looks',
+            subtitleKey: 'boards_party_looks_sub',
+            emptyEmoji: '🎊',
+          ),
         ),
       ),
       _BoardCardConfig(
@@ -451,11 +453,11 @@ class _BoardsScreenState extends State<BoardsScreen>
         subtitle: AppLocalizations.t(context, 'boards_office_fits_sub'),
         onTap: () => _push(
           OccasionBoard(
-              occasion: 'Office',
-              titleKey: 'boards_office_fits',
-              subtitleKey: 'boards_office_fits_sub',
-              emptyEmoji: '💼',
-            ),
+            occasion: 'Office',
+            titleKey: 'boards_office_fits',
+            subtitleKey: 'boards_office_fits_sub',
+            emptyEmoji: '💼',
+          ),
         ),
       ),
       _BoardCardConfig(
@@ -471,11 +473,11 @@ class _BoardsScreenState extends State<BoardsScreen>
         subtitle: AppLocalizations.t(context, 'boards_vacation_sub'),
         onTap: () => _push(
           OccasionBoard(
-              occasion: 'Vacation',
-              titleKey: 'boards_vacation',
-              subtitleKey: 'boards_vacation_sub',
-              emptyEmoji: '✈️',
-            ),
+            occasion: 'Vacation',
+            titleKey: 'boards_vacation',
+            subtitleKey: 'boards_vacation_sub',
+            emptyEmoji: '✈️',
+          ),
         ),
       ),
       _BoardCardConfig(
@@ -491,11 +493,11 @@ class _BoardsScreenState extends State<BoardsScreen>
         subtitle: AppLocalizations.t(context, 'boards_occasion_sub'),
         onTap: () => _push(
           OccasionBoard(
-              occasion: 'Occasion',
-              titleKey: 'boards_occasion',
-              subtitleKey: 'boards_occasion_sub',
-              emptyEmoji: '✨',
-            ),
+            occasion: 'Occasion',
+            titleKey: 'boards_occasion',
+            subtitleKey: 'boards_occasion_sub',
+            emptyEmoji: '✨',
+          ),
         ),
       ),
     ];
@@ -674,66 +676,61 @@ class _BoardsScreenState extends State<BoardsScreen>
                 const AhviHeader(),
                 Expanded(
                   child: CustomScrollView(
-              physics: const BouncingScrollPhysics(
-                parent: AlwaysScrollableScrollPhysics(),
-              ),
-              slivers: [
-                SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(
-                    20,
-                    0,
-                    20,
-                    132,
-                  ),
-                  sliver: SliverList(
-                    delegate: SliverChildListDelegate([
-                      FadeTransition(
-                        opacity: _headerOpacity,
-                        child: SlideTransition(
-                          position: _headerSlide,
-                          child: _buildHeader(),
-                        ),
-                      ),
-                      const SizedBox(height: _S.lg),
-                      FadeTransition(
-                        opacity: _toggleOpacity,
-                        child: SlideTransition(
-                          position: _toggleSlide,
-                          child: _buildToggle(),
-                        ),
-                      ),
-                      const SizedBox(height: _S.base + _S.xs),
-                      FadeTransition(
-                        opacity: _sectionOpacity,
-                        child: SlideTransition(
-                          position: _sectionSlide,
-                          child: AnimatedSwitcher(
-                            duration: _A.slow,
-                            switchInCurve: _A.ease,
-                            switchOutCurve: _A.ease,
-                            transitionBuilder: (child, animation) =>
-                                FadeTransition(
-                                  opacity: animation,
-                                  child: child,
-                                ),
-                            child: KeyedSubtree(
-                              key: ValueKey(_isLifeTab),
-                              child: _isLifeTab
-                                  ? _buildLifeSection()
-                                  : _buildBoardsSection(),
+                    physics: const BouncingScrollPhysics(
+                      parent: AlwaysScrollableScrollPhysics(),
+                    ),
+                    slivers: [
+                      SliverPadding(
+                        padding: const EdgeInsets.fromLTRB(20, 0, 20, 132),
+                        sliver: SliverList(
+                          delegate: SliverChildListDelegate([
+                            FadeTransition(
+                              opacity: _headerOpacity,
+                              child: SlideTransition(
+                                position: _headerSlide,
+                                child: _buildHeader(),
+                              ),
                             ),
-                          ),
+                            const SizedBox(height: _S.lg),
+                            FadeTransition(
+                              opacity: _toggleOpacity,
+                              child: SlideTransition(
+                                position: _toggleSlide,
+                                child: _buildToggle(),
+                              ),
+                            ),
+                            const SizedBox(height: _S.base + _S.xs),
+                            FadeTransition(
+                              opacity: _sectionOpacity,
+                              child: SlideTransition(
+                                position: _sectionSlide,
+                                child: AnimatedSwitcher(
+                                  duration: _A.slow,
+                                  switchInCurve: _A.ease,
+                                  switchOutCurve: _A.ease,
+                                  transitionBuilder: (child, animation) =>
+                                      FadeTransition(
+                                        opacity: animation,
+                                        child: child,
+                                      ),
+                                  child: KeyedSubtree(
+                                    key: ValueKey(_isLifeTab),
+                                    child: _isLifeTab
+                                        ? _buildLifeSection()
+                                        : _buildBoardsSection(),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ]),
                         ),
                       ),
-                    ]),
+                    ],
                   ),
-                ),
+                ), // Expanded(CustomScrollView)
               ],
             ),
-          ),  // Expanded(CustomScrollView)
-              ],
-            ),
-          ),  // SafeArea(Column)
+          ), // SafeArea(Column)
         ],
       ),
     );
@@ -892,13 +889,16 @@ class _BoardsScreenState extends State<BoardsScreen>
                   ),
                   title: AppLocalizations.t(context, 'boards_daily_wear'),
                   titleColor: lifeContentColor,
-                  subtitle: AppLocalizations.t(context, 'boards_daily_wear_sub'),
+                  subtitle: AppLocalizations.t(
+                    context,
+                    'boards_daily_wear_sub',
+                  ),
                   subtitleColor: lifeContentColor,
                   arrowBg: _card,
                   arrowColor: _cardIconColor,
                   shellColor: _shell,
                   onTap: () => _push(
-                   const daily_wear.DailyWearScreen()
+                    const daily_wear.DailyWearScreen(),
                   ), // Or whatever your main class is named in daily_wear.dart
                 ),
               ),
@@ -927,7 +927,10 @@ class _BoardsScreenState extends State<BoardsScreen>
                   ),
                   title: AppLocalizations.t(context, 'boards_home_utilities'),
                   titleColor: lifeContentColor,
-                  subtitle: AppLocalizations.t(context, 'boards_home_utilities_sub'),
+                  subtitle: AppLocalizations.t(
+                    context,
+                    'boards_home_utilities_sub',
+                  ),
                   subtitleColor: lifeContentColor,
                   arrowBg: _card,
                   arrowColor: _cardIconColor,
@@ -998,7 +1001,10 @@ class _BoardsScreenState extends State<BoardsScreen>
                   ),
                   title: AppLocalizations.t(context, 'boards_diet_fitness'),
                   titleColor: lifeContentColor,
-                  subtitle: AppLocalizations.t(context, 'boards_diet_fitness_sub'),
+                  subtitle: AppLocalizations.t(
+                    context,
+                    'boards_diet_fitness_sub',
+                  ),
                   subtitleColor: lifeContentColor,
                   arrowBg: _panel,
                   arrowColor: _cardIconColor,
@@ -1739,6 +1745,7 @@ class _HoverPressButtonState extends State<_HoverPressButton> {
     );
   }
 }
+
 // ── Create Board Dialog ────────────────────────────────────────────────────────
 class _CreateBoardDialog extends StatelessWidget {
   final TextEditingController controller;
@@ -1766,7 +1773,9 @@ class _CreateBoardDialog extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     // Use explicit opaque colors so dialog never bleeds background cards through
     final dialogBg = isDark ? const Color(0xFF1E1E2E) : Colors.white;
-    final inputFill = isDark ? const Color(0xFF2A2A3E) : const Color(0xFFF3F3F7);
+    final inputFill = isDark
+        ? const Color(0xFF2A2A3E)
+        : const Color(0xFFF3F3F7);
 
     return Dialog(
       backgroundColor: dialogBg,
@@ -1806,10 +1815,18 @@ class _CreateBoardDialog extends StatelessWidget {
                 autofocus: true,
                 textInputAction: TextInputAction.done,
                 onSubmitted: (_) => onSubmit(),
-                style: TextStyle(fontFamily: 'Inter', fontSize: 14, color: text),
+                style: TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 14,
+                  color: text,
+                ),
                 decoration: InputDecoration(
                   labelText: AppLocalizations.t(context, 'boards_name_it'),
-                  labelStyle: TextStyle(fontFamily: 'Inter', color: muted, fontSize: 13),
+                  labelStyle: TextStyle(
+                    fontFamily: 'Inter',
+                    color: muted,
+                    fontSize: 13,
+                  ),
                   hintText: AppLocalizations.t(context, 'boards_enter_name'),
                   hintStyle: TextStyle(fontFamily: 'Inter', color: muted),
                   filled: true,
@@ -1833,7 +1850,8 @@ class _CreateBoardDialog extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   TextButton(
-                    onPressed: () => Navigator.of(context, rootNavigator: true).pop(),
+                    onPressed: () =>
+                        Navigator.of(context, rootNavigator: true).pop(),
                     child: Text(
                       AppLocalizations.t(context, 'common_cancel'),
                       style: TextStyle(
@@ -1849,12 +1867,18 @@ class _CreateBoardDialog extends StatelessWidget {
                       backgroundColor: accent,
                       foregroundColor: Colors.white,
                       shape: const StadiumBorder(),
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 12,
+                      ),
                     ),
                     onPressed: onSubmit,
                     child: Text(
                       AppLocalizations.t(context, 'common_create'),
-                      style: const TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w600),
+                      style: const TextStyle(
+                        fontFamily: 'Inter',
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
                 ],

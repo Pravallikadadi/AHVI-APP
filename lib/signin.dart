@@ -43,15 +43,13 @@ Future<void> _routeAfterSignIn(BuildContext context) async {
 
   if (!context.mounted) return;
   if (onboardingDone) {
-    Navigator.of(context).pushNamedAndRemoveUntil(
-      AppRoutes.main,
-      (route) => false,
-    );
+    Navigator.of(
+      context,
+    ).pushNamedAndRemoveUntil(AppRoutes.main, (route) => false);
   } else {
-    Navigator.of(context).pushNamedAndRemoveUntil(
-      AppRoutes.onboarding1,
-      (route) => false,
-    );
+    Navigator.of(
+      context,
+    ).pushNamedAndRemoveUntil(AppRoutes.onboarding1, (route) => false);
   }
 }
 

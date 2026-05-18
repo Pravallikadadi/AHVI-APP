@@ -142,10 +142,7 @@ class EditorialLayoutResult {
   final EditorialLayoutMode mode;
   final List<BoardItemPlacement> placements;
 
-  const EditorialLayoutResult({
-    required this.mode,
-    required this.placements,
-  });
+  const EditorialLayoutResult({required this.mode, required this.placements});
 
   bool get isEmpty => placements.isEmpty;
 }

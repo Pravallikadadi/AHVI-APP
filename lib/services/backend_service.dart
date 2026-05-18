@@ -38,8 +38,65 @@ String _honestChatFallback(String reason, String moduleContext) {
       return "AHVI didn't return a result for this. Try rephrasing or try again.";
     case 'network':
     default:
-      return "I couldn't reach AHVI for this request. Please try again.";
+      return "AHVI network request failed. Check your connection and try again.";
   }
+}
+
+bool _isVagueStylePrompt(String query) {
+  final normalized = query
+      .toLowerCase()
+      .replaceAll(RegExp(r'[^a-z0-9\s]'), ' ')
+      .replaceAll(RegExp(r'\s+'), ' ')
+      .trim();
+  const vague = {
+    'outfit for today',
+    'suggest outfit for today',
+    'suggest an outfit for today',
+    'style me',
+    'what should i wear',
+    'what to wear',
+    'outfit',
+    'today outfit',
+    'daily wear',
+  };
+  return vague.contains(normalized);
+}
+
+Map<String, dynamic> _styleClarificationResponse(String query) {
+  const message =
+      'What are we dressing for today? Pick an occasion, or tell me the weather, timing, mood, and any dress code.';
+  return {
+    'success': true,
+    'ok': true,
+    'type': 'style_clarification',
+    'message': {'role': 'assistant', 'content': message},
+    'message_text': message,
+    'response': message,
+    'cards': const [],
+    'style_boards': const [],
+    'chips': const [
+      {'label': 'Office', 'value': 'office outfit'},
+      {'label': 'Casual', 'value': 'casual outfit'},
+      {'label': 'Date', 'value': 'date outfit tonight'},
+      {'label': 'Party', 'value': 'party outfit tonight'},
+      {'label': 'Travel', 'value': 'airport travel outfit'},
+      {'label': 'Workout', 'value': 'workout outfit'},
+    ],
+    'data': {
+      'outfits': const [],
+      'rendered_boards': const [],
+      'clarification': {
+        'prompt': query,
+        'questions': const [
+          'occasion',
+          'weather/timing',
+          'mood/style',
+          'comfort/dress code',
+        ],
+      },
+    },
+    'meta': {'mode': 'local_style_intent_clarification'},
+  };
 }
 
 class BackendService {
@@ -161,6 +218,13 @@ class BackendService {
   }) async {
     final startedAt = DateTime.now();
     try {
+      final styleModules = {'style', 'wardrobe', 'daily_wear'};
+      if (styleModules.contains(moduleContext) && _isVagueStylePrompt(query)) {
+        debugPrint(
+          'AHVI_STYLE_INTENT_LOCAL intent_status=clarify prompt_len=${query.trim().length} module=$moduleContext',
+        );
+        return _normalizeChatResponse(_styleClarificationResponse(query));
+      }
       final authedUserId = await _currentUserId();
       var wardrobeForRequest = fetchedWardrobe;
       if (wardrobeForRequest == null &&
@@ -225,6 +289,16 @@ class BackendService {
           rethrow;
         }
 
+        if (data['ok'] == false || data['success'] == false) {
+          final err = data['error'];
+          final code = err is Map ? (err['code'] ?? '').toString() : '';
+          final msg = err is Map ? (err['message'] ?? '').toString() : '';
+          debugPrint(
+            'AHVI_BACKEND_STRUCTURED_ERROR endpoint=/api/text code=$code message=$msg',
+          );
+          return _normalizeChatResponse(data);
+        }
+
         // Visibility for the intermittent "AHVI is still styling this" toast.
         debugPrint(
           'AHVI_BACKEND_OK endpoint=/api/text '
@@ -270,6 +344,12 @@ class BackendService {
       debugPrint(
         'AHVI_BACKEND_FAIL endpoint=/api/text status=${response.statusCode} body=${response.body}',
       );
+      try {
+        final data = await compute(_parseJsonMap, response.body);
+        if (data['error'] != null || data['message'] != null) {
+          return _normalizeChatResponse(data);
+        }
+      } catch (_) {}
       throw Exception(
         'Failed to get AI response: ${response.statusCode} ${response.body}',
       );
@@ -561,7 +641,9 @@ class BackendService {
           .timeout(const Duration(seconds: 120));
 
       if (response.statusCode == 200) {
-        return await compute(_parseJsonMap, response.body);
+        final parsed = await compute(_parseJsonMap, response.body);
+        invalidateWardrobeCacheAfterMutation();
+        return parsed;
       }
 
       debugPrint(
@@ -572,6 +654,10 @@ class BackendService {
       debugPrint('Wardrobe label save error: $e');
       return null;
     }
+  }
+
+  void invalidateWardrobeCacheAfterMutation() {
+    _appwriteService.invalidateWardrobeCache();
   }
 
   Future<Map<String, dynamic>?> updateWardrobeLabels({

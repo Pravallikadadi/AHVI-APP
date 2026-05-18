@@ -55,9 +55,9 @@ class AhviHeader extends StatelessWidget {
     // Use sizeOf — subscribes ONLY to size changes, not viewInsets.
     // Keyboard open/close never triggers a rebuild of this widget.
     final screenH = MediaQuery.sizeOf(context).height;
-    final double topPad    = screenH < 700 ? 6.0 : 10.0;
-    final double botPad    = screenH < 700 ? 4.0 : 6.0;
-    final double logoSize  = screenH < 700 ? 26.0 : 30.0;
+    final double topPad = screenH < 700 ? 6.0 : 10.0;
+    final double botPad = screenH < 700 ? 4.0 : 6.0;
+    final double logoSize = screenH < 700 ? 26.0 : 30.0;
 
     Widget logo = Hero(
       tag: 'ahvi_logo',

@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:myapp/app_localizations.dart';
 import 'package:myapp/theme/theme_tokens.dart';
 
@@ -17,25 +17,27 @@ class _ContactsScreenState extends State<ContactsScreen> {
   _ContactSort _sort = _ContactSort.az;
 
   Future<void> _openAddContactPage() async {
-    await Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => const _AddContactPage(),
-      ),
-    );
+    await Navigator.of(
+      context,
+    ).push(MaterialPageRoute<void>(builder: (_) => const _AddContactPage()));
   }
 
-  static final List<({String name, String number, String? image, DateTime added})>
+  static final List<
+    ({String name, String number, String? image, DateTime added})
+  >
   _allContacts = [
     (
       name: 'Ava Johnson',
       number: '+1 202 555 0140',
-      image: 'https://images.unsplash.com/photo-1488426862026-3ee34a7d66df?w=300&h=300&fit=crop',
+      image:
+          'https://images.unsplash.com/photo-1488426862026-3ee34a7d66df?w=300&h=300&fit=crop',
       added: DateTime(2026, 2, 12),
     ),
     (
       name: 'Noah Carter',
       number: '+1 202 555 0112',
-      image: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=300&h=300&fit=crop',
+      image:
+          'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=300&h=300&fit=crop',
       added: DateTime(2026, 3, 10),
     ),
     (
@@ -47,7 +49,8 @@ class _ContactsScreenState extends State<ContactsScreen> {
     (
       name: 'Liam Brooks',
       number: '+1 202 555 0167',
-      image: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=300&h=300&fit=crop',
+      image:
+          'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=300&h=300&fit=crop',
       added: DateTime(2026, 3, 15),
     ),
     (
@@ -59,21 +62,26 @@ class _ContactsScreenState extends State<ContactsScreen> {
     (
       name: 'Ethan Rivera',
       number: '+1 202 555 0172',
-      image: 'https://images.unsplash.com/photo-1542206395-9feb3edaa68d?w=300&h=300&fit=crop',
+      image:
+          'https://images.unsplash.com/photo-1542206395-9feb3edaa68d?w=300&h=300&fit=crop',
       added: DateTime(2026, 3, 5),
     ),
   ];
 
-  List<({String name, String number, String? image, DateTime added})> get _contacts {
+  List<({String name, String number, String? image, DateTime added})>
+  get _contacts {
     final q = _query.trim().toLowerCase();
     final filtered = _allContacts.where((c) {
       if (q.isEmpty) return true;
-      return c.name.toLowerCase().contains(q) || c.number.toLowerCase().contains(q);
+      return c.name.toLowerCase().contains(q) ||
+          c.number.toLowerCase().contains(q);
     }).toList();
 
     switch (_sort) {
       case _ContactSort.az:
-        filtered.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+        filtered.sort(
+          (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
+        );
       case _ContactSort.recent:
         filtered.sort((a, b) => b.added.compareTo(a.added));
     }
@@ -142,7 +150,10 @@ class _ContactsScreenState extends State<ContactsScreen> {
           hintText: AppLocalizations.t(context, 'contacts_search_hint'),
           hintStyle: TextStyle(color: t.mutedText),
           prefixIcon: Icon(Icons.search_rounded, color: t.mutedText, size: 20),
-          contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 6),
+          contentPadding: const EdgeInsets.symmetric(
+            vertical: 14,
+            horizontal: 6,
+          ),
         ),
       ),
     );
@@ -188,8 +199,14 @@ class _ContactsScreenState extends State<ContactsScreen> {
         PopupMenuButton<_ContactSort>(
           onSelected: (value) => setState(() => _sort = value),
           itemBuilder: (context) => [
-            PopupMenuItem(value: _ContactSort.az, child: Text(AppLocalizations.t(context, 'contacts_sort_az'))),
-            PopupMenuItem(value: _ContactSort.recent, child: Text(AppLocalizations.t(context, 'contacts_sort_recent'))),
+            PopupMenuItem(
+              value: _ContactSort.az,
+              child: Text(AppLocalizations.t(context, 'contacts_sort_az')),
+            ),
+            PopupMenuItem(
+              value: _ContactSort.recent,
+              child: Text(AppLocalizations.t(context, 'contacts_sort_recent')),
+            ),
           ],
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
@@ -205,7 +222,11 @@ class _ContactsScreenState extends State<ContactsScreen> {
                 const SizedBox(width: 6),
                 Text(
                   label,
-                  style: TextStyle(color: t.textPrimary, fontSize: 12.5, fontWeight: FontWeight.w600),
+                  style: TextStyle(
+                    color: t.textPrimary,
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ],
             ),
@@ -244,29 +265,29 @@ class _ContactsScreenState extends State<ContactsScreen> {
                 color: t.backgroundSecondary,
                 child: contact.image == null
                     ? Center(
-                  child: Text(
-                    initials,
-                    style: TextStyle(
-                      color: t.textPrimary,
-                      fontSize: 24,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                )
+                        child: Text(
+                          initials,
+                          style: TextStyle(
+                            color: t.textPrimary,
+                            fontSize: 24,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      )
                     : Image.network(
-                  contact.image!,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) => Center(
-                    child: Text(
-                      initials,
-                      style: TextStyle(
-                        color: t.textPrimary,
-                        fontSize: 24,
-                        fontWeight: FontWeight.w700,
+                        contact.image!,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) => Center(
+                          child: Text(
+                            initials,
+                            style: TextStyle(
+                              color: t.textPrimary,
+                              fontSize: 24,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
-                ),
               ),
             ),
           ),
@@ -352,7 +373,11 @@ class _AddContactPageState extends State<_AddContactPage> {
   final _otherInfoCtrl = TextEditingController();
 
   DateTime? _birthday;
-  _CountryCode _countryCode = const _CountryCode(flag: '🇺🇸', name: 'United States', code: '+1');
+  _CountryCode _countryCode = const _CountryCode(
+    flag: '🇺🇸',
+    name: 'United States',
+    code: '+1',
+  );
   bool _pickerOpen = false;
   String _pickerQuery = '';
   final TextEditingController _pickerSearchCtrl = TextEditingController();
@@ -360,48 +385,48 @@ class _AddContactPageState extends State<_AddContactPage> {
   OverlayEntry? _overlayEntry;
 
   static const List<_CountryCode> _countryCodes = [
-    _CountryCode(flag: '🇺🇸', name: 'United States',   code: '+1'),
-    _CountryCode(flag: '🇬🇧', name: 'United Kingdom',  code: '+44'),
-    _CountryCode(flag: '🇮🇳', name: 'India',           code: '+91'),
-    _CountryCode(flag: '🇦🇺', name: 'Australia',       code: '+61'),
-    _CountryCode(flag: '🇨🇦', name: 'Canada',          code: '+1 CA'),
-    _CountryCode(flag: '🇸🇬', name: 'Singapore',       code: '+65'),
-    _CountryCode(flag: '🇯🇵', name: 'Japan',           code: '+81'),
-    _CountryCode(flag: '🇨🇳', name: 'China',           code: '+86'),
-    _CountryCode(flag: '🇩🇪', name: 'Germany',         code: '+49'),
-    _CountryCode(flag: '🇫🇷', name: 'France',          code: '+33'),
-    _CountryCode(flag: '🇮🇹', name: 'Italy',           code: '+39'),
-    _CountryCode(flag: '🇪🇸', name: 'Spain',           code: '+34'),
-    _CountryCode(flag: '🇵🇹', name: 'Portugal',        code: '+351'),
-    _CountryCode(flag: '🇳🇱', name: 'Netherlands',     code: '+31'),
-    _CountryCode(flag: '🇧🇪', name: 'Belgium',         code: '+32'),
-    _CountryCode(flag: '🇨🇭', name: 'Switzerland',     code: '+41'),
-    _CountryCode(flag: '🇦🇹', name: 'Austria',         code: '+43'),
-    _CountryCode(flag: '🇸🇪', name: 'Sweden',          code: '+46'),
-    _CountryCode(flag: '🇳🇴', name: 'Norway',          code: '+47'),
-    _CountryCode(flag: '🇩🇰', name: 'Denmark',         code: '+45'),
-    _CountryCode(flag: '🇫🇮', name: 'Finland',         code: '+358'),
-    _CountryCode(flag: '🇵🇱', name: 'Poland',          code: '+48'),
-    _CountryCode(flag: '🇷🇺', name: 'Russia',          code: '+7'),
-    _CountryCode(flag: '🇹🇷', name: 'Turkey',          code: '+90'),
-    _CountryCode(flag: '🇸🇦', name: 'Saudi Arabia',    code: '+966'),
-    _CountryCode(flag: '🇦🇪', name: 'UAE',             code: '+971'),
-    _CountryCode(flag: '🇮🇱', name: 'Israel',          code: '+972'),
-    _CountryCode(flag: '🇰🇷', name: 'South Korea',     code: '+82'),
-    _CountryCode(flag: '🇮🇩', name: 'Indonesia',       code: '+62'),
-    _CountryCode(flag: '🇲🇾', name: 'Malaysia',        code: '+60'),
-    _CountryCode(flag: '🇹🇭', name: 'Thailand',        code: '+66'),
-    _CountryCode(flag: '🇵🇭', name: 'Philippines',     code: '+63'),
-    _CountryCode(flag: '🇻🇳', name: 'Vietnam',         code: '+84'),
-    _CountryCode(flag: '🇧🇷', name: 'Brazil',          code: '+55'),
-    _CountryCode(flag: '🇲🇽', name: 'Mexico',          code: '+52'),
-    _CountryCode(flag: '🇦🇷', name: 'Argentina',       code: '+54'),
-    _CountryCode(flag: '🇨🇱', name: 'Chile',           code: '+56'),
-    _CountryCode(flag: '🇨🇴', name: 'Colombia',        code: '+57'),
-    _CountryCode(flag: '🇿🇦', name: 'South Africa',    code: '+27'),
-    _CountryCode(flag: '🇳🇬', name: 'Nigeria',         code: '+234'),
-    _CountryCode(flag: '🇰🇪', name: 'Kenya',           code: '+254'),
-    _CountryCode(flag: '🇳🇿', name: 'New Zealand',     code: '+64'),
+    _CountryCode(flag: '🇺🇸', name: 'United States', code: '+1'),
+    _CountryCode(flag: '🇬🇧', name: 'United Kingdom', code: '+44'),
+    _CountryCode(flag: '🇮🇳', name: 'India', code: '+91'),
+    _CountryCode(flag: '🇦🇺', name: 'Australia', code: '+61'),
+    _CountryCode(flag: '🇨🇦', name: 'Canada', code: '+1 CA'),
+    _CountryCode(flag: '🇸🇬', name: 'Singapore', code: '+65'),
+    _CountryCode(flag: '🇯🇵', name: 'Japan', code: '+81'),
+    _CountryCode(flag: '🇨🇳', name: 'China', code: '+86'),
+    _CountryCode(flag: '🇩🇪', name: 'Germany', code: '+49'),
+    _CountryCode(flag: '🇫🇷', name: 'France', code: '+33'),
+    _CountryCode(flag: '🇮🇹', name: 'Italy', code: '+39'),
+    _CountryCode(flag: '🇪🇸', name: 'Spain', code: '+34'),
+    _CountryCode(flag: '🇵🇹', name: 'Portugal', code: '+351'),
+    _CountryCode(flag: '🇳🇱', name: 'Netherlands', code: '+31'),
+    _CountryCode(flag: '🇧🇪', name: 'Belgium', code: '+32'),
+    _CountryCode(flag: '🇨🇭', name: 'Switzerland', code: '+41'),
+    _CountryCode(flag: '🇦🇹', name: 'Austria', code: '+43'),
+    _CountryCode(flag: '🇸🇪', name: 'Sweden', code: '+46'),
+    _CountryCode(flag: '🇳🇴', name: 'Norway', code: '+47'),
+    _CountryCode(flag: '🇩🇰', name: 'Denmark', code: '+45'),
+    _CountryCode(flag: '🇫🇮', name: 'Finland', code: '+358'),
+    _CountryCode(flag: '🇵🇱', name: 'Poland', code: '+48'),
+    _CountryCode(flag: '🇷🇺', name: 'Russia', code: '+7'),
+    _CountryCode(flag: '🇹🇷', name: 'Turkey', code: '+90'),
+    _CountryCode(flag: '🇸🇦', name: 'Saudi Arabia', code: '+966'),
+    _CountryCode(flag: '🇦🇪', name: 'UAE', code: '+971'),
+    _CountryCode(flag: '🇮🇱', name: 'Israel', code: '+972'),
+    _CountryCode(flag: '🇰🇷', name: 'South Korea', code: '+82'),
+    _CountryCode(flag: '🇮🇩', name: 'Indonesia', code: '+62'),
+    _CountryCode(flag: '🇲🇾', name: 'Malaysia', code: '+60'),
+    _CountryCode(flag: '🇹🇭', name: 'Thailand', code: '+66'),
+    _CountryCode(flag: '🇵🇭', name: 'Philippines', code: '+63'),
+    _CountryCode(flag: '🇻🇳', name: 'Vietnam', code: '+84'),
+    _CountryCode(flag: '🇧🇷', name: 'Brazil', code: '+55'),
+    _CountryCode(flag: '🇲🇽', name: 'Mexico', code: '+52'),
+    _CountryCode(flag: '🇦🇷', name: 'Argentina', code: '+54'),
+    _CountryCode(flag: '🇨🇱', name: 'Chile', code: '+56'),
+    _CountryCode(flag: '🇨🇴', name: 'Colombia', code: '+57'),
+    _CountryCode(flag: '🇿🇦', name: 'South Africa', code: '+27'),
+    _CountryCode(flag: '🇳🇬', name: 'Nigeria', code: '+234'),
+    _CountryCode(flag: '🇰🇪', name: 'Kenya', code: '+254'),
+    _CountryCode(flag: '🇳🇿', name: 'New Zealand', code: '+64'),
   ];
 
   @override
@@ -492,14 +517,26 @@ class _AddContactPageState extends State<_AddContactPage> {
                           child: TextField(
                             controller: _pickerSearchCtrl,
                             autofocus: true,
-                            style: TextStyle(color: t.textPrimary, fontSize: 13),
+                            style: TextStyle(
+                              color: t.textPrimary,
+                              fontSize: 13,
+                            ),
                             decoration: InputDecoration(
                               border: InputBorder.none,
-                              hintText: AppLocalizations.t(context, 'contacts_search_hint'),
+                              hintText: AppLocalizations.t(
+                                context,
+                                'contacts_search_hint',
+                              ),
                               hintStyle: TextStyle(color: t.mutedText),
-                              prefixIcon: Icon(Icons.search_rounded, color: t.mutedText, size: 18),
+                              prefixIcon: Icon(
+                                Icons.search_rounded,
+                                color: t.mutedText,
+                                size: 18,
+                              ),
                               isDense: true,
-                              contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                              contentPadding: const EdgeInsets.symmetric(
+                                vertical: 10,
+                              ),
                             ),
                             onChanged: (v) {
                               setOverlayState(() => _pickerQuery = v);
@@ -510,7 +547,11 @@ class _AddContactPageState extends State<_AddContactPage> {
                       ConstrainedBox(
                         constraints: const BoxConstraints(maxHeight: 220),
                         child: ListView(
-                          padding: const EdgeInsets.only(left: 8, right: 8, bottom: 8),
+                          padding: const EdgeInsets.only(
+                            left: 8,
+                            right: 8,
+                            bottom: 8,
+                          ),
                           shrinkWrap: true,
                           children: _countryCodes
                               .where((c) {
@@ -533,16 +574,24 @@ class _AddContactPageState extends State<_AddContactPage> {
                                   },
                                   child: Container(
                                     margin: const EdgeInsets.only(bottom: 2),
-                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                      vertical: 9,
+                                    ),
                                     decoration: BoxDecoration(
                                       color: isSelected
-                                          ? t.accent.primary.withValues(alpha: 0.14)
+                                          ? t.accent.primary.withValues(
+                                              alpha: 0.14,
+                                            )
                                           : Colors.transparent,
                                       borderRadius: BorderRadius.circular(10),
                                     ),
                                     child: Row(
                                       children: [
-                                        Text(c.flag, style: const TextStyle(fontSize: 18)),
+                                        Text(
+                                          c.flag,
+                                          style: const TextStyle(fontSize: 18),
+                                        ),
                                         const SizedBox(width: 10),
                                         Expanded(
                                           child: Text(
@@ -550,7 +599,9 @@ class _AddContactPageState extends State<_AddContactPage> {
                                             style: TextStyle(
                                               color: t.textPrimary,
                                               fontSize: 13,
-                                              fontWeight: isSelected ? FontWeight.w700 : FontWeight.w400,
+                                              fontWeight: isSelected
+                                                  ? FontWeight.w700
+                                                  : FontWeight.w400,
                                             ),
                                           ),
                                         ),
@@ -564,7 +615,11 @@ class _AddContactPageState extends State<_AddContactPage> {
                                         ),
                                         if (isSelected) ...[
                                           const SizedBox(width: 6),
-                                          Icon(Icons.check_rounded, color: t.accent.primary, size: 16),
+                                          Icon(
+                                            Icons.check_rounded,
+                                            color: t.accent.primary,
+                                            size: 16,
+                                          ),
                                         ],
                                       ],
                                     ),
@@ -602,14 +657,17 @@ class _AddContactPageState extends State<_AddContactPage> {
     if (!(_formKey.currentState?.validate() ?? false)) return;
 
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(AppLocalizations.t(context, 'contacts_saved_snackbar'))),
+      SnackBar(
+        content: Text(AppLocalizations.t(context, 'contacts_saved_snackbar')),
+      ),
     );
     Navigator.of(context).pop();
   }
 
   String _birthdayText(BuildContext context) {
     final b = _birthday;
-    if (b == null) return AppLocalizations.t(context, 'contacts_select_birthday');
+    if (b == null)
+      return AppLocalizations.t(context, 'contacts_select_birthday');
     final month = b.month.toString().padLeft(2, '0');
     final day = b.day.toString().padLeft(2, '0');
     return '${b.year}-$month-$day';
@@ -650,7 +708,10 @@ class _AddContactPageState extends State<_AddContactPage> {
                   keyboardType: TextInputType.name,
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
-                      return AppLocalizations.t(context, 'contacts_first_name_required');
+                      return AppLocalizations.t(
+                        context,
+                        'contacts_first_name_required',
+                      );
                     }
                     return null;
                   },
@@ -685,7 +746,9 @@ class _AddContactPageState extends State<_AddContactPage> {
                             child: Container(
                               width: 120,
                               height: 50,
-                              padding: const EdgeInsets.symmetric(horizontal: 12),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                              ),
                               decoration: BoxDecoration(
                                 color: t.panel,
                                 borderRadius: BorderRadius.circular(12),
@@ -696,7 +759,8 @@ class _AddContactPageState extends State<_AddContactPage> {
                                 ),
                               ),
                               child: Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
                                 children: [
                                   Text(
                                     '${_countryCode.flag} ${_countryCode.code}',
@@ -709,8 +773,11 @@ class _AddContactPageState extends State<_AddContactPage> {
                                   AnimatedRotation(
                                     turns: _pickerOpen ? 0.5 : 0,
                                     duration: const Duration(milliseconds: 200),
-                                    child: Icon(Icons.keyboard_arrow_down_rounded,
-                                        size: 18, color: t.mutedText),
+                                    child: Icon(
+                                      Icons.keyboard_arrow_down_rounded,
+                                      size: 18,
+                                      color: t.mutedText,
+                                    ),
                                   ),
                                 ],
                               ),
@@ -726,7 +793,10 @@ class _AddContactPageState extends State<_AddContactPage> {
                             keyboardType: TextInputType.phone,
                             validator: (value) {
                               if (value == null || value.trim().isEmpty) {
-                                return AppLocalizations.t(context, 'contacts_phone_required');
+                                return AppLocalizations.t(
+                                  context,
+                                  'contacts_phone_required',
+                                );
                               }
                               return null;
                             },
@@ -770,16 +840,14 @@ class _AddContactPageState extends State<_AddContactPage> {
                     ),
                     child: Row(
                       children: [
-                        Icon(
-                          Icons.cake_outlined,
-                          color: t.mutedText,
-                          size: 18,
-                        ),
+                        Icon(Icons.cake_outlined, color: t.mutedText, size: 18),
                         const SizedBox(width: 8),
                         Text(
                           _birthdayText(context),
                           style: TextStyle(
-                            color: _birthday == null ? t.mutedText : t.textPrimary,
+                            color: _birthday == null
+                                ? t.mutedText
+                                : t.textPrimary,
                             fontSize: 14,
                             fontWeight: FontWeight.w500,
                           ),
@@ -877,8 +945,12 @@ class _InputField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = context.themeTokens;
-    final localizedLabel = label.isNotEmpty ? AppLocalizations.t(context, label) : '';
-    final localizedHint = hint.isNotEmpty ? AppLocalizations.t(context, hint) : '';
+    final localizedLabel = label.isNotEmpty
+        ? AppLocalizations.t(context, label)
+        : '';
+    final localizedHint = hint.isNotEmpty
+        ? AppLocalizations.t(context, hint)
+        : '';
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

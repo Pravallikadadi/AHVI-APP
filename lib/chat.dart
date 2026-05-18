@@ -21,6 +21,209 @@ import 'package:myapp/diet_page.dart' as diet_page;
 import 'package:myapp/theme/theme_tokens.dart';
 import 'package:provider/provider.dart';
 
+class _SavedBoardCategory {
+  final String key;
+  final String label;
+  final IconData icon;
+
+  const _SavedBoardCategory(this.key, this.label, this.icon);
+}
+
+const List<_SavedBoardCategory> _savedBoardCategories = [
+  _SavedBoardCategory('party_looks', 'Party Looks', Icons.celebration_rounded),
+  _SavedBoardCategory('office_fits', 'Office Fits', Icons.work_outline_rounded),
+  _SavedBoardCategory('vacation', 'Vacation', Icons.flight_takeoff_rounded),
+  _SavedBoardCategory('occasion', 'Occasion', Icons.diamond_outlined),
+  _SavedBoardCategory(
+    'everything_else',
+    'Everything Else',
+    Icons.auto_awesome_rounded,
+  ),
+  _SavedBoardCategory('custom', 'Create Your Own Board', Icons.add_rounded),
+];
+
+_SavedBoardCategory _suggestSavedBoardCategory(Map<String, dynamic> board) {
+  final text = [
+    board['occasion'],
+    board['title'],
+    board['style_direction'],
+    board['vibe'],
+    board['prompt'],
+    board['prompt_interpretation'],
+  ].map((e) => (e ?? '').toString().toLowerCase()).join(' ');
+  if (RegExp(
+    r'\b(party|date|cocktail|rave|club|rooftop|bar)\b',
+  ).hasMatch(text)) {
+    return _savedBoardCategories[0];
+  }
+  if (RegExp(r'\b(office|work|meeting|client|interview)\b').hasMatch(text)) {
+    return _savedBoardCategories[1];
+  }
+  if (RegExp(r'\b(travel|airport|vacation|holiday|trip)\b').hasMatch(text)) {
+    return _savedBoardCategories[2];
+  }
+  if (RegExp(
+    r'\b(wedding|event|festival|ceremony|occasion)\b',
+  ).hasMatch(text)) {
+    return _savedBoardCategories[3];
+  }
+  return _savedBoardCategories[4];
+}
+
+String _savedCategoryOccasion(_SavedBoardCategory category) {
+  switch (category.key) {
+    case 'party_looks':
+      return 'Party';
+    case 'office_fits':
+      return 'Office';
+    case 'vacation':
+      return 'Vacation';
+    case 'occasion':
+      return 'Occasion';
+    case 'everything_else':
+      return 'Everything Else';
+    default:
+      return category.label;
+  }
+}
+
+Future<_SavedBoardCategory?> _showSaveBoardPicker(
+  BuildContext context,
+  _SavedBoardCategory suggested,
+) {
+  final t = context.themeTokens;
+  return showModalBottomSheet<_SavedBoardCategory>(
+    context: context,
+    backgroundColor: Colors.transparent,
+    builder: (ctx) => SafeArea(
+      child: Container(
+        margin: const EdgeInsets.all(12),
+        padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+        decoration: BoxDecoration(
+          color: t.panel,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: t.cardBorder),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Save to board',
+              style: TextStyle(
+                color: t.textPrimary,
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Suggested: ${suggested.label}',
+              style: TextStyle(color: t.mutedText, fontSize: 12),
+            ),
+            const SizedBox(height: 12),
+            for (final category in _savedBoardCategories)
+              ListTile(
+                dense: true,
+                leading: Icon(category.icon, color: t.accent.primary),
+                title: Text(
+                  category.label,
+                  style: TextStyle(color: t.textPrimary),
+                ),
+                trailing: category.key == suggested.key
+                    ? Icon(
+                        Icons.check_circle_rounded,
+                        color: t.accent.secondary,
+                      )
+                    : null,
+                onTap: () => Navigator.of(ctx).pop(category),
+              ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
+Future<String?> _showCustomBoardNameDialog(BuildContext context) {
+  final controller = TextEditingController();
+  return showDialog<String>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: const Text('Create board'),
+      content: TextField(
+        controller: controller,
+        autofocus: true,
+        textCapitalization: TextCapitalization.words,
+        decoration: const InputDecoration(hintText: 'Board name'),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(ctx).pop(),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(ctx).pop(controller.text.trim()),
+          child: const Text('Save'),
+        ),
+      ],
+    ),
+  );
+}
+
+String _generatedSavedBoardTitle(
+  Map<String, dynamic> board,
+  Map<String, Map<String, dynamic>> slotted,
+  _SavedBoardCategory category,
+) {
+  final explicit = (board['title'] ?? board['name'] ?? '').toString().trim();
+  final lowerExplicit = explicit.toLowerCase();
+  if (explicit.isNotEmpty &&
+      lowerExplicit != 'hero look' &&
+      lowerExplicit != 'saved look') {
+    return explicit;
+  }
+  final palette = (board['palette'] is Iterable)
+      ? (board['palette'] as Iterable)
+            .map((e) => e.toString())
+            .firstWhere((e) => e.trim().isNotEmpty, orElse: () => '')
+      : (board['color'] ?? board['color_story'] ?? '').toString();
+  final top = slotted.values
+      .map((it) => (it['name'] ?? it['label'] ?? '').toString())
+      .firstWhere((e) => e.trim().isNotEmpty, orElse: () => '');
+  final mood = (board['style_direction'] ?? board['vibe'] ?? '').toString();
+  final seed = [
+    palette,
+    mood,
+    top,
+  ].map((e) => e.trim()).where((e) => e.isNotEmpty).join(' ');
+  final words = seed
+      .split(RegExp(r'\s+'))
+      .where((w) => w.length > 2)
+      .take(2)
+      .map((w) => w[0].toUpperCase() + w.substring(1).toLowerCase())
+      .join(' ');
+  final suffix = category.key == 'vacation'
+      ? 'Easy Layers'
+      : category.key == 'office_fits'
+      ? 'Office Look'
+      : category.key == 'party_looks'
+      ? 'Edit'
+      : 'Look';
+  return [if (words.isNotEmpty) words, suffix].join(' ');
+}
+
+String _uniqueSavedBoardTitle(String base, Set<String> existing) {
+  final clean = base.trim().isEmpty ? 'Saved Look' : base.trim();
+  final lowerExisting = existing.map((e) => e.toLowerCase()).toSet();
+  if (!lowerExisting.contains(clean.toLowerCase())) return clean;
+  var i = 2;
+  while (lowerExisting.contains('$clean $i'.toLowerCase())) {
+    i++;
+  }
+  return '$clean $i';
+}
+
 Map<String, List<String>> _getChipsByModule(BuildContext context) => {
   'style': [
     AppLocalizations.t(context, 'intent_style_s1'),
@@ -1399,9 +1602,20 @@ class _ChatScreenState extends State<ChatScreen>
   ) async {
     final appwrite = Provider.of<AppwriteService>(context, listen: false);
 
-    final occasion = (board['occasion'] ?? board['title'] ?? 'Saved')
-        .toString()
-        .trim();
+    var selectedCategory = await _showSaveBoardPicker(
+      context,
+      _suggestSavedBoardCategory(board),
+    );
+    if (selectedCategory == null) return;
+    if (selectedCategory.key == 'custom') {
+      final customLabel = await _showCustomBoardNameDialog(context);
+      if (customLabel == null || customLabel.trim().isEmpty) return;
+      selectedCategory = _SavedBoardCategory(
+        'custom',
+        customLabel.trim(),
+        Icons.dashboard_customize_rounded,
+      );
+    }
     final desc = slotted.values
         .map((it) => (it['name'] ?? '').toString().trim())
         .where((s) => s.isNotEmpty)
@@ -1411,11 +1625,31 @@ class _ChatScreenState extends State<ChatScreen>
       orElse: () => const <String, dynamic>{},
     );
     final imageUrl = _flatLayImageUrlKv(firstWithImage);
+    final existingTitles =
+        (await appwrite.getSavedBoardsByOccasion(
+              _savedCategoryOccasion(selectedCategory),
+            ))
+            .map(
+              (doc) =>
+                  (doc.data['title'] ?? doc.data['occasion'] ?? '').toString(),
+            )
+            .toSet();
+    final title = _uniqueSavedBoardTitle(
+      _generatedSavedBoardTitle(board, slotted, selectedCategory),
+      existingTitles,
+    );
 
     final result = await appwrite.saveBoardToCollection(
-      occasion: occasion.isEmpty ? 'Saved' : occasion,
+      occasion: _savedCategoryOccasion(selectedCategory),
       outfitDescription: desc.isEmpty ? 'AHVI styled look' : desc,
       imageUrl: imageUrl,
+      boardCategory: selectedCategory.key,
+      boardCategoryLabel: selectedCategory.label,
+      title: title,
+      prompt: _lastUserPrompt(),
+      extra: {
+        'itemIds': slotted.values.map((it) => it['id'] ?? it[r'$id']).toList(),
+      },
       emoji: '✨',
     );
 
@@ -1425,10 +1659,17 @@ class _ChatScreenState extends State<ChatScreen>
         content: Text(
           result == null
               ? 'Could not save — check Appwrite permissions'
-              : 'Saved to your boards',
+              : 'Saved to ${selectedCategory.label}',
         ),
       ),
     );
+  }
+
+  String _lastUserPrompt() {
+    for (final row in _chatHistory.reversed) {
+      if (row['role'] == 'user') return (row['content'] ?? '').trim();
+    }
+    return '';
   }
 
   // (Slot helpers moved to file-level; see _flatLaySlotsKv etc. at the bottom.)

@@ -61,14 +61,13 @@ class EditorialBoardLayoutEngine {
       );
     }
 
-    return _generic(
-      items: board.items,
-      width: width,
-      height: height,
-    );
+    return _generic(items: board.items, width: width, height: height);
   }
 
-  static StyleBoardItem? _firstOf(List<StyleBoardItem> items, BoardItemRole role) {
+  static StyleBoardItem? _firstOf(
+    List<StyleBoardItem> items,
+    BoardItemRole role,
+  ) {
     for (final item in items) {
       if (item.role == role) return item;
     }
@@ -241,8 +240,14 @@ class EditorialBoardLayoutEngine {
       const _Template(0.77, 0.82, 0.18, 0.14, 0.03, 5),
     ];
 
-    for (var i = 0; i < math.min(accessories.length, accessoryTemplates.length); i++) {
-      placements.add(accessoryTemplates[i].place(accessories[i], width, height));
+    for (
+      var i = 0;
+      i < math.min(accessories.length, accessoryTemplates.length);
+      i++
+    ) {
+      placements.add(
+        accessoryTemplates[i].place(accessories[i], width, height),
+      );
     }
 
     return EditorialLayoutResult(

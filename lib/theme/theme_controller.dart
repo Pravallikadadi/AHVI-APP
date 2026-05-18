@@ -19,7 +19,8 @@ class ThemeController extends ChangeNotifier {
     // load saved ThemeMode (default = light, system mode not supported)
     final prefs = await SharedPreferences.getInstance();
     final savedIndex = prefs.getInt('themeMode');
-    if (savedIndex != null && ThemeMode.values[savedIndex] != ThemeMode.system) {
+    if (savedIndex != null &&
+        ThemeMode.values[savedIndex] != ThemeMode.system) {
       _themeMode = ThemeMode.values[savedIndex];
     } else {
       _themeMode = ThemeMode.light;

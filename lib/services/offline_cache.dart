@@ -54,10 +54,9 @@ class OfflineCache extends ChangeNotifier {
   // Callers must ensure a userId is set; helpers below early-return when not.
   String? _wardrobeKey() =>
       _userId == null || _userId!.isEmpty ? null : 'offline:wardrobe:$_userId';
-  String? _boardsKey(String occasion) =>
-      _userId == null || _userId!.isEmpty
-          ? null
-          : 'offline:boards:$_userId:${occasion.toLowerCase()}';
+  String? _boardsKey(String occasion) => _userId == null || _userId!.isEmpty
+      ? null
+      : 'offline:boards:$_userId:${occasion.toLowerCase()}';
   String? _imageMapKey() =>
       _userId == null || _userId!.isEmpty ? null : 'offline:images:$_userId';
 
@@ -93,8 +92,9 @@ class OfflineCache extends ChangeNotifier {
         try {
           final decoded = jsonDecode(imgRaw);
           if (decoded is Map) {
-            _imageMap =
-                decoded.map((k, v) => MapEntry(k.toString(), v.toString()));
+            _imageMap = decoded.map(
+              (k, v) => MapEntry(k.toString(), v.toString()),
+            );
           }
         } catch (_) {
           _imageMap = {};
@@ -176,11 +176,13 @@ class OfflineCache extends ChangeNotifier {
     List<appwrite_models.Document> docs,
   ) async {
     final list = docs
-        .map((d) => {
-              r'$id': d.$id,
-              'data': Map<String, dynamic>.from(d.data),
-              r'$createdAt': d.$createdAt,
-            })
+        .map(
+          (d) => {
+            r'$id': d.$id,
+            'data': Map<String, dynamic>.from(d.data),
+            r'$createdAt': d.$createdAt,
+          },
+        )
         .toList();
     _savedBoardsByOccasion[occasion.toLowerCase()] = list;
     final key = _boardsKey(occasion);
@@ -233,7 +235,9 @@ class OfflineCache extends ChangeNotifier {
   }
 
   Future<void> syncImages(Set<String> urls) async {
-    final missing = urls.where((u) => u.isNotEmpty && localImageFile(u) == null).toList();
+    final missing = urls
+        .where((u) => u.isNotEmpty && localImageFile(u) == null)
+        .toList();
     if (missing.isEmpty) return;
 
     final pool = <Future<void>>[];
@@ -342,7 +346,8 @@ class OfflineCache extends ChangeNotifier {
         final data = board['data'];
         if (data is Map) {
           final imgUrl = data['imageUrl'];
-          if (imgUrl is String && imgUrl.trim().isNotEmpty) urls.add(imgUrl.trim());
+          if (imgUrl is String && imgUrl.trim().isNotEmpty)
+            urls.add(imgUrl.trim());
         }
       }
     }

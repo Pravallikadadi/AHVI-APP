@@ -6,21 +6,17 @@ import 'package:myapp/services/appwrite_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
-  runApp(const MaterialApp(
-    debugShowCheckedModeBanner: false,
-    home: Screen3(),
-  ));
+  runApp(const MaterialApp(debugShowCheckedModeBanner: false, home: Screen3()));
 }
 
-
 // ── Color constants (Light Mode) ───────────────────────────────────────────────
-const Color _bg  = Color(0xFFEEF3FF);
+const Color _bg = Color(0xFFEEF3FF);
 const Color _bg2 = Color(0xFFFFFFFF);
-const Color _panel  = Color(0xA8FFFFFF); // rgba(255,255,255,.66)
+const Color _panel = Color(0xA8FFFFFF); // rgba(255,255,255,.66)
 const Color _panel2 = Color(0x33C5CDED); // soft blue-grey tint
-const Color _card       = Color(0xE0FFFFFF); // rgba(255,255,255,.88)
+const Color _card = Color(0xE0FFFFFF); // rgba(255,255,255,.88)
 const Color _cardBorder = Color(0xFFE5E9F7);
-const Color _text  = Color(0xFF1A1D26);
+const Color _text = Color(0xFF1A1D26);
 const Color _muted = Color(0xFF66708A);
 
 const Color _accent1 = Color(0xFF6B91FF); // blue
@@ -47,9 +43,9 @@ class _Screen3State extends State<Screen3> {
   }
 
   void _showValidationError(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   Future<void> _onSkip() async {
@@ -66,10 +62,9 @@ class _Screen3State extends State<Screen3> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('onboardingComplete', true);
     if (!mounted) return;
-    Navigator.of(context).pushNamedAndRemoveUntil(
-      AppRoutes.main,
-      (route) => false,
-    );
+    Navigator.of(
+      context,
+    ).pushNamedAndRemoveUntil(AppRoutes.main, (route) => false);
   }
 
   Future<void> _onSaveContinue() async {
@@ -91,10 +86,9 @@ class _Screen3State extends State<Screen3> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('onboardingComplete', true);
     if (!mounted) return;
-    Navigator.of(context).pushNamedAndRemoveUntil(
-      AppRoutes.main,
-      (route) => false,
-    );
+    Navigator.of(
+      context,
+    ).pushNamedAndRemoveUntil(AppRoutes.main, (route) => false);
   }
 
   @override
@@ -113,7 +107,10 @@ class _Screen3State extends State<Screen3> {
                 Expanded(
                   child: SingleChildScrollView(
                     physics: const BouncingScrollPhysics(),
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 0),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 0,
+                    ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -121,7 +118,10 @@ class _Screen3State extends State<Screen3> {
                         _Header(),
 
                         // Tab Bar
-                        _TabBar(activeTab: _activeTab, onTabSelected: (i) => setState(() => _activeTab = i)),
+                        _TabBar(
+                          activeTab: _activeTab,
+                          onTabSelected: (i) => setState(() => _activeTab = i),
+                        ),
                         const SizedBox(height: 32),
 
                         // Section Divider
@@ -135,7 +135,8 @@ class _Screen3State extends State<Screen3> {
                         // Toggle Card
                         _ToggleCard(
                           enabled: _personalizationEnabled,
-                          onChanged: (v) => setState(() => _personalizationEnabled = v),
+                          onChanged: (v) =>
+                              setState(() => _personalizationEnabled = v),
                         ),
                         const SizedBox(height: 16),
 
@@ -148,8 +149,10 @@ class _Screen3State extends State<Screen3> {
                           enabled: _personalizationEnabled,
                           faceUploaded: _faceUploaded,
                           bodyUploaded: _bodyUploaded,
-                          onFaceTap: () => setState(() => _faceUploaded = !_faceUploaded),
-                          onBodyTap: () => setState(() => _bodyUploaded = !_bodyUploaded),
+                          onFaceTap: () =>
+                              setState(() => _faceUploaded = !_faceUploaded),
+                          onBodyTap: () =>
+                              setState(() => _bodyUploaded = !_bodyUploaded),
                         ),
                         const SizedBox(height: 24),
 
@@ -264,8 +267,17 @@ class _Header extends StatelessWidget {
               borderRadius: BorderRadius.circular(100),
               border: Border.all(color: _cardBorder, width: 1),
               boxShadow: const [
-                BoxShadow(color: Color(0x126B91FF), blurRadius: 24, offset: Offset(0, 6)),
-                BoxShadow(color: Color(0x22FFFFFF), blurRadius: 0, spreadRadius: 0, offset: Offset(0, 1)),
+                BoxShadow(
+                  color: Color(0x126B91FF),
+                  blurRadius: 24,
+                  offset: Offset(0, 6),
+                ),
+                BoxShadow(
+                  color: Color(0x22FFFFFF),
+                  blurRadius: 0,
+                  spreadRadius: 0,
+                  offset: Offset(0, 1),
+                ),
               ],
             ),
             child: Row(
@@ -345,7 +357,11 @@ class _TabBar extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: _cardBorder, width: 1),
         boxShadow: const [
-          BoxShadow(color: Color(0x126B91FF), blurRadius: 24, offset: Offset(0, 6)),
+          BoxShadow(
+            color: Color(0x126B91FF),
+            blurRadius: 24,
+            offset: Offset(0, 6),
+          ),
         ],
       ),
       child: Row(
@@ -356,37 +372,49 @@ class _TabBar extends StatelessWidget {
             child: GestureDetector(
               onTap: () => onTabSelected(i),
               child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+                padding: const EdgeInsets.symmetric(
+                  vertical: 10,
+                  horizontal: 4,
+                ),
                 decoration: (isActive || isTryOn)
                     ? BoxDecoration(
-                  gradient: isTryOn
-                      ? const LinearGradient(
-                    colors: [Color(0xFF6B91FF), Color(0xFF8D7DFF)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  )
-                      : null,
-                  color: isTryOn ? null : const Color(0xFFEDF0FF),
-                  borderRadius: BorderRadius.circular(11),
-                  boxShadow: [
-                    BoxShadow(
-                        color: isTryOn
-                            ? const Color(0x336B91FF)
-                            : const Color(0x1A6B91FF),
-                        blurRadius: isTryOn ? 14 : 8,
-                        offset: Offset(0, isTryOn ? 4 : 2)),
-                    if (!isTryOn)
-                      const BoxShadow(color: Color(0x22FFFFFF), blurRadius: 0, offset: Offset(0, 1)),
-                  ],
-                )
+                        gradient: isTryOn
+                            ? const LinearGradient(
+                                colors: [Color(0xFF6B91FF), Color(0xFF8D7DFF)],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              )
+                            : null,
+                        color: isTryOn ? null : const Color(0xFFEDF0FF),
+                        borderRadius: BorderRadius.circular(11),
+                        boxShadow: [
+                          BoxShadow(
+                            color: isTryOn
+                                ? const Color(0x336B91FF)
+                                : const Color(0x1A6B91FF),
+                            blurRadius: isTryOn ? 14 : 8,
+                            offset: Offset(0, isTryOn ? 4 : 2),
+                          ),
+                          if (!isTryOn)
+                            const BoxShadow(
+                              color: Color(0x22FFFFFF),
+                              blurRadius: 0,
+                              offset: Offset(0, 1),
+                            ),
+                        ],
+                      )
                     : null,
                 child: Text(
                   tabs[i],
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 13,
-                    fontWeight: (isActive || isTryOn) ? FontWeight.w600 : FontWeight.w500,
-                    color: isTryOn ? Colors.white : (isActive ? _accent1 : _muted),
+                    fontWeight: (isActive || isTryOn)
+                        ? FontWeight.w600
+                        : FontWeight.w500,
+                    color: isTryOn
+                        ? Colors.white
+                        : (isActive ? _accent1 : _muted),
                     letterSpacing: 0.065,
                   ),
                 ),
@@ -431,8 +459,16 @@ class _IntroCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(22),
         border: Border.all(color: _cardBorder, width: 1),
         boxShadow: const [
-          BoxShadow(color: Color(0x148D7DFF), blurRadius: 24, offset: Offset(0, 6)),
-          BoxShadow(color: Color(0x0A000000), blurRadius: 4, offset: Offset(0, 1)),
+          BoxShadow(
+            color: Color(0x148D7DFF),
+            blurRadius: 24,
+            offset: Offset(0, 6),
+          ),
+          BoxShadow(
+            color: Color(0x0A000000),
+            blurRadius: 4,
+            offset: Offset(0, 1),
+          ),
         ],
       ),
       child: ClipRRect(
@@ -474,13 +510,24 @@ class _IntroCard extends StatelessWidget {
                             colors: [Color(0x188D7DFF), Color(0x146B91FF)],
                           ),
                           borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: const Color(0x2A8D7DFF), width: 1),
+                          border: Border.all(
+                            color: const Color(0x2A8D7DFF),
+                            width: 1,
+                          ),
                           boxShadow: const [
-                            BoxShadow(color: Color(0x148D7DFF), blurRadius: 8, offset: Offset(0, 2)),
+                            BoxShadow(
+                              color: Color(0x148D7DFF),
+                              blurRadius: 8,
+                              offset: Offset(0, 2),
+                            ),
                           ],
                         ),
                         child: const Center(
-                          child: Icon(Icons.person_outline, color: _accent2, size: 24),
+                          child: Icon(
+                            Icons.person_outline,
+                            color: _accent2,
+                            size: 24,
+                          ),
                         ),
                       ),
                       const SizedBox(width: 14),
@@ -519,20 +566,34 @@ class _IntroCard extends StatelessWidget {
                   const SizedBox(height: 12),
                   // Trust strip
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 9,
+                    ),
                     decoration: BoxDecoration(
                       color: const Color(0x0A04D7C8),
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: const Color(0x2204D7C8), width: 1),
+                      border: Border.all(
+                        color: const Color(0x2204D7C8),
+                        width: 1,
+                      ),
                     ),
                     child: Row(
                       children: [
-                        const Icon(Icons.lock_outline, color: _accent3, size: 14),
+                        const Icon(
+                          Icons.lock_outline,
+                          color: _accent3,
+                          size: 14,
+                        ),
                         const SizedBox(width: 8),
                         Expanded(
                           child: RichText(
                             text: const TextSpan(
-                              style: TextStyle(fontSize: 12, color: _accent3, letterSpacing: 0.12),
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: _accent3,
+                                letterSpacing: 0.12,
+                              ),
                               children: [
                                 TextSpan(text: 'Photos are '),
                                 TextSpan(
@@ -574,8 +635,16 @@ class _ToggleCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(22),
           border: Border.all(color: _cardBorder, width: 1),
           boxShadow: const [
-            BoxShadow(color: Color(0x148D7DFF), blurRadius: 24, offset: Offset(0, 6)),
-            BoxShadow(color: Color(0x0A000000), blurRadius: 4, offset: Offset(0, 1)),
+            BoxShadow(
+              color: Color(0x148D7DFF),
+              blurRadius: 24,
+              offset: Offset(0, 6),
+            ),
+            BoxShadow(
+              color: Color(0x0A000000),
+              blurRadius: 4,
+              offset: Offset(0, 1),
+            ),
           ],
         ),
         child: Row(
@@ -618,7 +687,13 @@ class _ToggleCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(100),
                   color: enabled ? _accent2 : const Color(0xFFDDE2F0),
                   boxShadow: enabled
-                      ? const [BoxShadow(color: Color(0x288D7DFF), blurRadius: 0, spreadRadius: 3)]
+                      ? const [
+                          BoxShadow(
+                            color: Color(0x288D7DFF),
+                            blurRadius: 0,
+                            spreadRadius: 3,
+                          ),
+                        ]
                       : null,
                   border: enabled ? null : Border.all(color: _cardBorder),
                 ),
@@ -636,8 +711,16 @@ class _ToggleCard extends StatelessWidget {
                           color: Colors.white,
                           shape: BoxShape.circle,
                           boxShadow: [
-                            BoxShadow(color: Color(0x33000000), blurRadius: 6, offset: Offset(0, 2)),
-                            BoxShadow(color: Color(0x22000000), blurRadius: 2, offset: Offset(0, 1)),
+                            BoxShadow(
+                              color: Color(0x33000000),
+                              blurRadius: 6,
+                              offset: Offset(0, 2),
+                            ),
+                            BoxShadow(
+                              color: Color(0x22000000),
+                              blurRadius: 2,
+                              offset: Offset(0, 1),
+                            ),
                           ],
                         ),
                       ),
@@ -664,7 +747,11 @@ class _OptionalBadge extends StatelessWidget {
         borderRadius: BorderRadius.circular(100),
         border: Border.all(color: _cardBorder, width: 1),
         boxShadow: const [
-          BoxShadow(color: Color(0x12000000), blurRadius: 6, offset: Offset(0, 1)),
+          BoxShadow(
+            color: Color(0x12000000),
+            blurRadius: 6,
+            offset: Offset(0, 1),
+          ),
         ],
       ),
       child: Row(
@@ -681,11 +768,7 @@ class _OptionalBadge extends StatelessWidget {
           const SizedBox(width: 6),
           const Text(
             'Both uploads are optional',
-            style: TextStyle(
-              fontSize: 11,
-              color: _muted,
-              letterSpacing: 0.385,
-            ),
+            style: TextStyle(fontSize: 11, color: _muted, letterSpacing: 0.385),
           ),
           const SizedBox(width: 6),
           Container(
@@ -771,15 +854,15 @@ class _UploadRow extends StatelessWidget {
     // Thumb gradient
     final thumbGradient = isFace
         ? const LinearGradient(
-      begin: Alignment.topLeft,
-      end: Alignment.bottomRight,
-      colors: [Color(0x208D7DFF), Color(0x146B91FF)],
-    )
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0x208D7DFF), Color(0x146B91FF)],
+          )
         : const LinearGradient(
-      begin: Alignment.topLeft,
-      end: Alignment.bottomRight,
-      colors: [Color(0x1A04D7C8), Color(0x146B91FF)],
-    );
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0x1A04D7C8), Color(0x146B91FF)],
+          );
 
     return GestureDetector(
       onTap: onTap,
@@ -792,12 +875,24 @@ class _UploadRow extends StatelessWidget {
           border: Border.all(color: borderColor, width: 1),
           boxShadow: uploaded
               ? const [
-            BoxShadow(color: Color(0x188D7DFF), blurRadius: 20, offset: Offset(0, 5)),
-            BoxShadow(color: Color(0x0A000000), blurRadius: 4, offset: Offset(0, 1)),
-          ]
+                  BoxShadow(
+                    color: Color(0x188D7DFF),
+                    blurRadius: 20,
+                    offset: Offset(0, 5),
+                  ),
+                  BoxShadow(
+                    color: Color(0x0A000000),
+                    blurRadius: 4,
+                    offset: Offset(0, 1),
+                  ),
+                ]
               : const [
-            BoxShadow(color: Color(0x0E8D7DFF), blurRadius: 10, offset: Offset(0, 2)),
-          ],
+                  BoxShadow(
+                    color: Color(0x0E8D7DFF),
+                    blurRadius: 10,
+                    offset: Offset(0, 2),
+                  ),
+                ],
         ),
         child: Row(
           children: [
@@ -814,7 +909,9 @@ class _UploadRow extends StatelessWidget {
               ),
               child: Center(
                 child: Icon(
-                  isFace ? Icons.person_outline : Icons.accessibility_new_outlined,
+                  isFace
+                      ? Icons.person_outline
+                      : Icons.accessibility_new_outlined,
                   color: uploaded ? _accent2 : _muted,
                   size: 20,
                 ),
@@ -943,12 +1040,20 @@ class _PrivacyBlock extends StatelessWidget {
                       height: 1.55,
                     ),
                     children: [
-                      TextSpan(text: 'Photos are used solely for fit modeling and are '),
+                      TextSpan(
+                        text:
+                            'Photos are used solely for fit modeling and are ',
+                      ),
                       TextSpan(
                         text: 'deleted on request',
-                        style: TextStyle(color: _text, fontWeight: FontWeight.w500),
+                        style: TextStyle(
+                          color: _text,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
-                      TextSpan(text: '. AHVI does not sell or share personal data.'),
+                      TextSpan(
+                        text: '. AHVI does not sell or share personal data.',
+                      ),
                     ],
                   ),
                 ),
@@ -966,10 +1071,7 @@ class _CtaSection extends StatelessWidget {
   final VoidCallback onBack;
   final VoidCallback onSaveContinue;
 
-  const _CtaSection({
-    required this.onBack,
-    required this.onSaveContinue,
-  });
+  const _CtaSection({required this.onBack, required this.onSaveContinue});
 
   @override
   Widget build(BuildContext context) {
@@ -986,7 +1088,11 @@ class _CtaSection extends StatelessWidget {
               borderRadius: BorderRadius.circular(16),
               border: Border.all(color: _cardBorder, width: 1),
               boxShadow: const [
-                BoxShadow(color: Color(0x126B91FF), blurRadius: 24, offset: Offset(0, 6)),
+                BoxShadow(
+                  color: Color(0x126B91FF),
+                  blurRadius: 24,
+                  offset: Offset(0, 6),
+                ),
               ],
             ),
             child: const Center(
@@ -1007,8 +1113,16 @@ class _CtaSection extends StatelessWidget {
                 colors: [Color(0xFF14CACD), Color(0xFF8D7DFF)],
               ),
               boxShadow: const [
-                BoxShadow(color: Color(0x3314CACD), blurRadius: 24, offset: Offset(0, 8)),
-                BoxShadow(color: Color(0x288D7DFF), blurRadius: 10, offset: Offset(0, 3)),
+                BoxShadow(
+                  color: Color(0x3314CACD),
+                  blurRadius: 24,
+                  offset: Offset(0, 8),
+                ),
+                BoxShadow(
+                  color: Color(0x288D7DFF),
+                  blurRadius: 10,
+                  offset: Offset(0, 3),
+                ),
               ],
             ),
             child: Material(
@@ -1056,9 +1170,7 @@ class _SkipRow extends StatelessWidget {
           onTap: onSkip,
           child: Container(
             decoration: const BoxDecoration(
-              border: Border(
-                bottom: BorderSide(color: _cardBorder, width: 1),
-              ),
+              border: Border(bottom: BorderSide(color: _cardBorder, width: 1)),
             ),
             padding: const EdgeInsets.only(bottom: 1),
             child: const Text(
@@ -1111,11 +1223,13 @@ class _ProgressDots extends StatelessWidget {
             height: 6,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(3),
-              gradient: const LinearGradient(
-                colors: [_accent2, _accent4],
-              ),
+              gradient: const LinearGradient(colors: [_accent2, _accent4]),
               boxShadow: const [
-                BoxShadow(color: Color(0x408D7DFF), blurRadius: 6, offset: Offset(0, 2)),
+                BoxShadow(
+                  color: Color(0x408D7DFF),
+                  blurRadius: 6,
+                  offset: Offset(0, 2),
+                ),
               ],
             ),
           ),

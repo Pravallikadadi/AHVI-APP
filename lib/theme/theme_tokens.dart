@@ -34,54 +34,46 @@ class AppThemeTokens extends ThemeExtension<AppThemeTokens> {
   });
 
   static AppThemeTokens light(AccentPalette accent) => AppThemeTokens(
-        backgroundPrimary: Color.lerp(
-          BaseTheme.lightBgPrimary,
-          accent.primary,
-          0.05,
-        )!,
-        backgroundSecondary: Color.lerp(
-          BaseTheme.lightBgSecondary,
-          accent.secondary,
-          0.07,
-        )!,
-        textPrimary: BaseTheme.lightText,
-        mutedText: BaseTheme.lightMuted,
-        panel: const Color.fromRGBO(255, 255, 255, 0.92),
-        panelBorder: const Color.fromRGBO(255, 255, 255, 1.0),
-        card: const Color.fromRGBO(255, 255, 255, 1.0),
-        cardBorder: Color.lerp(
-          const Color(0xFFCDD5F0),
-          accent.primary,
-          0.25,
-        )!,
-        phoneShell: Color.lerp(
-          BaseTheme.lightPhoneShell,
-          accent.primary,
-          0.06,
-        )!,
-        phoneShellInner: Color.lerp(
-          BaseTheme.lightPhoneShellInner,
-          accent.primary,
-          0.04,
-        )!,
-        tileText: const Color(0xFF182031),
-        accent: accent,
-      );
+    backgroundPrimary: Color.lerp(
+      BaseTheme.lightBgPrimary,
+      accent.primary,
+      0.05,
+    )!,
+    backgroundSecondary: Color.lerp(
+      BaseTheme.lightBgSecondary,
+      accent.secondary,
+      0.07,
+    )!,
+    textPrimary: BaseTheme.lightText,
+    mutedText: BaseTheme.lightMuted,
+    panel: const Color.fromRGBO(255, 255, 255, 0.92),
+    panelBorder: const Color.fromRGBO(255, 255, 255, 1.0),
+    card: const Color.fromRGBO(255, 255, 255, 1.0),
+    cardBorder: Color.lerp(const Color(0xFFCDD5F0), accent.primary, 0.25)!,
+    phoneShell: Color.lerp(BaseTheme.lightPhoneShell, accent.primary, 0.06)!,
+    phoneShellInner: Color.lerp(
+      BaseTheme.lightPhoneShellInner,
+      accent.primary,
+      0.04,
+    )!,
+    tileText: const Color(0xFF182031),
+    accent: accent,
+  );
 
   static AppThemeTokens dark(AccentPalette accent) => AppThemeTokens(
-        backgroundPrimary: BaseTheme.darkBgPrimary,
-        backgroundSecondary: BaseTheme.darkBgSecondary,
-        textPrimary: BaseTheme.darkText,
-        mutedText: const Color.fromRGBO(230, 235, 255, 0.72),
-        panel: const Color.fromRGBO(255, 255, 255, 0.08),
-        panelBorder: const Color.fromRGBO(255, 255, 255, 0.12),
-        card: const Color.fromRGBO(255, 255, 255, 0.08),
-        cardBorder: const Color.fromRGBO(255, 255, 255, 0.12),
-        phoneShell: BaseTheme.darkPhoneShell,
-        phoneShellInner: BaseTheme.darkPhoneShellInner,
-        tileText: const Color(0xFF10131B),
-        accent: accent,
-      );
+    backgroundPrimary: BaseTheme.darkBgPrimary,
+    backgroundSecondary: BaseTheme.darkBgSecondary,
+    textPrimary: BaseTheme.darkText,
+    mutedText: const Color.fromRGBO(230, 235, 255, 0.72),
+    panel: const Color.fromRGBO(255, 255, 255, 0.08),
+    panelBorder: const Color.fromRGBO(255, 255, 255, 0.12),
+    card: const Color.fromRGBO(255, 255, 255, 0.08),
+    cardBorder: const Color.fromRGBO(255, 255, 255, 0.12),
+    phoneShell: BaseTheme.darkPhoneShell,
+    phoneShellInner: BaseTheme.darkPhoneShellInner,
+    tileText: const Color(0xFF10131B),
+    accent: accent,
+  );
 
   @override
   AppThemeTokens copyWith({
@@ -118,10 +110,16 @@ class AppThemeTokens extends ThemeExtension<AppThemeTokens> {
   AppThemeTokens lerp(ThemeExtension<AppThemeTokens>? other, double t) {
     if (other is! AppThemeTokens) return this;
     return AppThemeTokens(
-      backgroundPrimary:
-          Color.lerp(backgroundPrimary, other.backgroundPrimary, t)!,
-      backgroundSecondary:
-          Color.lerp(backgroundSecondary, other.backgroundSecondary, t)!,
+      backgroundPrimary: Color.lerp(
+        backgroundPrimary,
+        other.backgroundPrimary,
+        t,
+      )!,
+      backgroundSecondary: Color.lerp(
+        backgroundSecondary,
+        other.backgroundSecondary,
+        t,
+      )!,
       textPrimary: Color.lerp(textPrimary, other.textPrimary, t)!,
       mutedText: Color.lerp(mutedText, other.mutedText, t)!,
       panel: Color.lerp(panel, other.panel, t)!,
@@ -129,8 +127,7 @@ class AppThemeTokens extends ThemeExtension<AppThemeTokens> {
       card: Color.lerp(card, other.card, t)!,
       cardBorder: Color.lerp(cardBorder, other.cardBorder, t)!,
       phoneShell: Color.lerp(phoneShell, other.phoneShell, t)!,
-      phoneShellInner:
-          Color.lerp(phoneShellInner, other.phoneShellInner, t)!,
+      phoneShellInner: Color.lerp(phoneShellInner, other.phoneShellInner, t)!,
       tileText: Color.lerp(tileText, other.tileText, t)!,
       accent: other.accent,
     );
@@ -138,6 +135,5 @@ class AppThemeTokens extends ThemeExtension<AppThemeTokens> {
 }
 
 extension AppTheme on BuildContext {
-  AppThemeTokens get themeTokens =>
-      Theme.of(this).extension<AppThemeTokens>()!;
+  AppThemeTokens get themeTokens => Theme.of(this).extension<AppThemeTokens>()!;
 }

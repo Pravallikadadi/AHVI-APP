@@ -7,27 +7,24 @@ import 'package:myapp/profile.dart';
 import 'package:myapp/services/appwrite_service.dart';
 
 void main() {
-  runApp(const MaterialApp(
-    debugShowCheckedModeBanner: false,
-    home: Screen1(),
-  ));
+  runApp(const MaterialApp(debugShowCheckedModeBanner: false, home: Screen1()));
 }
 
 // ── Body shape image constants ──────────────────────────────────────────────
 const Map<String, List<Map<String, String>>> kBodyShapes = {
   'women': [
-    {'name': 'Hourglass',  'img': 'assets/body_shapes/women_hourglass.jpeg'},
-    {'name': 'Pear',       'img': 'assets/body_shapes/women_pear.jpeg'},
-    {'name': 'Apple',      'img': 'assets/body_shapes/women_apple.jpeg'},
-    {'name': 'Rectangle',  'img': 'assets/body_shapes/women_rectangle.jpeg'},
-    {'name': 'Inverted',   'img': 'assets/body_shapes/women_inverted.jpeg'},
+    {'name': 'Hourglass', 'img': 'assets/body_shapes/women_hourglass.jpeg'},
+    {'name': 'Pear', 'img': 'assets/body_shapes/women_pear.jpeg'},
+    {'name': 'Apple', 'img': 'assets/body_shapes/women_apple.jpeg'},
+    {'name': 'Rectangle', 'img': 'assets/body_shapes/women_rectangle.jpeg'},
+    {'name': 'Inverted', 'img': 'assets/body_shapes/women_inverted.jpeg'},
   ],
   'men': [
-    {'name': 'Rectangle',  'img': 'assets/body_shapes/men_rectangle.jpeg'},
-    {'name': 'Triangle',   'img': 'assets/body_shapes/men_traingle.jpeg'},
-    {'name': 'Trapezoid',  'img': 'assets/body_shapes/men_trapezoid.jpeg'},
-    {'name': 'Oval',       'img': 'assets/body_shapes/men_oval.jpeg'},
-    {'name': 'Inverted',   'img': 'assets/body_shapes/men_inverted.jpeg'},
+    {'name': 'Rectangle', 'img': 'assets/body_shapes/men_rectangle.jpeg'},
+    {'name': 'Triangle', 'img': 'assets/body_shapes/men_traingle.jpeg'},
+    {'name': 'Trapezoid', 'img': 'assets/body_shapes/men_trapezoid.jpeg'},
+    {'name': 'Oval', 'img': 'assets/body_shapes/men_oval.jpeg'},
+    {'name': 'Inverted', 'img': 'assets/body_shapes/men_inverted.jpeg'},
   ],
 };
 
@@ -221,8 +218,11 @@ class _Screen1State extends State<Screen1> with TickerProviderStateMixin {
       return Tween<double>(begin: 0.0, end: 1.0).animate(
         CurvedAnimation(
           parent: _entranceController,
-          curve: Interval(begin, end.clamp(0.0, 1.0),
-              curve: Curves.easeOutCubic),
+          curve: Interval(
+            begin,
+            end.clamp(0.0, 1.0),
+            curve: Curves.easeOutCubic,
+          ),
         ),
       );
     }).toList();
@@ -236,8 +236,11 @@ class _Screen1State extends State<Screen1> with TickerProviderStateMixin {
       ).animate(
         CurvedAnimation(
           parent: _entranceController,
-          curve: Interval(begin, end.clamp(0.0, 1.0),
-              curve: Curves.easeOutCubic),
+          curve: Interval(
+            begin,
+            end.clamp(0.0, 1.0),
+            curve: Curves.easeOutCubic,
+          ),
         ),
       );
     }).toList();
@@ -266,18 +269,24 @@ class _Screen1State extends State<Screen1> with TickerProviderStateMixin {
     // TweenSequence: 0→0.93 (20%) → 1.04 (40%) → 1.0 (40%)
     _pillBounceScale = TweenSequence<double>([
       TweenSequenceItem(
-        tween: Tween(begin: 1.0, end: 0.93)
-            .chain(CurveTween(curve: Curves.easeIn)),
+        tween: Tween(
+          begin: 1.0,
+          end: 0.93,
+        ).chain(CurveTween(curve: Curves.easeIn)),
         weight: 20,
       ),
       TweenSequenceItem(
-        tween: Tween(begin: 0.93, end: 1.04)
-            .chain(CurveTween(curve: Curves.easeOut)),
+        tween: Tween(
+          begin: 0.93,
+          end: 1.04,
+        ).chain(CurveTween(curve: Curves.easeOut)),
         weight: 40,
       ),
       TweenSequenceItem(
-        tween: Tween(begin: 1.04, end: 1.0)
-            .chain(CurveTween(curve: Curves.elasticOut)),
+        tween: Tween(
+          begin: 1.04,
+          end: 1.0,
+        ).chain(CurveTween(curve: Curves.elasticOut)),
         weight: 40,
       ),
     ]).animate(_pillBounceController);
@@ -301,10 +310,7 @@ class _Screen1State extends State<Screen1> with TickerProviderStateMixin {
   Widget _staggered(int index, Widget child) {
     return FadeTransition(
       opacity: _fadeAnims[index],
-      child: SlideTransition(
-        position: _slideAnims[index],
-        child: child,
-      ),
+      child: SlideTransition(position: _slideAnims[index], child: child),
     );
   }
 
@@ -328,18 +334,22 @@ class _Screen1State extends State<Screen1> with TickerProviderStateMixin {
   }
 
   void _showValidationError(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   Future<void> _onContinue() async {
     if (!_isValid) {
-      _showValidationError('Please complete your name, date of birth, and shop preferences.');
+      _showValidationError(
+        'Please complete your name, date of birth, and shop preferences.',
+      );
       return;
     }
     final genders = ['Male', 'Female', 'Others'];
-    final gender = _selectedGender >= 0 ? genders[_selectedGender.clamp(0, genders.length - 1)] : '';
+    final gender = _selectedGender >= 0
+        ? genders[_selectedGender.clamp(0, genders.length - 1)]
+        : '';
     final dob = '${_selectedDay!} ${_selectedMonth!} ${_selectedYear!}';
     final appwrite = context.read<AppwriteService>();
     final shoppingGender = _genderFromShopPrefs();
@@ -453,8 +463,7 @@ class _Screen1State extends State<Screen1> with TickerProviderStateMixin {
               padding: const EdgeInsets.fromLTRB(9, 5, 13, 5),
               decoration: BoxDecoration(
                 color: const Color(0x1F8D7DFF),
-                border:
-                Border.all(color: const Color(0x388D7DFF), width: 1),
+                border: Border.all(color: const Color(0x388D7DFF), width: 1),
                 borderRadius: BorderRadius.circular(100),
               ),
               child: Row(
@@ -556,9 +565,15 @@ class _Screen1State extends State<Screen1> with TickerProviderStateMixin {
           borderRadius: BorderRadius.circular(16),
           boxShadow: const [
             BoxShadow(
-                color: Color(0x14000000), blurRadius: 24, offset: Offset(0, 8)),
+              color: Color(0x14000000),
+              blurRadius: 24,
+              offset: Offset(0, 8),
+            ),
             BoxShadow(
-                color: Color(0x0A000000), blurRadius: 6, offset: Offset(0, 2)),
+              color: Color(0x0A000000),
+              blurRadius: 6,
+              offset: Offset(0, 2),
+            ),
           ],
         ),
         child: Row(
@@ -576,28 +591,32 @@ class _Screen1State extends State<Screen1> with TickerProviderStateMixin {
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 240),
                     curve: Curves.easeInOut,
-                    padding:
-                    const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 10,
+                      horizontal: 4,
+                    ),
                     decoration: BoxDecoration(
                       gradient: isActive
                           ? const LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [accent, accent2],
-                      )
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [accent, accent2],
+                            )
                           : null,
                       borderRadius: BorderRadius.circular(12),
                       boxShadow: isActive
                           ? const [
-                        BoxShadow(
-                            color: Color(0x4D6B91FF),
-                            blurRadius: 10,
-                            offset: Offset(0, 2)),
-                        BoxShadow(
-                            color: Color(0x2E6B91FF),
-                            blurRadius: 3,
-                            offset: Offset(0, 1)),
-                      ]
+                              BoxShadow(
+                                color: Color(0x4D6B91FF),
+                                blurRadius: 10,
+                                offset: Offset(0, 2),
+                              ),
+                              BoxShadow(
+                                color: Color(0x2E6B91FF),
+                                blurRadius: 3,
+                                offset: Offset(0, 1),
+                              ),
+                            ]
                           : null,
                     ),
                     child: Row(
@@ -609,8 +628,9 @@ class _Screen1State extends State<Screen1> with TickerProviderStateMixin {
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             fontSize: 13,
-                            fontWeight:
-                            isActive ? FontWeight.w600 : FontWeight.w500,
+                            fontWeight: isActive
+                                ? FontWeight.w600
+                                : FontWeight.w500,
                             color: isActive ? textColor : muted,
                             letterSpacing: 0.005 * 13,
                             fontFamily: 'DM Sans',
@@ -666,13 +686,15 @@ class _Screen1State extends State<Screen1> with TickerProviderStateMixin {
           borderRadius: BorderRadius.circular(24),
           boxShadow: const [
             BoxShadow(
-                color: Color(0x18000000),
-                blurRadius: 40,
-                offset: Offset(0, 12)),
+              color: Color(0x18000000),
+              blurRadius: 40,
+              offset: Offset(0, 12),
+            ),
             BoxShadow(
-                color: Color(0x0F000000),
-                blurRadius: 10,
-                offset: Offset(0, 3)),
+              color: Color(0x0F000000),
+              blurRadius: 10,
+              offset: Offset(0, 3),
+            ),
           ],
         ),
         child: Column(
@@ -689,7 +711,8 @@ class _Screen1State extends State<Screen1> with TickerProviderStateMixin {
             _buildShopPrefsField(),
             // Body shape section — slides in when Women or Men is selected
             _BodyShapeReveal(
-              visible: _shopPrefs.contains('Women') || _shopPrefs.contains('Men'),
+              visible:
+                  _shopPrefs.contains('Women') || _shopPrefs.contains('Men'),
               divider: _buildDivider(),
               child: _buildBodyShapeField(),
             ),
@@ -718,8 +741,7 @@ class _Screen1State extends State<Screen1> with TickerProviderStateMixin {
                 ),
               ),
               SizedBox(width: 6),
-              Text('✦',
-                  style: TextStyle(fontSize: 10, color: accent5)),
+              Text('✦', style: TextStyle(fontSize: 10, color: accent5)),
             ],
           ),
           const SizedBox(height: 9),
@@ -735,12 +757,12 @@ class _Screen1State extends State<Screen1> with TickerProviderStateMixin {
                   // Glow ring on focus
                   boxShadow: _nameFocused
                       ? [
-                    BoxShadow(
-                      color: accent.withValues(alpha: 0.15),
-                      blurRadius: 12,
-                      spreadRadius: 3,
-                    ),
-                  ]
+                          BoxShadow(
+                            color: accent.withValues(alpha: 0.15),
+                            blurRadius: 12,
+                            spreadRadius: 3,
+                          ),
+                        ]
                       : [],
                 ),
                 child: TextField(
@@ -763,25 +785,27 @@ class _Screen1State extends State<Screen1> with TickerProviderStateMixin {
                     filled: true,
                     // [ADDED B04] fillColor animates with focus state
                     fillColor: _nameFocused ? panel2 : panel,
-                    contentPadding:
-                    const EdgeInsets.fromLTRB(15, 13, 40, 13),
+                    contentPadding: const EdgeInsets.fromLTRB(15, 13, 40, 13),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(14),
-                      borderSide:
-                      const BorderSide(color: cardBorder, width: 1.5),
+                      borderSide: const BorderSide(
+                        color: cardBorder,
+                        width: 1.5,
+                      ),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(14),
-                      borderSide:
-                      const BorderSide(color: accent, width: 1.5),
+                      borderSide: const BorderSide(color: accent, width: 1.5),
                     ),
                   ),
                 ),
               ),
               const Positioned(
                 right: 14,
-                child: Text('✦',
-                    style: TextStyle(fontSize: 12, color: accent2)),
+                child: Text(
+                  '✦',
+                  style: TextStyle(fontSize: 12, color: accent2),
+                ),
               ),
             ],
           ),
@@ -828,7 +852,13 @@ class _Screen1State extends State<Screen1> with TickerProviderStateMixin {
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(14),
               boxShadow: _phoneFocused
-                  ? [BoxShadow(color: accent.withValues(alpha: 0.15), blurRadius: 12, spreadRadius: 3)]
+                  ? [
+                      BoxShadow(
+                        color: accent.withValues(alpha: 0.15),
+                        blurRadius: 12,
+                        spreadRadius: 3,
+                      ),
+                    ]
                   : [],
             ),
             child: Row(
@@ -845,17 +875,32 @@ class _Screen1State extends State<Screen1> with TickerProviderStateMixin {
                       decoration: BoxDecoration(
                         color: _phoneFocused ? panel2 : panel,
                         border: Border(
-                          top: BorderSide(color: _phoneFocused ? accent : cardBorder, width: 1.5),
-                          bottom: BorderSide(color: _phoneFocused ? accent : cardBorder, width: 1.5),
-                          left: BorderSide(color: _phoneFocused ? accent : cardBorder, width: 1.5),
-                          right: BorderSide(color: _phoneFocused ? accent : cardBorder, width: 1.5),
+                          top: BorderSide(
+                            color: _phoneFocused ? accent : cardBorder,
+                            width: 1.5,
+                          ),
+                          bottom: BorderSide(
+                            color: _phoneFocused ? accent : cardBorder,
+                            width: 1.5,
+                          ),
+                          left: BorderSide(
+                            color: _phoneFocused ? accent : cardBorder,
+                            width: 1.5,
+                          ),
+                          right: BorderSide(
+                            color: _phoneFocused ? accent : cardBorder,
+                            width: 1.5,
+                          ),
                         ),
                         borderRadius: BorderRadius.circular(14),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Text(_selectedCountryFlag, style: const TextStyle(fontSize: 20)),
+                          Text(
+                            _selectedCountryFlag,
+                            style: const TextStyle(fontSize: 20),
+                          ),
                           const SizedBox(width: 6),
                           Text(
                             _selectedCountryCode,
@@ -867,7 +912,11 @@ class _Screen1State extends State<Screen1> with TickerProviderStateMixin {
                             ),
                           ),
                           const SizedBox(width: 3),
-                          const Icon(Icons.keyboard_arrow_down_rounded, color: muted, size: 16),
+                          const Icon(
+                            Icons.keyboard_arrow_down_rounded,
+                            color: muted,
+                            size: 16,
+                          ),
                         ],
                       ),
                     ),
@@ -884,7 +933,9 @@ class _Screen1State extends State<Screen1> with TickerProviderStateMixin {
                       keyboardType: TextInputType.number,
                       inputFormatters: [
                         FilteringTextInputFormatter.digitsOnly,
-                        LengthLimitingTextInputFormatter(_selectedCountryMaxDigits),
+                        LengthLimitingTextInputFormatter(
+                          _selectedCountryMaxDigits,
+                        ),
                       ],
                       style: const TextStyle(
                         fontSize: 15,
@@ -902,14 +953,23 @@ class _Screen1State extends State<Screen1> with TickerProviderStateMixin {
                         ),
                         filled: true,
                         fillColor: _phoneFocused ? panel2 : panel,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 0),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 0,
+                        ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(14),
-                          borderSide: const BorderSide(color: cardBorder, width: 1.5),
+                          borderSide: const BorderSide(
+                            color: cardBorder,
+                            width: 1.5,
+                          ),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(14),
-                          borderSide: const BorderSide(color: accent, width: 1.5),
+                          borderSide: const BorderSide(
+                            color: accent,
+                            width: 1.5,
+                          ),
                         ),
                       ),
                     ),
@@ -948,11 +1008,11 @@ class _Screen1State extends State<Screen1> with TickerProviderStateMixin {
               return Expanded(
                 child: Padding(
                   padding: EdgeInsets.only(
-                      right: i < genders.length - 1 ? 8 : 0),
+                    right: i < genders.length - 1 ? 8 : 0,
+                  ),
                   // ── [ADDED B06] GestureDetector with press-down ──
                   child: GestureDetector(
-                    onTapDown: (_) =>
-                        setState(() => _pillPressed[i] = true),
+                    onTapDown: (_) => setState(() => _pillPressed[i] = true),
                     onTapUp: (_) {
                       setState(() {
                         _pillPressed[i] = false;
@@ -962,8 +1022,7 @@ class _Screen1State extends State<Screen1> with TickerProviderStateMixin {
                       // [ADDED B05] trigger spring bounce
                       _pillBounceController.forward(from: 0);
                     },
-                    onTapCancel: () =>
-                        setState(() => _pillPressed[i] = false),
+                    onTapCancel: () => setState(() => _pillPressed[i] = false),
                     child: AnimatedScale(
                       // [ADDED B06] scale 0.97 on press-down
                       scale: _pillPressed[i] ? 0.97 : 1.0,
@@ -975,42 +1034,42 @@ class _Screen1State extends State<Screen1> with TickerProviderStateMixin {
                           final scale = (isAnimating && isSelected)
                               ? _pillBounceScale.value
                               : 1.0;
-                          return Transform.scale(
-                            scale: scale,
-                            child: child,
-                          );
+                          return Transform.scale(scale: scale, child: child);
                         },
                         child: AnimatedContainer(
                           duration: const Duration(milliseconds: 220),
                           curve: Curves.easeInOut, // [ADDED B05] match curve
                           padding: const EdgeInsets.symmetric(
-                              vertical: 10, horizontal: 4),
+                            vertical: 10,
+                            horizontal: 4,
+                          ),
                           decoration: BoxDecoration(
                             gradient: isSelected
                                 ? const LinearGradient(
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                              colors: [accent, accent2],
-                            )
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                    colors: [accent, accent2],
+                                  )
                                 : null,
                             color: isSelected ? null : panel,
                             border: Border.all(
-                              color:
-                              isSelected ? accent : cardBorder,
+                              color: isSelected ? accent : cardBorder,
                               width: 1.5,
                             ),
                             borderRadius: BorderRadius.circular(12),
                             boxShadow: isSelected
                                 ? const [
-                              BoxShadow(
-                                  color: Color(0x596B91FF),
-                                  blurRadius: 14,
-                                  offset: Offset(0, 4)),
-                              BoxShadow(
-                                  color: Color(0x336B91FF),
-                                  blurRadius: 4,
-                                  offset: Offset(0, 1)),
-                            ]
+                                    BoxShadow(
+                                      color: Color(0x596B91FF),
+                                      blurRadius: 14,
+                                      offset: Offset(0, 4),
+                                    ),
+                                    BoxShadow(
+                                      color: Color(0x336B91FF),
+                                      blurRadius: 4,
+                                      offset: Offset(0, 1),
+                                    ),
+                                  ]
                                 : null,
                           ),
                           child: Text(
@@ -1021,8 +1080,7 @@ class _Screen1State extends State<Screen1> with TickerProviderStateMixin {
                               fontWeight: isSelected
                                   ? FontWeight.w600
                                   : FontWeight.w500,
-                              color:
-                              isSelected ? textColor : muted,
+                              color: isSelected ? textColor : muted,
                               fontFamily: 'DM Sans',
                             ),
                           ),
@@ -1060,32 +1118,44 @@ class _Screen1State extends State<Screen1> with TickerProviderStateMixin {
             children: [
               // ── [ADDED B08] functional DOB dropdowns ──
               Expanded(
-                  child: _buildSelectDropdown(
-                    'Day',
-                    _selectedDay,
-                    List.generate(31, (i) => '${i + 1}'),
-                        (val) => setState(() => _selectedDay = val),
-                  )),
+                child: _buildSelectDropdown(
+                  'Day',
+                  _selectedDay,
+                  List.generate(31, (i) => '${i + 1}'),
+                  (val) => setState(() => _selectedDay = val),
+                ),
+              ),
               const SizedBox(width: 8),
               Expanded(
-                  child: _buildSelectDropdown(
-                    'Month',
-                    _selectedMonth,
-                    const [
-                      'January', 'February', 'March', 'April',
-                      'May', 'June', 'July', 'August',
-                      'September', 'October', 'November', 'December'
-                    ],
-                        (val) => setState(() => _selectedMonth = val),
-                  )),
+                child: _buildSelectDropdown(
+                  'Month',
+                  _selectedMonth,
+                  const [
+                    'January',
+                    'February',
+                    'March',
+                    'April',
+                    'May',
+                    'June',
+                    'July',
+                    'August',
+                    'September',
+                    'October',
+                    'November',
+                    'December',
+                  ],
+                  (val) => setState(() => _selectedMonth = val),
+                ),
+              ),
               const SizedBox(width: 8),
               Expanded(
-                  child: _buildSelectDropdown(
-                    'Year',
-                    _selectedYear,
-                    List.generate(58, (i) => '${2007 - i}'),
-                        (val) => setState(() => _selectedYear = val),
-                  )),
+                child: _buildSelectDropdown(
+                  'Year',
+                  _selectedYear,
+                  List.generate(58, (i) => '${2007 - i}'),
+                  (val) => setState(() => _selectedYear = val),
+                ),
+              ),
             ],
           ),
         ],
@@ -1095,11 +1165,11 @@ class _Screen1State extends State<Screen1> with TickerProviderStateMixin {
 
   // ── [ADDED B07, B08] Functional dropdown with focus glow + real values ──
   Widget _buildSelectDropdown(
-      String hint,
-      String? selectedValue,
-      List<String> options,
-      ValueChanged<String?> onChanged,
-      ) {
+    String hint,
+    String? selectedValue,
+    List<String> options,
+    ValueChanged<String?> onChanged,
+  ) {
     return GestureDetector(
       onTap: () {
         _nameFocus.unfocus();
@@ -1123,12 +1193,12 @@ class _Screen1State extends State<Screen1> with TickerProviderStateMixin {
           // [ADDED B07] glow ring when selected
           boxShadow: selectedValue != null
               ? [
-            BoxShadow(
-              color: accent.withValues(alpha: 0.15),
-              blurRadius: 12,
-              spreadRadius: 3,
-            ),
-          ]
+                  BoxShadow(
+                    color: accent.withValues(alpha: 0.15),
+                    blurRadius: 12,
+                    spreadRadius: 3,
+                  ),
+                ]
               : [],
         ),
         child: Row(
@@ -1147,7 +1217,6 @@ class _Screen1State extends State<Screen1> with TickerProviderStateMixin {
                 ),
               ),
             ),
-
           ],
         ),
       ),
@@ -1156,10 +1225,10 @@ class _Screen1State extends State<Screen1> with TickerProviderStateMixin {
 
   // ── [ADDED B08] Bottom sheet CupertinoPicker to select DOB values ──
   void _showPicker(
-      String title,
-      List<String> options,
-      ValueChanged<String?> onChanged,
-      ) {
+    String title,
+    List<String> options,
+    ValueChanged<String?> onChanged,
+  ) {
     // Explicitly unfocus all text fields so keyboard fully dismisses
     _nameFocus.unfocus();
     _phoneFocus.unfocus();
@@ -1174,10 +1243,10 @@ class _Screen1State extends State<Screen1> with TickerProviderStateMixin {
   }
 
   void _doShowPicker(
-      String title,
-      List<String> options,
-      ValueChanged<String?> onChanged,
-      ) {
+    String title,
+    List<String> options,
+    ValueChanged<String?> onChanged,
+  ) {
     int tempIndex = 0;
     showModalBottomSheet(
       context: context,
@@ -1202,27 +1271,32 @@ class _Screen1State extends State<Screen1> with TickerProviderStateMixin {
               ),
             ),
             Padding(
-              padding:
-              const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(title,
-                      style: const TextStyle(
-                          color: muted,
-                          fontSize: 13,
-                          fontFamily: 'DM Sans')),
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      color: muted,
+                      fontSize: 13,
+                      fontFamily: 'DM Sans',
+                    ),
+                  ),
                   GestureDetector(
                     onTap: () {
                       onChanged(options[tempIndex]);
                       Navigator.pop(context);
                     },
-                    child: const Text('Done',
-                        style: TextStyle(
-                            color: accent,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            fontFamily: 'DM Sans')),
+                    child: const Text(
+                      'Done',
+                      style: TextStyle(
+                        color: accent,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        fontFamily: 'DM Sans',
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -1233,13 +1307,18 @@ class _Screen1State extends State<Screen1> with TickerProviderStateMixin {
                 itemExtent: 36,
                 onSelectedItemChanged: (i) => tempIndex = i,
                 children: options
-                    .map((o) => Center(
-                  child: Text(o,
-                      style: const TextStyle(
-                          color: textColor,
-                          fontSize: 15,
-                          fontFamily: 'DM Sans')),
-                ))
+                    .map(
+                      (o) => Center(
+                        child: Text(
+                          o,
+                          style: const TextStyle(
+                            color: textColor,
+                            fontSize: 15,
+                            fontFamily: 'DM Sans',
+                          ),
+                        ),
+                      ),
+                    )
                     .toList(),
               ),
             ),
@@ -1259,8 +1338,11 @@ class _Screen1State extends State<Screen1> with TickerProviderStateMixin {
           const Text(
             'SKIN TONE',
             style: TextStyle(
-              fontSize: 11, fontWeight: FontWeight.w600,
-              color: muted, letterSpacing: 0.07 * 11, fontFamily: 'DM Sans',
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: muted,
+              letterSpacing: 0.07 * 11,
+              fontFamily: 'DM Sans',
             ),
           ),
           const SizedBox(height: 12),
@@ -1275,7 +1357,8 @@ class _Screen1State extends State<Screen1> with TickerProviderStateMixin {
                   onTap: () => setState(() => _selectedSkinTone = i + 1),
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 150),
-                    width: 32, height: 32,
+                    width: 32,
+                    height: 32,
                     decoration: BoxDecoration(
                       color: kSkinTones[i],
                       shape: BoxShape.circle,
@@ -1301,19 +1384,22 @@ class _Screen1State extends State<Screen1> with TickerProviderStateMixin {
   // Three mutually exclusive cards: Women / Men / Both
   static const List<Map<String, String>> _shopPrefCards = [
     {'label': 'Women', 'img': 'assets/shop/women.jpg'},
-    {'label': 'Men',   'img': 'assets/shop/men.jpg'},
-    {'label': 'Both',  'img': 'assets/shop/both.jpeg'},
+    {'label': 'Men', 'img': 'assets/shop/men.jpg'},
+    {'label': 'Both', 'img': 'assets/shop/both.jpeg'},
   ];
 
   Widget _buildShopPrefsField() {
     // Determine which card is visually active
-    final bool womenSelected = _shopPrefs.length == 1 && _shopPrefs.contains('Women');
-    final bool menSelected   = _shopPrefs.length == 1 && _shopPrefs.contains('Men');
-    final bool bothSelected  = _shopPrefs.contains('Women') && _shopPrefs.contains('Men');
+    final bool womenSelected =
+        _shopPrefs.length == 1 && _shopPrefs.contains('Women');
+    final bool menSelected =
+        _shopPrefs.length == 1 && _shopPrefs.contains('Men');
+    final bool bothSelected =
+        _shopPrefs.contains('Women') && _shopPrefs.contains('Men');
 
     bool isCardActive(String label) {
       if (label == 'Women') return womenSelected;
-      if (label == 'Men')   return menSelected;
+      if (label == 'Men') return menSelected;
       return bothSelected; // Both
     }
 
@@ -1325,20 +1411,23 @@ class _Screen1State extends State<Screen1> with TickerProviderStateMixin {
           const Text(
             'SHOP PREFERENCES',
             style: TextStyle(
-              fontSize: 11, fontWeight: FontWeight.w600,
-              color: muted, letterSpacing: 0.07 * 11, fontFamily: 'DM Sans',
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: muted,
+              letterSpacing: 0.07 * 11,
+              fontFamily: 'DM Sans',
             ),
           ),
           const SizedBox(height: 12),
           Row(
             children: List.generate(_shopPrefCards.length, (index) {
-              final pref    = _shopPrefCards[index];
-              final label   = pref['label']!;
+              final pref = _shopPrefCards[index];
+              final label = pref['label']!;
               final isActive = isCardActive(label);
               return Expanded(
                 child: Padding(
                   padding: EdgeInsets.only(
-                    left:  index == 0 ? 0 : 5,
+                    left: index == 0 ? 0 : 5,
                     right: index == _shopPrefCards.length - 1 ? 0 : 5,
                   ),
                   child: GestureDetector(
@@ -1347,11 +1436,13 @@ class _Screen1State extends State<Screen1> with TickerProviderStateMixin {
                       if (label == 'Both') {
                         _shopPrefs.addAll(['Women', 'Men']);
                         _bodyGender = 'both';
-                        _selectedBodyShape = kBodyShapes['women']!.first['name']!;
+                        _selectedBodyShape =
+                            kBodyShapes['women']!.first['name']!;
                       } else if (label == 'Women') {
                         _shopPrefs.add('Women');
                         _bodyGender = 'women';
-                        _selectedBodyShape = kBodyShapes['women']!.first['name']!;
+                        _selectedBodyShape =
+                            kBodyShapes['women']!.first['name']!;
                       } else {
                         _shopPrefs.add('Men');
                         _bodyGender = 'men';
@@ -1401,13 +1492,17 @@ class _Screen1State extends State<Screen1> with TickerProviderStateMixin {
                                     if (isActive)
                                       const Padding(
                                         padding: EdgeInsets.only(right: 4),
-                                        child: Icon(Icons.check_circle,
-                                            color: accent, size: 13),
+                                        child: Icon(
+                                          Icons.check_circle,
+                                          color: accent,
+                                          size: 13,
+                                        ),
                                       ),
                                     Text(
                                       label,
                                       style: const TextStyle(
-                                        color: textColor, fontSize: 12,
+                                        color: textColor,
+                                        fontSize: 12,
                                         fontWeight: FontWeight.w600,
                                         fontFamily: 'DM Sans',
                                       ),
@@ -1444,8 +1539,11 @@ class _Screen1State extends State<Screen1> with TickerProviderStateMixin {
             const Text(
               'BODY SHAPE',
               style: TextStyle(
-                fontSize: 11, fontWeight: FontWeight.w600,
-                color: muted, letterSpacing: 0.07 * 11, fontFamily: 'DM Sans',
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: muted,
+                letterSpacing: 0.07 * 11,
+                fontFamily: 'DM Sans',
               ),
             ),
             const SizedBox(height: 12),
@@ -1453,8 +1551,11 @@ class _Screen1State extends State<Screen1> with TickerProviderStateMixin {
             const Text(
               'Women',
               style: TextStyle(
-                fontSize: 12, fontWeight: FontWeight.w600,
-                color: accent, letterSpacing: 0.04 * 12, fontFamily: 'DM Sans',
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: accent,
+                letterSpacing: 0.04 * 12,
+                fontFamily: 'DM Sans',
               ),
             ),
             const SizedBox(height: 8),
@@ -1462,7 +1563,8 @@ class _Screen1State extends State<Screen1> with TickerProviderStateMixin {
               crossAxisCount: 3,
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              crossAxisSpacing: 10, mainAxisSpacing: 10,
+              crossAxisSpacing: 10,
+              mainAxisSpacing: 10,
               childAspectRatio: 0.65,
               children: womenShapes.map((shape) {
                 final isActive = _selectedBodyShape == shape['name'];
@@ -1474,8 +1576,11 @@ class _Screen1State extends State<Screen1> with TickerProviderStateMixin {
             const Text(
               'Men',
               style: TextStyle(
-                fontSize: 12, fontWeight: FontWeight.w600,
-                color: accent2, letterSpacing: 0.04 * 12, fontFamily: 'DM Sans',
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: accent2,
+                letterSpacing: 0.04 * 12,
+                fontFamily: 'DM Sans',
               ),
             ),
             const SizedBox(height: 8),
@@ -1483,7 +1588,8 @@ class _Screen1State extends State<Screen1> with TickerProviderStateMixin {
               crossAxisCount: 3,
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              crossAxisSpacing: 10, mainAxisSpacing: 10,
+              crossAxisSpacing: 10,
+              mainAxisSpacing: 10,
               childAspectRatio: 0.65,
               children: menShapes.map((shape) {
                 final isActive = _selectedBodyShape == shape['name'];
@@ -1504,8 +1610,11 @@ class _Screen1State extends State<Screen1> with TickerProviderStateMixin {
           const Text(
             'BODY SHAPE',
             style: TextStyle(
-              fontSize: 11, fontWeight: FontWeight.w600,
-              color: muted, letterSpacing: 0.07 * 11, fontFamily: 'DM Sans',
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: muted,
+              letterSpacing: 0.07 * 11,
+              fontFamily: 'DM Sans',
             ),
           ),
           const SizedBox(height: 12),
@@ -1513,7 +1622,8 @@ class _Screen1State extends State<Screen1> with TickerProviderStateMixin {
             crossAxisCount: 3,
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            crossAxisSpacing: 10, mainAxisSpacing: 10,
+            crossAxisSpacing: 10,
+            mainAxisSpacing: 10,
             childAspectRatio: 0.65,
             children: shapes.map((shape) {
               final isActive = _selectedBodyShape == shape['name'];
@@ -1543,7 +1653,8 @@ class _Screen1State extends State<Screen1> with TickerProviderStateMixin {
             Expanded(
               child: ClipRRect(
                 borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(13)),
+                  top: Radius.circular(13),
+                ),
                 child: Image.asset(
                   shape['img']!,
                   fit: BoxFit.cover,
@@ -1613,25 +1724,29 @@ class _Screen1State extends State<Screen1> with TickerProviderStateMixin {
                     // [ADDED B10] shadow shrinks on press
                     boxShadow: _btnPressed
                         ? const [
-                      BoxShadow(
-                          color: Color(0x336B91FF),
-                          blurRadius: 20,
-                          offset: Offset(0, 6)),
-                      BoxShadow(
-                          color: Color(0x1A6B91FF),
-                          blurRadius: 6,
-                          offset: Offset(0, 2)),
-                    ]
+                            BoxShadow(
+                              color: Color(0x336B91FF),
+                              blurRadius: 20,
+                              offset: Offset(0, 6),
+                            ),
+                            BoxShadow(
+                              color: Color(0x1A6B91FF),
+                              blurRadius: 6,
+                              offset: Offset(0, 2),
+                            ),
+                          ]
                         : const [
-                      BoxShadow(
-                          color: Color(0x596B91FF),
-                          blurRadius: 32,
-                          offset: Offset(0, 10)),
-                      BoxShadow(
-                          color: Color(0x336B91FF),
-                          blurRadius: 8,
-                          offset: Offset(0, 3)),
-                    ],
+                            BoxShadow(
+                              color: Color(0x596B91FF),
+                              blurRadius: 32,
+                              offset: Offset(0, 10),
+                            ),
+                            BoxShadow(
+                              color: Color(0x336B91FF),
+                              blurRadius: 8,
+                              offset: Offset(0, 3),
+                            ),
+                          ],
                   ),
                   child: Stack(
                     alignment: Alignment.center,
@@ -1643,10 +1758,7 @@ class _Screen1State extends State<Screen1> with TickerProviderStateMixin {
                             gradient: const LinearGradient(
                               begin: Alignment.topLeft,
                               end: Alignment.bottomRight,
-                              colors: [
-                                Color(0x17FFFFFF),
-                                Colors.transparent,
-                              ],
+                              colors: [Color(0x17FFFFFF), Colors.transparent],
                               stops: [0.0, 0.55],
                             ),
                           ),
@@ -1669,8 +1781,9 @@ class _Screen1State extends State<Screen1> with TickerProviderStateMixin {
                           Text(
                             '→',
                             style: TextStyle(
-                                fontSize: 15,
-                                color: Color(0xA6F5F7FF)),
+                              fontSize: 15,
+                              color: Color(0xA6F5F7FF),
+                            ),
                           ),
                         ],
                       ),
@@ -1694,8 +1807,7 @@ class _Screen1State extends State<Screen1> with TickerProviderStateMixin {
                       height: 6,
                       decoration: BoxDecoration(
                         color: isActive ? accent2 : const Color(0xFFCDD4E8),
-                        borderRadius:
-                        BorderRadius.circular(isActive ? 3 : 50),
+                        borderRadius: BorderRadius.circular(isActive ? 3 : 50),
                       ),
                     ),
                   );
@@ -1760,13 +1872,13 @@ class _BodyShapeRevealState extends State<_BodyShapeReveal>
       curve: const Interval(0.0, 0.7, curve: Curves.easeOut),
     );
 
-    _slide = Tween<Offset>(
-      begin: const Offset(0, 0.12),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(
-      parent: _ctrl,
-      curve: const Interval(0.0, 0.85, curve: Curves.easeOutCubic),
-    ));
+    _slide = Tween<Offset>(begin: const Offset(0, 0.12), end: Offset.zero)
+        .animate(
+          CurvedAnimation(
+            parent: _ctrl,
+            curve: const Interval(0.0, 0.85, curve: Curves.easeOutCubic),
+          ),
+        );
 
     _scale = Tween<double>(begin: 0.95, end: 1.0).animate(
       CurvedAnimation(
@@ -1811,12 +1923,7 @@ class _BodyShapeRevealState extends State<_BodyShapeReveal>
                     child: ScaleTransition(
                       scale: _scale,
                       alignment: Alignment.topCenter,
-                      child: Column(
-                        children: [
-                          widget.divider,
-                          widget.child,
-                        ],
-                      ),
+                      child: Column(children: [widget.divider, widget.child]),
                     ),
                   ),
                 ),
@@ -1845,7 +1952,8 @@ class _CountryDropdownOverlay extends StatefulWidget {
   });
 
   @override
-  State<_CountryDropdownOverlay> createState() => _CountryDropdownOverlayState();
+  State<_CountryDropdownOverlay> createState() =>
+      _CountryDropdownOverlayState();
 }
 
 class _CountryDropdownOverlayState extends State<_CountryDropdownOverlay> {
@@ -1860,11 +1968,11 @@ class _CountryDropdownOverlayState extends State<_CountryDropdownOverlay> {
 
   @override
   Widget build(BuildContext context) {
-    const sheetBg  = Color(0xFFFFFFFF);
-    const itemBg   = Color(0xFFF0F4FF);
+    const sheetBg = Color(0xFFFFFFFF);
+    const itemBg = Color(0xFFF0F4FF);
     const borderCol = Color(0xFFE5E9F7);
-    const labelCol  = Color(0xFF66708A);
-    const textCol   = Color(0xFF1A1D26);
+    const labelCol = Color(0xFF66708A);
+    const textCol = Color(0xFF1A1D26);
     const accentCol = Color(0xFF6B91FF);
 
     final filtered = widget.countries.where((c) {
@@ -1899,7 +2007,11 @@ class _CountryDropdownOverlayState extends State<_CountryDropdownOverlay> {
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: borderCol, width: 1.2),
                 boxShadow: const [
-                  BoxShadow(color: Color(0x18000000), blurRadius: 24, offset: Offset(0, 8)),
+                  BoxShadow(
+                    color: Color(0x18000000),
+                    blurRadius: 24,
+                    offset: Offset(0, 8),
+                  ),
                 ],
               ),
               child: Column(
@@ -1912,22 +2024,43 @@ class _CountryDropdownOverlayState extends State<_CountryDropdownOverlay> {
                       controller: _searchCtrl,
                       autofocus: true,
                       onChanged: (v) => setState(() => _search = v),
-                      style: const TextStyle(fontSize: 13, color: textCol, fontFamily: 'DM Sans'),
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: textCol,
+                        fontFamily: 'DM Sans',
+                      ),
                       decoration: InputDecoration(
                         hintText: 'Search…',
-                        hintStyle: const TextStyle(color: labelCol, fontSize: 13, fontFamily: 'DM Sans'),
-                        prefixIcon: const Icon(Icons.search_rounded, color: labelCol, size: 17),
+                        hintStyle: const TextStyle(
+                          color: labelCol,
+                          fontSize: 13,
+                          fontFamily: 'DM Sans',
+                        ),
+                        prefixIcon: const Icon(
+                          Icons.search_rounded,
+                          color: labelCol,
+                          size: 17,
+                        ),
                         filled: true,
                         fillColor: itemBg,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 8,
+                        ),
                         isDense: true,
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
-                          borderSide: const BorderSide(color: borderCol, width: 1),
+                          borderSide: const BorderSide(
+                            color: borderCol,
+                            width: 1,
+                          ),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
-                          borderSide: const BorderSide(color: accentCol, width: 1.2),
+                          borderSide: const BorderSide(
+                            color: accentCol,
+                            width: 1.2,
+                          ),
                         ),
                       ),
                     ),
@@ -1940,20 +2073,29 @@ class _CountryDropdownOverlayState extends State<_CountryDropdownOverlay> {
                       itemCount: filtered.length,
                       itemBuilder: (_, i) {
                         final c = filtered[i];
-                        final isSelected = c['code'] == widget.selectedCode &&
+                        final isSelected =
+                            c['code'] == widget.selectedCode &&
                             c['flag'] == widget.selectedFlag;
                         return GestureDetector(
                           onTap: () => widget.onSelected(c),
                           child: Container(
                             margin: const EdgeInsets.symmetric(vertical: 2),
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 9,
+                            ),
                             decoration: BoxDecoration(
-                              color: isSelected ? const Color(0x256B91FF) : Colors.transparent,
+                              color: isSelected
+                                  ? const Color(0x256B91FF)
+                                  : Colors.transparent,
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: Row(
                               children: [
-                                Text(c['flag'] as String, style: const TextStyle(fontSize: 18)),
+                                Text(
+                                  c['flag'] as String,
+                                  style: const TextStyle(fontSize: 18),
+                                ),
                                 const SizedBox(width: 10),
                                 Expanded(
                                   child: Text(
@@ -1978,7 +2120,11 @@ class _CountryDropdownOverlayState extends State<_CountryDropdownOverlay> {
                                 ),
                                 if (isSelected) ...[
                                   const SizedBox(width: 6),
-                                  const Icon(Icons.check_rounded, color: accentCol, size: 15),
+                                  const Icon(
+                                    Icons.check_rounded,
+                                    color: accentCol,
+                                    size: 15,
+                                  ),
                                 ],
                               ],
                             ),

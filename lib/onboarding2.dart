@@ -6,10 +6,7 @@ import 'package:myapp/profile.dart';
 import 'package:myapp/services/appwrite_service.dart';
 
 void main() {
-  runApp(const MaterialApp(
-    debugShowCheckedModeBanner: false,
-    home: Screen2(),
-  ));
+  runApp(const MaterialApp(debugShowCheckedModeBanner: false, home: Screen2()));
 }
 
 class Screen2 extends StatefulWidget {
@@ -26,11 +23,11 @@ class _Screen2State extends State<Screen2> with TickerProviderStateMixin {
 
   final List<Map<String, String>> styles = [
     {'label': 'Clean Minimal', 'img': 'assets/styles/clean_minimal.png'},
-    {'label': 'Soft Elegant',  'img': 'assets/styles/soft_elegant.png'},
-    {'label': 'Street Cool',   'img': 'assets/styles/street_cool.png'},
-    {'label': 'Boho Artisanal','img': 'assets/styles/boho_artisinal.png'},
-    {'label': 'Party Glam',    'img': 'assets/styles/party_galm.png'},
-    {'label': 'Formal Chic',   'img': 'assets/styles/formal_chic.png'},
+    {'label': 'Soft Elegant', 'img': 'assets/styles/soft_elegant.png'},
+    {'label': 'Street Cool', 'img': 'assets/styles/street_cool.png'},
+    {'label': 'Boho Artisanal', 'img': 'assets/styles/boho_artisinal.png'},
+    {'label': 'Party Glam', 'img': 'assets/styles/party_galm.png'},
+    {'label': 'Formal Chic', 'img': 'assets/styles/formal_chic.png'},
   ];
 
   @override
@@ -63,17 +60,19 @@ class _Screen2State extends State<Screen2> with TickerProviderStateMixin {
     });
   }
 
-  bool get _isValidSelection =>
-      selected.isNotEmpty;
+  bool get _isValidSelection => selected.isNotEmpty;
 
   void _showValidationError(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
-  Widget _staggered(Widget child,
-      {required double start, required double end}) {
+  Widget _staggered(
+    Widget child, {
+    required double start,
+    required double end,
+  }) {
     final anim = CurvedAnimation(
       parent: _entranceCtrl,
       curve: Interval(start, end, curve: const Cubic(0.22, 1.0, 0.36, 1.0)),
@@ -81,9 +80,10 @@ class _Screen2State extends State<Screen2> with TickerProviderStateMixin {
     return FadeTransition(
       opacity: anim,
       child: SlideTransition(
-        position:
-        Tween<Offset>(begin: const Offset(0, 0.055), end: Offset.zero)
-            .animate(anim),
+        position: Tween<Offset>(
+          begin: const Offset(0, 0.055),
+          end: Offset.zero,
+        ).animate(anim),
         child: child,
       ),
     );
@@ -97,8 +97,7 @@ class _Screen2State extends State<Screen2> with TickerProviderStateMixin {
         children: [
           Positioned.fill(child: CustomPaint(painter: _BgPainter())),
           Positioned.fill(
-            child:
-            IgnorePointer(child: CustomPaint(painter: _GrainPainter())),
+            child: IgnorePointer(child: CustomPaint(painter: _GrainPainter())),
           ),
           SafeArea(
             child: Column(
@@ -109,10 +108,12 @@ class _Screen2State extends State<Screen2> with TickerProviderStateMixin {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _staggered(_Header(pulseCtrl: _pulseCtrl),
-                            start: 0.00, end: 0.58),
-                        _staggered(_TabBarWidget(),
-                            start: 0.08, end: 0.66),
+                        _staggered(
+                          _Header(pulseCtrl: _pulseCtrl),
+                          start: 0.00,
+                          end: 0.58,
+                        ),
+                        _staggered(_TabBarWidget(), start: 0.08, end: 0.66),
                         const SizedBox(height: 20),
                         _staggered(
                           const Text(
@@ -123,7 +124,8 @@ class _Screen2State extends State<Screen2> with TickerProviderStateMixin {
                               fontWeight: FontWeight.w400,
                             ),
                           ),
-                          start: 0.14, end: 0.72,
+                          start: 0.14,
+                          end: 0.72,
                         ),
                         const SizedBox(height: 4),
                         _staggered(
@@ -134,7 +136,8 @@ class _Screen2State extends State<Screen2> with TickerProviderStateMixin {
                               fontSize: 10.5,
                             ),
                           ),
-                          start: 0.18, end: 0.76,
+                          start: 0.18,
+                          end: 0.76,
                         ),
                         const SizedBox(height: 20),
                         _staggered(
@@ -148,11 +151,17 @@ class _Screen2State extends State<Screen2> with TickerProviderStateMixin {
                           end: 0.81,
                         ),
                         const SizedBox(height: 28),
-                        _staggered(_CtaSection(selected: selected),
-                            start: 0.37, end: 0.95),
+                        _staggered(
+                          _CtaSection(selected: selected),
+                          start: 0.37,
+                          end: 0.95,
+                        ),
                         const SizedBox(height: 22),
-                        _staggered(const _ProgressRow(),
-                            start: 0.44, end: 1.00),
+                        _staggered(
+                          const _ProgressRow(),
+                          start: 0.44,
+                          end: 1.00,
+                        ),
                       ],
                     ),
                   ),
@@ -181,8 +190,7 @@ class _GrainPainter extends CustomPainter {
           ? const Color(0x06FFFFFF)
           : const Color(0x07000000);
       canvas.drawCircle(
-        Offset(rng.nextDouble() * size.width,
-            rng.nextDouble() * size.height),
+        Offset(rng.nextDouble() * size.width, rng.nextDouble() * size.height),
         0.55,
         paint,
       );
@@ -199,8 +207,7 @@ class _BgPainter extends CustomPainter {
     final w = size.width;
     final h = size.height;
     void r(Offset c, double rx, double ry, Color color) {
-      final rect =
-      Rect.fromCenter(center: c, width: rx * 2, height: ry * 2);
+      final rect = Rect.fromCenter(center: c, width: rx * 2, height: ry * 2);
       canvas.drawOval(
         rect,
         Paint()
@@ -211,18 +218,13 @@ class _BgPainter extends CustomPainter {
     }
 
     r(Offset(w * .5, h * .32), w * .46, h * .30, const Color(0x0A1A1D26));
-    r(Offset(w * -.14, h * -.08), w * .90, h * .68,
-        const Color(0x206B91FF));
-    r(Offset(w * 1.14, h * .32), w * .62, h * .52,
-        const Color(0x188D7DFF));
-    r(Offset(w * 1.18, h * 1.12), w * .82, h * .68,
-        const Color(0x1204D7C8));
+    r(Offset(w * -.14, h * -.08), w * .90, h * .68, const Color(0x206B91FF));
+    r(Offset(w * 1.14, h * .32), w * .62, h * .52, const Color(0x188D7DFF));
+    r(Offset(w * 1.18, h * 1.12), w * .82, h * .68, const Color(0x1204D7C8));
     r(Offset(w * .5, h * .92), w * .72, h * .52, const Color(0x10FF8EC7));
-    r(Offset(w * -.16, h * .72), w * .64, h * .74,
-        const Color(0x40EEF3FF));
+    r(Offset(w * -.16, h * .72), w * .64, h * .74, const Color(0x40EEF3FF));
     r(Offset(w * .04, h * 1.0), w * .52, h * .46, const Color(0x0F6B91FF));
-    r(Offset(w * 1.02, h * .02), w * .44, h * .36,
-        const Color(0x0A04D7C8));
+    r(Offset(w * 1.02, h * .02), w * .44, h * .36, const Color(0x0A04D7C8));
     r(Offset(w * .90, h * .58), w * .40, h * .34, const Color(0x08FFD86E));
     r(Offset(w * .5, h * 0), w * .50, h * .30, const Color(0x148D7DFF));
   }
@@ -255,48 +257,58 @@ class _Header extends StatelessWidget {
               border: Border.all(color: const Color(0x388D7DFF)),
               boxShadow: const [
                 BoxShadow(
-                    color: Color(0x1F6B91FF),
-                    blurRadius: 32,
-                    offset: Offset(0, 8)),
+                  color: Color(0x1F6B91FF),
+                  blurRadius: 32,
+                  offset: Offset(0, 8),
+                ),
               ],
             ),
-            child: Row(mainAxisSize: MainAxisSize.min, children: [
-              AnimatedBuilder(
-                animation: pulseCtrl,
-                builder: (context, child) {
-                  final t = pulseCtrl.value;
-                  return Opacity(
-                    opacity: 1.0 - t * 0.5,
-                    child: Transform.scale(
-                      scale: 1.0 - t * 0.25,
-                      child: Container(
-                        width: 6,
-                        height: 6,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF6B91FF),
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: Color.fromRGBO(
-                                  107, 145, 255, 0.55 - t * 0.40),
-                              blurRadius: 8.0 - t * 5.0,
-                            ),
-                          ],
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                AnimatedBuilder(
+                  animation: pulseCtrl,
+                  builder: (context, child) {
+                    final t = pulseCtrl.value;
+                    return Opacity(
+                      opacity: 1.0 - t * 0.5,
+                      child: Transform.scale(
+                        scale: 1.0 - t * 0.25,
+                        child: Container(
+                          width: 6,
+                          height: 6,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF6B91FF),
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Color.fromRGBO(
+                                  107,
+                                  145,
+                                  255,
+                                  0.55 - t * 0.40,
+                                ),
+                                blurRadius: 8.0 - t * 5.0,
+                              ),
+                            ],
+                          ),
                         ),
                       ),
-                    ),
-                  );
-                },
-              ),
-              const SizedBox(width: 7),
-              const Text('AHVI',
+                    );
+                  },
+                ),
+                const SizedBox(width: 7),
+                const Text(
+                  'AHVI',
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
                     color: Color(0xFF6B91FF),
                     letterSpacing: 1.32,
-                  )),
-            ]),
+                  ),
+                ),
+              ],
+            ),
           ),
           RichText(
             text: const TextSpan(
@@ -351,44 +363,51 @@ class _TabBarWidget extends StatelessWidget {
         border: Border.all(color: const Color(0xFFE5E9F7)),
         boxShadow: const [
           BoxShadow(
-              color: Color(0x1A6B91FF),
-              blurRadius: 32,
-              offset: Offset(0, 8)),
+            color: Color(0x1A6B91FF),
+            blurRadius: 32,
+            offset: Offset(0, 8),
+          ),
         ],
       ),
-      child: Stack(children: [
-        Positioned(
-          top: 0,
-          left: (MediaQuery.of(context).size.width - 48 - 8) / 3 + 4,
-          child: Container(
-            width: (MediaQuery.of(context).size.width - 48 - 8) / 3,
-            height: 38,
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFF6B91FF), Color(0xFF8D7DFF)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: const [
-                BoxShadow(
+      child: Stack(
+        children: [
+          Positioned(
+            top: 0,
+            left: (MediaQuery.of(context).size.width - 48 - 8) / 3 + 4,
+            child: Container(
+              width: (MediaQuery.of(context).size.width - 48 - 8) / 3,
+              height: 38,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF6B91FF), Color(0xFF8D7DFF)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: const [
+                  BoxShadow(
                     color: Color(0x4D6B91FF),
                     blurRadius: 18,
-                    offset: Offset(0, 4)),
-                BoxShadow(
+                    offset: Offset(0, 4),
+                  ),
+                  BoxShadow(
                     color: Color(0x2E6B91FF),
                     blurRadius: 6,
-                    offset: Offset(0, 2)),
-              ],
+                    offset: Offset(0, 2),
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
-        Row(children: [
-          _Tab(label: 'Basics', isActive: false),
-          _Tab(label: 'Style', isActive: true),
-          _Tab(label: 'Try-On', isActive: false),
-        ]),
-      ]),
+          Row(
+            children: [
+              _Tab(label: 'Basics', isActive: false),
+              _Tab(label: 'Style', isActive: true),
+              _Tab(label: 'Try-On', isActive: false),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }
@@ -402,21 +421,19 @@ class _Tab extends StatelessWidget {
     return Expanded(
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 9, horizontal: 4),
-        child: Text(label,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight:
-              isActive ? FontWeight.w600 : FontWeight.w500,
-              color: isActive
-                  ? const Color(0xFFF5F7FF)
-                  : const Color(0xFF66708A),
-            )),
+        child: Text(
+          label,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
+            color: isActive ? const Color(0xFFF5F7FF) : const Color(0xFF66708A),
+          ),
+        ),
       ),
     );
   }
 }
-
 
 // ─────────────────────────────────────────────────────────────
 // Style Grid
@@ -519,112 +536,132 @@ class _StyleCard extends StatelessWidget {
             ),
             boxShadow: isSelected
                 ? const [
-              BoxShadow(
-                  color: Color(0x476B91FF),
-                  blurRadius: 28,
-                  offset: Offset(0, 8)),
-            ]
+                    BoxShadow(
+                      color: Color(0x476B91FF),
+                      blurRadius: 28,
+                      offset: Offset(0, 8),
+                    ),
+                  ]
                 : [],
           ),
           clipBehavior: Clip.hardEdge,
-          child: Stack(fit: StackFit.expand, children: [
-            // Photo
-            ColorFiltered(
-              colorFilter: ColorFilter.mode(
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              // Photo
+              ColorFiltered(
+                colorFilter: ColorFilter.mode(
                   Colors.black.withOpacity(isSelected ? 0.08 : 0.22),
-                  BlendMode.darken),
-              child: Image.asset(
-                imgUrl,
-                fit: BoxFit.cover,
-                alignment: Alignment.topCenter,
-                errorBuilder: (_, _, _) =>
-                    Container(color: const Color(0xFFDFE7FB)),
+                  BlendMode.darken,
+                ),
+                child: Image.asset(
+                  imgUrl,
+                  fit: BoxFit.cover,
+                  alignment: Alignment.topCenter,
+                  errorBuilder: (_, _, _) =>
+                      Container(color: const Color(0xFFDFE7FB)),
+                ),
               ),
-            ),
-            // Bottom gradient overlay
-            Positioned.fill(
-              child: Container(
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    stops: [0.0, 0.40, 0.65, 1.0],
-                    colors: [
-                      Colors.transparent,
-                      Colors.transparent,
-                      Color(0x701A1D26),
-                      Color(0xD81A1D26),
-                    ],
+              // Bottom gradient overlay
+              Positioned.fill(
+                child: Container(
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      stops: [0.0, 0.40, 0.65, 1.0],
+                      colors: [
+                        Colors.transparent,
+                        Colors.transparent,
+                        Color(0x701A1D26),
+                        Color(0xD81A1D26),
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ),
-            // Gradient checkmark badge (top-right)
-            if (isSelected)
-              Positioned(
-                top: 9, right: 9,
-                child: Container(
-                  width: 22, height: 22,
-                  decoration: const BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: LinearGradient(
-                      colors: [Color(0xFF6B91FF), Color(0xFF8D7DFF)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
+              // Gradient checkmark badge (top-right)
+              if (isSelected)
+                Positioned(
+                  top: 9,
+                  right: 9,
+                  child: Container(
+                    width: 22,
+                    height: 22,
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: LinearGradient(
+                        colors: [Color(0xFF6B91FF), Color(0xFF8D7DFF)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
                           color: Color(0x666B91FF),
                           blurRadius: 10,
-                          offset: Offset(0, 3)),
-                    ],
+                          offset: Offset(0, 3),
+                        ),
+                      ],
+                    ),
+                    alignment: Alignment.center,
+                    child: const Text(
+                      '✓',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
                   ),
-                  alignment: Alignment.center,
-                  child: const Text('✓',
-                      style: TextStyle(color: Colors.white, fontSize: 11,
-                          fontWeight: FontWeight.w700)),
                 ),
-              ),
-            // Bottom label pill
-            Positioned(
-              bottom: 10, left: 10, right: 10,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.55),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: Colors.white.withOpacity(0.12)),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(name,
+              // Bottom label pill
+              Positioned(
+                bottom: 10,
+                left: 10,
+                right: 10,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.55),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: Colors.white.withOpacity(0.12)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        name,
                         style: const TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
                           color: Color(0xFFF5F7FF),
                           letterSpacing: 0.1,
-                        )),
-                    const SizedBox(height: 1),
-                    Text(sub,
+                        ),
+                      ),
+                      const SizedBox(height: 1),
+                      Text(
+                        sub,
                         style: const TextStyle(
                           fontSize: 9.5,
                           color: Color(0xB8E6EBFF),
                           fontWeight: FontWeight.w400,
-                        )),
-                  ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-          ]),
+            ],
+          ),
         ),
       ),
     );
   }
 }
-
-
 
 // ─────────────────────────────────────────────────────────────
 // CTA Section
@@ -654,13 +691,12 @@ class _CtaSectionState extends State<_CtaSection>
   bool _backBusy = false;
   bool _continueBusy = false;
 
-  bool get _isValidSelection =>
-      widget.selected.isNotEmpty;
+  bool get _isValidSelection => widget.selected.isNotEmpty;
 
   void _showValidationError(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -668,13 +704,15 @@ class _CtaSectionState extends State<_CtaSection>
     super.initState();
     // value=0 → rest; value=1 → fully squeezed
     _backCtrl = AnimationController(
-        vsync: this,
-        duration: const Duration(milliseconds: 240),
-        value: 0);
+      vsync: this,
+      duration: const Duration(milliseconds: 240),
+      value: 0,
+    );
     _continueCtrl = AnimationController(
-        vsync: this,
-        duration: const Duration(milliseconds: 240),
-        value: 0);
+      vsync: this,
+      duration: const Duration(milliseconds: 240),
+      value: 0,
+    );
   }
 
   @override
@@ -688,32 +726,49 @@ class _CtaSectionState extends State<_CtaSection>
     if (_backBusy) return;
     _backBusy = true;
     // squeeze in
-    await _backCtrl.animateTo(1.0,
-        duration: const Duration(milliseconds: 100), curve: Curves.easeIn);
-    if (!mounted) { _backBusy = false; return; }
+    await _backCtrl.animateTo(
+      1.0,
+      duration: const Duration(milliseconds: 100),
+      curve: Curves.easeIn,
+    );
+    if (!mounted) {
+      _backBusy = false;
+      return;
+    }
     // spring back
-    await _backCtrl.animateTo(0.0,
-        duration: const Duration(milliseconds: 140),
-        curve: Curves.elasticOut);
+    await _backCtrl.animateTo(
+      0.0,
+      duration: const Duration(milliseconds: 140),
+      curve: Curves.elasticOut,
+    );
     _backBusy = false;
   }
 
   Future<void> _squeezeContinue() async {
     if (_continueBusy) return;
     _continueBusy = true;
-    await _continueCtrl.animateTo(1.0,
-        duration: const Duration(milliseconds: 100), curve: Curves.easeIn);
-    if (!mounted) { _continueBusy = false; return; }
-    await _continueCtrl.animateTo(0.0,
-        duration: const Duration(milliseconds: 140),
-        curve: Curves.elasticOut);
+    await _continueCtrl.animateTo(
+      1.0,
+      duration: const Duration(milliseconds: 100),
+      curve: Curves.easeIn,
+    );
+    if (!mounted) {
+      _continueBusy = false;
+      return;
+    }
+    await _continueCtrl.animateTo(
+      0.0,
+      duration: const Duration(milliseconds: 140),
+      curve: Curves.elasticOut,
+    );
     _continueBusy = false;
   }
 
   void _onBackTap() {
     _squeezeBack();
-    Future.delayed(const Duration(milliseconds: 180),
-            () { if (mounted) Navigator.of(context).maybePop(); });
+    Future.delayed(const Duration(milliseconds: 180), () {
+      if (mounted) Navigator.of(context).maybePop();
+    });
   }
 
   Future<void> _onContinueTap() async {
@@ -742,121 +797,136 @@ class _CtaSectionState extends State<_CtaSection>
 
   @override
   Widget build(BuildContext context) {
-    return Row(children: [
-      // ── Back button ────────────────────────────────────
-      GestureDetector(
-        onTap: _onBackTap,
-        child: AnimatedBuilder(
-          animation: _backCtrl,
-          builder: (_, child) {
-            final v = _backCtrl.value;
-            return Transform.translate(
-              offset: Offset(-v * 3.0, 0),
-              child: Transform.scale(
-                scale: 1.0 - v * 0.09, // 1.0 → 0.91
-                child: child,
-              ),
-            );
-          },
-          child: Container(
-            width: 54,
-            height: 54,
-            decoration: BoxDecoration(
-              color: const Color(0xA8FFFFFF),
-              borderRadius: BorderRadius.circular(17),
-              border: Border.all(color: const Color(0xFFE5E9F7)),
-              boxShadow: const [
-                BoxShadow(
-                    color: Color(0x14000000),
-                    blurRadius: 26,
-                    offset: Offset(0, 8)),
-                BoxShadow(
-                    color: Color(0x40FFFFFF),
-                    blurRadius: 0,
-                    offset: Offset(0, 1)),
-              ],
-            ),
-            child: Center(
-              child: CustomPaint(
-                  size: const Size(18, 18), painter: _BackArrowP()),
-            ),
-          ),
-        ),
-      ),
-      const SizedBox(width: 12),
-
-      // ── Continue button ────────────────────────────────
-      Expanded(
-        child: GestureDetector(
-          onTap: _onContinueTap,
+    return Row(
+      children: [
+        // ── Back button ────────────────────────────────────
+        GestureDetector(
+          onTap: _onBackTap,
           child: AnimatedBuilder(
-            animation: _continueCtrl,
+            animation: _backCtrl,
             builder: (_, child) {
-              return Transform.scale(
-                scale: 1.0 - _continueCtrl.value * 0.028, // 1.0 → 0.972
-                child: child,
+              final v = _backCtrl.value;
+              return Transform.translate(
+                offset: Offset(-v * 3.0, 0),
+                child: Transform.scale(
+                  scale: 1.0 - v * 0.09, // 1.0 → 0.91
+                  child: child,
+                ),
               );
             },
             child: Container(
+              width: 54,
               height: 54,
               decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [Color(0xFF6B91FF), Color(0xFF8D7DFF)],
-                ),
+                color: const Color(0xA8FFFFFF),
                 borderRadius: BorderRadius.circular(17),
+                border: Border.all(color: const Color(0xFFE5E9F7)),
                 boxShadow: const [
                   BoxShadow(
-                      color: Color(0x616B91FF),
-                      blurRadius: 34,
-                      offset: Offset(0, 10)),
+                    color: Color(0x14000000),
+                    blurRadius: 26,
+                    offset: Offset(0, 8),
+                  ),
                   BoxShadow(
-                      color: Color(0x336B91FF),
-                      blurRadius: 8,
-                      offset: Offset(0, 2)),
-                  BoxShadow(
-                      color: Color(0x29FFFFFF),
-                      blurRadius: 0,
-                      offset: Offset(0, 1)),
+                    color: Color(0x40FFFFFF),
+                    blurRadius: 0,
+                    offset: Offset(0, 1),
+                  ),
                 ],
               ),
-              child: Stack(children: [
-                Positioned.fill(
-                  child: Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(17),
-                      gradient: const LinearGradient(
-                        begin: Alignment(-0.8, -1.0),
-                        end: Alignment(0.2, 0.5),
-                        colors: [Color(0x1FFFFFFF), Colors.transparent],
-                      ),
-                    ),
-                  ),
+              child: Center(
+                child: CustomPaint(
+                  size: const Size(18, 18),
+                  painter: _BackArrowP(),
                 ),
-                Center(
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Text('Continue',
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFF10131B),
-                            letterSpacing: 0.3,
-                          )),
-                      const SizedBox(width: 8),
-                      CustomPaint(
-                          size: const Size(16, 16), painter: _ArrowP()),
-                    ],
-                  ),
-                ),
-              ]),
+              ),
             ),
           ),
         ),
-      ),
-    ]);
+        const SizedBox(width: 12),
+
+        // ── Continue button ────────────────────────────────
+        Expanded(
+          child: GestureDetector(
+            onTap: _onContinueTap,
+            child: AnimatedBuilder(
+              animation: _continueCtrl,
+              builder: (_, child) {
+                return Transform.scale(
+                  scale: 1.0 - _continueCtrl.value * 0.028, // 1.0 → 0.972
+                  child: child,
+                );
+              },
+              child: Container(
+                height: 54,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [Color(0xFF6B91FF), Color(0xFF8D7DFF)],
+                  ),
+                  borderRadius: BorderRadius.circular(17),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x616B91FF),
+                      blurRadius: 34,
+                      offset: Offset(0, 10),
+                    ),
+                    BoxShadow(
+                      color: Color(0x336B91FF),
+                      blurRadius: 8,
+                      offset: Offset(0, 2),
+                    ),
+                    BoxShadow(
+                      color: Color(0x29FFFFFF),
+                      blurRadius: 0,
+                      offset: Offset(0, 1),
+                    ),
+                  ],
+                ),
+                child: Stack(
+                  children: [
+                    Positioned.fill(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(17),
+                          gradient: const LinearGradient(
+                            begin: Alignment(-0.8, -1.0),
+                            end: Alignment(0.2, 0.5),
+                            colors: [Color(0x1FFFFFFF), Colors.transparent],
+                          ),
+                        ),
+                      ),
+                    ),
+                    Center(
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Text(
+                            'Continue',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF10131B),
+                              letterSpacing: 0.3,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          CustomPaint(
+                            size: const Size(16, 16),
+                            painter: _ArrowP(),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
   }
 }
 
@@ -890,8 +960,11 @@ class _ArrowP extends CustomPainter {
       ..strokeWidth = 2.5
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round;
-    canvas.drawLine(Offset(s.width * .25, s.height * .5),
-        Offset(s.width * .75, s.height * .5), p);
+    canvas.drawLine(
+      Offset(s.width * .25, s.height * .5),
+      Offset(s.width * .75, s.height * .5),
+      p,
+    );
     canvas.drawPath(
       Path()
         ..moveTo(s.width * .5625, s.height * .3125)
@@ -913,37 +986,46 @@ class _ProgressRow extends StatelessWidget {
   const _ProgressRow();
   @override
   Widget build(BuildContext context) {
-    return Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-      Container(
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Container(
           width: 6,
           height: 6,
           decoration: BoxDecoration(
-              color: const Color(0x806B91FF),
-              borderRadius: BorderRadius.circular(3))),
-      const SizedBox(width: 8),
-      Container(
-        width: 24,
-        height: 6,
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-              colors: [Color(0xFF6B91FF), Color(0xFF8D7DFF)]),
-          borderRadius: BorderRadius.circular(3),
-          boxShadow: const [
-            BoxShadow(
+            color: const Color(0x806B91FF),
+            borderRadius: BorderRadius.circular(3),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Container(
+          width: 24,
+          height: 6,
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFF6B91FF), Color(0xFF8D7DFF)],
+            ),
+            borderRadius: BorderRadius.circular(3),
+            boxShadow: const [
+              BoxShadow(
                 color: Color(0x666B91FF),
                 blurRadius: 10,
-                offset: Offset(0, 2))
-          ],
+                offset: Offset(0, 2),
+              ),
+            ],
+          ),
         ),
-      ),
-      const SizedBox(width: 8),
-      Container(
+        const SizedBox(width: 8),
+        Container(
           width: 6,
           height: 6,
           decoration: BoxDecoration(
-              color: const Color(0x386B91FF),
-              borderRadius: BorderRadius.circular(3))),
-    ]);
+            color: const Color(0x386B91FF),
+            borderRadius: BorderRadius.circular(3),
+          ),
+        ),
+      ],
+    );
   }
 }
 

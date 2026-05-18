@@ -228,7 +228,13 @@ class _MediTrackScreenState extends State<MediTrackScreen>
       });
       _animateRing(_computeRingProgress());
     });
-    _showToast(AppLocalizations.t(context, 'medi_marked_taken').replaceAll('{name}', med['name'] as String), '✅');
+    _showToast(
+      AppLocalizations.t(
+        context,
+        'medi_marked_taken',
+      ).replaceAll('{name}', med['name'] as String),
+      '✅',
+    );
 
     // DB Update
     try {
@@ -401,7 +407,10 @@ class _MediTrackScreenState extends State<MediTrackScreen>
               size: 17,
               color: textColor,
             ),
-            onTap: () => _showToast(AppLocalizations.t(context, 'medi_notifications_empty'), '🔔'),
+            onTap: () => _showToast(
+              AppLocalizations.t(context, 'medi_notifications_empty'),
+              '🔔',
+            ),
             badge: true,
           ),
         ],
@@ -477,9 +486,15 @@ class _MediTrackScreenState extends State<MediTrackScreen>
           ),
           _buildTodayScroll(),
           const SizedBox(height: 14),
-          _buildSectionHeader(AppLocalizations.t(context, 'medi_quick_stats'), null),
+          _buildSectionHeader(
+            AppLocalizations.t(context, 'medi_quick_stats'),
+            null,
+          ),
           _buildQuickStats(),
-          _buildSectionHeader(AppLocalizations.t(context, 'medi_quick_access'), null),
+          _buildSectionHeader(
+            AppLocalizations.t(context, 'medi_quick_access'),
+            null,
+          ),
           _buildNavCards(),
         ],
       ),
@@ -536,17 +551,26 @@ class _MediTrackScreenState extends State<MediTrackScreen>
     final l = AppLocalizations.t;
     final now = DateTime.now();
     final months = [
-      l(context, 'medi_date_short_jan'), l(context, 'medi_date_short_feb'),
-      l(context, 'medi_date_short_mar'), l(context, 'medi_date_short_apr'),
-      l(context, 'medi_date_short_may'), l(context, 'medi_date_short_jun'),
-      l(context, 'medi_date_short_jul'), l(context, 'medi_date_short_aug'),
-      l(context, 'medi_date_short_sep'), l(context, 'medi_date_short_oct'),
-      l(context, 'medi_date_short_nov'), l(context, 'medi_date_short_dec'),
+      l(context, 'medi_date_short_jan'),
+      l(context, 'medi_date_short_feb'),
+      l(context, 'medi_date_short_mar'),
+      l(context, 'medi_date_short_apr'),
+      l(context, 'medi_date_short_may'),
+      l(context, 'medi_date_short_jun'),
+      l(context, 'medi_date_short_jul'),
+      l(context, 'medi_date_short_aug'),
+      l(context, 'medi_date_short_sep'),
+      l(context, 'medi_date_short_oct'),
+      l(context, 'medi_date_short_nov'),
+      l(context, 'medi_date_short_dec'),
     ];
     final days = [
-      l(context, 'medi_weekday_monday'),   l(context, 'medi_weekday_tuesday'),
-      l(context, 'medi_weekday_wednesday'), l(context, 'medi_weekday_thursday'),
-      l(context, 'medi_weekday_friday'),   l(context, 'medi_weekday_saturday'),
+      l(context, 'medi_weekday_monday'),
+      l(context, 'medi_weekday_tuesday'),
+      l(context, 'medi_weekday_wednesday'),
+      l(context, 'medi_weekday_thursday'),
+      l(context, 'medi_weekday_friday'),
+      l(context, 'medi_weekday_saturday'),
       l(context, 'medi_weekday_sunday'),
     ];
     return '${days[now.weekday - 1]}, ${months[now.month - 1]} ${now.day}';
@@ -566,7 +590,11 @@ class _MediTrackScreenState extends State<MediTrackScreen>
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [accent.withValues(alpha: 0.18), accent2.withValues(alpha: 0.18), accent3.withValues(alpha: 0.12)],
+          colors: [
+            accent.withValues(alpha: 0.18),
+            accent2.withValues(alpha: 0.18),
+            accent3.withValues(alpha: 0.12),
+          ],
           stops: [0.0, 0.5, 1.0],
         ),
         borderRadius: BorderRadius.circular(24),
@@ -660,12 +688,18 @@ class _MediTrackScreenState extends State<MediTrackScreen>
                       const SizedBox(height: 6),
                       _progStat(
                         Colors.white.withValues(alpha: 0.9),
-                        AppLocalizations.t(context, 'medi_taken_count').replaceAll('{n}', '$takenCount'),
+                        AppLocalizations.t(
+                          context,
+                          'medi_taken_count',
+                        ).replaceAll('{n}', '$takenCount'),
                       ),
                       const SizedBox(height: 5),
                       _progStat(
                         Colors.white.withValues(alpha: 0.45),
-                        AppLocalizations.t(context, 'medi_pending_count').replaceAll('{n}', '$pendingCount'),
+                        AppLocalizations.t(
+                          context,
+                          'medi_pending_count',
+                        ).replaceAll('{n}', '$pendingCount'),
                       ),
                       const SizedBox(height: 8),
                       _PulseTakeMedsButton(
@@ -744,7 +778,10 @@ class _MediTrackScreenState extends State<MediTrackScreen>
     if (meds.isEmpty) {
       return Padding(
         padding: const EdgeInsets.all(16),
-        child: Text(AppLocalizations.t(context, 'medi_no_medicines_scheduled'), style: TextStyle(color: muted)),
+        child: Text(
+          AppLocalizations.t(context, 'medi_no_medicines_scheduled'),
+          style: TextStyle(color: muted),
+        ),
       );
     }
     return SizedBox(
@@ -861,7 +898,11 @@ class _MediTrackScreenState extends State<MediTrackScreen>
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                const Icon(Icons.check, size: 9, color: Colors.white),
+                                const Icon(
+                                  Icons.check,
+                                  size: 9,
+                                  color: Colors.white,
+                                ),
                                 const SizedBox(width: 3),
                                 Text(
                                   AppLocalizations.t(context, 'medi_take'),
@@ -933,7 +974,10 @@ class _MediTrackScreenState extends State<MediTrackScreen>
         'icon': '✅',
         'val': '${meds.where((m) => m['taken'] == true).length}',
         'lbl': AppLocalizations.t(context, 'medi_stat_taken_today'),
-        'sub': AppLocalizations.t(context, 'medi_stat_of').replaceAll('{n}', '${meds.length}'),
+        'sub': AppLocalizations.t(
+          context,
+          'medi_stat_of',
+        ).replaceAll('{n}', '${meds.length}'),
         'borderColor': accent3,
       },
       {
@@ -1101,7 +1145,10 @@ class _MediTrackScreenState extends State<MediTrackScreen>
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            AppLocalizations.t(context, c['labelKey'] as String),
+                            AppLocalizations.t(
+                              context,
+                              c['labelKey'] as String,
+                            ),
                             style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w800,
@@ -1134,7 +1181,9 @@ class _MediTrackScreenState extends State<MediTrackScreen>
   Widget _buildMedicinesScreen() {
     return Column(
       children: [
-        _buildMedicinesBackBar(AppLocalizations.t(context, 'medi_screen_my_medicines')),
+        _buildMedicinesBackBar(
+          AppLocalizations.t(context, 'medi_screen_my_medicines'),
+        ),
         Expanded(
           child: SingleChildScrollView(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
@@ -1145,7 +1194,10 @@ class _MediTrackScreenState extends State<MediTrackScreen>
                         child: Padding(
                           padding: const EdgeInsets.all(40),
                           child: Text(
-                            AppLocalizations.t(context, 'medi_no_medicines_added'),
+                            AppLocalizations.t(
+                              context,
+                              'medi_no_medicines_added',
+                            ),
                             style: TextStyle(color: muted),
                           ),
                         ),
@@ -1274,8 +1326,13 @@ class _MediTrackScreenState extends State<MediTrackScreen>
                 children: [
                   _PressScaleButton(
                     scaleFactor: 0.9,
-                    onTap: () =>
-                        _showToast(AppLocalizations.t(context, 'medi_edit_coming_soon').replaceAll('{name}', med['name'] as String), '✏️'),
+                    onTap: () => _showToast(
+                      AppLocalizations.t(
+                        context,
+                        'medi_edit_coming_soon',
+                      ).replaceAll('{name}', med['name'] as String),
+                      '✏️',
+                    ),
                     child: Container(
                       width: 34,
                       height: 34,
@@ -1336,7 +1393,10 @@ class _MediTrackScreenState extends State<MediTrackScreen>
                         child: Padding(
                           padding: const EdgeInsets.all(40),
                           child: Text(
-                            AppLocalizations.t(context, 'medi_no_medicine_data'),
+                            AppLocalizations.t(
+                              context,
+                              'medi_no_medicine_data',
+                            ),
                             style: TextStyle(color: muted),
                           ),
                         ),
@@ -1363,9 +1423,10 @@ class _MediTrackScreenState extends State<MediTrackScreen>
                         tagColor = accent5;
                       }
                       final tag = AppLocalizations.t(context, tagKey);
-                      final dosesLabel = AppLocalizations.t(context, 'medi_doses_taken')
-                          .replaceAll('{taken}', '$taken')
-                          .replaceAll('{total}', '$total');
+                      final dosesLabel =
+                          AppLocalizations.t(context, 'medi_doses_taken')
+                              .replaceAll('{taken}', '$taken')
+                              .replaceAll('{total}', '$total');
 
                       return Padding(
                         padding: const EdgeInsets.only(bottom: 10),
@@ -1514,13 +1575,30 @@ class _MediTrackScreenState extends State<MediTrackScreen>
         scrollDirection: Axis.horizontal,
         child: Row(
           children: [
-            _buildFilterBtn(AppLocalizations.t(context, 'medi_filter_all'), 'all', _logFilter == 'all'),
+            _buildFilterBtn(
+              AppLocalizations.t(context, 'medi_filter_all'),
+              'all',
+              _logFilter == 'all',
+            ),
             const SizedBox(width: 8),
-            _buildFilterBtn(AppLocalizations.t(context, 'medi_filter_taken'), 'taken', _logFilter == 'taken'),
+            _buildFilterBtn(
+              AppLocalizations.t(context, 'medi_filter_taken'),
+              'taken',
+              _logFilter == 'taken',
+            ),
             const SizedBox(width: 8),
-            _buildFilterBtn(AppLocalizations.t(context, 'medi_filter_missed'), 'missed', _logFilter == 'missed'),
+            _buildFilterBtn(
+              AppLocalizations.t(context, 'medi_filter_missed'),
+              'missed',
+              _logFilter == 'missed',
+            ),
             const SizedBox(width: 8),
-            _buildFilterBtn(AppLocalizations.t(context, 'medi_filter_mark_missed'), 'mark', false, isAction: true),
+            _buildFilterBtn(
+              AppLocalizations.t(context, 'medi_filter_mark_missed'),
+              'mark',
+              false,
+              isAction: true,
+            ),
           ],
         ),
       ),
@@ -1598,7 +1676,11 @@ class _MediTrackScreenState extends State<MediTrackScreen>
         gradient: LinearGradient(
           begin: Alignment(-0, -1),
           end: Alignment(1, 1),
-          colors: [accent.withValues(alpha: 0.14), accent2.withValues(alpha: 0.12), accent3.withValues(alpha: 0.10)],
+          colors: [
+            accent.withValues(alpha: 0.14),
+            accent2.withValues(alpha: 0.12),
+            accent3.withValues(alpha: 0.10),
+          ],
           stops: [0.0, 0.5, 1.0],
         ),
         borderRadius: BorderRadius.circular(26),
@@ -1676,9 +1758,18 @@ class _MediTrackScreenState extends State<MediTrackScreen>
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                _legendItem(accent3, AppLocalizations.t(context, 'medi_legend_taken')),
-                _legendItem(const Color(0xFFFF6B7A), AppLocalizations.t(context, 'medi_legend_missed')),
-                _legendItem(accent2, AppLocalizations.t(context, 'medi_legend_pending')),
+                _legendItem(
+                  accent3,
+                  AppLocalizations.t(context, 'medi_legend_taken'),
+                ),
+                _legendItem(
+                  const Color(0xFFFF6B7A),
+                  AppLocalizations.t(context, 'medi_legend_missed'),
+                ),
+                _legendItem(
+                  accent2,
+                  AppLocalizations.t(context, 'medi_legend_pending'),
+                ),
               ],
             ),
           ),
@@ -1821,10 +1912,19 @@ class _MediTrackScreenState extends State<MediTrackScreen>
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                     colors: isSel
-                        ? [accent4.withValues(alpha: 0.18), accent4.withValues(alpha: 0.10)]
+                        ? [
+                            accent4.withValues(alpha: 0.18),
+                            accent4.withValues(alpha: 0.10),
+                          ]
                         : isToday
-                        ? [accent.withValues(alpha: 0.18), accent2.withValues(alpha: 0.10)]
-                        : [accent.withValues(alpha: 0.08), accent2.withValues(alpha: 0.05)],
+                        ? [
+                            accent.withValues(alpha: 0.18),
+                            accent2.withValues(alpha: 0.10),
+                          ]
+                        : [
+                            accent.withValues(alpha: 0.08),
+                            accent2.withValues(alpha: 0.05),
+                          ],
                   ),
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(
@@ -1926,7 +2026,10 @@ class _MediTrackScreenState extends State<MediTrackScreen>
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [accent.withValues(alpha: 0.10), accent2.withValues(alpha: 0.08)],
+          colors: [
+            accent.withValues(alpha: 0.10),
+            accent2.withValues(alpha: 0.08),
+          ],
         ),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: cardBorder, width: 1),
@@ -2007,8 +2110,8 @@ class _MediTrackScreenState extends State<MediTrackScreen>
             _logFilter == 'taken'
                 ? AppLocalizations.t(context, 'medi_log_no_taken')
                 : _logFilter == 'missed'
-                    ? AppLocalizations.t(context, 'medi_log_no_missed')
-                    : AppLocalizations.t(context, 'medi_log_no_entries'),
+                ? AppLocalizations.t(context, 'medi_log_no_missed')
+                : AppLocalizations.t(context, 'medi_log_no_entries'),
             style: TextStyle(
               fontSize: 13,
               color: muted,
@@ -2112,7 +2215,11 @@ class _MediTrackScreenState extends State<MediTrackScreen>
                 borderRadius: BorderRadius.circular(11),
                 border: Border.all(color: cardBorder, width: 1),
               ),
-              child: Icon(Icons.chevron_left_rounded, color: textColor, size: 22),
+              child: Icon(
+                Icons.chevron_left_rounded,
+                color: textColor,
+                size: 22,
+              ),
             ),
           ),
           const SizedBox(width: 10),
@@ -2144,7 +2251,11 @@ class _MediTrackScreenState extends State<MediTrackScreen>
                 borderRadius: BorderRadius.circular(11),
                 border: Border.all(color: cardBorder, width: 1),
               ),
-              child: Icon(Icons.chevron_left_rounded, color: textColor, size: 22),
+              child: Icon(
+                Icons.chevron_left_rounded,
+                color: textColor,
+                size: 22,
+              ),
             ),
           ),
           const SizedBox(width: 10),
@@ -2166,7 +2277,10 @@ class _MediTrackScreenState extends State<MediTrackScreen>
               decoration: BoxDecoration(
                 color: accent.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(9),
-                border: Border.all(color: accent.withValues(alpha: 0.35), width: 1.5),
+                border: Border.all(
+                  color: accent.withValues(alpha: 0.35),
+                  width: 1.5,
+                ),
               ),
               child: Icon(Icons.add, color: accent, size: 17),
             ),
@@ -2259,7 +2373,7 @@ class _MediTrackScreenState extends State<MediTrackScreen>
     final l = AppLocalizations.t;
     // Initialize dropdowns from localized strings on first open
     _selFreq ??= l(context, 'medi_freq_once');
-    _selCat  ??= l(context, 'medi_cat_diabetes');
+    _selCat ??= l(context, 'medi_cat_diabetes');
     _isCustomCat = false;
     _customCatCtrl.clear();
 
@@ -2314,7 +2428,10 @@ class _MediTrackScreenState extends State<MediTrackScreen>
                       child: ListView(
                         children: [
                           _buildInputLabel(l(context, 'medi_label_name')),
-                          _buildTextField(_nameCtrl, l(context, 'medi_hint_name')),
+                          _buildTextField(
+                            _nameCtrl,
+                            l(context, 'medi_hint_name'),
+                          ),
                           const SizedBox(height: 16),
                           Row(
                             children: [
@@ -2322,8 +2439,13 @@ class _MediTrackScreenState extends State<MediTrackScreen>
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    _buildInputLabel(l(context, 'medi_label_dose')),
-                                    _buildTextField(_doseCtrl, l(context, 'medi_hint_dose')),
+                                    _buildInputLabel(
+                                      l(context, 'medi_label_dose'),
+                                    ),
+                                    _buildTextField(
+                                      _doseCtrl,
+                                      l(context, 'medi_hint_dose'),
+                                    ),
                                   ],
                                 ),
                               ),
@@ -2332,8 +2454,13 @@ class _MediTrackScreenState extends State<MediTrackScreen>
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    _buildInputLabel(l(context, 'medi_label_time')),
-                                    _buildTextField(_timeCtrl, l(context, 'medi_hint_time')),
+                                    _buildInputLabel(
+                                      l(context, 'medi_label_time'),
+                                    ),
+                                    _buildTextField(
+                                      _timeCtrl,
+                                      l(context, 'medi_hint_time'),
+                                    ),
                                   ],
                                 ),
                               ),
@@ -2341,14 +2468,21 @@ class _MediTrackScreenState extends State<MediTrackScreen>
                           ),
                           const SizedBox(height: 16),
                           _buildInputLabel(l(context, 'medi_label_frequency')),
-                          _buildDropdown(_selFreq ?? l(context, 'medi_freq_once'), [
-                            l(context, 'medi_freq_once'),
-                            l(context, 'medi_freq_twice'),
-                            l(context, 'medi_freq_as_needed'),
-                          ], (v) => setSheetState(() => _selFreq = v!)),
+                          _buildDropdown(
+                            _selFreq ?? l(context, 'medi_freq_once'),
+                            [
+                              l(context, 'medi_freq_once'),
+                              l(context, 'medi_freq_twice'),
+                              l(context, 'medi_freq_as_needed'),
+                            ],
+                            (v) => setSheetState(() => _selFreq = v!),
+                          ),
                           const SizedBox(height: 16),
                           _buildInputLabel(l(context, 'medi_label_category')),
-                          _buildCategorySelector(setSheetState, AppLocalizations.t),
+                          _buildCategorySelector(
+                            setSheetState,
+                            AppLocalizations.t,
+                          ),
                           const SizedBox(height: 16),
                           _buildInputLabel(l(context, 'medi_label_supply')),
                           _buildTextField(
@@ -2371,11 +2505,20 @@ class _MediTrackScreenState extends State<MediTrackScreen>
                             ? customText
                             : (_selCat ?? l(this.context, 'medi_cat_diabetes'));
                         if (name.isEmpty || dose.isEmpty || supply <= 0) {
-                          _showToast(AppLocalizations.t(this.context, 'medi_please_fill'), '⚠️');
+                          _showToast(
+                            AppLocalizations.t(
+                              this.context,
+                              'medi_please_fill',
+                            ),
+                            '⚠️',
+                          );
                           return;
                         }
                         if (_isCustomCat && customText.isEmpty) {
-                          _showToast('Please enter a custom category name', '⚠️');
+                          _showToast(
+                            'Please enter a custom category name',
+                            '⚠️',
+                          );
                           return;
                         }
 
@@ -2387,7 +2530,8 @@ class _MediTrackScreenState extends State<MediTrackScreen>
                           await appwrite.createMed({
                             'name': name,
                             'dose': dose,
-                            'freq': _selFreq ?? l(this.context, 'medi_freq_once'),
+                            'freq':
+                                _selFreq ?? l(this.context, 'medi_freq_once'),
                             'time': _timeCtrl.text.trim().isEmpty
                                 ? '12:00 PM'
                                 : _timeCtrl.text.trim(),
@@ -2398,7 +2542,13 @@ class _MediTrackScreenState extends State<MediTrackScreen>
                             'lastTaken': '',
                           });
 
-                          _showToast(AppLocalizations.t(this.context, 'medi_medicine_added'), '💊');
+                          _showToast(
+                            AppLocalizations.t(
+                              this.context,
+                              'medi_medicine_added',
+                            ),
+                            '💊',
+                          );
                           Navigator.pop(context);
 
                           _nameCtrl.clear();
@@ -2407,7 +2557,7 @@ class _MediTrackScreenState extends State<MediTrackScreen>
                           _supplyCtrl.clear();
                           _customCatCtrl.clear();
                           _selFreq = null;
-                          _selCat  = null;
+                          _selCat = null;
                           _isCustomCat = false;
 
                           _fetchData();
@@ -2486,7 +2636,10 @@ class _MediTrackScreenState extends State<MediTrackScreen>
     );
   }
 
-  Widget _buildCategorySelector(StateSetter setSheetState, String Function(BuildContext, String) l) {
+  Widget _buildCategorySelector(
+    StateSetter setSheetState,
+    String Function(BuildContext, String) l,
+  ) {
     final categories = [
       l(context, 'medi_cat_diabetes'),
       l(context, 'medi_cat_bp'),
@@ -2509,7 +2662,10 @@ class _MediTrackScreenState extends State<MediTrackScreen>
                 }),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 180),
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 9,
+                  ),
                   decoration: BoxDecoration(
                     color: isSelected ? accent.withValues(alpha: 0.15) : panel,
                     borderRadius: BorderRadius.circular(10),
@@ -2522,7 +2678,9 @@ class _MediTrackScreenState extends State<MediTrackScreen>
                     cat,
                     style: TextStyle(
                       color: isSelected ? accent : textColor,
-                      fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                      fontWeight: isSelected
+                          ? FontWeight.w700
+                          : FontWeight.w500,
                       fontSize: 13,
                     ),
                   ),
@@ -2537,7 +2695,10 @@ class _MediTrackScreenState extends State<MediTrackScreen>
               }),
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 180),
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 9,
+                ),
                 decoration: BoxDecoration(
                   color: _isCustomCat ? accent2.withValues(alpha: 0.15) : panel,
                   borderRadius: BorderRadius.circular(10),
@@ -2559,7 +2720,9 @@ class _MediTrackScreenState extends State<MediTrackScreen>
                       'Custom',
                       style: TextStyle(
                         color: _isCustomCat ? accent2 : muted,
-                        fontWeight: _isCustomCat ? FontWeight.w700 : FontWeight.w500,
+                        fontWeight: _isCustomCat
+                            ? FontWeight.w700
+                            : FontWeight.w500,
                         fontSize: 13,
                       ),
                     ),
@@ -2790,7 +2953,9 @@ class _HeroAddButtonState extends State<_HeroAddButton>
             shape: BoxShape.circle,
             boxShadow: [
               BoxShadow(
-                color: context.themeTokens.accent.primary.withValues(alpha: 0.40),
+                color: context.themeTokens.accent.primary.withValues(
+                  alpha: 0.40,
+                ),
                 blurRadius: 14,
                 offset: const Offset(0, 4),
               ),
@@ -2846,7 +3011,11 @@ class _PulseTakeMedsButton extends StatelessWidget {
   final Animation<double> pulseAnim;
   final VoidCallback onTap;
   final Color accent;
-  const _PulseTakeMedsButton({required this.pulseAnim, required this.onTap, required this.accent});
+  const _PulseTakeMedsButton({
+    required this.pulseAnim,
+    required this.onTap,
+    required this.accent,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -2985,6 +3154,7 @@ class _RingPainter extends CustomPainter {
   bool shouldRepaint(_RingPainter old) =>
       old.progress != progress || old.progressColor != progressColor;
 }
+
 // ─── ASK AHVI FAB (matches Skincare style exactly) ───────────────────────────
 class _AskAhviFab extends StatefulWidget {
   final VoidCallback onTap;
@@ -3007,12 +3177,14 @@ class _AskAhviFabState extends State<_AskAhviFab>
       vsync: this,
       duration: const Duration(milliseconds: 2500),
     )..repeat();
-    _pulseScale = Tween<double>(begin: 1.0, end: 1.12).animate(
-      CurvedAnimation(parent: _pulseCtrl, curve: Curves.easeOut),
-    );
-    _pulseOpacity = Tween<double>(begin: 0.55, end: 0.0).animate(
-      CurvedAnimation(parent: _pulseCtrl, curve: Curves.easeOut),
-    );
+    _pulseScale = Tween<double>(
+      begin: 1.0,
+      end: 1.12,
+    ).animate(CurvedAnimation(parent: _pulseCtrl, curve: Curves.easeOut));
+    _pulseOpacity = Tween<double>(
+      begin: 0.55,
+      end: 0.0,
+    ).animate(CurvedAnimation(parent: _pulseCtrl, curve: Curves.easeOut));
   }
 
   @override

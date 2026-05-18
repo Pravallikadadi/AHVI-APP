@@ -2,10 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'accent_palette.dart';
 
-LinearGradient mainBackground(
-  AccentPalette accent, {
-  required bool isDark,
-}) {
+LinearGradient mainBackground(AccentPalette accent, {required bool isDark}) {
   return LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
@@ -17,30 +14,21 @@ LinearGradient mainBackground(
 
 RadialGradient glowPrimary(AccentPalette accent) {
   return RadialGradient(
-    colors: [
-      accent.primary.withValues(alpha: 0.35),
-      Colors.transparent,
-    ],
+    colors: [accent.primary.withValues(alpha: 0.35), Colors.transparent],
     stops: const [0.0, 1.0],
   );
 }
 
 RadialGradient glowSecondary(AccentPalette accent) {
   return RadialGradient(
-    colors: [
-      accent.tertiary.withValues(alpha: 0.35),
-      Colors.transparent,
-    ],
+    colors: [accent.tertiary.withValues(alpha: 0.35), Colors.transparent],
     stops: const [0.0, 1.0],
   );
 }
 
 RadialGradient glowTertiary(AccentPalette accent) {
   return RadialGradient(
-    colors: [
-      accent.secondary.withValues(alpha: 0.35),
-      Colors.transparent,
-    ],
+    colors: [accent.secondary.withValues(alpha: 0.35), Colors.transparent],
     stops: const [0.0, 1.0],
   );
 }

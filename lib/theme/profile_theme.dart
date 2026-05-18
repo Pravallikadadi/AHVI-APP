@@ -1,5 +1,1 @@
-enum ProfileTheme {
-  coolBlue,
-  sunsetPop,
-  futureCandy,
-}
+enum ProfileTheme { coolBlue, sunsetPop, futureCandy }

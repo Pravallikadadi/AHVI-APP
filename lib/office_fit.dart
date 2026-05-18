@@ -5,7 +5,7 @@ import 'package:myapp/services/appwrite_service.dart';
 import 'package:myapp/services/connectivity_watcher.dart';
 import 'package:myapp/services/offline_cache.dart';
 import 'package:myapp/app_localizations.dart';
-import 'package:myapp/style_board/saved_board_thumb.dart';
+import 'package:myapp/style_board/saved_board_card.dart';
 
 class OfficeFitScreen extends StatefulWidget {
   const OfficeFitScreen({super.key});
@@ -27,8 +27,10 @@ class _OfficeFitScreenState extends State<OfficeFitScreen> {
 
   Future<void> _loadBoards() async {
     final cache = Provider.of<OfflineCache>(context, listen: false);
-    final connectivity =
-        Provider.of<ConnectivityWatcher>(context, listen: false);
+    final connectivity = Provider.of<ConnectivityWatcher>(
+      context,
+      listen: false,
+    );
 
     _applyFromCache(cache);
 
@@ -206,28 +208,17 @@ class _OfficeFitScreenState extends State<OfficeFitScreen> {
         crossAxisCount: 2,
         crossAxisSpacing: 12,
         mainAxisSpacing: 12,
-        childAspectRatio: 0.65,
+        childAspectRatio: 0.56,
       ),
       itemCount: _boards.length,
       itemBuilder: (context, index) {
         final board = _boards[index];
-        return GestureDetector(
+        return SavedBoardCard(
+          source: board,
+          wardrobeById: _wardrobeById,
           onTap: () {
             // TODO: Fullscreen image viewer
           },
-          child: Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: t.cardBorder),
-              color: t.panel,
-            ),
-            clipBehavior: Clip.antiAlias,
-            child: SavedBoardThumb(
-              source: board,
-              wardrobeById: _wardrobeById,
-              radius: BorderRadius.circular(16),
-            ),
-          ),
         );
       },
     );

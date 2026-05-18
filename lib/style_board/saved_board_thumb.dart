@@ -36,13 +36,12 @@ class SavedBoardThumb extends StatelessWidget {
     required appwrite_models.Document doc,
     required Map<String, Map<String, dynamic>> wardrobeById,
     BorderRadius radius = const BorderRadius.all(Radius.circular(16)),
-  }) =>
-      SavedBoardThumb(
-        key: key,
-        source: doc,
-        wardrobeById: wardrobeById,
-        radius: radius,
-      );
+  }) => SavedBoardThumb(
+    key: key,
+    source: doc,
+    wardrobeById: wardrobeById,
+    radius: radius,
+  );
 
   List<Map<String, dynamic>> _hydrateItems() {
     final raw = _data['itemIds'] ?? _data['item_ids'] ?? const [];
@@ -63,7 +62,7 @@ class SavedBoardThumb extends StatelessWidget {
     final items = _hydrateItems();
 
     if (items.length >= 2) {
-      final occasion = (data['occasion'] ?? '').toString();
+      final occasion = (data['title'] ?? data['occasion'] ?? '').toString();
       final boardMap = <String, dynamic>{
         'title': occasion.isEmpty ? 'Saved Look' : occasion,
         'occasion': occasion,

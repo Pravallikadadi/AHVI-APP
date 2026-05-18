@@ -6,11 +6,7 @@ class EditorialBoardItem extends StatelessWidget {
   final StyleBoardItem item;
   final double rotation;
 
-  const EditorialBoardItem({
-    super.key,
-    required this.item,
-    this.rotation = 0,
-  });
+  const EditorialBoardItem({super.key, required this.item, this.rotation = 0});
 
   @override
   Widget build(BuildContext context) {

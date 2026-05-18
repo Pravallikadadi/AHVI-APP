@@ -110,7 +110,9 @@ class _AhviChatPromptBarState extends State<AhviChatPromptBar> {
     }
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('Voice input is being polished. Please type for now.'),
+        content: Text(
+          'Voice input is unavailable on this screen. Please type for now.',
+        ),
       ),
     );
   }

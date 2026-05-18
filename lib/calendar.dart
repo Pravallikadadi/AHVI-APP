@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:myapp/app_localizations.dart';
 import 'package:myapp/services/ahvi_response_parser.dart';
+import 'package:myapp/services/ahvi_speech_service.dart';
 import 'package:myapp/services/backend_service.dart';
 import 'package:myapp/theme/theme_tokens.dart';
 
@@ -1537,11 +1538,38 @@ class _StyleChatScreenState extends State<StyleChatScreen> {
   }
 
   Future<void> _toggleListening() async {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Voice input is being polished. Please type for now.'),
-      ),
+    if (_isListening) {
+      await AhviSpeechService.instance.stop();
+      if (mounted) setState(() => _isListening = false);
+      return;
+    }
+    if (mounted) setState(() => _isListening = true);
+    await AhviSpeechService.instance.start(
+      onText: (text) {
+        if (!mounted) return;
+        setState(() {
+          _textCtrl.text = text;
+          _textCtrl.selection = TextSelection.fromPosition(
+            TextPosition(offset: _textCtrl.text.length),
+          );
+        });
+      },
+      onDone: () {
+        if (mounted) setState(() => _isListening = false);
+      },
     );
+    if (mounted && !AhviSpeechService.instance.isListening) {
+      setState(() => _isListening = false);
+    }
+  }
+
+  @override
+  void dispose() {
+    if (_isListening) {
+      AhviSpeechService.instance.cancel();
+    }
+    _textCtrl.dispose();
+    super.dispose();
   }
 
   @override

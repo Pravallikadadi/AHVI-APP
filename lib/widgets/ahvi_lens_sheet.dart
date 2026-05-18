@@ -13,8 +13,8 @@ void showAhviLensSheet(
 }) {
   // Capture navigator BEFORE overlay insert — its context stays valid after overlay is removed
   final navigator = Navigator.of(context, rootNavigator: true);
-  final effectiveOnAddToWardrobe = onAddToWardrobe ??
-      () => showAddToWardrobeModal(navigator.context);
+  final effectiveOnAddToWardrobe =
+      onAddToWardrobe ?? () => showAddToWardrobeModal(navigator.context);
 
   final renderBox = context.findRenderObject() as RenderBox;
   final buttonPos = renderBox.localToGlobal(Offset.zero);
@@ -103,8 +103,10 @@ class _AhviLensOverlayState extends State<_AhviLensOverlay>
     const gap = 8.0;
     final screenSize = MediaQuery.of(context).size;
     final bottom = screenSize.height - widget.buttonPos.dy + gap;
-    final left =
-        widget.buttonPos.dx.clamp(12.0, screenSize.width - popupWidth - 12.0);
+    final left = widget.buttonPos.dx.clamp(
+      12.0,
+      screenSize.width - popupWidth - 12.0,
+    );
 
     return Stack(
       children: [

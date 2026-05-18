@@ -140,14 +140,14 @@ class ProfileState {
 // ─────────────────────────────────────────────────────────────────────────────
 
 const List<String> kLanguages = [
-  'English',   // en.json ✅
-  'Hindi',     // hi.json ✅
-  'Telugu',    // te.json ✅
-  'Tamil',     // ta.json ✅
-  'Kannada',   // kn.json ✅
+  'English', // en.json ✅
+  'Hindi', // hi.json ✅
+  'Telugu', // te.json ✅
+  'Tamil', // ta.json ✅
+  'Kannada', // kn.json ✅
   'Malayalam', // ml.json ✅
-  'Bengali',   // bn.json ✅
-  'Marathi',   // mr.json ✅
+  'Bengali', // bn.json ✅
+  'Marathi', // mr.json ✅
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -286,485 +286,906 @@ class AppStrings {
 
   static const Map<String, AppStrings> _translations = {
     'English': AppStrings(
-      myProfile: 'My Profile', editProfile: 'Edit Profile',
-      preferences: 'PREFERENCES', language: 'Language', location: 'Location',
-      appearance: 'APPEARANCE', mode: 'MODE', darkMode: 'Dark Mode', lightMode: 'Light Mode',
-      colourTheme: 'COLOUR THEME', account: 'ACCOUNT', logOut: 'Log Out',
-      deleteAccount: 'Delete Account', selectLanguage: 'Select Language', cancel: 'Cancel',
-      basics: 'Basics', style: 'Style', tryOn: 'Try On',
-      fullName: 'Full Name', yourName: 'Your name', username: 'Username', email: 'Email',
-      phone: 'Phone', dateOfBirth: 'Date of Birth', gender: 'Gender', skinTone: 'Skin Tone',
-      shopPreferences: 'Shop Preferences', bodyShape: 'Body Shape',
+      myProfile: 'My Profile',
+      editProfile: 'Edit Profile',
+      preferences: 'PREFERENCES',
+      language: 'Language',
+      location: 'Location',
+      appearance: 'APPEARANCE',
+      mode: 'MODE',
+      darkMode: 'Dark Mode',
+      lightMode: 'Light Mode',
+      colourTheme: 'COLOUR THEME',
+      account: 'ACCOUNT',
+      logOut: 'Log Out',
+      deleteAccount: 'Delete Account',
+      selectLanguage: 'Select Language',
+      cancel: 'Cancel',
+      basics: 'Basics',
+      style: 'Style',
+      tryOn: 'Try On',
+      fullName: 'Full Name',
+      yourName: 'Your name',
+      username: 'Username',
+      email: 'Email',
+      phone: 'Phone',
+      dateOfBirth: 'Date of Birth',
+      gender: 'Gender',
+      skinTone: 'Skin Tone',
+      shopPreferences: 'Shop Preferences',
+      bodyShape: 'Body Shape',
       chooseStyles: 'Choose styles that match your vibe ✨',
       tapToSelect: 'Tap to select multiple',
       personalizedFitPreview: 'Personalized Fit Preview',
-      personalizedFitBody: 'Upload a face and body photo to enable AI-powered try-on and personalised style recommendations.',
-      enableTryOn: 'Enable Try-On', uploadFacePhoto: 'Face Photo', uploadBodyPhoto: 'Body Photo',
-      uploaded: 'Uploaded ✓', uploadPhoto: 'Upload Photo',
+      personalizedFitBody:
+          'Upload a face and body photo to enable AI-powered try-on and personalised style recommendations.',
+      enableTryOn: 'Enable Try-On',
+      uploadFacePhoto: 'Face Photo',
+      uploadBodyPhoto: 'Body Photo',
+      uploaded: 'Uploaded ✓',
+      uploadPhoto: 'Upload Photo',
       discardChanges: 'Discard Changes?',
-      discardChangesBody: "You have unsaved changes. If you leave now, they'll be lost.",
-      discard: 'Discard', keepEditing: 'Keep Editing',
+      discardChangesBody:
+          "You have unsaved changes. If you leave now, they'll be lost.",
+      discard: 'Discard',
+      keepEditing: 'Keep Editing',
       logOutTitle: 'Log Out?',
-      logOutBody: "Are you sure you want to log out? You'll need to sign in again to access your profile.",
+      logOutBody:
+          "Are you sure you want to log out? You'll need to sign in again to access your profile.",
       logOutConfirm: 'Log Out',
       enableLocation: 'Enable Location',
-      enableLocationBody: 'Allow the app to access your location to show nearby stores, personalised recommendations, and local trends.',
-      enableLocationConfirm: 'Enable Location', notNow: 'Not Now',
+      enableLocationBody:
+          'Allow the app to access your location to show nearby stores, personalised recommendations, and local trends.',
+      enableLocationConfirm: 'Enable Location',
+      notNow: 'Not Now',
       deleteAccountTitle: 'Delete Account?',
-      deleteAccountBody: 'This will permanently delete your account and all associated data. This action cannot be undone.',
+      deleteAccountBody:
+          'This will permanently delete your account and all associated data. This action cannot be undone.',
       deleteAccountConfirm: 'Delete Account',
-      profileUpdated: '✓ Profile updated', photoUpdated: '✓ Photo updated',
-      loggedOut: '👋 Logged out', accountDeleted: '🗑️ Account deleted',
+      profileUpdated: '✓ Profile updated',
+      photoUpdated: '✓ Photo updated',
+      loggedOut: '👋 Logged out',
+      accountDeleted: '🗑️ Account deleted',
       locationEnabled: '📍 Location enabled',
-      themeSetTo: '✓ Theme set to', lightModeOn: '☀️ Light mode on', darkModeOn: '🌙 Dark mode on',
+      themeSetTo: '✓ Theme set to',
+      lightModeOn: '☀️ Light mode on',
+      darkModeOn: '🌙 Dark mode on',
       languageSetTo: '✓ Language set to',
     ),
     'Hindi': AppStrings(
-      myProfile: 'मेरी प्रोफ़ाइल', editProfile: 'प्रोफ़ाइल संपादित करें',
-      preferences: 'प्राथमिकताएँ', language: 'भाषा', location: 'स्थान',
-      appearance: 'दिखावट', mode: 'मोड', darkMode: 'डार्क मोड', lightMode: 'लाइट मोड',
-      colourTheme: 'रंग थीम', account: 'अकाउंट', logOut: 'लॉग आउट',
-      deleteAccount: 'अकाउंट हटाएं', selectLanguage: 'भाषा चुनें', cancel: 'रद्द करें',
-      basics: 'बेसिक्स', style: 'स्टाइल', tryOn: 'ट्राय ऑन',
-      fullName: 'पूरा नाम', yourName: 'आपका नाम', username: 'यूज़रनेम', email: 'ईमेल',
-      phone: 'फ़ोन', dateOfBirth: 'जन्म तिथि', gender: 'लिंग', skinTone: 'त्वचा का रंग',
-      shopPreferences: 'शॉप प्राथमिकताएँ', bodyShape: 'शरीर का आकार',
+      myProfile: 'मेरी प्रोफ़ाइल',
+      editProfile: 'प्रोफ़ाइल संपादित करें',
+      preferences: 'प्राथमिकताएँ',
+      language: 'भाषा',
+      location: 'स्थान',
+      appearance: 'दिखावट',
+      mode: 'मोड',
+      darkMode: 'डार्क मोड',
+      lightMode: 'लाइट मोड',
+      colourTheme: 'रंग थीम',
+      account: 'अकाउंट',
+      logOut: 'लॉग आउट',
+      deleteAccount: 'अकाउंट हटाएं',
+      selectLanguage: 'भाषा चुनें',
+      cancel: 'रद्द करें',
+      basics: 'बेसिक्स',
+      style: 'स्टाइल',
+      tryOn: 'ट्राय ऑन',
+      fullName: 'पूरा नाम',
+      yourName: 'आपका नाम',
+      username: 'यूज़रनेम',
+      email: 'ईमेल',
+      phone: 'फ़ोन',
+      dateOfBirth: 'जन्म तिथि',
+      gender: 'लिंग',
+      skinTone: 'त्वचा का रंग',
+      shopPreferences: 'शॉप प्राथमिकताएँ',
+      bodyShape: 'शरीर का आकार',
       chooseStyles: 'अपनी पसंद की स्टाइल चुनें ✨',
       tapToSelect: 'कई चुनने के लिए टैप करें',
       personalizedFitPreview: 'व्यक्तिगत फ़िट पूर्वावलोकन',
-      personalizedFitBody: 'AI ट्राय-ऑन और व्यक्तिगत शैली सुझावों के लिए फ़ोटो अपलोड करें।',
-      enableTryOn: 'ट्राय-ऑन चालू करें', uploadFacePhoto: 'चेहरे की फ़ोटो', uploadBodyPhoto: 'शरीर की फ़ोटो',
-      uploaded: 'अपलोड हो गया ✓', uploadPhoto: 'फ़ोटो अपलोड करें',
+      personalizedFitBody:
+          'AI ट्राय-ऑन और व्यक्तिगत शैली सुझावों के लिए फ़ोटो अपलोड करें।',
+      enableTryOn: 'ट्राय-ऑन चालू करें',
+      uploadFacePhoto: 'चेहरे की फ़ोटो',
+      uploadBodyPhoto: 'शरीर की फ़ोटो',
+      uploaded: 'अपलोड हो गया ✓',
+      uploadPhoto: 'फ़ोटो अपलोड करें',
       discardChanges: 'बदलाव हटाएं?',
       discardChangesBody: 'आपके अनसेव्ड बदलाव हैं। अभी छोड़ने पर वे खो जाएंगे।',
-      discard: 'हटाएं', keepEditing: 'संपादन जारी रखें',
+      discard: 'हटाएं',
+      keepEditing: 'संपादन जारी रखें',
       logOutTitle: 'लॉग आउट करें?',
-      logOutBody: 'क्या आप वाकई लॉग आउट करना चाहते हैं? वापस आने के लिए फिर से साइन इन करना होगा।',
+      logOutBody:
+          'क्या आप वाकई लॉग आउट करना चाहते हैं? वापस आने के लिए फिर से साइन इन करना होगा।',
       logOutConfirm: 'लॉग आउट',
       enableLocation: 'स्थान सक्षम करें',
-      enableLocationBody: 'पास की दुकानें, व्यक्तिगत सुझाव और स्थानीय ट्रेंड देखने के लिए स्थान की अनुमति दें।',
-      enableLocationConfirm: 'स्थान सक्षम करें', notNow: 'अभी नहीं',
+      enableLocationBody:
+          'पास की दुकानें, व्यक्तिगत सुझाव और स्थानीय ट्रेंड देखने के लिए स्थान की अनुमति दें।',
+      enableLocationConfirm: 'स्थान सक्षम करें',
+      notNow: 'अभी नहीं',
       deleteAccountTitle: 'अकाउंट हटाएं?',
-      deleteAccountBody: 'इससे आपका अकाउंट और सभी डेटा स्थायी रूप से हट जाएगा। यह क्रिया पूर्ववत नहीं की जा सकती।',
+      deleteAccountBody:
+          'इससे आपका अकाउंट और सभी डेटा स्थायी रूप से हट जाएगा। यह क्रिया पूर्ववत नहीं की जा सकती।',
       deleteAccountConfirm: 'अकाउंट हटाएं',
-      profileUpdated: '✓ प्रोफ़ाइल अपडेट हुई', photoUpdated: '✓ फ़ोटो अपडेट हुई',
-      loggedOut: '👋 लॉग आउट हो गए', accountDeleted: '🗑️ अकाउंट हटा दिया',
+      profileUpdated: '✓ प्रोफ़ाइल अपडेट हुई',
+      photoUpdated: '✓ फ़ोटो अपडेट हुई',
+      loggedOut: '👋 लॉग आउट हो गए',
+      accountDeleted: '🗑️ अकाउंट हटा दिया',
       locationEnabled: '📍 स्थान सक्षम हुआ',
-      themeSetTo: '✓ थीम सेट हुई', lightModeOn: '☀️ लाइट मोड चालू', darkModeOn: '🌙 डार्क मोड चालू',
+      themeSetTo: '✓ थीम सेट हुई',
+      lightModeOn: '☀️ लाइट मोड चालू',
+      darkModeOn: '🌙 डार्क मोड चालू',
       languageSetTo: '✓ भाषा सेट हुई',
     ),
     'Tamil': AppStrings(
-      myProfile: 'என் சுயவிவரம்', editProfile: 'சுயவிவரம் திருத்து',
-      preferences: 'விருப்பங்கள்', language: 'மொழி', location: 'இடம்',
-      appearance: 'தோற்றம்', mode: 'முறை', darkMode: 'இருள் முறை', lightMode: 'ஒளி முறை',
-      colourTheme: 'நிற தீம்', account: 'கணக்கு', logOut: 'வெளியேறு',
-      deleteAccount: 'கணக்கை நீக்கு', selectLanguage: 'மொழி தேர்ந்தெடு', cancel: 'ரத்துசெய்',
-      basics: 'அடிப்படை', style: 'பாணி', tryOn: 'அணிந்து பார்',
-      fullName: 'முழு பெயர்', yourName: 'உங்கள் பெயர்', username: 'பயனர்பெயர்', email: 'மின்னஞ்சல்',
-      phone: 'தொலைபேசி', dateOfBirth: 'பிறந்த தேதி', gender: 'பாலினம்', skinTone: 'தோல் நிறம்',
-      shopPreferences: 'கடை விருப்பங்கள்', bodyShape: 'உடல் வடிவம்',
+      myProfile: 'என் சுயவிவரம்',
+      editProfile: 'சுயவிவரம் திருத்து',
+      preferences: 'விருப்பங்கள்',
+      language: 'மொழி',
+      location: 'இடம்',
+      appearance: 'தோற்றம்',
+      mode: 'முறை',
+      darkMode: 'இருள் முறை',
+      lightMode: 'ஒளி முறை',
+      colourTheme: 'நிற தீம்',
+      account: 'கணக்கு',
+      logOut: 'வெளியேறு',
+      deleteAccount: 'கணக்கை நீக்கு',
+      selectLanguage: 'மொழி தேர்ந்தெடு',
+      cancel: 'ரத்துசெய்',
+      basics: 'அடிப்படை',
+      style: 'பாணி',
+      tryOn: 'அணிந்து பார்',
+      fullName: 'முழு பெயர்',
+      yourName: 'உங்கள் பெயர்',
+      username: 'பயனர்பெயர்',
+      email: 'மின்னஞ்சல்',
+      phone: 'தொலைபேசி',
+      dateOfBirth: 'பிறந்த தேதி',
+      gender: 'பாலினம்',
+      skinTone: 'தோல் நிறம்',
+      shopPreferences: 'கடை விருப்பங்கள்',
+      bodyShape: 'உடல் வடிவம்',
       chooseStyles: 'உங்கள் விருப்பமான பாணிகளை தேர்ந்தெடுக்கவும் ✨',
       tapToSelect: 'பலவற்றை தேர்ந்தெடுக்க தட்டவும்',
       personalizedFitPreview: 'தனிப்பயனாக்கப்பட்ட பொருத்தம்',
-      personalizedFitBody: 'AI ட்ரை-ஆன் மற்றும் பரிந்துரைகளுக்கு புகைப்படங்களை பதிவேற்றவும்.',
-      enableTryOn: 'ட்ரை-ஆன் இயக்கு', uploadFacePhoto: 'முக புகைப்படம்', uploadBodyPhoto: 'உடல் புகைப்படம்',
-      uploaded: 'பதிவேற்றப்பட்டது ✓', uploadPhoto: 'புகைப்படம் பதிவேற்று',
+      personalizedFitBody:
+          'AI ட்ரை-ஆன் மற்றும் பரிந்துரைகளுக்கு புகைப்படங்களை பதிவேற்றவும்.',
+      enableTryOn: 'ட்ரை-ஆன் இயக்கு',
+      uploadFacePhoto: 'முக புகைப்படம்',
+      uploadBodyPhoto: 'உடல் புகைப்படம்',
+      uploaded: 'பதிவேற்றப்பட்டது ✓',
+      uploadPhoto: 'புகைப்படம் பதிவேற்று',
       discardChanges: 'மாற்றங்களை நீக்கவா?',
-      discardChangesBody: 'சேமிக்கப்படாத மாற்றங்கள் உள்ளன. இப்போது வெளியேறினால் அவை இழக்கப்படும்.',
-      discard: 'நீக்கு', keepEditing: 'திருத்தம் தொடரு',
+      discardChangesBody:
+          'சேமிக்கப்படாத மாற்றங்கள் உள்ளன. இப்போது வெளியேறினால் அவை இழக்கப்படும்.',
+      discard: 'நீக்கு',
+      keepEditing: 'திருத்தம் தொடரு',
       logOutTitle: 'வெளியேறவா?',
       logOutBody: 'வெளியேற விரும்புகிறீர்களா? மீண்டும் உள்நுழைய வேண்டும்.',
       logOutConfirm: 'வெளியேறு',
       enableLocation: 'இடம் இயக்கு',
-      enableLocationBody: 'அருகிலுள்ள கடைகள் மற்றும் பரிந்துரைகளுக்கு இட அனுமதி வழங்கவும்.',
-      enableLocationConfirm: 'இடம் இயக்கு', notNow: 'இப்போது வேண்டாம்',
+      enableLocationBody:
+          'அருகிலுள்ள கடைகள் மற்றும் பரிந்துரைகளுக்கு இட அனுமதி வழங்கவும்.',
+      enableLocationConfirm: 'இடம் இயக்கு',
+      notNow: 'இப்போது வேண்டாம்',
       deleteAccountTitle: 'கணக்கை நீக்கவா?',
-      deleteAccountBody: 'இது உங்கள் கணக்கை நிரந்தரமாக நீக்கும். இந்த செயலை மீட்க முடியாது.',
+      deleteAccountBody:
+          'இது உங்கள் கணக்கை நிரந்தரமாக நீக்கும். இந்த செயலை மீட்க முடியாது.',
       deleteAccountConfirm: 'கணக்கை நீக்கு',
-      profileUpdated: '✓ சுயவிவரம் புதுப்பிக்கப்பட்டது', photoUpdated: '✓ புகைப்படம் புதுப்பிக்கப்பட்டது',
-      loggedOut: '👋 வெளியேறினீர்கள்', accountDeleted: '🗑️ கணக்கு நீக்கப்பட்டது',
+      profileUpdated: '✓ சுயவிவரம் புதுப்பிக்கப்பட்டது',
+      photoUpdated: '✓ புகைப்படம் புதுப்பிக்கப்பட்டது',
+      loggedOut: '👋 வெளியேறினீர்கள்',
+      accountDeleted: '🗑️ கணக்கு நீக்கப்பட்டது',
       locationEnabled: '📍 இடம் இயக்கப்பட்டது',
-      themeSetTo: '✓ தீம் அமைக்கப்பட்டது', lightModeOn: '☀️ ஒளி முறை இயக்கம்', darkModeOn: '🌙 இருள் முறை இயக்கம்',
+      themeSetTo: '✓ தீம் அமைக்கப்பட்டது',
+      lightModeOn: '☀️ ஒளி முறை இயக்கம்',
+      darkModeOn: '🌙 இருள் முறை இயக்கம்',
       languageSetTo: '✓ மொழி அமைக்கப்பட்டது',
     ),
     'Telugu': AppStrings(
-      myProfile: 'నా ప్రొఫైల్', editProfile: 'ప్రొఫైల్ సవరించు',
-      preferences: 'ప్రాధాన్యతలు', language: 'భాష', location: 'స్థానం',
-      appearance: 'రూపురేఖలు', mode: 'మోడ్', darkMode: 'డార్క్ మోడ్', lightMode: 'లైట్ మోడ్',
-      colourTheme: 'రంగు థీమ్', account: 'ఖాతా', logOut: 'లాగ్ అవుట్',
-      deleteAccount: 'ఖాతా తొలగించు', selectLanguage: 'భాష ఎంచుకోండి', cancel: 'రద్దు చేయి',
-      basics: 'బేసిక్స్', style: 'స్టైల్', tryOn: 'ట్రై ఆన్',
-      fullName: 'పూర్తి పేరు', yourName: 'మీ పేరు', username: 'యూజర్‌నేమ్', email: 'ఇమెయిల్',
-      phone: 'ఫోన్', dateOfBirth: 'పుట్టిన తేది', gender: 'లింగం', skinTone: 'చర్మం రంగు',
-      shopPreferences: 'షాప్ ప్రాధాన్యతలు', bodyShape: 'శరీర ఆకారం',
+      myProfile: 'నా ప్రొఫైల్',
+      editProfile: 'ప్రొఫైల్ సవరించు',
+      preferences: 'ప్రాధాన్యతలు',
+      language: 'భాష',
+      location: 'స్థానం',
+      appearance: 'రూపురేఖలు',
+      mode: 'మోడ్',
+      darkMode: 'డార్క్ మోడ్',
+      lightMode: 'లైట్ మోడ్',
+      colourTheme: 'రంగు థీమ్',
+      account: 'ఖాతా',
+      logOut: 'లాగ్ అవుట్',
+      deleteAccount: 'ఖాతా తొలగించు',
+      selectLanguage: 'భాష ఎంచుకోండి',
+      cancel: 'రద్దు చేయి',
+      basics: 'బేసిక్స్',
+      style: 'స్టైల్',
+      tryOn: 'ట్రై ఆన్',
+      fullName: 'పూర్తి పేరు',
+      yourName: 'మీ పేరు',
+      username: 'యూజర్‌నేమ్',
+      email: 'ఇమెయిల్',
+      phone: 'ఫోన్',
+      dateOfBirth: 'పుట్టిన తేది',
+      gender: 'లింగం',
+      skinTone: 'చర్మం రంగు',
+      shopPreferences: 'షాప్ ప్రాధాన్యతలు',
+      bodyShape: 'శరీర ఆకారం',
       chooseStyles: 'మీ అభిరుచికి సరిపడే స్టైల్స్ ఎంచుకోండి ✨',
       tapToSelect: 'అనేకం ఎంచుకోవడానికి నొక్కండి',
       personalizedFitPreview: 'వ్యక్తిగత ఫిట్ ప్రివ్యూ',
       personalizedFitBody: 'AI ట్రై-ఆన్ మరియు సూచనలకు ఫోటోలు అప్‌లోడ్ చేయండి.',
-      enableTryOn: 'ట్రై-ఆన్ ఆన్ చేయి', uploadFacePhoto: 'ముఖ ఫోటో', uploadBodyPhoto: 'శరీర ఫోటో',
-      uploaded: 'అప్‌లోడ్ అయింది ✓', uploadPhoto: 'ఫోటో అప్‌లోడ్ చేయి',
+      enableTryOn: 'ట్రై-ఆన్ ఆన్ చేయి',
+      uploadFacePhoto: 'ముఖ ఫోటో',
+      uploadBodyPhoto: 'శరీర ఫోటో',
+      uploaded: 'అప్‌లోడ్ అయింది ✓',
+      uploadPhoto: 'ఫోటో అప్‌లోడ్ చేయి',
       discardChanges: 'మార్పులు తొలగించాలా?',
-      discardChangesBody: 'సేవ్ చేయని మార్పులు ఉన్నాయి. ఇప్పుడు వెళ్ళిపోతే అవి పోతాయి.',
-      discard: 'తొలగించు', keepEditing: 'సవరణ కొనసాగించు',
+      discardChangesBody:
+          'సేవ్ చేయని మార్పులు ఉన్నాయి. ఇప్పుడు వెళ్ళిపోతే అవి పోతాయి.',
+      discard: 'తొలగించు',
+      keepEditing: 'సవరణ కొనసాగించు',
       logOutTitle: 'లాగ్ అవుట్ చేయాలా?',
-      logOutBody: 'మీరు లాగ్ అవుట్ చేయాలనుకుంటున్నారా? తిరిగి యాక్సెస్ కోసం సైన్ ఇన్ అవ్వాలి.',
+      logOutBody:
+          'మీరు లాగ్ అవుట్ చేయాలనుకుంటున్నారా? తిరిగి యాక్సెస్ కోసం సైన్ ఇన్ అవ్వాలి.',
       logOutConfirm: 'లాగ్ అవుట్',
       enableLocation: 'లొకేషన్ ఆన్ చేయి',
-      enableLocationBody: 'దగ్గరలోని దుకాణాలు మరియు సూచనలకు లొకేషన్ అనుమతించండి.',
-      enableLocationConfirm: 'లొకేషన్ ఆన్ చేయి', notNow: 'ఇప్పుడు వద్దు',
+      enableLocationBody:
+          'దగ్గరలోని దుకాణాలు మరియు సూచనలకు లొకేషన్ అనుమతించండి.',
+      enableLocationConfirm: 'లొకేషన్ ఆన్ చేయి',
+      notNow: 'ఇప్పుడు వద్దు',
       deleteAccountTitle: 'ఖాతా తొలగించాలా?',
-      deleteAccountBody: 'ఇది మీ ఖాతా మరియు డేటాను శాశ్వతంగా తొలగిస్తుంది. ఇది రద్దు చేయలేరు.',
+      deleteAccountBody:
+          'ఇది మీ ఖాతా మరియు డేటాను శాశ్వతంగా తొలగిస్తుంది. ఇది రద్దు చేయలేరు.',
       deleteAccountConfirm: 'ఖాతా తొలగించు',
-      profileUpdated: '✓ ప్రొఫైల్ అప్‌డేట్ అయింది', photoUpdated: '✓ ఫోటో అప్‌డేట్ అయింది',
-      loggedOut: '👋 లాగ్ అవుట్ అయింది', accountDeleted: '🗑️ ఖాతా తొలగించబడింది',
+      profileUpdated: '✓ ప్రొఫైల్ అప్‌డేట్ అయింది',
+      photoUpdated: '✓ ఫోటో అప్‌డేట్ అయింది',
+      loggedOut: '👋 లాగ్ అవుట్ అయింది',
+      accountDeleted: '🗑️ ఖాతా తొలగించబడింది',
       locationEnabled: '📍 లొకేషన్ ఆన్ అయింది',
-      themeSetTo: '✓ థీమ్ సెట్ అయింది', lightModeOn: '☀️ లైట్ మోడ్ ఆన్', darkModeOn: '🌙 డార్క్ మోడ్ ఆన్',
+      themeSetTo: '✓ థీమ్ సెట్ అయింది',
+      lightModeOn: '☀️ లైట్ మోడ్ ఆన్',
+      darkModeOn: '🌙 డార్క్ మోడ్ ఆన్',
       languageSetTo: '✓ భాష సెట్ అయింది',
     ),
     'Kannada': AppStrings(
-      myProfile: 'ನನ್ನ ಪ್ರೊಫೈಲ್', editProfile: 'ಪ್ರೊಫೈಲ್ ಸಂಪಾದಿಸಿ',
-      preferences: 'ಆದ್ಯತೆಗಳು', language: 'ಭಾಷೆ', location: 'ಸ್ಥಳ',
-      appearance: 'ನೋಟ', mode: 'ಮೋಡ್', darkMode: 'ಡಾರ್ಕ್ ಮೋಡ್', lightMode: 'ಲೈಟ್ ಮೋಡ್',
-      colourTheme: 'ಬಣ್ಣ ಥೀಮ್', account: 'ಖಾತೆ', logOut: 'ಲಾಗ್ ಔಟ್',
-      deleteAccount: 'ಖಾತೆ ಅಳಿಸಿ', selectLanguage: 'ಭಾಷೆ ಆಯ್ಕೆ ಮಾಡಿ', cancel: 'ರದ್ದು ಮಾಡಿ',
-      basics: 'ಮೂಲಭೂತ', style: 'ಶೈಲಿ', tryOn: 'ಪ್ರಯತ್ನಿಸಿ',
-      fullName: 'ಪೂರ್ಣ ಹೆಸರು', yourName: 'ನಿಮ್ಮ ಹೆಸರು', username: 'ಬಳಕೆದಾರ ಹೆಸರು', email: 'ಇಮೇಲ್',
-      phone: 'ಫೋನ್', dateOfBirth: 'ಹುಟ್ಟಿದ ದಿನ', gender: 'ಲಿಂಗ', skinTone: 'ಚರ್ಮದ ಬಣ್ಣ',
-      shopPreferences: 'ಅಂಗಡಿ ಆದ್ಯತೆಗಳು', bodyShape: 'ದೇಹದ ಆಕಾರ',
+      myProfile: 'ನನ್ನ ಪ್ರೊಫೈಲ್',
+      editProfile: 'ಪ್ರೊಫೈಲ್ ಸಂಪಾದಿಸಿ',
+      preferences: 'ಆದ್ಯತೆಗಳು',
+      language: 'ಭಾಷೆ',
+      location: 'ಸ್ಥಳ',
+      appearance: 'ನೋಟ',
+      mode: 'ಮೋಡ್',
+      darkMode: 'ಡಾರ್ಕ್ ಮೋಡ್',
+      lightMode: 'ಲೈಟ್ ಮೋಡ್',
+      colourTheme: 'ಬಣ್ಣ ಥೀಮ್',
+      account: 'ಖಾತೆ',
+      logOut: 'ಲಾಗ್ ಔಟ್',
+      deleteAccount: 'ಖಾತೆ ಅಳಿಸಿ',
+      selectLanguage: 'ಭಾಷೆ ಆಯ್ಕೆ ಮಾಡಿ',
+      cancel: 'ರದ್ದು ಮಾಡಿ',
+      basics: 'ಮೂಲಭೂತ',
+      style: 'ಶೈಲಿ',
+      tryOn: 'ಪ್ರಯತ್ನಿಸಿ',
+      fullName: 'ಪೂರ್ಣ ಹೆಸರು',
+      yourName: 'ನಿಮ್ಮ ಹೆಸರು',
+      username: 'ಬಳಕೆದಾರ ಹೆಸರು',
+      email: 'ಇಮೇಲ್',
+      phone: 'ಫೋನ್',
+      dateOfBirth: 'ಹುಟ್ಟಿದ ದಿನ',
+      gender: 'ಲಿಂಗ',
+      skinTone: 'ಚರ್ಮದ ಬಣ್ಣ',
+      shopPreferences: 'ಅಂಗಡಿ ಆದ್ಯತೆಗಳು',
+      bodyShape: 'ದೇಹದ ಆಕಾರ',
       chooseStyles: 'ನಿಮ್ಮ ಅಭಿರುಚಿಗೆ ತಕ್ಕ ಶೈಲಿಗಳನ್ನು ಆಯ್ಕೆ ಮಾಡಿ ✨',
       tapToSelect: 'ಹಲವು ಆಯ್ಕೆ ಮಾಡಲು ಟ್ಯಾಪ್ ಮಾಡಿ',
       personalizedFitPreview: 'ವ್ಯಕ್ತಿಗತ ಫಿಟ್ ಪ್ರಿವ್ಯೂ',
-      personalizedFitBody: 'AI ಟ್ರೈ-ಆನ್ ಮತ್ತು ಸಲಹೆಗಳಿಗೆ ಫೋಟೋಗಳನ್ನು ಅಪ್‌ಲೋಡ್ ಮಾಡಿ.',
-      enableTryOn: 'ಟ್ರೈ-ಆನ್ ಚಾಲನೆ ಮಾಡಿ', uploadFacePhoto: 'ಮುಖದ ಫೋಟೋ', uploadBodyPhoto: 'ದೇಹದ ಫೋಟೋ',
-      uploaded: 'ಅಪ್‌ಲೋಡ್ ಆಯಿತು ✓', uploadPhoto: 'ಫೋಟೋ ಅಪ್‌ಲೋಡ್ ಮಾಡಿ',
+      personalizedFitBody:
+          'AI ಟ್ರೈ-ಆನ್ ಮತ್ತು ಸಲಹೆಗಳಿಗೆ ಫೋಟೋಗಳನ್ನು ಅಪ್‌ಲೋಡ್ ಮಾಡಿ.',
+      enableTryOn: 'ಟ್ರೈ-ಆನ್ ಚಾಲನೆ ಮಾಡಿ',
+      uploadFacePhoto: 'ಮುಖದ ಫೋಟೋ',
+      uploadBodyPhoto: 'ದೇಹದ ಫೋಟೋ',
+      uploaded: 'ಅಪ್‌ಲೋಡ್ ಆಯಿತು ✓',
+      uploadPhoto: 'ಫೋಟೋ ಅಪ್‌ಲೋಡ್ ಮಾಡಿ',
       discardChanges: 'ಬದಲಾವಣೆಗಳನ್ನು ತ್ಯಜಿಸಬೇಕೇ?',
       discardChangesBody: 'ಉಳಿಸದ ಬದಲಾವಣೆಗಳಿವೆ. ಈಗ ಹೊರಹೋದರೆ ಅವು ಕಳೆದುಹೋಗುತ್ತವೆ.',
-      discard: 'ತ್ಯಜಿಸಿ', keepEditing: 'ಸಂಪಾದಿಸುವುದನ್ನು ಮುಂದುವರಿಸಿ',
+      discard: 'ತ್ಯಜಿಸಿ',
+      keepEditing: 'ಸಂಪಾದಿಸುವುದನ್ನು ಮುಂದುವರಿಸಿ',
       logOutTitle: 'ಲಾಗ್ ಔಟ್ ಮಾಡಬೇಕೇ?',
       logOutBody: 'ನೀವು ಲಾಗ್ ಔಟ್ ಮಾಡಲು ಖಚಿತವಾಗಿ ಬಯಸುತ್ತೀರಾ?',
       logOutConfirm: 'ಲಾಗ್ ಔಟ್',
       enableLocation: 'ಸ್ಥಳ ಸಕ್ರಿಯಗೊಳಿಸಿ',
       enableLocationBody: 'ಹತ್ತಿರದ ಅಂಗಡಿಗಳು ಮತ್ತು ಸಲಹೆಗಳಿಗೆ ಸ್ಥಳ ಅನುಮತಿ ನೀಡಿ.',
-      enableLocationConfirm: 'ಸ್ಥಳ ಸಕ್ರಿಯಗೊಳಿಸಿ', notNow: 'ಈಗ ಬೇಡ',
+      enableLocationConfirm: 'ಸ್ಥಳ ಸಕ್ರಿಯಗೊಳಿಸಿ',
+      notNow: 'ಈಗ ಬೇಡ',
       deleteAccountTitle: 'ಖಾತೆ ಅಳಿಸಬೇಕೇ?',
-      deleteAccountBody: 'ಇದು ನಿಮ್ಮ ಖಾತೆ ಮತ್ತು ಡೇಟಾವನ್ನು ಶಾಶ್ವತವಾಗಿ ಅಳಿಸುತ್ತದೆ.',
+      deleteAccountBody:
+          'ಇದು ನಿಮ್ಮ ಖಾತೆ ಮತ್ತು ಡೇಟಾವನ್ನು ಶಾಶ್ವತವಾಗಿ ಅಳಿಸುತ್ತದೆ.',
       deleteAccountConfirm: 'ಖಾತೆ ಅಳಿಸಿ',
-      profileUpdated: '✓ ಪ್ರೊಫೈಲ್ ಅಪ್‌ಡೇಟ್ ಆಯಿತು', photoUpdated: '✓ ಫೋಟೋ ಅಪ್‌ಡೇಟ್ ಆಯಿತು',
-      loggedOut: '👋 ಲಾಗ್ ಔಟ್ ಆಯಿತು', accountDeleted: '🗑️ ಖಾತೆ ಅಳಿಸಲಾಯಿತು',
+      profileUpdated: '✓ ಪ್ರೊಫೈಲ್ ಅಪ್‌ಡೇಟ್ ಆಯಿತು',
+      photoUpdated: '✓ ಫೋಟೋ ಅಪ್‌ಡೇಟ್ ಆಯಿತು',
+      loggedOut: '👋 ಲಾಗ್ ಔಟ್ ಆಯಿತು',
+      accountDeleted: '🗑️ ಖಾತೆ ಅಳಿಸಲಾಯಿತು',
       locationEnabled: '📍 ಸ್ಥಳ ಸಕ್ರಿಯವಾಯಿತು',
-      themeSetTo: '✓ ಥೀಮ್ ಸೆಟ್ ಆಯಿತು', lightModeOn: '☀️ ಲೈಟ್ ಮೋಡ್ ಆನ್', darkModeOn: '🌙 ಡಾರ್ಕ್ ಮೋಡ್ ಆನ್',
+      themeSetTo: '✓ ಥೀಮ್ ಸೆಟ್ ಆಯಿತು',
+      lightModeOn: '☀️ ಲೈಟ್ ಮೋಡ್ ಆನ್',
+      darkModeOn: '🌙 ಡಾರ್ಕ್ ಮೋಡ್ ಆನ್',
       languageSetTo: '✓ ಭಾಷೆ ಸೆಟ್ ಆಯಿತು',
     ),
     'Malayalam': AppStrings(
-      myProfile: 'എന്റെ പ്രൊഫൈൽ', editProfile: 'പ്രൊഫൈൽ തിരുത്തുക',
-      preferences: 'മുൻഗണനകൾ', language: 'ഭാഷ', location: 'സ്ഥലം',
-      appearance: 'രൂപഭാവം', mode: 'മോഡ്', darkMode: 'ഡാർക്ക് മോഡ്', lightMode: 'ലൈറ്റ് മോഡ്',
-      colourTheme: 'നിറ തീം', account: 'അക്കൗണ്ട്', logOut: 'ലോഗ് ഔട്ട്',
-      deleteAccount: 'അക്കൗണ്ട് ഇല്ലാതാക്കുക', selectLanguage: 'ഭാഷ തിരഞ്ഞെടുക്കുക', cancel: 'റദ്ദാക്കുക',
-      basics: 'അടിസ്ഥാനം', style: 'ശൈലി', tryOn: 'ട്രൈ ഓൺ',
-      fullName: 'മുഴുവൻ പേര്', yourName: 'നിങ്ങളുടെ പേര്', username: 'ഉപയോക്തൃനാമം', email: 'ഇമെയിൽ',
-      phone: 'ഫോൺ', dateOfBirth: 'ജനനത്തീയതി', gender: 'ലിംഗം', skinTone: 'ചർമ്മ നിറം',
-      shopPreferences: 'ഷോപ്പ് മുൻഗണനകൾ', bodyShape: 'ശരീരാകൃതി',
+      myProfile: 'എന്റെ പ്രൊഫൈൽ',
+      editProfile: 'പ്രൊഫൈൽ തിരുത്തുക',
+      preferences: 'മുൻഗണനകൾ',
+      language: 'ഭാഷ',
+      location: 'സ്ഥലം',
+      appearance: 'രൂപഭാവം',
+      mode: 'മോഡ്',
+      darkMode: 'ഡാർക്ക് മോഡ്',
+      lightMode: 'ലൈറ്റ് മോഡ്',
+      colourTheme: 'നിറ തീം',
+      account: 'അക്കൗണ്ട്',
+      logOut: 'ലോഗ് ഔട്ട്',
+      deleteAccount: 'അക്കൗണ്ട് ഇല്ലാതാക്കുക',
+      selectLanguage: 'ഭാഷ തിരഞ്ഞെടുക്കുക',
+      cancel: 'റദ്ദാക്കുക',
+      basics: 'അടിസ്ഥാനം',
+      style: 'ശൈലി',
+      tryOn: 'ട്രൈ ഓൺ',
+      fullName: 'മുഴുവൻ പേര്',
+      yourName: 'നിങ്ങളുടെ പേര്',
+      username: 'ഉപയോക്തൃനാമം',
+      email: 'ഇമെയിൽ',
+      phone: 'ഫോൺ',
+      dateOfBirth: 'ജനനത്തീയതി',
+      gender: 'ലിംഗം',
+      skinTone: 'ചർമ്മ നിറം',
+      shopPreferences: 'ഷോപ്പ് മുൻഗണനകൾ',
+      bodyShape: 'ശരീരാകൃതി',
       chooseStyles: 'നിങ്ങളുടെ ഇഷ്ടത്തിന് ചേർന്ന ശൈലികൾ തിരഞ്ഞെടുക്കുക ✨',
       tapToSelect: 'ഒന്നിലധികം തിരഞ്ഞെടുക്കാൻ ടാപ്പ് ചെയ്യുക',
       personalizedFitPreview: 'വ്യക്തിഗത ഫിറ്റ് പ്രിവ്യൂ',
-      personalizedFitBody: 'AI ട്രൈ-ഓൺ, നിർദ്ദേശങ്ങൾ എന്നിവയ്ക്ക് ഫോട്ടോ അപ്‌ലോഡ് ചെയ്യുക.',
-      enableTryOn: 'ട്രൈ-ഓൺ ഓണാക്കുക', uploadFacePhoto: 'മുഖ ഫോട്ടോ', uploadBodyPhoto: 'ശരീര ഫോട്ടോ',
-      uploaded: 'അപ്‌ലോഡ് ചെയ്തു ✓', uploadPhoto: 'ഫോട്ടോ അപ്‌ലോഡ് ചെയ്യുക',
+      personalizedFitBody:
+          'AI ട്രൈ-ഓൺ, നിർദ്ദേശങ്ങൾ എന്നിവയ്ക്ക് ഫോട്ടോ അപ്‌ലോഡ് ചെയ്യുക.',
+      enableTryOn: 'ട്രൈ-ഓൺ ഓണാക്കുക',
+      uploadFacePhoto: 'മുഖ ഫോട്ടോ',
+      uploadBodyPhoto: 'ശരീര ഫോട്ടോ',
+      uploaded: 'അപ്‌ലോഡ് ചെയ്തു ✓',
+      uploadPhoto: 'ഫോട്ടോ അപ്‌ലോഡ് ചെയ്യുക',
       discardChanges: 'മാറ്റങ്ങൾ ഉപേക്ഷിക്കണോ?',
-      discardChangesBody: 'സേവ് ചെയ്യാത്ത മാറ്റങ്ങൾ ഉണ്ട്. ഇപ്പോൾ പോകുകയാണെങ്കിൽ അവ നഷ്ടപ്പെടും.',
-      discard: 'ഉപേക്ഷിക്കുക', keepEditing: 'തിരുത്തൽ തുടരുക',
+      discardChangesBody:
+          'സേവ് ചെയ്യാത്ത മാറ്റങ്ങൾ ഉണ്ട്. ഇപ്പോൾ പോകുകയാണെങ്കിൽ അവ നഷ്ടപ്പെടും.',
+      discard: 'ഉപേക്ഷിക്കുക',
+      keepEditing: 'തിരുത്തൽ തുടരുക',
       logOutTitle: 'ലോഗ് ഔട്ട് ചെയ്യണോ?',
-      logOutBody: 'ലോഗ് ഔട്ട് ചെയ്യണമെന്ന് ഉറപ്പാണോ? വീണ്ടും പ്രവേശിക്കാൻ സൈൻ ഇൻ ചെയ്യണം.',
+      logOutBody:
+          'ലോഗ് ഔട്ട് ചെയ്യണമെന്ന് ഉറപ്പാണോ? വീണ്ടും പ്രവേശിക്കാൻ സൈൻ ഇൻ ചെയ്യണം.',
       logOutConfirm: 'ലോഗ് ഔട്ട്',
       enableLocation: 'ലൊക്കേഷൻ ഓണാക്കുക',
-      enableLocationBody: 'അടുത്തുള്ള കടകൾ, നിർദ്ദേശങ്ങൾ എന്നിവയ്ക്ക് ലൊക്കേഷൻ അനുവദിക്കുക.',
-      enableLocationConfirm: 'ലൊക്കേഷൻ ഓണാക്കുക', notNow: 'ഇപ്പോൾ വേണ്ട',
+      enableLocationBody:
+          'അടുത്തുള്ള കടകൾ, നിർദ്ദേശങ്ങൾ എന്നിവയ്ക്ക് ലൊക്കേഷൻ അനുവദിക്കുക.',
+      enableLocationConfirm: 'ലൊക്കേഷൻ ഓണാക്കുക',
+      notNow: 'ഇപ്പോൾ വേണ്ട',
       deleteAccountTitle: 'അക്കൗണ്ട് ഇല്ലാതാക്കണോ?',
-      deleteAccountBody: 'ഇത് നിങ്ങളുടെ അക്കൗണ്ടും ഡേറ്റയും സ്ഥിരമായി ഇല്ലാതാക്കും.',
+      deleteAccountBody:
+          'ഇത് നിങ്ങളുടെ അക്കൗണ്ടും ഡേറ്റയും സ്ഥിരമായി ഇല്ലാതാക്കും.',
       deleteAccountConfirm: 'അക്കൗണ്ട് ഇല്ലാതാക്കുക',
-      profileUpdated: '✓ പ്രൊഫൈൽ അപ്‌ഡേറ്റ് ചെയ്തു', photoUpdated: '✓ ഫോട്ടോ അപ്‌ഡേറ്റ് ചെയ്തു',
-      loggedOut: '👋 ലോഗ് ഔട്ട് ചെയ്തു', accountDeleted: '🗑️ അക്കൗണ്ട് ഇല്ലാതാക്കി',
+      profileUpdated: '✓ പ്രൊഫൈൽ അപ്‌ഡേറ്റ് ചെയ്തു',
+      photoUpdated: '✓ ഫോട്ടോ അപ്‌ഡേറ്റ് ചെയ്തു',
+      loggedOut: '👋 ലോഗ് ഔട്ട് ചെയ്തു',
+      accountDeleted: '🗑️ അക്കൗണ്ട് ഇല്ലാതാക്കി',
       locationEnabled: '📍 ലൊക്കേഷൻ ഓണായി',
-      themeSetTo: '✓ തീം സെറ്റ് ചെയ്തു', lightModeOn: '☀️ ലൈറ്റ് മോഡ് ഓൺ', darkModeOn: '🌙 ഡാർക്ക് മോഡ് ഓൺ',
+      themeSetTo: '✓ തീം സെറ്റ് ചെയ്തു',
+      lightModeOn: '☀️ ലൈറ്റ് മോഡ് ഓൺ',
+      darkModeOn: '🌙 ഡാർക്ക് മോഡ് ഓൺ',
       languageSetTo: '✓ ഭാഷ സെറ്റ് ചെയ്തു',
     ),
     'Bengali': AppStrings(
-      myProfile: 'আমার প্রোফাইল', editProfile: 'প্রোফাইল সম্পাদনা করুন',
-      preferences: 'পছন্দ', language: 'ভাষা', location: 'অবস্থান',
-      appearance: 'চেহারা', mode: 'মোড', darkMode: 'ডার্ক মোড', lightMode: 'লাইট মোড',
-      colourTheme: 'রঙ থিম', account: 'অ্যাকাউন্ট', logOut: 'লগ আউট',
-      deleteAccount: 'অ্যাকাউন্ট মুছুন', selectLanguage: 'ভাষা বেছে নিন', cancel: 'বাতিল',
-      basics: 'বেসিক', style: 'স্টাইল', tryOn: 'ট্রাই অন',
-      fullName: 'পুরো নাম', yourName: 'আপনার নাম', username: 'ইউজারনেম', email: 'ইমেইল',
-      phone: 'ফোন', dateOfBirth: 'জন্ম তারিখ', gender: 'লিঙ্গ', skinTone: 'ত্বকের রঙ',
-      shopPreferences: 'শপ পছন্দ', bodyShape: 'শরীরের আকৃতি',
+      myProfile: 'আমার প্রোফাইল',
+      editProfile: 'প্রোফাইল সম্পাদনা করুন',
+      preferences: 'পছন্দ',
+      language: 'ভাষা',
+      location: 'অবস্থান',
+      appearance: 'চেহারা',
+      mode: 'মোড',
+      darkMode: 'ডার্ক মোড',
+      lightMode: 'লাইট মোড',
+      colourTheme: 'রঙ থিম',
+      account: 'অ্যাকাউন্ট',
+      logOut: 'লগ আউট',
+      deleteAccount: 'অ্যাকাউন্ট মুছুন',
+      selectLanguage: 'ভাষা বেছে নিন',
+      cancel: 'বাতিল',
+      basics: 'বেসিক',
+      style: 'স্টাইল',
+      tryOn: 'ট্রাই অন',
+      fullName: 'পুরো নাম',
+      yourName: 'আপনার নাম',
+      username: 'ইউজারনেম',
+      email: 'ইমেইল',
+      phone: 'ফোন',
+      dateOfBirth: 'জন্ম তারিখ',
+      gender: 'লিঙ্গ',
+      skinTone: 'ত্বকের রঙ',
+      shopPreferences: 'শপ পছন্দ',
+      bodyShape: 'শরীরের আকৃতি',
       chooseStyles: 'আপনার পছন্দের স্টাইল বেছে নিন ✨',
       tapToSelect: 'একাধিক বাছাই করতে ট্যাপ করুন',
       personalizedFitPreview: 'ব্যক্তিগত ফিট প্রিভিউ',
       personalizedFitBody: 'AI ট্রাই-অন এবং পরামর্শের জন্য ছবি আপলোড করুন।',
-      enableTryOn: 'ট্রাই-অন চালু করুন', uploadFacePhoto: 'মুখের ছবি', uploadBodyPhoto: 'শরীরের ছবি',
-      uploaded: 'আপলোড হয়েছে ✓', uploadPhoto: 'ছবি আপলোড করুন',
+      enableTryOn: 'ট্রাই-অন চালু করুন',
+      uploadFacePhoto: 'মুখের ছবি',
+      uploadBodyPhoto: 'শরীরের ছবি',
+      uploaded: 'আপলোড হয়েছে ✓',
+      uploadPhoto: 'ছবি আপলোড করুন',
       discardChanges: 'পরিবর্তন বাতিল করবেন?',
-      discardChangesBody: 'সংরক্ষিত হয়নি এমন পরিবর্তন আছে। এখন চলে গেলে সেগুলো হারিয়ে যাবে।',
-      discard: 'বাতিল করুন', keepEditing: 'সম্পাদনা চালিয়ে যান',
+      discardChangesBody:
+          'সংরক্ষিত হয়নি এমন পরিবর্তন আছে। এখন চলে গেলে সেগুলো হারিয়ে যাবে।',
+      discard: 'বাতিল করুন',
+      keepEditing: 'সম্পাদনা চালিয়ে যান',
       logOutTitle: 'লগ আউট করবেন?',
-      logOutBody: 'আপনি কি লগ আউট করতে নিশ্চিত? পুনরায় অ্যাক্সেসের জন্য সাইন ইন করতে হবে।',
+      logOutBody:
+          'আপনি কি লগ আউট করতে নিশ্চিত? পুনরায় অ্যাক্সেসের জন্য সাইন ইন করতে হবে।',
       logOutConfirm: 'লগ আউট',
       enableLocation: 'লোকেশন চালু করুন',
       enableLocationBody: 'কাছের দোকান এবং সুপারিশের জন্য লোকেশন অনুমতি দিন।',
-      enableLocationConfirm: 'লোকেশন চালু করুন', notNow: 'এখন নয়',
+      enableLocationConfirm: 'লোকেশন চালু করুন',
+      notNow: 'এখন নয়',
       deleteAccountTitle: 'অ্যাকাউন্ট মুছবেন?',
-      deleteAccountBody: 'এটি আপনার অ্যাকাউন্ট ও ডেটা স্থায়ীভাবে মুছে দেবে। এই কাজ পূর্বাবস্থায় ফেরানো যাবে না।',
+      deleteAccountBody:
+          'এটি আপনার অ্যাকাউন্ট ও ডেটা স্থায়ীভাবে মুছে দেবে। এই কাজ পূর্বাবস্থায় ফেরানো যাবে না।',
       deleteAccountConfirm: 'অ্যাকাউন্ট মুছুন',
-      profileUpdated: '✓ প্রোফাইল আপডেট হয়েছে', photoUpdated: '✓ ছবি আপডেট হয়েছে',
-      loggedOut: '👋 লগ আউট হয়েছে', accountDeleted: '🗑️ অ্যাকাউন্ট মুছা হয়েছে',
+      profileUpdated: '✓ প্রোফাইল আপডেট হয়েছে',
+      photoUpdated: '✓ ছবি আপডেট হয়েছে',
+      loggedOut: '👋 লগ আউট হয়েছে',
+      accountDeleted: '🗑️ অ্যাকাউন্ট মুছা হয়েছে',
       locationEnabled: '📍 লোকেশন চালু হয়েছে',
-      themeSetTo: '✓ থিম সেট হয়েছে', lightModeOn: '☀️ লাইট মোড চালু', darkModeOn: '🌙 ডার্ক মোড চালু',
+      themeSetTo: '✓ থিম সেট হয়েছে',
+      lightModeOn: '☀️ লাইট মোড চালু',
+      darkModeOn: '🌙 ডার্ক মোড চালু',
       languageSetTo: '✓ ভাষা সেট হয়েছে',
     ),
     'Marathi': AppStrings(
-      myProfile: 'माझी प्रोफाइल', editProfile: 'प्रोफाइल संपादित करा',
-      preferences: 'प्राधान्ये', language: 'भाषा', location: 'स्थान',
-      appearance: 'देखावा', mode: 'मोड', darkMode: 'डार्क मोड', lightMode: 'लाइट मोड',
-      colourTheme: 'रंग थीम', account: 'खाते', logOut: 'लॉग आउट',
-      deleteAccount: 'खाते हटवा', selectLanguage: 'भाषा निवडा', cancel: 'रद्द करा',
-      basics: 'बेसिक्स', style: 'स्टाइल', tryOn: 'ट्राय ऑन',
-      fullName: 'पूर्ण नाव', yourName: 'तुमचे नाव', username: 'यूझरनेम', email: 'ईमेल',
-      phone: 'फोन', dateOfBirth: 'जन्मतारीख', gender: 'लिंग', skinTone: 'त्वचेचा रंग',
-      shopPreferences: 'खरेदी प्राधान्ये', bodyShape: 'शरीराचा आकार',
+      myProfile: 'माझी प्रोफाइल',
+      editProfile: 'प्रोफाइल संपादित करा',
+      preferences: 'प्राधान्ये',
+      language: 'भाषा',
+      location: 'स्थान',
+      appearance: 'देखावा',
+      mode: 'मोड',
+      darkMode: 'डार्क मोड',
+      lightMode: 'लाइट मोड',
+      colourTheme: 'रंग थीम',
+      account: 'खाते',
+      logOut: 'लॉग आउट',
+      deleteAccount: 'खाते हटवा',
+      selectLanguage: 'भाषा निवडा',
+      cancel: 'रद्द करा',
+      basics: 'बेसिक्स',
+      style: 'स्टाइल',
+      tryOn: 'ट्राय ऑन',
+      fullName: 'पूर्ण नाव',
+      yourName: 'तुमचे नाव',
+      username: 'यूझरनेम',
+      email: 'ईमेल',
+      phone: 'फोन',
+      dateOfBirth: 'जन्मतारीख',
+      gender: 'लिंग',
+      skinTone: 'त्वचेचा रंग',
+      shopPreferences: 'खरेदी प्राधान्ये',
+      bodyShape: 'शरीराचा आकार',
       chooseStyles: 'तुमच्या आवडीच्या स्टाइल्स निवडा ✨',
       tapToSelect: 'अनेक निवडण्यासाठी टॅप करा',
       personalizedFitPreview: 'वैयक्तिक फिट पूर्वावलोकन',
       personalizedFitBody: 'AI ट्राय-ऑन आणि सूचनांसाठी फोटो अपलोड करा.',
-      enableTryOn: 'ट्राय-ऑन चालू करा', uploadFacePhoto: 'चेहऱ्याचा फोटो', uploadBodyPhoto: 'शरीराचा फोटो',
-      uploaded: 'अपलोड झाले ✓', uploadPhoto: 'फोटो अपलोड करा',
+      enableTryOn: 'ट्राय-ऑन चालू करा',
+      uploadFacePhoto: 'चेहऱ्याचा फोटो',
+      uploadBodyPhoto: 'शरीराचा फोटो',
+      uploaded: 'अपलोड झाले ✓',
+      uploadPhoto: 'फोटो अपलोड करा',
       discardChanges: 'बदल टाकून द्यायचे?',
       discardChangesBody: 'न जतन केलेले बदल आहेत. आता गेल्यास ते हरवतील.',
-      discard: 'टाकून द्या', keepEditing: 'संपादन सुरू ठेवा',
+      discard: 'टाकून द्या',
+      keepEditing: 'संपादन सुरू ठेवा',
       logOutTitle: 'लॉग आउट करायचे?',
-      logOutBody: 'तुम्हाला खात्री आहे का? परत प्रवेशासाठी पुन्हा साइन इन करावे लागेल.',
+      logOutBody:
+          'तुम्हाला खात्री आहे का? परत प्रवेशासाठी पुन्हा साइन इन करावे लागेल.',
       logOutConfirm: 'लॉग आउट',
       enableLocation: 'स्थान सक्षम करा',
       enableLocationBody: 'जवळच्या दुकाने आणि शिफारसींसाठी स्थान परवानगी द्या.',
-      enableLocationConfirm: 'स्थान सक्षम करा', notNow: 'आत्ता नाही',
+      enableLocationConfirm: 'स्थान सक्षम करा',
+      notNow: 'आत्ता नाही',
       deleteAccountTitle: 'खाते हटवायचे?',
-      deleteAccountBody: 'हे तुमचे खाते आणि सर्व डेटा कायमचे हटवेल. हे पूर्ववत करता येणार नाही.',
+      deleteAccountBody:
+          'हे तुमचे खाते आणि सर्व डेटा कायमचे हटवेल. हे पूर्ववत करता येणार नाही.',
       deleteAccountConfirm: 'खाते हटवा',
-      profileUpdated: '✓ प्रोफाइल अपडेट झाली', photoUpdated: '✓ फोटो अपडेट झाला',
-      loggedOut: '👋 लॉग आउट झालो', accountDeleted: '🗑️ खाते हटवले',
+      profileUpdated: '✓ प्रोफाइल अपडेट झाली',
+      photoUpdated: '✓ फोटो अपडेट झाला',
+      loggedOut: '👋 लॉग आउट झालो',
+      accountDeleted: '🗑️ खाते हटवले',
       locationEnabled: '📍 स्थान सक्षम झाले',
-      themeSetTo: '✓ थीम सेट झाली', lightModeOn: '☀️ लाइट मोड चालू', darkModeOn: '🌙 डार्क मोड चालू',
+      themeSetTo: '✓ थीम सेट झाली',
+      lightModeOn: '☀️ लाइट मोड चालू',
+      darkModeOn: '🌙 डार्क मोड चालू',
       languageSetTo: '✓ भाषा सेट झाली',
     ),
     'French': AppStrings(
-      myProfile: 'Mon Profil', editProfile: 'Modifier le Profil',
-      preferences: 'PRÉFÉRENCES', language: 'Langue', location: 'Localisation',
-      appearance: 'APPARENCE', mode: 'MODE', darkMode: 'Mode Sombre', lightMode: 'Mode Clair',
-      colourTheme: 'THÈME COULEUR', account: 'COMPTE', logOut: 'Se Déconnecter',
-      deleteAccount: 'Supprimer le Compte', selectLanguage: 'Choisir la Langue', cancel: 'Annuler',
-      basics: 'Bases', style: 'Style', tryOn: 'Essayer',
-      fullName: 'Nom Complet', yourName: 'Votre nom', username: "Nom d'utilisateur", email: 'Email',
-      phone: 'Téléphone', dateOfBirth: 'Date de Naissance', gender: 'Genre', skinTone: 'Teinte de Peau',
-      shopPreferences: 'Préférences Boutique', bodyShape: 'Forme Corporelle',
+      myProfile: 'Mon Profil',
+      editProfile: 'Modifier le Profil',
+      preferences: 'PRÉFÉRENCES',
+      language: 'Langue',
+      location: 'Localisation',
+      appearance: 'APPARENCE',
+      mode: 'MODE',
+      darkMode: 'Mode Sombre',
+      lightMode: 'Mode Clair',
+      colourTheme: 'THÈME COULEUR',
+      account: 'COMPTE',
+      logOut: 'Se Déconnecter',
+      deleteAccount: 'Supprimer le Compte',
+      selectLanguage: 'Choisir la Langue',
+      cancel: 'Annuler',
+      basics: 'Bases',
+      style: 'Style',
+      tryOn: 'Essayer',
+      fullName: 'Nom Complet',
+      yourName: 'Votre nom',
+      username: "Nom d'utilisateur",
+      email: 'Email',
+      phone: 'Téléphone',
+      dateOfBirth: 'Date de Naissance',
+      gender: 'Genre',
+      skinTone: 'Teinte de Peau',
+      shopPreferences: 'Préférences Boutique',
+      bodyShape: 'Forme Corporelle',
       chooseStyles: 'Choisissez les styles qui vous correspondent ✨',
       tapToSelect: 'Appuyez pour sélectionner plusieurs',
       personalizedFitPreview: 'Aperçu Personnalisé',
-      personalizedFitBody: "Téléchargez une photo de visage et de corps pour l'essayage IA et les recommandations.",
-      enableTryOn: "Activer l'Essayage", uploadFacePhoto: 'Photo du Visage', uploadBodyPhoto: 'Photo du Corps',
-      uploaded: 'Téléchargé ✓', uploadPhoto: 'Télécharger une Photo',
+      personalizedFitBody:
+          "Téléchargez une photo de visage et de corps pour l'essayage IA et les recommandations.",
+      enableTryOn: "Activer l'Essayage",
+      uploadFacePhoto: 'Photo du Visage',
+      uploadBodyPhoto: 'Photo du Corps',
+      uploaded: 'Téléchargé ✓',
+      uploadPhoto: 'Télécharger une Photo',
       discardChanges: 'Annuler les Modifications?',
-      discardChangesBody: 'Vous avez des modifications non enregistrées. Si vous partez maintenant, elles seront perdues.',
-      discard: 'Annuler', keepEditing: 'Continuer à Modifier',
+      discardChangesBody:
+          'Vous avez des modifications non enregistrées. Si vous partez maintenant, elles seront perdues.',
+      discard: 'Annuler',
+      keepEditing: 'Continuer à Modifier',
       logOutTitle: 'Se Déconnecter?',
-      logOutBody: 'Êtes-vous sûr de vouloir vous déconnecter? Vous devrez vous reconnecter pour accéder à votre profil.',
+      logOutBody:
+          'Êtes-vous sûr de vouloir vous déconnecter? Vous devrez vous reconnecter pour accéder à votre profil.',
       logOutConfirm: 'Se Déconnecter',
       enableLocation: 'Activer la Localisation',
-      enableLocationBody: 'Autorisez l\'application à accéder à votre position pour afficher les magasins à proximité.',
-      enableLocationConfirm: 'Activer la Localisation', notNow: 'Pas Maintenant',
+      enableLocationBody:
+          'Autorisez l\'application à accéder à votre position pour afficher les magasins à proximité.',
+      enableLocationConfirm: 'Activer la Localisation',
+      notNow: 'Pas Maintenant',
       deleteAccountTitle: 'Supprimer le Compte?',
-      deleteAccountBody: 'Cela supprimera définitivement votre compte et toutes les données associées.',
+      deleteAccountBody:
+          'Cela supprimera définitivement votre compte et toutes les données associées.',
       deleteAccountConfirm: 'Supprimer le Compte',
-      profileUpdated: '✓ Profil mis à jour', photoUpdated: '✓ Photo mise à jour',
-      loggedOut: '👋 Déconnecté', accountDeleted: '🗑️ Compte supprimé',
+      profileUpdated: '✓ Profil mis à jour',
+      photoUpdated: '✓ Photo mise à jour',
+      loggedOut: '👋 Déconnecté',
+      accountDeleted: '🗑️ Compte supprimé',
       locationEnabled: '📍 Localisation activée',
-      themeSetTo: '✓ Thème défini sur', lightModeOn: '☀️ Mode clair activé', darkModeOn: '🌙 Mode sombre activé',
+      themeSetTo: '✓ Thème défini sur',
+      lightModeOn: '☀️ Mode clair activé',
+      darkModeOn: '🌙 Mode sombre activé',
       languageSetTo: '✓ Langue définie sur',
     ),
     'Spanish': AppStrings(
-      myProfile: 'Mi Perfil', editProfile: 'Editar Perfil',
-      preferences: 'PREFERENCIAS', language: 'Idioma', location: 'Ubicación',
-      appearance: 'APARIENCIA', mode: 'MODO', darkMode: 'Modo Oscuro', lightMode: 'Modo Claro',
-      colourTheme: 'TEMA DE COLOR', account: 'CUENTA', logOut: 'Cerrar Sesión',
-      deleteAccount: 'Eliminar Cuenta', selectLanguage: 'Seleccionar Idioma', cancel: 'Cancelar',
-      basics: 'Básicos', style: 'Estilo', tryOn: 'Probar',
-      fullName: 'Nombre Completo', yourName: 'Tu nombre', username: 'Nombre de Usuario', email: 'Correo',
-      phone: 'Teléfono', dateOfBirth: 'Fecha de Nacimiento', gender: 'Género', skinTone: 'Tono de Piel',
-      shopPreferences: 'Preferencias de Tienda', bodyShape: 'Forma Corporal',
+      myProfile: 'Mi Perfil',
+      editProfile: 'Editar Perfil',
+      preferences: 'PREFERENCIAS',
+      language: 'Idioma',
+      location: 'Ubicación',
+      appearance: 'APARIENCIA',
+      mode: 'MODO',
+      darkMode: 'Modo Oscuro',
+      lightMode: 'Modo Claro',
+      colourTheme: 'TEMA DE COLOR',
+      account: 'CUENTA',
+      logOut: 'Cerrar Sesión',
+      deleteAccount: 'Eliminar Cuenta',
+      selectLanguage: 'Seleccionar Idioma',
+      cancel: 'Cancelar',
+      basics: 'Básicos',
+      style: 'Estilo',
+      tryOn: 'Probar',
+      fullName: 'Nombre Completo',
+      yourName: 'Tu nombre',
+      username: 'Nombre de Usuario',
+      email: 'Correo',
+      phone: 'Teléfono',
+      dateOfBirth: 'Fecha de Nacimiento',
+      gender: 'Género',
+      skinTone: 'Tono de Piel',
+      shopPreferences: 'Preferencias de Tienda',
+      bodyShape: 'Forma Corporal',
       chooseStyles: 'Elige los estilos que van contigo ✨',
       tapToSelect: 'Toca para seleccionar varios',
       personalizedFitPreview: 'Vista Previa Personalizada',
-      personalizedFitBody: 'Sube una foto de cara y cuerpo para el probador IA y recomendaciones.',
-      enableTryOn: 'Activar Probador', uploadFacePhoto: 'Foto de Cara', uploadBodyPhoto: 'Foto de Cuerpo',
-      uploaded: 'Subido ✓', uploadPhoto: 'Subir Foto',
+      personalizedFitBody:
+          'Sube una foto de cara y cuerpo para el probador IA y recomendaciones.',
+      enableTryOn: 'Activar Probador',
+      uploadFacePhoto: 'Foto de Cara',
+      uploadBodyPhoto: 'Foto de Cuerpo',
+      uploaded: 'Subido ✓',
+      uploadPhoto: 'Subir Foto',
       discardChanges: '¿Descartar Cambios?',
-      discardChangesBody: 'Tienes cambios sin guardar. Si te vas ahora, se perderán.',
-      discard: 'Descartar', keepEditing: 'Seguir Editando',
+      discardChangesBody:
+          'Tienes cambios sin guardar. Si te vas ahora, se perderán.',
+      discard: 'Descartar',
+      keepEditing: 'Seguir Editando',
       logOutTitle: '¿Cerrar Sesión?',
-      logOutBody: '¿Estás seguro de que quieres cerrar sesión? Deberás iniciar sesión de nuevo para acceder a tu perfil.',
+      logOutBody:
+          '¿Estás seguro de que quieres cerrar sesión? Deberás iniciar sesión de nuevo para acceder a tu perfil.',
       logOutConfirm: 'Cerrar Sesión',
       enableLocation: 'Activar Ubicación',
-      enableLocationBody: 'Permite que la app acceda a tu ubicación para mostrar tiendas cercanas y recomendaciones.',
-      enableLocationConfirm: 'Activar Ubicación', notNow: 'Ahora No',
+      enableLocationBody:
+          'Permite que la app acceda a tu ubicación para mostrar tiendas cercanas y recomendaciones.',
+      enableLocationConfirm: 'Activar Ubicación',
+      notNow: 'Ahora No',
       deleteAccountTitle: '¿Eliminar Cuenta?',
-      deleteAccountBody: 'Esto eliminará permanentemente tu cuenta y todos los datos asociados.',
+      deleteAccountBody:
+          'Esto eliminará permanentemente tu cuenta y todos los datos asociados.',
       deleteAccountConfirm: 'Eliminar Cuenta',
-      profileUpdated: '✓ Perfil actualizado', photoUpdated: '✓ Foto actualizada',
-      loggedOut: '👋 Sesión cerrada', accountDeleted: '🗑️ Cuenta eliminada',
+      profileUpdated: '✓ Perfil actualizado',
+      photoUpdated: '✓ Foto actualizada',
+      loggedOut: '👋 Sesión cerrada',
+      accountDeleted: '🗑️ Cuenta eliminada',
       locationEnabled: '📍 Ubicación activada',
-      themeSetTo: '✓ Tema establecido en', lightModeOn: '☀️ Modo claro activado', darkModeOn: '🌙 Modo oscuro activado',
+      themeSetTo: '✓ Tema establecido en',
+      lightModeOn: '☀️ Modo claro activado',
+      darkModeOn: '🌙 Modo oscuro activado',
       languageSetTo: '✓ Idioma establecido en',
     ),
     'German': AppStrings(
-      myProfile: 'Mein Profil', editProfile: 'Profil Bearbeiten',
-      preferences: 'EINSTELLUNGEN', language: 'Sprache', location: 'Standort',
-      appearance: 'AUSSEHEN', mode: 'MODUS', darkMode: 'Dunkelmodus', lightMode: 'Hellmodus',
-      colourTheme: 'FARBTHEMA', account: 'KONTO', logOut: 'Abmelden',
-      deleteAccount: 'Konto Löschen', selectLanguage: 'Sprache Auswählen', cancel: 'Abbrechen',
-      basics: 'Grundlagen', style: 'Stil', tryOn: 'Anprobieren',
-      fullName: 'Vollständiger Name', yourName: 'Ihr Name', username: 'Benutzername', email: 'E-Mail',
-      phone: 'Telefon', dateOfBirth: 'Geburtsdatum', gender: 'Geschlecht', skinTone: 'Hautton',
-      shopPreferences: 'Shop-Präferenzen', bodyShape: 'Körperform',
+      myProfile: 'Mein Profil',
+      editProfile: 'Profil Bearbeiten',
+      preferences: 'EINSTELLUNGEN',
+      language: 'Sprache',
+      location: 'Standort',
+      appearance: 'AUSSEHEN',
+      mode: 'MODUS',
+      darkMode: 'Dunkelmodus',
+      lightMode: 'Hellmodus',
+      colourTheme: 'FARBTHEMA',
+      account: 'KONTO',
+      logOut: 'Abmelden',
+      deleteAccount: 'Konto Löschen',
+      selectLanguage: 'Sprache Auswählen',
+      cancel: 'Abbrechen',
+      basics: 'Grundlagen',
+      style: 'Stil',
+      tryOn: 'Anprobieren',
+      fullName: 'Vollständiger Name',
+      yourName: 'Ihr Name',
+      username: 'Benutzername',
+      email: 'E-Mail',
+      phone: 'Telefon',
+      dateOfBirth: 'Geburtsdatum',
+      gender: 'Geschlecht',
+      skinTone: 'Hautton',
+      shopPreferences: 'Shop-Präferenzen',
+      bodyShape: 'Körperform',
       chooseStyles: 'Wählen Sie Stile, die zu Ihnen passen ✨',
       tapToSelect: 'Tippen, um mehrere auszuwählen',
       personalizedFitPreview: 'Personalisierte Vorschau',
-      personalizedFitBody: 'Laden Sie ein Gesichts- und Körperfoto für KI-Anprobe und Empfehlungen hoch.',
-      enableTryOn: 'Anprobe aktivieren', uploadFacePhoto: 'Gesichtsfoto', uploadBodyPhoto: 'Körperfoto',
-      uploaded: 'Hochgeladen ✓', uploadPhoto: 'Foto hochladen',
+      personalizedFitBody:
+          'Laden Sie ein Gesichts- und Körperfoto für KI-Anprobe und Empfehlungen hoch.',
+      enableTryOn: 'Anprobe aktivieren',
+      uploadFacePhoto: 'Gesichtsfoto',
+      uploadBodyPhoto: 'Körperfoto',
+      uploaded: 'Hochgeladen ✓',
+      uploadPhoto: 'Foto hochladen',
       discardChanges: 'Änderungen verwerfen?',
-      discardChangesBody: 'Sie haben ungespeicherte Änderungen. Wenn Sie jetzt gehen, gehen sie verloren.',
-      discard: 'Verwerfen', keepEditing: 'Weiter Bearbeiten',
+      discardChangesBody:
+          'Sie haben ungespeicherte Änderungen. Wenn Sie jetzt gehen, gehen sie verloren.',
+      discard: 'Verwerfen',
+      keepEditing: 'Weiter Bearbeiten',
       logOutTitle: 'Abmelden?',
-      logOutBody: 'Möchten Sie sich wirklich abmelden? Sie müssen sich erneut anmelden, um auf Ihr Profil zuzugreifen.',
+      logOutBody:
+          'Möchten Sie sich wirklich abmelden? Sie müssen sich erneut anmelden, um auf Ihr Profil zuzugreifen.',
       logOutConfirm: 'Abmelden',
       enableLocation: 'Standort Aktivieren',
-      enableLocationBody: 'Erlauben Sie der App den Zugriff auf Ihren Standort für nahegelegene Geschäfte und Empfehlungen.',
-      enableLocationConfirm: 'Standort Aktivieren', notNow: 'Nicht Jetzt',
+      enableLocationBody:
+          'Erlauben Sie der App den Zugriff auf Ihren Standort für nahegelegene Geschäfte und Empfehlungen.',
+      enableLocationConfirm: 'Standort Aktivieren',
+      notNow: 'Nicht Jetzt',
       deleteAccountTitle: 'Konto Löschen?',
-      deleteAccountBody: 'Dadurch wird Ihr Konto und alle zugehörigen Daten dauerhaft gelöscht.',
+      deleteAccountBody:
+          'Dadurch wird Ihr Konto und alle zugehörigen Daten dauerhaft gelöscht.',
       deleteAccountConfirm: 'Konto Löschen',
-      profileUpdated: '✓ Profil aktualisiert', photoUpdated: '✓ Foto aktualisiert',
-      loggedOut: '👋 Abgemeldet', accountDeleted: '🗑️ Konto gelöscht',
+      profileUpdated: '✓ Profil aktualisiert',
+      photoUpdated: '✓ Foto aktualisiert',
+      loggedOut: '👋 Abgemeldet',
+      accountDeleted: '🗑️ Konto gelöscht',
       locationEnabled: '📍 Standort aktiviert',
-      themeSetTo: '✓ Thema gesetzt auf', lightModeOn: '☀️ Hellmodus aktiviert', darkModeOn: '🌙 Dunkelmodus aktiviert',
+      themeSetTo: '✓ Thema gesetzt auf',
+      lightModeOn: '☀️ Hellmodus aktiviert',
+      darkModeOn: '🌙 Dunkelmodus aktiviert',
       languageSetTo: '✓ Sprache gesetzt auf',
     ),
     'Arabic': AppStrings(
-      myProfile: 'ملفي الشخصي', editProfile: 'تعديل الملف الشخصي',
-      preferences: 'التفضيلات', language: 'اللغة', location: 'الموقع',
-      appearance: 'المظهر', mode: 'الوضع', darkMode: 'الوضع المظلم', lightMode: 'الوضع الفاتح',
-      colourTheme: 'نظام الألوان', account: 'الحساب', logOut: 'تسجيل الخروج',
-      deleteAccount: 'حذف الحساب', selectLanguage: 'اختر اللغة', cancel: 'إلغاء',
-      basics: 'الأساسيات', style: 'الأسلوب', tryOn: 'تجربة',
-      fullName: 'الاسم الكامل', yourName: 'اسمك', username: 'اسم المستخدم', email: 'البريد الإلكتروني',
-      phone: 'الهاتف', dateOfBirth: 'تاريخ الميلاد', gender: 'الجنس', skinTone: 'لون البشرة',
-      shopPreferences: 'تفضيلات التسوق', bodyShape: 'شكل الجسم',
+      myProfile: 'ملفي الشخصي',
+      editProfile: 'تعديل الملف الشخصي',
+      preferences: 'التفضيلات',
+      language: 'اللغة',
+      location: 'الموقع',
+      appearance: 'المظهر',
+      mode: 'الوضع',
+      darkMode: 'الوضع المظلم',
+      lightMode: 'الوضع الفاتح',
+      colourTheme: 'نظام الألوان',
+      account: 'الحساب',
+      logOut: 'تسجيل الخروج',
+      deleteAccount: 'حذف الحساب',
+      selectLanguage: 'اختر اللغة',
+      cancel: 'إلغاء',
+      basics: 'الأساسيات',
+      style: 'الأسلوب',
+      tryOn: 'تجربة',
+      fullName: 'الاسم الكامل',
+      yourName: 'اسمك',
+      username: 'اسم المستخدم',
+      email: 'البريد الإلكتروني',
+      phone: 'الهاتف',
+      dateOfBirth: 'تاريخ الميلاد',
+      gender: 'الجنس',
+      skinTone: 'لون البشرة',
+      shopPreferences: 'تفضيلات التسوق',
+      bodyShape: 'شكل الجسم',
       chooseStyles: 'اختر الأساليب التي تناسبك ✨',
       tapToSelect: 'اضغط لاختيار أكثر من واحد',
       personalizedFitPreview: 'معاينة مخصصة',
-      personalizedFitBody: 'ارفع صورة وجه وجسم لتجربة ملابس بالذكاء الاصطناعي والتوصيات.',
-      enableTryOn: 'تفعيل التجربة', uploadFacePhoto: 'صورة الوجه', uploadBodyPhoto: 'صورة الجسم',
-      uploaded: 'تم الرفع ✓', uploadPhoto: 'ارفع صورة',
+      personalizedFitBody:
+          'ارفع صورة وجه وجسم لتجربة ملابس بالذكاء الاصطناعي والتوصيات.',
+      enableTryOn: 'تفعيل التجربة',
+      uploadFacePhoto: 'صورة الوجه',
+      uploadBodyPhoto: 'صورة الجسم',
+      uploaded: 'تم الرفع ✓',
+      uploadPhoto: 'ارفع صورة',
       discardChanges: 'تجاهل التغييرات؟',
       discardChangesBody: 'لديك تغييرات غير محفوظة. إذا غادرت الآن ستفقدها.',
-      discard: 'تجاهل', keepEditing: 'متابعة التعديل',
+      discard: 'تجاهل',
+      keepEditing: 'متابعة التعديل',
       logOutTitle: 'تسجيل الخروج؟',
-      logOutBody: 'هل أنت متأكد من تسجيل الخروج؟ ستحتاج إلى تسجيل الدخول مرة أخرى.',
+      logOutBody:
+          'هل أنت متأكد من تسجيل الخروج؟ ستحتاج إلى تسجيل الدخول مرة أخرى.',
       logOutConfirm: 'تسجيل الخروج',
       enableLocation: 'تفعيل الموقع',
-      enableLocationBody: 'اسمح للتطبيق بالوصول إلى موقعك لعرض المتاجر القريبة والتوصيات.',
-      enableLocationConfirm: 'تفعيل الموقع', notNow: 'ليس الآن',
+      enableLocationBody:
+          'اسمح للتطبيق بالوصول إلى موقعك لعرض المتاجر القريبة والتوصيات.',
+      enableLocationConfirm: 'تفعيل الموقع',
+      notNow: 'ليس الآن',
       deleteAccountTitle: 'حذف الحساب؟',
-      deleteAccountBody: 'سيؤدي هذا إلى حذف حسابك وجميع بياناتك نهائياً. لا يمكن التراجع عن هذا الإجراء.',
+      deleteAccountBody:
+          'سيؤدي هذا إلى حذف حسابك وجميع بياناتك نهائياً. لا يمكن التراجع عن هذا الإجراء.',
       deleteAccountConfirm: 'حذف الحساب',
-      profileUpdated: '✓ تم تحديث الملف الشخصي', photoUpdated: '✓ تم تحديث الصورة',
-      loggedOut: '👋 تم تسجيل الخروج', accountDeleted: '🗑️ تم حذف الحساب',
+      profileUpdated: '✓ تم تحديث الملف الشخصي',
+      photoUpdated: '✓ تم تحديث الصورة',
+      loggedOut: '👋 تم تسجيل الخروج',
+      accountDeleted: '🗑️ تم حذف الحساب',
       locationEnabled: '📍 تم تفعيل الموقع',
-      themeSetTo: '✓ تم ضبط الثيم على', lightModeOn: '☀️ الوضع الفاتح', darkModeOn: '🌙 الوضع المظلم',
+      themeSetTo: '✓ تم ضبط الثيم على',
+      lightModeOn: '☀️ الوضع الفاتح',
+      darkModeOn: '🌙 الوضع المظلم',
       languageSetTo: '✓ تم ضبط اللغة على',
     ),
     'Japanese': AppStrings(
-      myProfile: 'マイプロフィール', editProfile: 'プロフィール編集',
-      preferences: '設定', language: '言語', location: '位置情報',
-      appearance: '外観', mode: 'モード', darkMode: 'ダークモード', lightMode: 'ライトモード',
-      colourTheme: 'カラーテーマ', account: 'アカウント', logOut: 'ログアウト',
-      deleteAccount: 'アカウント削除', selectLanguage: '言語を選択', cancel: 'キャンセル',
-      basics: '基本', style: 'スタイル', tryOn: '試着',
-      fullName: 'フルネーム', yourName: 'あなたの名前', username: 'ユーザー名', email: 'メール',
-      phone: '電話', dateOfBirth: '生年月日', gender: '性別', skinTone: '肌のトーン',
-      shopPreferences: 'ショップ設定', bodyShape: '体型',
+      myProfile: 'マイプロフィール',
+      editProfile: 'プロフィール編集',
+      preferences: '設定',
+      language: '言語',
+      location: '位置情報',
+      appearance: '外観',
+      mode: 'モード',
+      darkMode: 'ダークモード',
+      lightMode: 'ライトモード',
+      colourTheme: 'カラーテーマ',
+      account: 'アカウント',
+      logOut: 'ログアウト',
+      deleteAccount: 'アカウント削除',
+      selectLanguage: '言語を選択',
+      cancel: 'キャンセル',
+      basics: '基本',
+      style: 'スタイル',
+      tryOn: '試着',
+      fullName: 'フルネーム',
+      yourName: 'あなたの名前',
+      username: 'ユーザー名',
+      email: 'メール',
+      phone: '電話',
+      dateOfBirth: '生年月日',
+      gender: '性別',
+      skinTone: '肌のトーン',
+      shopPreferences: 'ショップ設定',
+      bodyShape: '体型',
       chooseStyles: 'あなたに合うスタイルを選んでください ✨',
       tapToSelect: 'タップして複数選択',
       personalizedFitPreview: 'パーソナライズフィットプレビュー',
       personalizedFitBody: 'AI試着とおすすめのために顔と体の写真をアップロードしてください。',
-      enableTryOn: '試着を有効にする', uploadFacePhoto: '顔写真', uploadBodyPhoto: '体写真',
-      uploaded: 'アップロード済み ✓', uploadPhoto: '写真をアップロード',
+      enableTryOn: '試着を有効にする',
+      uploadFacePhoto: '顔写真',
+      uploadBodyPhoto: '体写真',
+      uploaded: 'アップロード済み ✓',
+      uploadPhoto: '写真をアップロード',
       discardChanges: '変更を破棄しますか？',
       discardChangesBody: '未保存の変更があります。今離れると変更が失われます。',
-      discard: '破棄', keepEditing: '編集を続ける',
+      discard: '破棄',
+      keepEditing: '編集を続ける',
       logOutTitle: 'ログアウトしますか？',
       logOutBody: 'ログアウトしてもよいですか？再度アクセスするにはサインインが必要です。',
       logOutConfirm: 'ログアウト',
       enableLocation: '位置情報を有効にする',
       enableLocationBody: '近くの店舗やおすすめを表示するために位置情報へのアクセスを許可してください。',
-      enableLocationConfirm: '位置情報を有効にする', notNow: '後で',
+      enableLocationConfirm: '位置情報を有効にする',
+      notNow: '後で',
       deleteAccountTitle: 'アカウントを削除しますか？',
       deleteAccountBody: 'アカウントと関連データが完全に削除されます。この操作は取り消せません。',
       deleteAccountConfirm: 'アカウントを削除',
-      profileUpdated: '✓ プロフィールを更新しました', photoUpdated: '✓ 写真を更新しました',
-      loggedOut: '👋 ログアウトしました', accountDeleted: '🗑️ アカウントを削除しました',
+      profileUpdated: '✓ プロフィールを更新しました',
+      photoUpdated: '✓ 写真を更新しました',
+      loggedOut: '👋 ログアウトしました',
+      accountDeleted: '🗑️ アカウントを削除しました',
       locationEnabled: '📍 位置情報を有効にしました',
-      themeSetTo: '✓ テーマを設定しました:', lightModeOn: '☀️ ライトモード ON', darkModeOn: '🌙 ダークモード ON',
+      themeSetTo: '✓ テーマを設定しました:',
+      lightModeOn: '☀️ ライトモード ON',
+      darkModeOn: '🌙 ダークモード ON',
       languageSetTo: '✓ 言語を設定しました:',
     ),
   };
 }
 
 const List<Color> kSkinTones = [
-  Color(0xFFFDDBB4), Color(0xFFF5C6A0), Color(0xFFE8A87C),
-  Color(0xFFC68642), Color(0xFF8D5524), Color(0xFF4A2912),
-  Color(0xFF2C1A0E), Color(0xFF1A0D07),
+  Color(0xFFFDDBB4),
+  Color(0xFFF5C6A0),
+  Color(0xFFE8A87C),
+  Color(0xFFC68642),
+  Color(0xFF8D5524),
+  Color(0xFF4A2912),
+  Color(0xFF2C1A0E),
+  Color(0xFF1A0D07),
 ];
 
 const List<Map<String, String>> kStyleCards = [
   {'label': 'Clean Minimal', 'img': 'assets/styles/clean_minimal.png'},
-  {'label': 'Soft Elegant',  'img': 'assets/styles/soft_elegant.png'},
-  {'label': 'Street Cool',   'img': 'assets/styles/street_cool.png'},
-  {'label': 'Boho Artisanal','img': 'assets/styles/boho_artisinal.png'},
-  {'label': 'Party Glam',    'img': 'assets/styles/party_galm.png'},
-  {'label': 'Formal Chic',   'img': 'assets/styles/formal_chic.png'},
+  {'label': 'Soft Elegant', 'img': 'assets/styles/soft_elegant.png'},
+  {'label': 'Street Cool', 'img': 'assets/styles/street_cool.png'},
+  {'label': 'Boho Artisanal', 'img': 'assets/styles/boho_artisinal.png'},
+  {'label': 'Party Glam', 'img': 'assets/styles/party_galm.png'},
+  {'label': 'Formal Chic', 'img': 'assets/styles/formal_chic.png'},
 ];
 
 const List<Map<String, String>> kShopPrefs = [
-  {'label': 'Women',      'gender': 'women', 'img': 'assets/shop/women.jpg'},
-  {'label': 'Men',        'gender': 'men',   'img': 'assets/shop/men.jpg'},
-  {'label': 'Accessories','gender': 'both',  'img': 'assets/shop/accessories.jpg'},
-  {'label': 'Ethnic',     'gender': 'both',  'img': 'assets/shop/ethnic.jpg'},
+  {'label': 'Women', 'gender': 'women', 'img': 'assets/shop/women.jpg'},
+  {'label': 'Men', 'gender': 'men', 'img': 'assets/shop/men.jpg'},
+  {
+    'label': 'Accessories',
+    'gender': 'both',
+    'img': 'assets/shop/accessories.jpg',
+  },
+  {'label': 'Ethnic', 'gender': 'both', 'img': 'assets/shop/ethnic.jpg'},
 ];
 
 const Map<String, List<Map<String, String>>> kBodyShapes = {
   'women': [
     {'name': 'Hourglass', 'img': 'assets/body_shapes/women_hourglass.jpeg'},
-    {'name': 'Apple',     'img': 'assets/body_shapes/women_apple.jpeg'},
+    {'name': 'Apple', 'img': 'assets/body_shapes/women_apple.jpeg'},
     {'name': 'Rectangle', 'img': 'assets/body_shapes/women_rectangle.jpeg'},
-    {'name': 'Inverted',  'img': 'assets/body_shapes/women_inverted.jpeg'},
-    {'name': 'Pear',      'img': 'assets/body_shapes/women_pear.jpeg'},
+    {'name': 'Inverted', 'img': 'assets/body_shapes/women_inverted.jpeg'},
+    {'name': 'Pear', 'img': 'assets/body_shapes/women_pear.jpeg'},
   ],
   'men': [
-    {'name': 'Traingle',  'img': 'assets/body_shapes/men_traingle.jpeg'},
+    {'name': 'Traingle', 'img': 'assets/body_shapes/men_traingle.jpeg'},
     {'name': 'Rectangle', 'img': 'assets/body_shapes/men_rectangle.jpeg'},
-    {'name': 'Oval',      'img': 'assets/body_shapes/men_oval.jpeg'},
-    {'name': 'Inverted',  'img': 'assets/body_shapes/men_inverted.jpeg'},
+    {'name': 'Oval', 'img': 'assets/body_shapes/men_oval.jpeg'},
+    {'name': 'Inverted', 'img': 'assets/body_shapes/men_inverted.jpeg'},
     {'name': 'Trapezoid', 'img': 'assets/body_shapes/men_trapezoid.jpeg'},
   ],
 };
@@ -850,10 +1271,7 @@ class ProfileController extends ChangeNotifier {
   /// Call this right after a successful Google / Apple / Email login.
   /// Pulls the display name and email from the Appwrite account object
   /// so the profile never shows the "New User" placeholder.
-  void loadFromAccount({
-    required String? name,
-    required String? email,
-  }) {
+  void loadFromAccount({required String? name, required String? email}) {
     final resolvedName = (name != null && name.trim().isNotEmpty)
         ? name.trim()
         : _state.name;
@@ -862,7 +1280,8 @@ class ProfileController extends ChangeNotifier {
         : _state.email;
 
     // Derive a username from the display name if still at the placeholder
-    final resolvedUsername = _state.username == '@username' && resolvedName != 'New User'
+    final resolvedUsername =
+        _state.username == '@username' && resolvedName != 'New User'
         ? '@${resolvedName.toLowerCase().replaceAll(' ', '_')}'
         : _state.username;
 
@@ -903,7 +1322,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  void _syncTheme(BuildContext context, ProfileState newState, ProfileState oldState) {
+  void _syncTheme(
+    BuildContext context,
+    ProfileState newState,
+    ProfileState oldState,
+  ) {
     try {
       final themeCtrl = Provider.of<ThemeController>(context, listen: false);
 
@@ -928,7 +1351,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 }
 
-
 class ProfilePage extends StatefulWidget {
   final ProfileState state;
   final ThemeColors colors;
@@ -945,28 +1367,42 @@ class ProfilePage extends StatefulWidget {
   State<ProfilePage> createState() => _ProfilePageState();
 }
 
-class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStateMixin {
+class _ProfilePageState extends State<ProfilePage>
+    with SingleTickerProviderStateMixin {
   bool _showEdit = false;
 
   ProfileState get s => context.read<ProfileController>().state;
   ThemeColors get c => themeMap[s.theme]!;
 
   Color get _bg => s.isDark ? const Color(0xFF0D0E14) : const Color(0xFFF4F4F8);
-  Color get _bg2 => s.isDark ? const Color(0xFF13141C) : const Color(0xFFECECF4);
-  Color get _panel => s.isDark ? const Color(0xFF1A1C26) : const Color(0xFFE6E7F0);
+  Color get _bg2 =>
+      s.isDark ? const Color(0xFF13141C) : const Color(0xFFECECF4);
+  Color get _panel =>
+      s.isDark ? const Color(0xFF1A1C26) : const Color(0xFFE6E7F0);
   Color get _card => s.isDark ? const Color(0xFF181922) : Colors.white;
-  Color get _cardBorder => s.isDark ? Colors.white.withOpacity(0.07) : Colors.black.withOpacity(0.07);
-  Color get _textPrimary => s.isDark ? const Color(0xFFF0F0F8) : const Color(0xFF18192A);
+  Color get _cardBorder => s.isDark
+      ? Colors.white.withOpacity(0.07)
+      : Colors.black.withOpacity(0.07);
+  Color get _textPrimary =>
+      s.isDark ? const Color(0xFFF0F0F8) : const Color(0xFF18192A);
   Color get _textMuted => s.isDark
       ? const Color(0xFFB4B6D2).withOpacity(0.65)
       : const Color(0xFF50526E).withOpacity(0.65);
-  Color get _danger => s.isDark ? const Color(0xFFF06080) : const Color(0xFFD94060);
+  Color get _danger =>
+      s.isDark ? const Color(0xFFF06080) : const Color(0xFFD94060);
 
   void _showToast(String msg) {
     ScaffoldMessenger.of(context).clearSnackBars();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(msg, style: TextStyle(color: _textPrimary, fontSize: 13, fontWeight: FontWeight.w500)),
+        content: Text(
+          msg,
+          style: TextStyle(
+            color: _textPrimary,
+            fontSize: 13,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
         backgroundColor: _bg2,
         shape: const StadiumBorder(),
         behavior: SnackBarBehavior.floating,
@@ -977,7 +1413,9 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
 
   void _update(ProfileState newState) {
     widget.onStateChange(newState);
-    setState(() {}); // force rebuild so language/theme changes reflect immediately
+    setState(
+      () {},
+    ); // force rebuild so language/theme changes reflect immediately
   }
 
   @override
@@ -993,9 +1431,13 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
                   key: const ValueKey('edit'),
                   state: s,
                   colors: c,
-                  bg: _bg, bg2: _bg2, panel: _panel, card: _card,
+                  bg: _bg,
+                  bg2: _bg2,
+                  panel: _panel,
+                  card: _card,
                   cardBorder: _cardBorder,
-                  textPrimary: _textPrimary, textMuted: _textMuted,
+                  textPrimary: _textPrimary,
+                  textMuted: _textMuted,
                   onSave: (newState) {
                     _update(newState);
                     setState(() => _showEdit = false);
@@ -1008,9 +1450,13 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
                   key: const ValueKey('profile'),
                   state: s,
                   colors: c,
-                  bg: _bg, bg2: _bg2, panel: _panel, card: _card,
+                  bg: _bg,
+                  bg2: _bg2,
+                  panel: _panel,
+                  card: _card,
                   cardBorder: _cardBorder,
-                  textPrimary: _textPrimary, textMuted: _textMuted,
+                  textPrimary: _textPrimary,
+                  textMuted: _textMuted,
                   danger: _danger,
                   onEditTap: () => setState(() => _showEdit = true),
                   onStateChange: _update,
@@ -1038,9 +1484,14 @@ class _ProfileView extends StatelessWidget {
     super.key,
     required this.state,
     required this.colors,
-    required this.bg, required this.bg2, required this.panel,
-    required this.card, required this.cardBorder,
-    required this.textPrimary, required this.textMuted, required this.danger,
+    required this.bg,
+    required this.bg2,
+    required this.panel,
+    required this.card,
+    required this.cardBorder,
+    required this.textPrimary,
+    required this.textMuted,
+    required this.danger,
     required this.onEditTap,
     required this.onStateChange,
     required this.onToast,
@@ -1057,12 +1508,23 @@ class _ProfileView extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(22, 12, 22, 12),
             child: Row(
               children: [
-                _HeaderBtn(icon: '‹', bg: panel, border: cardBorder, textMuted: textMuted,
-                    onTap: () => Navigator.maybePop(context)),
+                _HeaderBtn(
+                  icon: '‹',
+                  bg: panel,
+                  border: cardBorder,
+                  textMuted: textMuted,
+                  onTap: () => Navigator.maybePop(context),
+                ),
                 const Spacer(),
-                Text(t.myProfile,
-                    style: TextStyle(color: textPrimary, fontSize: 17, fontWeight: FontWeight.w600,
-                        letterSpacing: -0.5)),
+                Text(
+                  t.myProfile,
+                  style: TextStyle(
+                    color: textPrimary,
+                    fontSize: 17,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: -0.5,
+                  ),
+                ),
                 const Spacer(),
                 const SizedBox(width: 36),
               ],
@@ -1081,17 +1543,32 @@ class _ProfileView extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(vertical: 28),
                       child: Column(
                         children: [
-                          _AvatarWidget(state: state, colors: colors, bg: bg, bg2: bg2,
-                              size: 92, onPickImage: null),
+                          _AvatarWidget(
+                            state: state,
+                            colors: colors,
+                            bg: bg,
+                            bg2: bg2,
+                            size: 92,
+                            onPickImage: null,
+                          ),
                           const SizedBox(height: 16),
-                          Text(state.name,
-                              style: TextStyle(color: textPrimary, fontSize: 24,
-                                  fontWeight: FontWeight.w600, letterSpacing: -0.7)),
+                          Text(
+                            state.name,
+                            style: TextStyle(
+                              color: textPrimary,
+                              fontSize: 24,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: -0.7,
+                            ),
+                          ),
                           const SizedBox(height: 20),
                           GestureDetector(
                             onTap: onEditTap,
                             child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 12),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 30,
+                                vertical: 12,
+                              ),
                               decoration: BoxDecoration(
                                 gradient: LinearGradient(
                                   colors: [colors.accent1, colors.accent2],
@@ -1100,19 +1577,33 @@ class _ProfileView extends StatelessWidget {
                                 ),
                                 borderRadius: BorderRadius.circular(100),
                                 boxShadow: [
-                                  BoxShadow(color: colors.accent1.withOpacity(0.3),
-                                      blurRadius: 28, offset: const Offset(0, 8)),
+                                  BoxShadow(
+                                    color: colors.accent1.withOpacity(0.3),
+                                    blurRadius: 28,
+                                    offset: const Offset(0, 8),
+                                  ),
                                 ],
                               ),
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  Text('✎', style: TextStyle(color: textPrimary, fontSize: 11)),
+                                  Text(
+                                    '✎',
+                                    style: TextStyle(
+                                      color: textPrimary,
+                                      fontSize: 11,
+                                    ),
+                                  ),
                                   const SizedBox(width: 8),
-                                  Text(t.editProfile,
-                                      style: TextStyle(color: textPrimary,
-                                          fontSize: 13.5, fontWeight: FontWeight.w600,
-                                          letterSpacing: 0.4)),
+                                  Text(
+                                    t.editProfile,
+                                    style: TextStyle(
+                                      color: textPrimary,
+                                      fontSize: 13.5,
+                                      fontWeight: FontWeight.w600,
+                                      letterSpacing: 0.4,
+                                    ),
+                                  ),
                                 ],
                               ),
                             ),
@@ -1124,20 +1615,34 @@ class _ProfileView extends StatelessWidget {
 
                   // Preferences Section
                   _SectionLabel(label: t.preferences, textMuted: textMuted),
-                  _SectionGroup(children: [
-                    _ListItem(
-                      icon: '🌐', iconAccent: true, label: t.language,
-                      meta: state.lang, colors: colors, card: card,
-                      cardBorder: cardBorder, textPrimary: textPrimary, textMuted: textMuted,
-                      onTap: () => _showLanguageModal(context, t),
-                    ),
-                    _ListItem(
-                      icon: '📍', iconAccent: true, label: t.location,
-                      meta: state.locationLabel, colors: colors, card: card,
-                      cardBorder: cardBorder, textPrimary: textPrimary, textMuted: textMuted,
-                      onTap: () => _showLocationModal(context, t),
-                    ),
-                  ]),
+                  _SectionGroup(
+                    children: [
+                      _ListItem(
+                        icon: '🌐',
+                        iconAccent: true,
+                        label: t.language,
+                        meta: state.lang,
+                        colors: colors,
+                        card: card,
+                        cardBorder: cardBorder,
+                        textPrimary: textPrimary,
+                        textMuted: textMuted,
+                        onTap: () => _showLanguageModal(context, t),
+                      ),
+                      _ListItem(
+                        icon: '📍',
+                        iconAccent: true,
+                        label: t.location,
+                        meta: state.locationLabel,
+                        colors: colors,
+                        card: card,
+                        cardBorder: cardBorder,
+                        textPrimary: textPrimary,
+                        textMuted: textMuted,
+                        onTap: () => _showLocationModal(context, t),
+                      ),
+                    ],
+                  ),
 
                   // Appearance Section
                   _SectionLabel(label: t.appearance, textMuted: textMuted),
@@ -1153,32 +1658,57 @@ class _ProfileView extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(t.mode, style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w700,
-                              color: textMuted, letterSpacing: 1.3)),
+                          Text(
+                            t.mode,
+                            style: TextStyle(
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.w700,
+                              color: textMuted,
+                              letterSpacing: 1.3,
+                            ),
+                          ),
                           const SizedBox(height: 12),
                           Consumer<ThemeController>(
                             builder: (context, themeCtrl, _) {
                               return SegmentedButton<ThemeMode>(
                                 style: ButtonStyle(
-                                  backgroundColor: WidgetStateProperty.resolveWith((states) {
-                                    if (states.contains(WidgetState.selected)) return colors.accent1.withOpacity(0.18);
-                                    return Colors.transparent;
-                                  }),
-                                  foregroundColor: WidgetStateProperty.resolveWith((states) {
-                                    if (states.contains(WidgetState.selected)) return colors.accent1;
-                                    return textMuted;
-                                  }),
-                                  side: WidgetStatePropertyAll(BorderSide(color: cardBorder)),
+                                  backgroundColor:
+                                      WidgetStateProperty.resolveWith((states) {
+                                        if (states.contains(
+                                          WidgetState.selected,
+                                        ))
+                                          return colors.accent1.withOpacity(
+                                            0.18,
+                                          );
+                                        return Colors.transparent;
+                                      }),
+                                  foregroundColor:
+                                      WidgetStateProperty.resolveWith((states) {
+                                        if (states.contains(
+                                          WidgetState.selected,
+                                        ))
+                                          return colors.accent1;
+                                        return textMuted;
+                                      }),
+                                  side: WidgetStatePropertyAll(
+                                    BorderSide(color: cardBorder),
+                                  ),
                                 ),
                                 segments: const [
                                   ButtonSegment(
                                     value: ThemeMode.light,
-                                    label: Text('Light', style: TextStyle(fontSize: 12)),
+                                    label: Text(
+                                      'Light',
+                                      style: TextStyle(fontSize: 12),
+                                    ),
                                     icon: Icon(Icons.light_mode, size: 15),
                                   ),
                                   ButtonSegment(
                                     value: ThemeMode.dark,
-                                    label: Text('Dark', style: TextStyle(fontSize: 12)),
+                                    label: Text(
+                                      'Dark',
+                                      style: TextStyle(fontSize: 12),
+                                    ),
                                     icon: Icon(Icons.dark_mode, size: 15),
                                   ),
                                 ],
@@ -1190,7 +1720,9 @@ class _ProfileView extends StatelessWidget {
                                     onStateChange(state.copyWith(isDark: true));
                                     onToast('🌙 Dark mode on');
                                   } else if (mode == ThemeMode.light) {
-                                    onStateChange(state.copyWith(isDark: false));
+                                    onStateChange(
+                                      state.copyWith(isDark: false),
+                                    );
                                     onToast('☀️ Light mode on');
                                   }
                                 },
@@ -1198,17 +1730,32 @@ class _ProfileView extends StatelessWidget {
                             },
                           ),
                           const SizedBox(height: 16),
-                          Text(t.colourTheme, style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w700,
-                              color: textMuted, letterSpacing: 1.3)),
+                          Text(
+                            t.colourTheme,
+                            style: TextStyle(
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.w700,
+                              color: textMuted,
+                              letterSpacing: 1.3,
+                            ),
+                          ),
                           const SizedBox(height: 8),
-                          _ThemeRow(state: state, colors: colors, panel: panel,
-                              textPrimary: textPrimary, textMuted: textMuted,
-                              onSelect: (th) {
-                                onStateChange(state.copyWith(theme: th));
-                                final names = {AppTheme.coolBlue: 'Cool Blue',
-                                    AppTheme.sunsetPop: 'Sunset Pop', AppTheme.futureCandy: 'Future Candy'};
-                                onToast('${t.themeSetTo} ${names[th]}');
-                              }),
+                          _ThemeRow(
+                            state: state,
+                            colors: colors,
+                            panel: panel,
+                            textPrimary: textPrimary,
+                            textMuted: textMuted,
+                            onSelect: (th) {
+                              onStateChange(state.copyWith(theme: th));
+                              final names = {
+                                AppTheme.coolBlue: 'Cool Blue',
+                                AppTheme.sunsetPop: 'Sunset Pop',
+                                AppTheme.futureCandy: 'Future Candy',
+                              };
+                              onToast('${t.themeSetTo} ${names[th]}');
+                            },
+                          ),
                         ],
                       ),
                     ),
@@ -1216,22 +1763,36 @@ class _ProfileView extends StatelessWidget {
 
                   // Account Section
                   _SectionLabel(label: t.account, textMuted: textMuted),
-                  _SectionGroup(children: [
-                    _ListItem(
-                      icon: '🚪', iconDanger: true, label: t.logOut,
-                      labelDanger: true, colors: colors, card: card,
-                      cardBorder: cardBorder, textPrimary: textPrimary, textMuted: textMuted,
-                      danger: danger,
-                      onTap: () => _showLogoutModal(context, t),
-                    ),
-                    _ListItem(
-                      icon: '🗑️', iconDanger: true, label: t.deleteAccount,
-                      labelDanger: true, colors: colors, card: card,
-                      cardBorder: cardBorder, textPrimary: textPrimary, textMuted: textMuted,
-                      danger: danger,
-                      onTap: () => _showDeleteAccountModal(context, t),
-                    ),
-                  ]),
+                  _SectionGroup(
+                    children: [
+                      _ListItem(
+                        icon: '🚪',
+                        iconDanger: true,
+                        label: t.logOut,
+                        labelDanger: true,
+                        colors: colors,
+                        card: card,
+                        cardBorder: cardBorder,
+                        textPrimary: textPrimary,
+                        textMuted: textMuted,
+                        danger: danger,
+                        onTap: () => _showLogoutModal(context, t),
+                      ),
+                      _ListItem(
+                        icon: '🗑️',
+                        iconDanger: true,
+                        label: t.deleteAccount,
+                        labelDanger: true,
+                        colors: colors,
+                        card: card,
+                        cardBorder: cardBorder,
+                        textPrimary: textPrimary,
+                        textMuted: textMuted,
+                        danger: danger,
+                        onTap: () => _showDeleteAccountModal(context, t),
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),
@@ -1281,13 +1842,21 @@ class _ProfileView extends StatelessWidget {
         body: t.logOutBody,
         confirmLabel: t.logOutConfirm,
         cancelLabel: t.cancel,
-        bg2: bg2, cardBorder: cardBorder, textPrimary: textPrimary, textMuted: textMuted,
-        panel: panel, danger: danger, accentColor: colors.accent1,
+        bg2: bg2,
+        cardBorder: cardBorder,
+        textPrimary: textPrimary,
+        textMuted: textMuted,
+        panel: panel,
+        danger: danger,
+        accentColor: colors.accent1,
         onConfirm: () async {
           Navigator.pop(context);
           try {
             // 1. Delete Appwrite session so getCurrentUser() returns null
-            final appwrite = Provider.of<AppwriteService>(context, listen: false);
+            final appwrite = Provider.of<AppwriteService>(
+              context,
+              listen: false,
+            );
             // Try logout() method first; fallback to deleteSession directly
             try {
               await appwrite.logout();
@@ -1304,10 +1873,9 @@ class _ProfileView extends StatelessWidget {
           await prefs.setBool('onboardingComplete', false);
           // 4. Navigate to SignIn, clear entire stack
           if (context.mounted) {
-            Navigator.of(context).pushNamedAndRemoveUntil(
-              AppRoutes.signin,
-              (route) => false,
-            );
+            Navigator.of(
+              context,
+            ).pushNamedAndRemoveUntil(AppRoutes.signin, (route) => false);
           }
         },
         onCancel: () => Navigator.pop(context),
@@ -1329,8 +1897,13 @@ class _ProfileView extends StatelessWidget {
         body: t.enableLocationBody,
         confirmLabel: t.enableLocationConfirm,
         cancelLabel: t.notNow,
-        bg2: bg2, cardBorder: cardBorder, textPrimary: textPrimary, textMuted: textMuted,
-        panel: panel, danger: danger, accentColor: colors.accent1,
+        bg2: bg2,
+        cardBorder: cardBorder,
+        textPrimary: textPrimary,
+        textMuted: textMuted,
+        panel: panel,
+        danger: danger,
+        accentColor: colors.accent1,
         onConfirm: () async {
           Navigator.pop(context);
           await _fetchAndUpdateLocation(context, t);
@@ -1340,7 +1913,10 @@ class _ProfileView extends StatelessWidget {
     );
   }
 
-  Future<void> _fetchAndUpdateLocation(BuildContext context, AppStrings t) async {
+  Future<void> _fetchAndUpdateLocation(
+    BuildContext context,
+    AppStrings t,
+  ) async {
     try {
       // Permission check
       LocationPermission permission = await Geolocator.checkPermission();
@@ -1363,38 +1939,50 @@ class _ProfileView extends StatelessWidget {
       );
 
       // Reverse geocode using Nominatim (OpenStreetMap) — no package needed
-      String label = '${position.latitude.toStringAsFixed(4)}, ${position.longitude.toStringAsFixed(4)}';
+      String label =
+          '${position.latitude.toStringAsFixed(4)}, ${position.longitude.toStringAsFixed(4)}';
       try {
         final uri = Uri.parse(
           'https://nominatim.openstreetmap.org/reverse'
           '?lat=${position.latitude}&lon=${position.longitude}'
           '&format=json&addressdetails=1',
         );
-        final response = await http.get(uri, headers: {
-          'User-Agent': 'AhviApp/1.0',
-          'Accept-Language': 'en',
-        }).timeout(const Duration(seconds: 8));
+        final response = await http
+            .get(
+              uri,
+              headers: {'User-Agent': 'AhviApp/1.0', 'Accept-Language': 'en'},
+            )
+            .timeout(const Duration(seconds: 8));
 
         if (response.statusCode == 200) {
           final data = jsonDecode(response.body) as Map<String, dynamic>;
           final address = data['address'] as Map<String, dynamic>? ?? {};
 
           // Pick best available name, most specific first
-          final city     = (address['city']         ?? '').toString().trim();
-          final town     = (address['town']          ?? '').toString().trim();
-          final village  = (address['village']       ?? '').toString().trim();
-          final suburb   = (address['suburb']        ?? '').toString().trim();
-          final district = (address['district']      ?? '').toString().trim();
-          final county   = (address['county']        ?? '').toString().trim();
-          final state    = (address['state']         ?? '').toString().trim();
-          final country  = (address['country_code']  ?? '').toString().toUpperCase().trim();
+          final city = (address['city'] ?? '').toString().trim();
+          final town = (address['town'] ?? '').toString().trim();
+          final village = (address['village'] ?? '').toString().trim();
+          final suburb = (address['suburb'] ?? '').toString().trim();
+          final district = (address['district'] ?? '').toString().trim();
+          final county = (address['county'] ?? '').toString().trim();
+          final state = (address['state'] ?? '').toString().trim();
+          final country = (address['country_code'] ?? '')
+              .toString()
+              .toUpperCase()
+              .trim();
 
-          final place = city.isNotEmpty    ? city
-              : town.isNotEmpty            ? town
-              : village.isNotEmpty         ? village
-              : suburb.isNotEmpty          ? suburb
-              : district.isNotEmpty        ? district
-              : county.isNotEmpty          ? county
+          final place = city.isNotEmpty
+              ? city
+              : town.isNotEmpty
+              ? town
+              : village.isNotEmpty
+              ? village
+              : suburb.isNotEmpty
+              ? suburb
+              : district.isNotEmpty
+              ? district
+              : county.isNotEmpty
+              ? county
               : state;
 
           if (place.isNotEmpty) {
@@ -1426,12 +2014,20 @@ class _ProfileView extends StatelessWidget {
         body: t.deleteAccountBody,
         confirmLabel: t.deleteAccountConfirm,
         cancelLabel: t.cancel,
-        bg2: bg2, cardBorder: cardBorder, textPrimary: textPrimary, textMuted: textMuted,
-        panel: panel, danger: danger, accentColor: colors.accent1,
+        bg2: bg2,
+        cardBorder: cardBorder,
+        textPrimary: textPrimary,
+        textMuted: textMuted,
+        panel: panel,
+        danger: danger,
+        accentColor: colors.accent1,
         onConfirm: () async {
           Navigator.pop(context);
           try {
-            final appwrite = Provider.of<AppwriteService>(context, listen: false);
+            final appwrite = Provider.of<AppwriteService>(
+              context,
+              listen: false,
+            );
             // deleteAccount() deletes all sessions (signs out everywhere)
             await appwrite.deleteAccount();
           } catch (_) {}
@@ -1440,10 +2036,9 @@ class _ProfileView extends StatelessWidget {
           await prefs.setBool('onboardingComplete', false);
           // Navigate to SignIn, clear entire stack
           if (context.mounted) {
-            Navigator.of(context).pushNamedAndRemoveUntil(
-              AppRoutes.signin,
-              (route) => false,
-            );
+            Navigator.of(
+              context,
+            ).pushNamedAndRemoveUntil(AppRoutes.signin, (route) => false);
           }
         },
         onCancel: () => Navigator.pop(context),
@@ -1468,17 +2063,24 @@ class _EditView extends StatefulWidget {
     super.key,
     required this.state,
     required this.colors,
-    required this.bg, required this.bg2, required this.panel,
-    required this.card, required this.cardBorder,
-    required this.textPrimary, required this.textMuted,
-    required this.onSave, required this.onDiscard, required this.onToast,
+    required this.bg,
+    required this.bg2,
+    required this.panel,
+    required this.card,
+    required this.cardBorder,
+    required this.textPrimary,
+    required this.textMuted,
+    required this.onSave,
+    required this.onDiscard,
+    required this.onToast,
   });
 
   @override
   State<_EditView> createState() => _EditViewState();
 }
 
-class _EditViewState extends State<_EditView> with SingleTickerProviderStateMixin {
+class _EditViewState extends State<_EditView>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
   late TextEditingController _nameCtrl;
   late TextEditingController _emailCtrl;
@@ -1490,7 +2092,8 @@ class _EditViewState extends State<_EditView> with SingleTickerProviderStateMixi
   bool _faceUploaded = false;
   bool _bodyUploaded = false;
   bool _tryOnEnabled = false;
-  String _bodyGender = 'women'; // tracks which gender tab is selected in Body Shape
+  String _bodyGender =
+      'women'; // tracks which gender tab is selected in Body Shape
 
   // ── Country code picker state (mirrors onboarding1) ──
   String _selectedCountryCode = '+91';
@@ -1508,37 +2111,37 @@ class _EditViewState extends State<_EditView> with SingleTickerProviderStateMixi
   final List<bool> _genderPillPressed = [false, false, false];
 
   static const List<Map<String, dynamic>> _countries = [
-    {'flag': '🇮🇳', 'name': 'India',          'code': '+91',  'digits': 10},
-    {'flag': '🇺🇸', 'name': 'United States',   'code': '+1',   'digits': 10},
-    {'flag': '🇬🇧', 'name': 'United Kingdom',  'code': '+44',  'digits': 10},
-    {'flag': '🇦🇺', 'name': 'Australia',       'code': '+61',  'digits': 9},
-    {'flag': '🇨🇦', 'name': 'Canada',          'code': '+1',   'digits': 10},
-    {'flag': '🇩🇪', 'name': 'Germany',         'code': '+49',  'digits': 11},
-    {'flag': '🇫🇷', 'name': 'France',          'code': '+33',  'digits': 9},
-    {'flag': '🇯🇵', 'name': 'Japan',           'code': '+81',  'digits': 10},
-    {'flag': '🇨🇳', 'name': 'China',           'code': '+86',  'digits': 11},
-    {'flag': '🇧🇷', 'name': 'Brazil',          'code': '+55',  'digits': 11},
-    {'flag': '🇸🇬', 'name': 'Singapore',       'code': '+65',  'digits': 8},
-    {'flag': '🇦🇪', 'name': 'UAE',             'code': '+971', 'digits': 9},
-    {'flag': '🇵🇰', 'name': 'Pakistan',        'code': '+92',  'digits': 10},
-    {'flag': '🇧🇩', 'name': 'Bangladesh',      'code': '+880', 'digits': 10},
-    {'flag': '🇱🇰', 'name': 'Sri Lanka',       'code': '+94',  'digits': 9},
-    {'flag': '🇳🇵', 'name': 'Nepal',           'code': '+977', 'digits': 10},
-    {'flag': '🇲🇾', 'name': 'Malaysia',        'code': '+60',  'digits': 10},
-    {'flag': '🇹🇭', 'name': 'Thailand',        'code': '+66',  'digits': 9},
-    {'flag': '🇰🇷', 'name': 'South Korea',     'code': '+82',  'digits': 10},
-    {'flag': '🇳🇬', 'name': 'Nigeria',         'code': '+234', 'digits': 10},
-    {'flag': '🇿🇦', 'name': 'South Africa',    'code': '+27',  'digits': 9},
-    {'flag': '🇷🇺', 'name': 'Russia',          'code': '+7',   'digits': 10},
-    {'flag': '🇰🇪', 'name': 'Kenya',           'code': '+254', 'digits': 9},
-    {'flag': '🇵🇭', 'name': 'Philippines',     'code': '+63',  'digits': 10},
-    {'flag': '🇮🇩', 'name': 'Indonesia',       'code': '+62',  'digits': 11},
-    {'flag': '🇻🇳', 'name': 'Vietnam',         'code': '+84',  'digits': 10},
-    {'flag': '🇹🇷', 'name': 'Turkey',          'code': '+90',  'digits': 10},
-    {'flag': '🇮🇱', 'name': 'Israel',          'code': '+972', 'digits': 9},
-    {'flag': '🇪🇬', 'name': 'Egypt',           'code': '+20',  'digits': 10},
-    {'flag': '🇲🇦', 'name': 'Morocco',         'code': '+212', 'digits': 9},
-    {'flag': '🇳🇿', 'name': 'New Zealand',     'code': '+64',  'digits': 9},
+    {'flag': '🇮🇳', 'name': 'India', 'code': '+91', 'digits': 10},
+    {'flag': '🇺🇸', 'name': 'United States', 'code': '+1', 'digits': 10},
+    {'flag': '🇬🇧', 'name': 'United Kingdom', 'code': '+44', 'digits': 10},
+    {'flag': '🇦🇺', 'name': 'Australia', 'code': '+61', 'digits': 9},
+    {'flag': '🇨🇦', 'name': 'Canada', 'code': '+1', 'digits': 10},
+    {'flag': '🇩🇪', 'name': 'Germany', 'code': '+49', 'digits': 11},
+    {'flag': '🇫🇷', 'name': 'France', 'code': '+33', 'digits': 9},
+    {'flag': '🇯🇵', 'name': 'Japan', 'code': '+81', 'digits': 10},
+    {'flag': '🇨🇳', 'name': 'China', 'code': '+86', 'digits': 11},
+    {'flag': '🇧🇷', 'name': 'Brazil', 'code': '+55', 'digits': 11},
+    {'flag': '🇸🇬', 'name': 'Singapore', 'code': '+65', 'digits': 8},
+    {'flag': '🇦🇪', 'name': 'UAE', 'code': '+971', 'digits': 9},
+    {'flag': '🇵🇰', 'name': 'Pakistan', 'code': '+92', 'digits': 10},
+    {'flag': '🇧🇩', 'name': 'Bangladesh', 'code': '+880', 'digits': 10},
+    {'flag': '🇱🇰', 'name': 'Sri Lanka', 'code': '+94', 'digits': 9},
+    {'flag': '🇳🇵', 'name': 'Nepal', 'code': '+977', 'digits': 10},
+    {'flag': '🇲🇾', 'name': 'Malaysia', 'code': '+60', 'digits': 10},
+    {'flag': '🇹🇭', 'name': 'Thailand', 'code': '+66', 'digits': 9},
+    {'flag': '🇰🇷', 'name': 'South Korea', 'code': '+82', 'digits': 10},
+    {'flag': '🇳🇬', 'name': 'Nigeria', 'code': '+234', 'digits': 10},
+    {'flag': '🇿🇦', 'name': 'South Africa', 'code': '+27', 'digits': 9},
+    {'flag': '🇷🇺', 'name': 'Russia', 'code': '+7', 'digits': 10},
+    {'flag': '🇰🇪', 'name': 'Kenya', 'code': '+254', 'digits': 9},
+    {'flag': '🇵🇭', 'name': 'Philippines', 'code': '+63', 'digits': 10},
+    {'flag': '🇮🇩', 'name': 'Indonesia', 'code': '+62', 'digits': 11},
+    {'flag': '🇻🇳', 'name': 'Vietnam', 'code': '+84', 'digits': 10},
+    {'flag': '🇹🇷', 'name': 'Turkey', 'code': '+90', 'digits': 10},
+    {'flag': '🇮🇱', 'name': 'Israel', 'code': '+972', 'digits': 9},
+    {'flag': '🇪🇬', 'name': 'Egypt', 'code': '+20', 'digits': 10},
+    {'flag': '🇲🇦', 'name': 'Morocco', 'code': '+212', 'digits': 9},
+    {'flag': '🇳🇿', 'name': 'New Zealand', 'code': '+64', 'digits': 9},
   ];
 
   ThemeColors get c => widget.colors;
@@ -1589,14 +2192,15 @@ class _EditViewState extends State<_EditView> with SingleTickerProviderStateMixi
     if (dob.isNotEmpty) {
       final parts = dob.split(' ');
       if (parts.length == 3) {
-        _dobDay   = parts[0];
+        _dobDay = parts[0];
         _dobMonth = parts[1];
-        _dobYear  = parts[2];
+        _dobYear = parts[2];
       }
     }
 
     // ── Sync bodyGender from existing shopPrefs ──
-    if (widget.state.shopPrefs.contains('Men') && !widget.state.shopPrefs.contains('Women')) {
+    if (widget.state.shopPrefs.contains('Men') &&
+        !widget.state.shopPrefs.contains('Women')) {
       _bodyGender = 'men';
     } else {
       _bodyGender = 'women';
@@ -1616,7 +2220,11 @@ class _EditViewState extends State<_EditView> with SingleTickerProviderStateMixi
 
   void _markDirty() => setState(() => _isDirty = true);
 
-  Widget _buildBodyShapeCard(Map<String, String> shape, bool isActive, ThemeColors colors) {
+  Widget _buildBodyShapeCard(
+    Map<String, String> shape,
+    bool isActive,
+    ThemeColors colors,
+  ) {
     return GestureDetector(
       onTap: () => setState(() {
         _draft = _draft.copyWith(bodyShape: shape['name']!);
@@ -1636,12 +2244,15 @@ class _EditViewState extends State<_EditView> with SingleTickerProviderStateMixi
           children: [
             Expanded(
               child: ClipRRect(
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(13)),
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(13),
+                ),
                 child: Image.asset(
                   shape['img']!,
                   fit: BoxFit.cover,
                   width: double.infinity,
-                  errorBuilder: (_, _, _) => Icon(Icons.person, color: _textMuted, size: 36),
+                  errorBuilder: (_, _, _) =>
+                      Icon(Icons.person, color: _textMuted, size: 36),
                 ),
               ),
             ),
@@ -1700,7 +2311,11 @@ class _EditViewState extends State<_EditView> with SingleTickerProviderStateMixi
     _countryDropdownOverlay = null;
   }
 
-  void _showDobPicker(String title, List<String> options, ValueChanged<String?> onChanged) {
+  void _showDobPicker(
+    String title,
+    List<String> options,
+    ValueChanged<String?> onChanged,
+  ) {
     int tempIndex = 0;
     showModalBottomSheet(
       context: context,
@@ -1714,7 +2329,8 @@ class _EditViewState extends State<_EditView> with SingleTickerProviderStateMixi
           children: [
             Container(
               margin: const EdgeInsets.only(top: 10),
-              width: 40, height: 4,
+              width: 40,
+              height: 4,
               decoration: BoxDecoration(
                 color: _cardBorder,
                 borderRadius: BorderRadius.circular(100),
@@ -1725,14 +2341,23 @@ class _EditViewState extends State<_EditView> with SingleTickerProviderStateMixi
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(title, style: TextStyle(color: _textMuted, fontSize: 13)),
+                  Text(
+                    title,
+                    style: TextStyle(color: _textMuted, fontSize: 13),
+                  ),
                   GestureDetector(
                     onTap: () {
                       onChanged(options[tempIndex]);
                       Navigator.pop(context);
                     },
-                    child: Text('Done',
-                        style: TextStyle(color: c.accent1, fontSize: 14, fontWeight: FontWeight.w600)),
+                    child: Text(
+                      'Done',
+                      style: TextStyle(
+                        color: c.accent1,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -1742,9 +2367,16 @@ class _EditViewState extends State<_EditView> with SingleTickerProviderStateMixi
                 backgroundColor: Colors.transparent,
                 itemExtent: 36,
                 onSelectedItemChanged: (i) => tempIndex = i,
-                children: options.map((o) => Center(
-                  child: Text(o, style: TextStyle(color: _textPrimary, fontSize: 15)),
-                )).toList(),
+                children: options
+                    .map(
+                      (o) => Center(
+                        child: Text(
+                          o,
+                          style: TextStyle(color: _textPrimary, fontSize: 15),
+                        ),
+                      ),
+                    )
+                    .toList(),
               ),
             ),
           ],
@@ -1753,7 +2385,12 @@ class _EditViewState extends State<_EditView> with SingleTickerProviderStateMixi
     );
   }
 
-  Widget _buildDobDropdown(String hint, String? value, List<String> options, ValueChanged<String?> onChanged) {
+  Widget _buildDobDropdown(
+    String hint,
+    String? value,
+    List<String> options,
+    ValueChanged<String?> onChanged,
+  ) {
     final isSelected = value != null;
     return GestureDetector(
       onTap: () => _showDobPicker(hint, options, onChanged),
@@ -1769,7 +2406,13 @@ class _EditViewState extends State<_EditView> with SingleTickerProviderStateMixi
           ),
           borderRadius: BorderRadius.circular(14),
           boxShadow: isSelected
-              ? [BoxShadow(color: c.accent1.withOpacity(0.15), blurRadius: 12, spreadRadius: 3)]
+              ? [
+                  BoxShadow(
+                    color: c.accent1.withOpacity(0.15),
+                    blurRadius: 12,
+                    spreadRadius: 3,
+                  ),
+                ]
               : [],
         ),
         child: Row(
@@ -1803,10 +2446,16 @@ class _EditViewState extends State<_EditView> with SingleTickerProviderStateMixi
       uiSettings: [
         AndroidUiSettings(
           toolbarTitle: 'Crop Photo',
-          toolbarColor: _draft.isDark ? const Color(0xFF0D0E14) : const Color(0xFFF4F4F8),
-          toolbarWidgetColor: _draft.isDark ? const Color(0xFFF0F0F8) : const Color(0xFF18192A),
+          toolbarColor: _draft.isDark
+              ? const Color(0xFF0D0E14)
+              : const Color(0xFFF4F4F8),
+          toolbarWidgetColor: _draft.isDark
+              ? const Color(0xFFF0F0F8)
+              : const Color(0xFF18192A),
           activeControlsWidgetColor: const Color(0xFF6B91FF),
-          backgroundColor: _draft.isDark ? const Color(0xFF0D0E14) : const Color(0xFFF4F4F8),
+          backgroundColor: _draft.isDark
+              ? const Color(0xFF0D0E14)
+              : const Color(0xFFF4F4F8),
           cropStyle: CropStyle.circle,
           initAspectRatio: CropAspectRatioPreset.square,
           lockAspectRatio: true,
@@ -1831,17 +2480,21 @@ class _EditViewState extends State<_EditView> with SingleTickerProviderStateMixi
       // Auto-save avatar immediately to ProfileController so home screen
       // reflects the new pic right away — user shouldn't have to tap Save
       // just for a photo change.
-      widget.onSave(_draft.copyWith(
-        name: _nameCtrl.text.trim().isEmpty ? 'New User' : _nameCtrl.text.trim(),
-        email: _emailCtrl.text.trim(),
-        phone: _phoneCtrl.text.trim().isNotEmpty
-            ? '$_selectedCountryCode ${_phoneCtrl.text.trim()}'
-            : '',
-        dob: (_dobDay != null && _dobMonth != null && _dobYear != null)
-            ? '$_dobDay $_dobMonth $_dobYear'
-            : _dobCtrl.text.trim(),
-        avatarPath: cropped.path,
-      ));
+      widget.onSave(
+        _draft.copyWith(
+          name: _nameCtrl.text.trim().isEmpty
+              ? 'New User'
+              : _nameCtrl.text.trim(),
+          email: _emailCtrl.text.trim(),
+          phone: _phoneCtrl.text.trim().isNotEmpty
+              ? '$_selectedCountryCode ${_phoneCtrl.text.trim()}'
+              : '',
+          dob: (_dobDay != null && _dobMonth != null && _dobYear != null)
+              ? '$_dobDay $_dobMonth $_dobYear'
+              : _dobCtrl.text.trim(),
+          avatarPath: cropped.path,
+        ),
+      );
       // Mark as clean so back button doesn't show discard warning for only a photo change
       setState(() => _isDirty = false);
       widget.onToast(_t.photoUpdated);
@@ -1857,20 +2510,26 @@ class _EditViewState extends State<_EditView> with SingleTickerProviderStateMixi
   }
 
   void _save() {
-    final name = _nameCtrl.text.trim().isEmpty ? 'New User' : _nameCtrl.text.trim();
+    final name = _nameCtrl.text.trim().isEmpty
+        ? 'New User'
+        : _nameCtrl.text.trim();
     // Build phone string "CODE NUMBER" matching onboarding1 format
     final phoneNumber = _phoneCtrl.text.trim();
-    final phone = phoneNumber.isNotEmpty ? '$_selectedCountryCode $phoneNumber' : '';
+    final phone = phoneNumber.isNotEmpty
+        ? '$_selectedCountryCode $phoneNumber'
+        : '';
     // Build DOB string "DD MMMM YYYY" matching onboarding1 format
     final dob = (_dobDay != null && _dobMonth != null && _dobYear != null)
         ? '$_dobDay $_dobMonth $_dobYear'
         : _dobCtrl.text.trim();
-    widget.onSave(_draft.copyWith(
-      name: name,
-      email: _emailCtrl.text.trim(),
-      phone: phone,
-      dob: dob,
-    ));
+    widget.onSave(
+      _draft.copyWith(
+        name: name,
+        email: _emailCtrl.text.trim(),
+        phone: phone,
+        dob: dob,
+      ),
+    );
   }
 
   void _showDiscardModal() {
@@ -1878,7 +2537,8 @@ class _EditViewState extends State<_EditView> with SingleTickerProviderStateMixi
       context: context,
       backgroundColor: widget.bg2,
       shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
       builder: (_) => _ConfirmSheet(
         icon: '⚠️',
         isDanger: true,
@@ -1886,11 +2546,17 @@ class _EditViewState extends State<_EditView> with SingleTickerProviderStateMixi
         body: _t.discardChangesBody,
         confirmLabel: _t.discard,
         cancelLabel: _t.keepEditing,
-        bg2: widget.bg2, cardBorder: _cardBorder, textPrimary: _textPrimary,
-        textMuted: _textMuted, panel: _panel,
+        bg2: widget.bg2,
+        cardBorder: _cardBorder,
+        textPrimary: _textPrimary,
+        textMuted: _textMuted,
+        panel: _panel,
         danger: const Color(0xFFF06080),
         accentColor: c.accent1,
-        onConfirm: () { Navigator.pop(context); widget.onDiscard(); },
+        onConfirm: () {
+          Navigator.pop(context);
+          widget.onDiscard();
+        },
         onCancel: () => Navigator.pop(context),
       ),
     );
@@ -1906,11 +2572,22 @@ class _EditViewState extends State<_EditView> with SingleTickerProviderStateMixi
             padding: const EdgeInsets.fromLTRB(22, 12, 22, 12),
             child: Row(
               children: [
-                _HeaderBtn(icon: '‹', bg: _panel, border: _cardBorder, textMuted: _textMuted,
-                    onTap: _handleBack),
+                _HeaderBtn(
+                  icon: '‹',
+                  bg: _panel,
+                  border: _cardBorder,
+                  textMuted: _textMuted,
+                  onTap: _handleBack,
+                ),
                 const Spacer(),
-                Text(_t.editProfile,
-                    style: TextStyle(color: _textPrimary, fontSize: 17, fontWeight: FontWeight.w600)),
+                Text(
+                  _t.editProfile,
+                  style: TextStyle(
+                    color: _textPrimary,
+                    fontSize: 17,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
                 const Spacer(),
                 const SizedBox(width: 36),
               ],
@@ -1922,8 +2599,13 @@ class _EditViewState extends State<_EditView> with SingleTickerProviderStateMixi
             child: Padding(
               padding: const EdgeInsets.only(bottom: 12),
               child: _AvatarWidget(
-                  state: _draft, colors: c, bg: _bg, bg2: widget.bg2,
-                  size: 92, onPickImage: _pickAvatar),
+                state: _draft,
+                colors: c,
+                bg: _bg,
+                bg2: widget.bg2,
+                size: 92,
+                onPickImage: _pickAvatar,
+              ),
             ),
           ),
 
@@ -1956,8 +2638,15 @@ class _EditViewState extends State<_EditView> with SingleTickerProviderStateMixi
               indicatorSize: TabBarIndicatorSize.tab,
               labelColor: Colors.white,
               unselectedLabelColor: _textMuted,
-              labelStyle: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700, letterSpacing: 0.2),
-              unselectedLabelStyle: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w500),
+              labelStyle: const TextStyle(
+                fontSize: 13.5,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.2,
+              ),
+              unselectedLabelStyle: const TextStyle(
+                fontSize: 13.5,
+                fontWeight: FontWeight.w500,
+              ),
               tabs: [
                 Tab(text: _t.basics, height: 42),
                 Tab(text: _t.style, height: 42),
@@ -1982,18 +2671,30 @@ class _EditViewState extends State<_EditView> with SingleTickerProviderStateMixi
                     children: [
                       // ── Full Name ──
                       _FieldLabel(text: _t.fullName, textMuted: _textMuted),
-                      _FieldInput(ctrl: _nameCtrl, hint: _t.yourName,
-                          panel: _panel, cardBorder: _cardBorder,
-                          textPrimary: _textPrimary, textMuted: _textMuted,
-                          accentColor: c.accent1, onChanged: (_) => _markDirty()),
+                      _FieldInput(
+                        ctrl: _nameCtrl,
+                        hint: _t.yourName,
+                        panel: _panel,
+                        cardBorder: _cardBorder,
+                        textPrimary: _textPrimary,
+                        textMuted: _textMuted,
+                        accentColor: c.accent1,
+                        onChanged: (_) => _markDirty(),
+                      ),
 
                       // ── Email ──
                       _FieldLabel(text: _t.email, textMuted: _textMuted),
-                      _FieldInput(ctrl: _emailCtrl, hint: 'email@example.com',
-                          keyboardType: TextInputType.emailAddress,
-                          panel: _panel, cardBorder: _cardBorder,
-                          textPrimary: _textPrimary, textMuted: _textMuted,
-                          accentColor: c.accent1, onChanged: (_) => _markDirty()),
+                      _FieldInput(
+                        ctrl: _emailCtrl,
+                        hint: 'email@example.com',
+                        keyboardType: TextInputType.emailAddress,
+                        panel: _panel,
+                        cardBorder: _cardBorder,
+                        textPrimary: _textPrimary,
+                        textMuted: _textMuted,
+                        accentColor: c.accent1,
+                        onChanged: (_) => _markDirty(),
+                      ),
 
                       // ── Phone — country code picker (onboarding1 style) ──
                       _FieldLabel(text: _t.phone, textMuted: _textMuted),
@@ -2008,26 +2709,39 @@ class _EditViewState extends State<_EditView> with SingleTickerProviderStateMixi
                               onTap: _showCountryPicker,
                               child: Container(
                                 height: 50,
-                                padding: const EdgeInsets.symmetric(horizontal: 12),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                ),
                                 decoration: BoxDecoration(
                                   color: _panel,
-                                  border: Border.all(color: _cardBorder, width: 1.5),
+                                  border: Border.all(
+                                    color: _cardBorder,
+                                    width: 1.5,
+                                  ),
                                   borderRadius: BorderRadius.circular(14),
                                 ),
                                 child: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    Text(_selectedCountryFlag, style: const TextStyle(fontSize: 20)),
+                                    Text(
+                                      _selectedCountryFlag,
+                                      style: const TextStyle(fontSize: 20),
+                                    ),
                                     const SizedBox(width: 6),
                                     Text(
                                       _selectedCountryCode,
                                       style: TextStyle(
-                                        fontSize: 14.5, fontWeight: FontWeight.w500,
+                                        fontSize: 14.5,
+                                        fontWeight: FontWeight.w500,
                                         color: _textPrimary,
                                       ),
                                     ),
                                     const SizedBox(width: 3),
-                                    Icon(Icons.keyboard_arrow_down_rounded, color: _textMuted, size: 16),
+                                    Icon(
+                                      Icons.keyboard_arrow_down_rounded,
+                                      color: _textMuted,
+                                      size: 16,
+                                    ),
                                   ],
                                 ),
                               ),
@@ -2043,26 +2757,40 @@ class _EditViewState extends State<_EditView> with SingleTickerProviderStateMixi
                                 keyboardType: TextInputType.number,
                                 inputFormatters: [
                                   FilteringTextInputFormatter.digitsOnly,
-                                  LengthLimitingTextInputFormatter(_selectedCountryMaxDigits),
+                                  LengthLimitingTextInputFormatter(
+                                    _selectedCountryMaxDigits,
+                                  ),
                                 ],
                                 style: TextStyle(
-                                  fontSize: 15, fontWeight: FontWeight.w400,
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w400,
                                   color: _textPrimary,
                                 ),
                                 onChanged: (_) => _markDirty(),
                                 decoration: InputDecoration(
                                   hintText: '00000 00000',
-                                  hintStyle: TextStyle(color: _textMuted, fontSize: 15),
+                                  hintStyle: TextStyle(
+                                    color: _textMuted,
+                                    fontSize: 15,
+                                  ),
                                   filled: true,
                                   fillColor: _panel,
-                                  contentPadding: const EdgeInsets.symmetric(horizontal: 14),
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 14,
+                                  ),
                                   enabledBorder: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(14),
-                                    borderSide: BorderSide(color: _cardBorder, width: 1.5),
+                                    borderSide: BorderSide(
+                                      color: _cardBorder,
+                                      width: 1.5,
+                                    ),
                                   ),
                                   focusedBorder: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(14),
-                                    borderSide: BorderSide(color: c.accent1, width: 1.5),
+                                    borderSide: BorderSide(
+                                      color: c.accent1,
+                                      width: 1.5,
+                                    ),
                                   ),
                                 ),
                               ),
@@ -2079,29 +2807,53 @@ class _EditViewState extends State<_EditView> with SingleTickerProviderStateMixi
                         children: [
                           Expanded(
                             child: _buildDobDropdown(
-                              'Day', _dobDay,
+                              'Day',
+                              _dobDay,
                               List.generate(31, (i) => '${i + 1}'),
-                              (val) => setState(() { _dobDay = val; _markDirty(); }),
+                              (val) => setState(() {
+                                _dobDay = val;
+                                _markDirty();
+                              }),
                             ),
                           ),
                           const SizedBox(width: 8),
                           Expanded(
                             child: _buildDobDropdown(
-                              'Month', _dobMonth,
+                              'Month',
+                              _dobMonth,
                               const [
-                                'January','February','March','April',
-                                'May','June','July','August',
-                                'September','October','November','December',
+                                'January',
+                                'February',
+                                'March',
+                                'April',
+                                'May',
+                                'June',
+                                'July',
+                                'August',
+                                'September',
+                                'October',
+                                'November',
+                                'December',
                               ],
-                              (val) => setState(() { _dobMonth = val; _markDirty(); }),
+                              (val) => setState(() {
+                                _dobMonth = val;
+                                _markDirty();
+                              }),
                             ),
                           ),
                           const SizedBox(width: 8),
                           Expanded(
                             child: _buildDobDropdown(
-                              'Year', _dobYear,
-                              List.generate(100, (i) => '${DateTime.now().year - 13 - i}'),
-                              (val) => setState(() { _dobYear = val; _markDirty(); }),
+                              'Year',
+                              _dobYear,
+                              List.generate(
+                                100,
+                                (i) => '${DateTime.now().year - 13 - i}',
+                              ),
+                              (val) => setState(() {
+                                _dobYear = val;
+                                _markDirty();
+                              }),
                             ),
                           ),
                         ],
@@ -2122,13 +2874,17 @@ class _EditViewState extends State<_EditView> with SingleTickerProviderStateMixi
                             child: AnimatedContainer(
                               duration: const Duration(milliseconds: 150),
                               margin: const EdgeInsets.only(right: 10),
-                              width: 32, height: 32,
+                              width: 32,
+                              height: 32,
                               decoration: BoxDecoration(
                                 color: kSkinTones[i],
                                 shape: BoxShape.circle,
                                 border: active
                                     ? Border.all(color: c.accent1, width: 3)
-                                    : Border.all(color: Colors.transparent, width: 3),
+                                    : Border.all(
+                                        color: Colors.transparent,
+                                        width: 3,
+                                      ),
                               ),
                               transform: active
                                   ? (Matrix4.identity()..scale(1.15))
@@ -2140,47 +2896,72 @@ class _EditViewState extends State<_EditView> with SingleTickerProviderStateMixi
                       const SizedBox(height: 14),
 
                       // ── Shop Preferences — Women / Men / Both (onboarding1 exact logic) ──
-                      _FieldLabel(text: _t.shopPreferences, textMuted: _textMuted),
+                      _FieldLabel(
+                        text: _t.shopPreferences,
+                        textMuted: _textMuted,
+                      ),
                       const SizedBox(height: 6),
                       () {
-                        final bool womenSelected = _draft.shopPrefs.length == 1 && _draft.shopPrefs.contains('Women');
-                        final bool menSelected   = _draft.shopPrefs.length == 1 && _draft.shopPrefs.contains('Men');
-                        final bool bothSelected  = _draft.shopPrefs.contains('Women') && _draft.shopPrefs.contains('Men');
+                        final bool womenSelected =
+                            _draft.shopPrefs.length == 1 &&
+                            _draft.shopPrefs.contains('Women');
+                        final bool menSelected =
+                            _draft.shopPrefs.length == 1 &&
+                            _draft.shopPrefs.contains('Men');
+                        final bool bothSelected =
+                            _draft.shopPrefs.contains('Women') &&
+                            _draft.shopPrefs.contains('Men');
                         bool isCardActive(String label) {
                           if (label == 'Women') return womenSelected;
-                          if (label == 'Men')   return menSelected;
+                          if (label == 'Men') return menSelected;
                           return bothSelected;
                         }
+
                         const shopCards = [
                           {'label': 'Women', 'img': 'assets/shop/women.jpg'},
-                          {'label': 'Men',   'img': 'assets/shop/men.jpg'},
-                          {'label': 'Both',  'img': 'assets/shop/both.jpeg'},
+                          {'label': 'Men', 'img': 'assets/shop/men.jpg'},
+                          {'label': 'Both', 'img': 'assets/shop/both.jpeg'},
                         ];
                         return Row(
                           children: List.generate(shopCards.length, (index) {
-                            final pref    = shopCards[index];
-                            final label   = pref['label']!;
+                            final pref = shopCards[index];
+                            final label = pref['label']!;
                             final isActive = isCardActive(label);
                             return Expanded(
                               child: Padding(
                                 padding: EdgeInsets.only(
-                                  left:  index == 0 ? 0 : 5,
+                                  left: index == 0 ? 0 : 5,
                                   right: index == shopCards.length - 1 ? 0 : 5,
                                 ),
                                 child: GestureDetector(
                                   onTap: () => setState(() {
                                     if (label == 'Both') {
-                                      _draft = _draft.copyWith(shopPrefs: {'Women', 'Men'});
+                                      _draft = _draft.copyWith(
+                                        shopPrefs: {'Women', 'Men'},
+                                      );
                                       _bodyGender = 'both';
-                                      _draft = _draft.copyWith(bodyShape: kBodyShapes['women']!.first['name']!);
+                                      _draft = _draft.copyWith(
+                                        bodyShape: kBodyShapes['women']!
+                                            .first['name']!,
+                                      );
                                     } else if (label == 'Women') {
-                                      _draft = _draft.copyWith(shopPrefs: {'Women'});
+                                      _draft = _draft.copyWith(
+                                        shopPrefs: {'Women'},
+                                      );
                                       _bodyGender = 'women';
-                                      _draft = _draft.copyWith(bodyShape: kBodyShapes['women']!.first['name']!);
+                                      _draft = _draft.copyWith(
+                                        bodyShape: kBodyShapes['women']!
+                                            .first['name']!,
+                                      );
                                     } else {
-                                      _draft = _draft.copyWith(shopPrefs: {'Men'});
+                                      _draft = _draft.copyWith(
+                                        shopPrefs: {'Men'},
+                                      );
                                       _bodyGender = 'men';
-                                      _draft = _draft.copyWith(bodyShape: kBodyShapes['men']!.first['name']!);
+                                      _draft = _draft.copyWith(
+                                        bodyShape:
+                                            kBodyShapes['men']!.first['name']!,
+                                      );
                                     }
                                     _markDirty();
                                   }),
@@ -2190,10 +2971,14 @@ class _EditViewState extends State<_EditView> with SingleTickerProviderStateMixi
                                     decoration: BoxDecoration(
                                       borderRadius: BorderRadius.circular(12),
                                       border: Border.all(
-                                        color: isActive ? c.accent1 : _cardBorder,
+                                        color: isActive
+                                            ? c.accent1
+                                            : _cardBorder,
                                         width: isActive ? 1.5 : 1,
                                       ),
-                                      color: isActive ? c.accent1.withOpacity(0.13) : _panel,
+                                      color: isActive
+                                          ? c.accent1.withOpacity(0.13)
+                                          : _panel,
                                     ),
                                     child: ClipRRect(
                                       borderRadius: BorderRadius.circular(11),
@@ -2204,7 +2989,8 @@ class _EditViewState extends State<_EditView> with SingleTickerProviderStateMixi
                                             pref['img']!,
                                             fit: BoxFit.cover,
                                             alignment: Alignment.topCenter,
-                                            errorBuilder: (_, _, _) => const SizedBox(),
+                                            errorBuilder: (_, _, _) =>
+                                                const SizedBox(),
                                           ),
                                           Container(
                                             decoration: BoxDecoration(
@@ -2213,7 +2999,9 @@ class _EditViewState extends State<_EditView> with SingleTickerProviderStateMixi
                                                 end: Alignment.bottomCenter,
                                                 colors: [
                                                   Colors.transparent,
-                                                  Colors.black.withOpacity(0.65),
+                                                  Colors.black.withOpacity(
+                                                    0.65,
+                                                  ),
                                                 ],
                                               ),
                                             ),
@@ -2226,14 +3014,23 @@ class _EditViewState extends State<_EditView> with SingleTickerProviderStateMixi
                                                 children: [
                                                   if (isActive)
                                                     Padding(
-                                                      padding: const EdgeInsets.only(right: 4),
-                                                      child: Icon(Icons.check_circle, color: c.accent1, size: 13),
+                                                      padding:
+                                                          const EdgeInsets.only(
+                                                            right: 4,
+                                                          ),
+                                                      child: Icon(
+                                                        Icons.check_circle,
+                                                        color: c.accent1,
+                                                        size: 13,
+                                                      ),
                                                     ),
                                                   Text(
                                                     label,
                                                     style: const TextStyle(
-                                                      color: Colors.white, fontSize: 12,
-                                                      fontWeight: FontWeight.w600,
+                                                      color: Colors.white,
+                                                      fontSize: 12,
+                                                      fontWeight:
+                                                          FontWeight.w600,
                                                     ),
                                                   ),
                                                 ],
@@ -2253,48 +3050,77 @@ class _EditViewState extends State<_EditView> with SingleTickerProviderStateMixi
 
                       // ── Body Shape — onboarding1 exact: both → Women+Men sections separately ──
                       _ProfileBodyShapeReveal(
-                        visible: _draft.shopPrefs.contains('Women') || _draft.shopPrefs.contains('Men'),
+                        visible:
+                            _draft.shopPrefs.contains('Women') ||
+                            _draft.shopPrefs.contains('Men'),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             const SizedBox(height: 14),
-                            _FieldLabel(text: _t.bodyShape, textMuted: _textMuted),
+                            _FieldLabel(
+                              text: _t.bodyShape,
+                              textMuted: _textMuted,
+                            ),
                             if (_bodyGender == 'both') ...[
                               // Women section
                               Padding(
                                 padding: const EdgeInsets.only(bottom: 8),
-                                child: Text('Women',
-                                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600,
-                                    color: c.accent1, letterSpacing: 0.5)),
+                                child: Text(
+                                  'Women',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    color: c.accent1,
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
                               ),
                               GridView.count(
                                 crossAxisCount: 3,
                                 shrinkWrap: true,
                                 physics: const NeverScrollableScrollPhysics(),
-                                crossAxisSpacing: 10, mainAxisSpacing: 10,
+                                crossAxisSpacing: 10,
+                                mainAxisSpacing: 10,
                                 childAspectRatio: 0.65,
                                 children: kBodyShapes['women']!.map((shape) {
-                                  final isActive = _draft.bodyShape == shape['name'];
-                                  return _buildBodyShapeCard(shape, isActive, c);
+                                  final isActive =
+                                      _draft.bodyShape == shape['name'];
+                                  return _buildBodyShapeCard(
+                                    shape,
+                                    isActive,
+                                    c,
+                                  );
                                 }).toList(),
                               ),
                               const SizedBox(height: 16),
                               // Men section
                               Padding(
                                 padding: const EdgeInsets.only(bottom: 8),
-                                child: Text('Men',
-                                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600,
-                                    color: c.accent2, letterSpacing: 0.5)),
+                                child: Text(
+                                  'Men',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    color: c.accent2,
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
                               ),
                               GridView.count(
                                 crossAxisCount: 3,
                                 shrinkWrap: true,
                                 physics: const NeverScrollableScrollPhysics(),
-                                crossAxisSpacing: 10, mainAxisSpacing: 10,
+                                crossAxisSpacing: 10,
+                                mainAxisSpacing: 10,
                                 childAspectRatio: 0.65,
                                 children: kBodyShapes['men']!.map((shape) {
-                                  final isActive = _draft.bodyShape == shape['name'];
-                                  return _buildBodyShapeCard(shape, isActive, c);
+                                  final isActive =
+                                      _draft.bodyShape == shape['name'];
+                                  return _buildBodyShapeCard(
+                                    shape,
+                                    isActive,
+                                    c,
+                                  );
                                 }).toList(),
                               ),
                             ] else
@@ -2302,12 +3128,23 @@ class _EditViewState extends State<_EditView> with SingleTickerProviderStateMixi
                                 crossAxisCount: 3,
                                 shrinkWrap: true,
                                 physics: const NeverScrollableScrollPhysics(),
-                                crossAxisSpacing: 10, mainAxisSpacing: 10,
+                                crossAxisSpacing: 10,
+                                mainAxisSpacing: 10,
                                 childAspectRatio: 0.65,
-                                children: kBodyShapes[_bodyGender == 'both' ? 'women' : _bodyGender]!.map((shape) {
-                                  final isActive = _draft.bodyShape == shape['name'];
-                                  return _buildBodyShapeCard(shape, isActive, c);
-                                }).toList(),
+                                children:
+                                    kBodyShapes[_bodyGender == 'both'
+                                            ? 'women'
+                                            : _bodyGender]!
+                                        .map((shape) {
+                                          final isActive =
+                                              _draft.bodyShape == shape['name'];
+                                          return _buildBodyShapeCard(
+                                            shape,
+                                            isActive,
+                                            c,
+                                          );
+                                        })
+                                        .toList(),
                               ),
                           ],
                         ),
@@ -2323,11 +3160,18 @@ class _EditViewState extends State<_EditView> with SingleTickerProviderStateMixi
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(_t.chooseStyles,
-                          style: TextStyle(color: _textMuted, fontSize: 13)),
+                      Text(
+                        _t.chooseStyles,
+                        style: TextStyle(color: _textMuted, fontSize: 13),
+                      ),
                       const SizedBox(height: 6),
-                      Text(_t.tapToSelect,
-                          style: TextStyle(color: _textMuted.withOpacity(0.7), fontSize: 10.5)),
+                      Text(
+                        _t.tapToSelect,
+                        style: TextStyle(
+                          color: _textMuted.withOpacity(0.7),
+                          fontSize: 10.5,
+                        ),
+                      ),
                       const SizedBox(height: 14),
                       GridView.count(
                         crossAxisCount: 2,
@@ -2377,7 +3221,11 @@ class _EditViewState extends State<_EditView> with SingleTickerProviderStateMixi
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(color: _cardBorder),
                           boxShadow: [
-                            BoxShadow(color: c.accent1.withOpacity(0.10), blurRadius: 20, offset: const Offset(0, 4)),
+                            BoxShadow(
+                              color: c.accent1.withOpacity(0.10),
+                              blurRadius: 20,
+                              offset: const Offset(0, 4),
+                            ),
                           ],
                         ),
                         child: Column(
@@ -2386,17 +3234,26 @@ class _EditViewState extends State<_EditView> with SingleTickerProviderStateMixi
                             Container(
                               height: 1.5,
                               decoration: BoxDecoration(
-                                borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-                                gradient: LinearGradient(colors: [
-                                  Colors.transparent,
-                                  c.accent1.withOpacity(0.5),
-                                  c.accent2.withOpacity(0.3),
-                                  Colors.transparent,
-                                ]),
+                                borderRadius: const BorderRadius.vertical(
+                                  top: Radius.circular(20),
+                                ),
+                                gradient: LinearGradient(
+                                  colors: [
+                                    Colors.transparent,
+                                    c.accent1.withOpacity(0.5),
+                                    c.accent2.withOpacity(0.3),
+                                    Colors.transparent,
+                                  ],
+                                ),
                               ),
                             ),
                             Padding(
-                              padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
+                              padding: const EdgeInsets.fromLTRB(
+                                18,
+                                16,
+                                18,
+                                16,
+                              ),
                               child: Row(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
@@ -2405,26 +3262,49 @@ class _EditViewState extends State<_EditView> with SingleTickerProviderStateMixi
                                     height: 52,
                                     decoration: BoxDecoration(
                                       gradient: LinearGradient(
-                                        colors: [c.accent1.withOpacity(0.18), c.accent2.withOpacity(0.12)],
-                                        begin: Alignment.topLeft, end: Alignment.bottomRight,
+                                        colors: [
+                                          c.accent1.withOpacity(0.18),
+                                          c.accent2.withOpacity(0.12),
+                                        ],
+                                        begin: Alignment.topLeft,
+                                        end: Alignment.bottomRight,
                                       ),
                                       borderRadius: BorderRadius.circular(15),
-                                      border: Border.all(color: c.accent1.withOpacity(0.30)),
+                                      border: Border.all(
+                                        color: c.accent1.withOpacity(0.30),
+                                      ),
                                     ),
-                                    child: Icon(Icons.person_outline, color: c.accent1, size: 22),
+                                    child: Icon(
+                                      Icons.person_outline,
+                                      color: c.accent1,
+                                      size: 22,
+                                    ),
                                   ),
                                   const SizedBox(width: 14),
                                   Expanded(
                                     child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
-                                        Text(_t.personalizedFitPreview,
-                                            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600,
-                                                color: _textPrimary, letterSpacing: -0.15)),
+                                        Text(
+                                          _t.personalizedFitPreview,
+                                          style: TextStyle(
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.w600,
+                                            color: _textPrimary,
+                                            letterSpacing: -0.15,
+                                          ),
+                                        ),
                                         const SizedBox(height: 5),
-                                        Text(_t.personalizedFitBody,
-                                            style: TextStyle(fontSize: 12.5, color: _textMuted,
-                                                fontWeight: FontWeight.w400, height: 1.5)),
+                                        Text(
+                                          _t.personalizedFitBody,
+                                          style: TextStyle(
+                                            fontSize: 12.5,
+                                            color: _textMuted,
+                                            fontWeight: FontWeight.w400,
+                                            height: 1.5,
+                                          ),
+                                        ),
                                       ],
                                     ),
                                   ),
@@ -2438,53 +3318,89 @@ class _EditViewState extends State<_EditView> with SingleTickerProviderStateMixi
 
                       // Toggle
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 14,
+                        ),
                         decoration: BoxDecoration(
                           color: _card,
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(color: _cardBorder),
                         ),
-                        child: Row(children: [
-                          Expanded(
-                            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                              Text(_t.enableTryOn,
-                                  style: TextStyle(color: _textPrimary, fontSize: 14, fontWeight: FontWeight.w600)),
-                              const SizedBox(height: 3),
-                              Text('Turn on to upload photos for a personalised fit preview.',
-                                  style: TextStyle(color: _textMuted, fontSize: 12, height: 1.4)),
-                            ]),
-                          ),
-                          const SizedBox(width: 12),
-                          GestureDetector(
-                            onTap: () => setState(() {
-                              _tryOnEnabled = !_tryOnEnabled;
-                              _markDirty();
-                            }),
-                            child: _ToggleSwitch(value: _tryOnEnabled, colors: c),
-                          ),
-                        ]),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    _t.enableTryOn,
+                                    style: TextStyle(
+                                      color: _textPrimary,
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 3),
+                                  Text(
+                                    'Turn on to upload photos for a personalised fit preview.',
+                                    style: TextStyle(
+                                      color: _textMuted,
+                                      fontSize: 12,
+                                      height: 1.4,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            GestureDetector(
+                              onTap: () => setState(() {
+                                _tryOnEnabled = !_tryOnEnabled;
+                                _markDirty();
+                              }),
+                              child: _ToggleSwitch(
+                                value: _tryOnEnabled,
+                                colors: c,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                       const SizedBox(height: 14),
 
                       // Optional badge
-                      Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: _panel,
-                            borderRadius: BorderRadius.circular(100),
-                            border: Border.all(color: _cardBorder),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: _panel,
+                              borderRadius: BorderRadius.circular(100),
+                              border: Border.all(color: _cardBorder),
+                            ),
+                            child: Text(
+                              'Both uploads are optional',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: _textMuted,
+                                letterSpacing: 0.3,
+                              ),
+                            ),
                           ),
-                          child: Text('Both uploads are optional',
-                              style: TextStyle(fontSize: 11, color: _textMuted, letterSpacing: 0.3)),
-                        ),
-                      ]),
+                        ],
+                      ),
                       const SizedBox(height: 14),
 
                       // Face upload row
                       _TryOnUploadRow(
                         title: _t.uploadFacePhoto,
-                        subtitle: 'Used only to enhance facial fit and styling.',
+                        subtitle:
+                            'Used only to enhance facial fit and styling.',
                         uploaded: _faceUploaded,
                         isFace: true,
                         colors: c,
@@ -2521,35 +3437,57 @@ class _EditViewState extends State<_EditView> with SingleTickerProviderStateMixi
 
                       // Privacy block
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 14,
+                        ),
                         decoration: BoxDecoration(
                           color: c.accent3.withOpacity(0.06),
                           borderRadius: BorderRadius.circular(14),
-                          border: Border.all(color: c.accent3.withOpacity(0.20)),
+                          border: Border.all(
+                            color: c.accent3.withOpacity(0.20),
+                          ),
                         ),
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Container(
-                              width: 32, height: 32,
+                              width: 32,
+                              height: 32,
                               decoration: BoxDecoration(
                                 color: c.accent3.withOpacity(0.12),
                                 borderRadius: BorderRadius.circular(10),
                               ),
-                              child: Icon(Icons.shield_outlined, color: c.accent3, size: 16),
+                              child: Icon(
+                                Icons.shield_outlined,
+                                color: c.accent3,
+                                size: 16,
+                              ),
                             ),
                             const SizedBox(width: 12),
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text('Your Privacy is Protected',
-                                      style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600,
-                                          color: c.accent3, letterSpacing: 0.2)),
+                                  Text(
+                                    'Your Privacy is Protected',
+                                    style: TextStyle(
+                                      fontSize: 12.5,
+                                      fontWeight: FontWeight.w600,
+                                      color: c.accent3,
+                                      letterSpacing: 0.2,
+                                    ),
+                                  ),
                                   const SizedBox(height: 4),
-                                  Text('Photos are used solely for fit modeling and are deleted on request. AHVI does not sell or share personal data.',
-                                      style: TextStyle(fontSize: 12, color: _textMuted,
-                                          fontWeight: FontWeight.w300, height: 1.5)),
+                                  Text(
+                                    'Photos are used solely for fit modeling and are deleted on request. AHVI does not sell or share personal data.',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: _textMuted,
+                                      fontWeight: FontWeight.w300,
+                                      height: 1.5,
+                                    ),
+                                  ),
                                 ],
                               ),
                             ),
@@ -2573,8 +3511,8 @@ class _EditViewState extends State<_EditView> with SingleTickerProviderStateMixi
               final label = tab == 0
                   ? '${_t.style}  →'
                   : tab == 1
-                      ? '${_t.tryOn}  →'
-                      : _t.profileUpdated.replaceAll('✓ ', '');
+                  ? '${_t.tryOn}  →'
+                  : _t.profileUpdated.replaceAll('✓ ', '');
               final canTap = isLastTab ? _isDirty : true;
               return Padding(
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
@@ -2596,15 +3534,17 @@ class _EditViewState extends State<_EditView> with SingleTickerProviderStateMixi
                       padding: const EdgeInsets.symmetric(vertical: 15),
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
-                            colors: [c.accent1, c.accent2],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight),
+                          colors: [c.accent1, c.accent2],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
                         borderRadius: BorderRadius.circular(16),
                         boxShadow: [
                           BoxShadow(
-                              color: c.accent1.withOpacity(0.28),
-                              blurRadius: 20,
-                              offset: const Offset(0, 6)),
+                            color: c.accent1.withOpacity(0.28),
+                            blurRadius: 20,
+                            offset: const Offset(0, 6),
+                          ),
                         ],
                       ),
                       alignment: Alignment.center,
@@ -2614,9 +3554,10 @@ class _EditViewState extends State<_EditView> with SingleTickerProviderStateMixi
                           label,
                           key: ValueKey(tab),
                           style: TextStyle(
-                              color: _textPrimary,
-                              fontSize: 15,
-                              fontWeight: FontWeight.w600),
+                            color: _textPrimary,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
                     ),
@@ -2643,8 +3584,12 @@ class _AvatarWidget extends StatelessWidget {
   final VoidCallback? onPickImage;
 
   const _AvatarWidget({
-    required this.state, required this.colors, required this.bg, required this.bg2,
-    required this.size, required this.onPickImage,
+    required this.state,
+    required this.colors,
+    required this.bg,
+    required this.bg2,
+    required this.size,
+    required this.onPickImage,
   });
 
   @override
@@ -2661,11 +3606,13 @@ class _AvatarWidget extends StatelessWidget {
             height: size + 36,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              gradient: RadialGradient(colors: [
-                colors.accent1.withOpacity(0.22),
-                colors.accent2.withOpacity(0.09),
-                Colors.transparent,
-              ]),
+              gradient: RadialGradient(
+                colors: [
+                  colors.accent1.withOpacity(0.22),
+                  colors.accent2.withOpacity(0.09),
+                  Colors.transparent,
+                ],
+              ),
             ),
           ),
           // Gradient ring
@@ -2681,25 +3628,39 @@ class _AvatarWidget extends StatelessWidget {
                 end: Alignment.bottomRight,
               ),
               boxShadow: [
-                BoxShadow(color: colors.accent1.withOpacity(0.3),
-                    blurRadius: 28, offset: const Offset(0, 8)),
+                BoxShadow(
+                  color: colors.accent1.withOpacity(0.3),
+                  blurRadius: 28,
+                  offset: const Offset(0, 8),
+                ),
               ],
             ),
             child: Container(
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                gradient: LinearGradient(colors: [bg2, const Color(0xFF1A1C26)],
-                    begin: Alignment.topLeft, end: Alignment.bottomRight),
-                border: Border.all(color: Colors.white.withOpacity(0.10), width: 2.5),
+                gradient: LinearGradient(
+                  colors: [bg2, const Color(0xFF1A1C26)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                border: Border.all(
+                  color: Colors.white.withOpacity(0.10),
+                  width: 2.5,
+                ),
               ),
               clipBehavior: Clip.hardEdge,
               child: state.avatarPath != null
                   ? Image.file(File(state.avatarPath!), fit: BoxFit.cover)
                   : Center(
                       child: Text(
-                        (state.name.isEmpty ? 'C' : state.name[0]).toUpperCase(),
-                        style: TextStyle(fontSize: 30, fontWeight: FontWeight.w300,
-                            color: colors.accent1, letterSpacing: -0.5),
+                        (state.name.isEmpty ? 'C' : state.name[0])
+                            .toUpperCase(),
+                        style: TextStyle(
+                          fontSize: 30,
+                          fontWeight: FontWeight.w300,
+                          color: colors.accent1,
+                          letterSpacing: -0.5,
+                        ),
                       ),
                     ),
             ),
@@ -2712,12 +3673,18 @@ class _AvatarWidget extends StatelessWidget {
               child: GestureDetector(
                 onTap: onPickImage,
                 child: Container(
-                  width: 27, height: 27,
+                  width: 27,
+                  height: 27,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: colors.accent1,
                     border: Border.all(color: bg, width: 2.5),
-                    boxShadow: [BoxShadow(color: colors.accent1.withOpacity(0.4), blurRadius: 12)],
+                    boxShadow: [
+                      BoxShadow(
+                        color: colors.accent1.withOpacity(0.4),
+                        blurRadius: 12,
+                      ),
+                    ],
                   ),
                   alignment: Alignment.center,
                   child: const Text('📷', style: TextStyle(fontSize: 10)),
@@ -2735,19 +3702,28 @@ class _HeaderBtn extends StatelessWidget {
   final Color bg, border, textMuted;
   final VoidCallback? onTap;
 
-  const _HeaderBtn({required this.icon, required this.bg, required this.border,
-      required this.textMuted, this.onTap});
+  const _HeaderBtn({
+    required this.icon,
+    required this.bg,
+    required this.border,
+    required this.textMuted,
+    this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 36, height: 36,
+        width: 36,
+        height: 36,
         decoration: BoxDecoration(
-          color: bg, borderRadius: BorderRadius.circular(11),
+          color: bg,
+          borderRadius: BorderRadius.circular(11),
           border: Border.all(color: border),
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.28), blurRadius: 8)],
+          boxShadow: [
+            BoxShadow(color: Colors.black.withOpacity(0.28), blurRadius: 8),
+          ],
         ),
         alignment: Alignment.center,
         child: Text(icon, style: TextStyle(fontSize: 18, color: textMuted)),
@@ -2765,9 +3741,15 @@ class _SectionLabel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 14, 24, 8),
-      child: Text(label,
-          style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w700,
-              color: textMuted, letterSpacing: 1.3)),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 10.5,
+          fontWeight: FontWeight.w700,
+          color: textMuted,
+          letterSpacing: 1.3,
+        ),
+      ),
     );
   }
 }
@@ -2781,10 +3763,12 @@ class _SectionGroup extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
-        children: children.map((c) => Padding(
-          padding: const EdgeInsets.only(bottom: 3),
-          child: c,
-        )).toList(),
+        children: children
+            .map(
+              (c) =>
+                  Padding(padding: const EdgeInsets.only(bottom: 3), child: c),
+            )
+            .toList(),
       ),
     );
   }
@@ -2803,12 +3787,19 @@ class _ListItem extends StatelessWidget {
   final VoidCallback? onTap;
 
   const _ListItem({
-    required this.icon, required this.label,
-    this.meta, this.iconAccent = false, this.iconDanger = false,
-    this.labelDanger = false, required this.colors,
-    required this.card, required this.cardBorder,
-    required this.textPrimary, required this.textMuted,
-    this.danger, this.onTap,
+    required this.icon,
+    required this.label,
+    this.meta,
+    this.iconAccent = false,
+    this.iconDanger = false,
+    this.labelDanger = false,
+    required this.colors,
+    required this.card,
+    required this.cardBorder,
+    required this.textPrimary,
+    required this.textMuted,
+    this.danger,
+    this.onTap,
   });
 
   @override
@@ -2822,36 +3813,55 @@ class _ListItem extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           border: Border.all(color: Colors.transparent),
         ),
-        child: Row(children: [
-          Container(
-            width: 36, height: 36,
-            decoration: BoxDecoration(
-              color: iconDanger
-                  ? colors.accent1.withOpacity(0.13)
-                  : iconAccent ? colors.accent1.withOpacity(0.12) : Colors.white.withOpacity(0.06),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(
+        child: Row(
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
                 color: iconDanger
-                    ? colors.accent1.withOpacity(0.38)
-                    : iconAccent ? colors.accent1.withOpacity(0.28) : cardBorder,
+                    ? colors.accent1.withOpacity(0.13)
+                    : iconAccent
+                    ? colors.accent1.withOpacity(0.12)
+                    : Colors.white.withOpacity(0.06),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: iconDanger
+                      ? colors.accent1.withOpacity(0.38)
+                      : iconAccent
+                      ? colors.accent1.withOpacity(0.28)
+                      : cardBorder,
+                ),
+              ),
+              alignment: Alignment.center,
+              child: Text(icon, style: const TextStyle(fontSize: 15)),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Text(
+                label,
+                style: TextStyle(
+                  color: labelDanger ? colors.accent1 : textMuted,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w500,
+                  letterSpacing: 0.1,
+                ),
               ),
             ),
-            alignment: Alignment.center,
-            child: Text(icon, style: const TextStyle(fontSize: 15)),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Text(label,
+            if (meta != null) ...[
+              Text(
+                meta!,
                 style: TextStyle(
-                    color: labelDanger ? colors.accent1 : textMuted,
-                    fontSize: 15, fontWeight: FontWeight.w500, letterSpacing: 0.1)),
-          ),
-          if (meta != null) ...[
-            Text(meta!, style: TextStyle(color: textMuted, fontSize: 12.5, fontWeight: FontWeight.w300)),
-            const SizedBox(width: 4),
+                  color: textMuted,
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w300,
+                ),
+              ),
+              const SizedBox(width: 4),
+            ],
+            Text('›', style: TextStyle(color: textMuted, fontSize: 14)),
           ],
-          Text('›', style: TextStyle(color: textMuted, fontSize: 14)),
-        ]),
+        ),
       ),
     );
   }
@@ -2866,7 +3876,8 @@ class _ToggleSwitch extends StatelessWidget {
   Widget build(BuildContext context) {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
-      width: 44, height: 25,
+      width: 44,
+      height: 25,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(999),
         gradient: value
@@ -2874,22 +3885,30 @@ class _ToggleSwitch extends StatelessWidget {
             : null,
         color: value ? null : const Color(0xFF22253A),
       ),
-      child: Stack(children: [
-        AnimatedPositioned(
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.elasticOut,
-          left: value ? 22 : 3,
-          top: 3,
-          child: Container(
-            width: 19, height: 19,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: Colors.white,
-              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.25), blurRadius: 6)],
+      child: Stack(
+        children: [
+          AnimatedPositioned(
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.elasticOut,
+            left: value ? 22 : 3,
+            top: 3,
+            child: Container(
+              width: 19,
+              height: 19,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.25),
+                    blurRadius: 6,
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
-      ]),
+        ],
+      ),
     );
   }
 }
@@ -2900,18 +3919,33 @@ class _ThemeRow extends StatelessWidget {
   final Color panel, textPrimary, textMuted;
   final ValueChanged<AppTheme> onSelect;
 
-  const _ThemeRow({required this.state, required this.colors, required this.panel,
-      required this.textPrimary, required this.textMuted, required this.onSelect});
+  const _ThemeRow({
+    required this.state,
+    required this.colors,
+    required this.panel,
+    required this.textPrimary,
+    required this.textMuted,
+    required this.onSelect,
+  });
 
   @override
   Widget build(BuildContext context) {
     final themes = [
-      (AppTheme.coolBlue, 'Cool Blue',
-       [const Color(0xFF6B91FF), const Color(0xFF04D7C8)]),
-      (AppTheme.sunsetPop, 'Sunset Pop',
-       [const Color(0xFFFF9E66), const Color(0xFFFF8EC7)]),
-      (AppTheme.futureCandy, 'Future Candy',
-       [const Color(0xFFFF8EC7), const Color(0xFF04D7C8)]),
+      (
+        AppTheme.coolBlue,
+        'Cool Blue',
+        [const Color(0xFF6B91FF), const Color(0xFF04D7C8)],
+      ),
+      (
+        AppTheme.sunsetPop,
+        'Sunset Pop',
+        [const Color(0xFFFF9E66), const Color(0xFFFF8EC7)],
+      ),
+      (
+        AppTheme.futureCandy,
+        'Future Candy',
+        [const Color(0xFFFF8EC7), const Color(0xFF04D7C8)],
+      ),
     ];
 
     return Row(
@@ -2928,27 +3962,46 @@ class _ThemeRow extends StatelessWidget {
                 color: active ? panel : Colors.transparent,
                 borderRadius: BorderRadius.circular(9),
                 boxShadow: active
-                    ? [BoxShadow(color: Colors.black.withOpacity(0.20), blurRadius: 8)]
+                    ? [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.20),
+                          blurRadius: 8,
+                        ),
+                      ]
                     : [],
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Container(
-                    width: 13, height: 13,
+                    width: 13,
+                    height: 13,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      gradient: LinearGradient(colors: t.$3,
-                          begin: Alignment.topLeft, end: Alignment.bottomRight),
-                      boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.22), blurRadius: 4)],
+                      gradient: LinearGradient(
+                        colors: t.$3,
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.22),
+                          blurRadius: 4,
+                        ),
+                      ],
                     ),
                   ),
                   const SizedBox(width: 6),
                   Flexible(
-                    child: Text(t.$2, overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                            color: active ? textPrimary : textMuted,
-                            fontSize: 11.5, fontWeight: FontWeight.w600)),
+                    child: Text(
+                      t.$2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: active ? textPrimary : textMuted,
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -2969,9 +4022,15 @@ class _FieldLabel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
-      child: Text(text.toUpperCase(),
-          style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w700,
-              color: textMuted, letterSpacing: 1.3)),
+      child: Text(
+        text.toUpperCase(),
+        style: TextStyle(
+          fontSize: 10.5,
+          fontWeight: FontWeight.w700,
+          color: textMuted,
+          letterSpacing: 1.3,
+        ),
+      ),
     );
   }
 }
@@ -2984,9 +4043,14 @@ class _FieldInput extends StatelessWidget {
   final ValueChanged<String>? onChanged;
 
   const _FieldInput({
-    required this.ctrl, required this.hint, this.keyboardType,
-    required this.panel, required this.cardBorder,
-    required this.textPrimary, required this.textMuted, required this.accentColor,
+    required this.ctrl,
+    required this.hint,
+    this.keyboardType,
+    required this.panel,
+    required this.cardBorder,
+    required this.textPrimary,
+    required this.textMuted,
+    required this.accentColor,
     this.onChanged,
   });
 
@@ -2998,22 +4062,32 @@ class _FieldInput extends StatelessWidget {
         controller: ctrl,
         keyboardType: keyboardType,
         onChanged: onChanged,
-        style: TextStyle(color: textPrimary, fontSize: 15, fontWeight: FontWeight.w300),
+        style: TextStyle(
+          color: textPrimary,
+          fontSize: 15,
+          fontWeight: FontWeight.w300,
+        ),
         decoration: InputDecoration(
           hintText: hint,
           hintStyle: TextStyle(color: textMuted, fontWeight: FontWeight.w300),
           filled: true,
           fillColor: panel,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 13,
+          ),
           border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(13),
-              borderSide: BorderSide(color: cardBorder)),
+            borderRadius: BorderRadius.circular(13),
+            borderSide: BorderSide(color: cardBorder),
+          ),
           enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(13),
-              borderSide: BorderSide(color: cardBorder)),
+            borderRadius: BorderRadius.circular(13),
+            borderSide: BorderSide(color: cardBorder),
+          ),
           focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(13),
-              borderSide: BorderSide(color: accentColor.withOpacity(0.28))),
+            borderRadius: BorderRadius.circular(13),
+            borderSide: BorderSide(color: accentColor.withOpacity(0.28)),
+          ),
         ),
       ),
     );
@@ -3023,12 +4097,22 @@ class _FieldInput extends StatelessWidget {
 class _Chip extends StatelessWidget {
   final String label;
   final bool active;
-  final Color panel, cardBorder, textMuted, accentDim, accentBorder, accentColor;
+  final Color panel,
+      cardBorder,
+      textMuted,
+      accentDim,
+      accentBorder,
+      accentColor;
 
   const _Chip({
-    required this.label, required this.active,
-    required this.panel, required this.cardBorder, required this.textMuted,
-    required this.accentDim, required this.accentBorder, required this.accentColor,
+    required this.label,
+    required this.active,
+    required this.panel,
+    required this.cardBorder,
+    required this.textMuted,
+    required this.accentDim,
+    required this.accentBorder,
+    required this.accentColor,
   });
 
   @override
@@ -3041,10 +4125,14 @@ class _Chip extends StatelessWidget {
         borderRadius: BorderRadius.circular(100),
         border: Border.all(color: active ? accentBorder : cardBorder),
       ),
-      child: Text(label,
-          style: TextStyle(
-              color: active ? accentColor : textMuted,
-              fontSize: 13, fontWeight: FontWeight.w500)),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: active ? accentColor : textMuted,
+          fontSize: 13,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
     );
   }
 }
@@ -3057,8 +4145,12 @@ class _PrefCard extends StatelessWidget {
   final VoidCallback onTap;
 
   const _PrefCard({
-    required this.label, required this.imgUrl, required this.active,
-    required this.colors, required this.cardBorder, required this.panel,
+    required this.label,
+    required this.imgUrl,
+    required this.active,
+    required this.colors,
+    required this.cardBorder,
+    required this.panel,
     required this.onTap,
   });
 
@@ -3072,10 +4164,16 @@ class _PrefCard extends StatelessWidget {
           color: panel,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
-              color: active ? colors.accent1 : cardBorder,
-              width: active ? 2 : 2),
+            color: active ? colors.accent1 : cardBorder,
+            width: active ? 2 : 2,
+          ),
           boxShadow: active
-              ? [BoxShadow(color: colors.accent1.withOpacity(0.28), blurRadius: 8)]
+              ? [
+                  BoxShadow(
+                    color: colors.accent1.withOpacity(0.28),
+                    blurRadius: 8,
+                  ),
+                ]
               : [],
         ),
         clipBehavior: Clip.hardEdge,
@@ -3084,36 +4182,61 @@ class _PrefCard extends StatelessWidget {
           children: [
             ColorFiltered(
               colorFilter: ColorFilter.mode(
-                  Colors.black.withOpacity(active ? 0.08 : 0.20), BlendMode.darken),
-              child: Image.asset(imgUrl, fit: BoxFit.cover,
-                  errorBuilder: (_, _, _) =>
-                      Container(color: panel, child: const Icon(Icons.image, color: Colors.white30))),
+                Colors.black.withOpacity(active ? 0.08 : 0.20),
+                BlendMode.darken,
+              ),
+              child: Image.asset(
+                imgUrl,
+                fit: BoxFit.cover,
+                errorBuilder: (_, _, _) => Container(
+                  color: panel,
+                  child: const Icon(Icons.image, color: Colors.white30),
+                ),
+              ),
             ),
             if (active)
               Positioned(
-                top: 8, right: 8,
+                top: 8,
+                right: 8,
                 child: Container(
-                  width: 22, height: 22,
+                  width: 22,
+                  height: 22,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    gradient: LinearGradient(colors: [colors.accent1, colors.accent2],
-                        begin: Alignment.topLeft, end: Alignment.bottomRight),
+                    gradient: LinearGradient(
+                      colors: [colors.accent1, colors.accent2],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
                   ),
                   alignment: Alignment.center,
-                  child: const Text('✓', style: TextStyle(color: Colors.white, fontSize: 11)),
+                  child: const Text(
+                    '✓',
+                    style: TextStyle(color: Colors.white, fontSize: 11),
+                  ),
                 ),
               ),
             Positioned(
-              bottom: 8, left: 8,
+              bottom: 8,
+              left: 8,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.black.withOpacity(0.52),
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(color: Colors.white.withOpacity(0.15)),
                 ),
-                child: Text(label, style: const TextStyle(color: Colors.white,
-                    fontSize: 11, fontWeight: FontWeight.w600)),
+                child: Text(
+                  label,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ),
             ),
           ],
@@ -3131,8 +4254,12 @@ class _StyleImgCard extends StatelessWidget {
   final VoidCallback onTap;
 
   const _StyleImgCard({
-    required this.label, required this.imgUrl, required this.active,
-    required this.colors, required this.cardBorder, required this.panel,
+    required this.label,
+    required this.imgUrl,
+    required this.active,
+    required this.colors,
+    required this.cardBorder,
+    required this.panel,
     required this.onTap,
   });
 
@@ -3145,9 +4272,16 @@ class _StyleImgCard extends StatelessWidget {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-              color: active ? colors.accent1 : cardBorder, width: 2),
+            color: active ? colors.accent1 : cardBorder,
+            width: 2,
+          ),
           boxShadow: active
-              ? [BoxShadow(color: colors.accent1.withOpacity(0.30), blurRadius: 8)]
+              ? [
+                  BoxShadow(
+                    color: colors.accent1.withOpacity(0.30),
+                    blurRadius: 8,
+                  ),
+                ]
               : [],
         ),
         clipBehavior: Clip.hardEdge,
@@ -3156,27 +4290,44 @@ class _StyleImgCard extends StatelessWidget {
           children: [
             ColorFiltered(
               colorFilter: ColorFilter.mode(
-                  Colors.black.withOpacity(active ? 0.08 : 0.22), BlendMode.darken),
-              child: Image.asset(imgUrl, fit: BoxFit.cover,
-                  errorBuilder: (_, _, _) =>
-                      Container(color: panel, child: const Icon(Icons.image, color: Colors.white30))),
+                Colors.black.withOpacity(active ? 0.08 : 0.22),
+                BlendMode.darken,
+              ),
+              child: Image.asset(
+                imgUrl,
+                fit: BoxFit.cover,
+                errorBuilder: (_, _, _) => Container(
+                  color: panel,
+                  child: const Icon(Icons.image, color: Colors.white30),
+                ),
+              ),
             ),
             if (active)
               Positioned(
-                top: 9, right: 9,
+                top: 9,
+                right: 9,
                 child: Container(
-                  width: 22, height: 22,
+                  width: 22,
+                  height: 22,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    gradient: LinearGradient(colors: [colors.accent1, colors.accent2],
-                        begin: Alignment.topLeft, end: Alignment.bottomRight),
+                    gradient: LinearGradient(
+                      colors: [colors.accent1, colors.accent2],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
                   ),
                   alignment: Alignment.center,
-                  child: const Text('✓', style: TextStyle(color: Colors.white, fontSize: 11)),
+                  child: const Text(
+                    '✓',
+                    style: TextStyle(color: Colors.white, fontSize: 11),
+                  ),
                 ),
               ),
             Positioned(
-              bottom: 10, left: 10, right: 10,
+              bottom: 10,
+              left: 10,
+              right: 10,
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                 decoration: BoxDecoration(
@@ -3185,8 +4336,14 @@ class _StyleImgCard extends StatelessWidget {
                   border: Border.all(color: Colors.white.withOpacity(0.12)),
                 ),
                 alignment: Alignment.center,
-                child: Text(label, style: const TextStyle(color: Colors.white,
-                    fontSize: 11.5, fontWeight: FontWeight.w600)),
+                child: Text(
+                  label,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ),
             ),
           ],
@@ -3225,7 +4382,9 @@ class _TryOnUploadRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final borderColor = uploaded ? colors.accent1.withOpacity(0.40) : cardBorder;
+    final borderColor = uploaded
+        ? colors.accent1.withOpacity(0.40)
+        : cardBorder;
     final bgColor = uploaded ? colors.accent1.withOpacity(0.07) : card;
 
     return GestureDetector(
@@ -3238,8 +4397,20 @@ class _TryOnUploadRow extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           border: Border.all(color: borderColor),
           boxShadow: uploaded
-              ? [BoxShadow(color: colors.accent1.withOpacity(0.15), blurRadius: 20, offset: const Offset(0, 4))]
-              : [BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 8, offset: const Offset(0, 2))],
+              ? [
+                  BoxShadow(
+                    color: colors.accent1.withOpacity(0.15),
+                    blurRadius: 20,
+                    offset: const Offset(0, 4),
+                  ),
+                ]
+              : [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.06),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
         ),
         child: Row(
           children: [
@@ -3252,10 +4423,15 @@ class _TryOnUploadRow extends StatelessWidget {
                 color: uploaded ? colors.accent1.withOpacity(0.15) : panel,
                 borderRadius: BorderRadius.circular(13),
                 border: Border.all(
-                    color: uploaded ? colors.accent1.withOpacity(0.35) : cardBorder),
+                  color: uploaded
+                      ? colors.accent1.withOpacity(0.35)
+                      : cardBorder,
+                ),
               ),
               child: Icon(
-                isFace ? Icons.person_outline : Icons.accessibility_new_outlined,
+                isFace
+                    ? Icons.person_outline
+                    : Icons.accessibility_new_outlined,
                 color: uploaded ? colors.accent1 : textMuted,
                 size: 20,
               ),
@@ -3266,22 +4442,42 @@ class _TryOnUploadRow extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title,
-                      style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600,
-                          color: textPrimary, letterSpacing: -0.1)),
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w600,
+                      color: textPrimary,
+                      letterSpacing: -0.1,
+                    ),
+                  ),
                   const SizedBox(height: 3),
                   if (!uploaded)
-                    Text(subtitle,
-                        style: TextStyle(fontSize: 12, color: textMuted,
-                            fontWeight: FontWeight.w400, height: 1.4)),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: textMuted,
+                        fontWeight: FontWeight.w400,
+                        height: 1.4,
+                      ),
+                    ),
                   if (uploaded)
-                    Row(children: [
-                      Icon(Icons.check, color: colors.accent2, size: 12),
-                      const SizedBox(width: 5),
-                      Text('Photo added · encrypted',
-                          style: TextStyle(fontSize: 11, color: colors.accent2,
-                              fontWeight: FontWeight.w500, letterSpacing: 0.2)),
-                    ]),
+                    Row(
+                      children: [
+                        Icon(Icons.check, color: colors.accent2, size: 12),
+                        const SizedBox(width: 5),
+                        Text(
+                          'Photo added · encrypted',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: colors.accent2,
+                            fontWeight: FontWeight.w500,
+                            letterSpacing: 0.2,
+                          ),
+                        ),
+                      ],
+                    ),
                 ],
               ),
             ),
@@ -3295,7 +4491,10 @@ class _TryOnUploadRow extends StatelessWidget {
                 color: uploaded ? colors.accent1.withOpacity(0.18) : panel,
                 shape: BoxShape.circle,
                 border: Border.all(
-                    color: uploaded ? colors.accent1.withOpacity(0.35) : cardBorder),
+                  color: uploaded
+                      ? colors.accent1.withOpacity(0.35)
+                      : cardBorder,
+                ),
               ),
               child: Icon(
                 uploaded ? Icons.check : Icons.chevron_right,
@@ -3319,13 +4518,11 @@ class _ProfileBodyShapeReveal extends StatefulWidget {
   final bool visible;
   final Widget child;
 
-  const _ProfileBodyShapeReveal({
-    required this.visible,
-    required this.child,
-  });
+  const _ProfileBodyShapeReveal({required this.visible, required this.child});
 
   @override
-  State<_ProfileBodyShapeReveal> createState() => _ProfileBodyShapeRevealState();
+  State<_ProfileBodyShapeReveal> createState() =>
+      _ProfileBodyShapeRevealState();
 }
 
 class _ProfileBodyShapeRevealState extends State<_ProfileBodyShapeReveal>
@@ -3350,13 +4547,13 @@ class _ProfileBodyShapeRevealState extends State<_ProfileBodyShapeReveal>
     );
 
     // Slide: comes from slightly below (positive y = down)
-    _slide = Tween<Offset>(
-      begin: const Offset(0, 0.12),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(
-      parent: _ctrl,
-      curve: const Interval(0.0, 0.85, curve: Curves.easeOutCubic),
-    ));
+    _slide = Tween<Offset>(begin: const Offset(0, 0.12), end: Offset.zero)
+        .animate(
+          CurvedAnimation(
+            parent: _ctrl,
+            curve: const Interval(0.0, 0.85, curve: Curves.easeOutCubic),
+          ),
+        );
 
     // Subtle scale: grows from 0.95 → 1.0
     _scale = Tween<double>(begin: 0.95, end: 1.0).animate(
@@ -3420,9 +4617,14 @@ class _LanguageSheet extends StatelessWidget {
   final ValueChanged<String> onSelect;
 
   const _LanguageSheet({
-    required this.current, required this.bg2, required this.cardBorder,
-    required this.textPrimary, required this.textMuted, required this.accentColor,
-    required this.selectLanguageLabel, required this.cancelLabel,
+    required this.current,
+    required this.bg2,
+    required this.cardBorder,
+    required this.textPrimary,
+    required this.textMuted,
+    required this.accentColor,
+    required this.selectLanguageLabel,
+    required this.cancelLabel,
     required this.onSelect,
   });
 
@@ -3434,13 +4636,20 @@ class _LanguageSheet extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Center(child: Container(
-            width: 36, height: 4, margin: const EdgeInsets.only(top: 13, bottom: 16),
-            decoration: BoxDecoration(color: Colors.white.withOpacity(0.15),
-                borderRadius: BorderRadius.circular(100)),
-          )),
+          Center(
+            child: Container(
+              width: 36,
+              height: 4,
+              margin: const EdgeInsets.only(top: 13, bottom: 16),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(100),
+              ),
+            ),
+          ),
           Container(
-            width: 54, height: 54,
+            width: 54,
+            height: 54,
             decoration: BoxDecoration(
               color: accentColor.withOpacity(0.12),
               borderRadius: BorderRadius.circular(17),
@@ -3450,25 +4659,46 @@ class _LanguageSheet extends StatelessWidget {
             child: const Text('🌐', style: TextStyle(fontSize: 24)),
           ),
           const SizedBox(height: 14),
-          Text(selectLanguageLabel,
-              style: TextStyle(color: textPrimary, fontSize: 17, fontWeight: FontWeight.w700)),
-          const SizedBox(height: 12),
-          ...kLanguages.map((l) => GestureDetector(
-            onTap: () => onSelect(l),
-            child: Container(
-              padding: const EdgeInsets.symmetric(vertical: 13),
-              decoration: BoxDecoration(
-                border: Border(bottom: BorderSide(color: cardBorder)),
-              ),
-              child: Row(children: [
-                SizedBox(width: 20,
-                    child: Text(l == current ? '✓' : '',
-                        style: TextStyle(color: accentColor, fontSize: 15))),
-                const SizedBox(width: 14),
-                Text(l, style: TextStyle(color: textPrimary, fontSize: 15, fontWeight: FontWeight.w400)),
-              ]),
+          Text(
+            selectLanguageLabel,
+            style: TextStyle(
+              color: textPrimary,
+              fontSize: 17,
+              fontWeight: FontWeight.w700,
             ),
-          )),
+          ),
+          const SizedBox(height: 12),
+          ...kLanguages.map(
+            (l) => GestureDetector(
+              onTap: () => onSelect(l),
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 13),
+                decoration: BoxDecoration(
+                  border: Border(bottom: BorderSide(color: cardBorder)),
+                ),
+                child: Row(
+                  children: [
+                    SizedBox(
+                      width: 20,
+                      child: Text(
+                        l == current ? '✓' : '',
+                        style: TextStyle(color: accentColor, fontSize: 15),
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Text(
+                      l,
+                      style: TextStyle(
+                        color: textPrimary,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w400,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
           const SizedBox(height: 12),
           GestureDetector(
             onTap: () => Navigator.pop(context),
@@ -3481,7 +4711,10 @@ class _LanguageSheet extends StatelessWidget {
                 border: Border.all(color: cardBorder),
               ),
               alignment: Alignment.center,
-              child: Text(cancelLabel, style: TextStyle(color: textMuted, fontSize: 15)),
+              child: Text(
+                cancelLabel,
+                style: TextStyle(color: textMuted, fontSize: 15),
+              ),
             ),
           ),
         ],
@@ -3493,16 +4726,31 @@ class _LanguageSheet extends StatelessWidget {
 class _ConfirmSheet extends StatelessWidget {
   final String icon, title, body, confirmLabel, cancelLabel;
   final bool isDanger;
-  final Color bg2, cardBorder, textPrimary, textMuted, panel, danger, accentColor;
+  final Color bg2,
+      cardBorder,
+      textPrimary,
+      textMuted,
+      panel,
+      danger,
+      accentColor;
   final VoidCallback onConfirm, onCancel;
 
   const _ConfirmSheet({
-    required this.icon, required this.title, required this.body,
-    required this.confirmLabel, required this.cancelLabel, required this.isDanger,
-    required this.bg2, required this.cardBorder, required this.textPrimary,
-    required this.textMuted, required this.panel, required this.danger,
+    required this.icon,
+    required this.title,
+    required this.body,
+    required this.confirmLabel,
+    required this.cancelLabel,
+    required this.isDanger,
+    required this.bg2,
+    required this.cardBorder,
+    required this.textPrimary,
+    required this.textMuted,
+    required this.panel,
+    required this.danger,
     required this.accentColor,
-    required this.onConfirm, required this.onCancel,
+    required this.onConfirm,
+    required this.onCancel,
   });
 
   @override
@@ -3513,13 +4761,20 @@ class _ConfirmSheet extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Center(child: Container(
-            width: 36, height: 4, margin: const EdgeInsets.only(top: 13, bottom: 16),
-            decoration: BoxDecoration(color: Colors.white.withOpacity(0.15),
-                borderRadius: BorderRadius.circular(100)),
-          )),
+          Center(
+            child: Container(
+              width: 36,
+              height: 4,
+              margin: const EdgeInsets.only(top: 13, bottom: 16),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(100),
+              ),
+            ),
+          ),
           Container(
-            width: 54, height: 54,
+            width: 54,
+            height: 54,
             decoration: BoxDecoration(
               color: accentColor.withOpacity(0.12),
               borderRadius: BorderRadius.circular(17),
@@ -3529,10 +4784,19 @@ class _ConfirmSheet extends StatelessWidget {
             child: Text(icon, style: const TextStyle(fontSize: 24)),
           ),
           const SizedBox(height: 14),
-          Text(title,
-              style: TextStyle(color: textPrimary, fontSize: 17, fontWeight: FontWeight.w700)),
+          Text(
+            title,
+            style: TextStyle(
+              color: textPrimary,
+              fontSize: 17,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
           const SizedBox(height: 6),
-          Text(body, style: TextStyle(color: textMuted, fontSize: 13.5, height: 1.5)),
+          Text(
+            body,
+            style: TextStyle(color: textMuted, fontSize: 13.5, height: 1.5),
+          ),
           const SizedBox(height: 22),
           GestureDetector(
             onTap: onConfirm,
@@ -3541,17 +4805,26 @@ class _ConfirmSheet extends StatelessWidget {
               padding: const EdgeInsets.symmetric(vertical: 15),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                    colors: [accentColor, accentColor.withOpacity(0.8)]),
+                  colors: [accentColor, accentColor.withOpacity(0.8)],
+                ),
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                      color: accentColor.withOpacity(0.28),
-                      blurRadius: 20, offset: const Offset(0, 6)),
+                    color: accentColor.withOpacity(0.28),
+                    blurRadius: 20,
+                    offset: const Offset(0, 6),
+                  ),
                 ],
               ),
               alignment: Alignment.center,
-              child: Text(confirmLabel,
-                  style: TextStyle(color: textPrimary, fontSize: 15, fontWeight: FontWeight.w600)),
+              child: Text(
+                confirmLabel,
+                style: TextStyle(
+                  color: textPrimary,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ),
           ),
           const SizedBox(height: 10),
@@ -3566,7 +4839,10 @@ class _ConfirmSheet extends StatelessWidget {
                 border: Border.all(color: cardBorder),
               ),
               alignment: Alignment.center,
-              child: Text(cancelLabel, style: TextStyle(color: textMuted, fontSize: 15)),
+              child: Text(
+                cancelLabel,
+                style: TextStyle(color: textMuted, fontSize: 15),
+              ),
             ),
           ),
         ],
@@ -3603,7 +4879,8 @@ class _ProfileCountryDropdown extends StatefulWidget {
   });
 
   @override
-  State<_ProfileCountryDropdown> createState() => _ProfileCountryDropdownState();
+  State<_ProfileCountryDropdown> createState() =>
+      _ProfileCountryDropdownState();
 }
 
 class _ProfileCountryDropdownState extends State<_ProfileCountryDropdown> {
@@ -3648,7 +4925,11 @@ class _ProfileCountryDropdownState extends State<_ProfileCountryDropdown> {
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: widget.cardBorder, width: 1.2),
                 boxShadow: const [
-                  BoxShadow(color: Color(0x4D000000), blurRadius: 24, offset: Offset(0, 8)),
+                  BoxShadow(
+                    color: Color(0x4D000000),
+                    blurRadius: 24,
+                    offset: Offset(0, 8),
+                  ),
                 ],
               ),
               child: Column(
@@ -3663,19 +4944,35 @@ class _ProfileCountryDropdownState extends State<_ProfileCountryDropdown> {
                       style: TextStyle(fontSize: 13, color: widget.textPrimary),
                       decoration: InputDecoration(
                         hintText: 'Search…',
-                        hintStyle: TextStyle(color: widget.textMuted, fontSize: 13),
-                        prefixIcon: Icon(Icons.search_rounded, color: widget.textMuted, size: 17),
+                        hintStyle: TextStyle(
+                          color: widget.textMuted,
+                          fontSize: 13,
+                        ),
+                        prefixIcon: Icon(
+                          Icons.search_rounded,
+                          color: widget.textMuted,
+                          size: 17,
+                        ),
                         filled: true,
                         fillColor: widget.cardBorder.withOpacity(0.15),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 8,
+                        ),
                         isDense: true,
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide(color: widget.cardBorder, width: 1),
+                          borderSide: BorderSide(
+                            color: widget.cardBorder,
+                            width: 1,
+                          ),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide(color: widget.accentColor, width: 1.2),
+                          borderSide: BorderSide(
+                            color: widget.accentColor,
+                            width: 1.2,
+                          ),
                         ),
                       ),
                     ),
@@ -3687,13 +4984,17 @@ class _ProfileCountryDropdownState extends State<_ProfileCountryDropdown> {
                       itemCount: filtered.length,
                       itemBuilder: (_, i) {
                         final country = filtered[i];
-                        final isSelected = country['code'] == widget.selectedCode &&
+                        final isSelected =
+                            country['code'] == widget.selectedCode &&
                             country['flag'] == widget.selectedFlag;
                         return GestureDetector(
                           onTap: () => widget.onSelected(country),
                           child: Container(
                             margin: const EdgeInsets.symmetric(vertical: 2),
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 9,
+                            ),
                             decoration: BoxDecoration(
                               color: isSelected
                                   ? widget.accentColor.withOpacity(0.15)
@@ -3702,14 +5003,17 @@ class _ProfileCountryDropdownState extends State<_ProfileCountryDropdown> {
                             ),
                             child: Row(
                               children: [
-                                Text(country['flag'] as String,
-                                    style: const TextStyle(fontSize: 18)),
+                                Text(
+                                  country['flag'] as String,
+                                  style: const TextStyle(fontSize: 18),
+                                ),
                                 const SizedBox(width: 10),
                                 Expanded(
                                   child: Text(
                                     country['name'] as String,
                                     style: TextStyle(
-                                      fontSize: 13, fontWeight: FontWeight.w400,
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w400,
                                       color: widget.textPrimary,
                                     ),
                                     overflow: TextOverflow.ellipsis,
@@ -3718,14 +5022,18 @@ class _ProfileCountryDropdownState extends State<_ProfileCountryDropdown> {
                                 Text(
                                   country['code'] as String,
                                   style: TextStyle(
-                                    fontSize: 12, fontWeight: FontWeight.w500,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w500,
                                     color: widget.textMuted,
                                   ),
                                 ),
                                 if (isSelected) ...[
                                   const SizedBox(width: 6),
-                                  Icon(Icons.check_rounded,
-                                      color: widget.accentColor, size: 15),
+                                  Icon(
+                                    Icons.check_rounded,
+                                    color: widget.accentColor,
+                                    size: 15,
+                                  ),
                                 ],
                               ],
                             ),

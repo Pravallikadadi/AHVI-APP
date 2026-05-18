@@ -1,5 +1,5 @@
 class AppRoutes {
-  static const String splash   = '/';
+  static const String splash = '/';
   static const String intro = '/intro';
   static const String signin = '/signin';
   static const String emailAuth = '/email-auth';
@@ -7,7 +7,7 @@ class AppRoutes {
   static const String onboarding1 = '/onboarding1';
   static const String onboarding2 = '/onboarding2';
   static const String onboarding3 = '/onboarding3';
-  
+
   // ─── Feature Routes ───
   static const String workout = '/workout';
   static const String skincare = '/skincare';

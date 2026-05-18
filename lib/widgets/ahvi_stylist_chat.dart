@@ -683,7 +683,7 @@ class _AhviStylistChatSheetState extends State<_AhviStylistChatSheet>
               .trim();
       final aiText = message.isNotEmpty
           ? message
-          : _buildReply(context, trimmed.isNotEmpty ? trimmed : prompt);
+          : 'AHVI returned an empty response. Please try again.';
 
       final updatedMemory = response['updated_memory'];
       if (updatedMemory != null) _runningMemory = updatedMemory.toString();
@@ -713,12 +713,9 @@ class _AhviStylistChatSheetState extends State<_AhviStylistChatSheet>
       });
       _scrollToBottom();
       _saveCurrentSession();
-    } catch (_) {
+    } catch (err) {
       if (!mounted) return;
-      final fallback = _buildReply(
-        context,
-        trimmed.isNotEmpty ? trimmed : prompt,
-      );
+      final fallback = 'AHVI request failed: $err';
       setState(() {
         _typing = false;
         _messages.add(_SheetMessage(text: fallback, isUser: false));

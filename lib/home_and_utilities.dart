@@ -59,15 +59,13 @@ class _HomeUtilitiesScreenState extends State<HomeUtilitiesScreen>
         curve: const Interval(0.0, 0.50, curve: Curves.easeOutCubic),
       ),
     );
-    _headerSlide = Tween<Offset>(
-      begin: const Offset(0, 0.08),
-      end: Offset.zero,
-    ).animate(
-      CurvedAnimation(
-        parent: _entranceCtrl,
-        curve: const Interval(0.0, 0.50, curve: Curves.easeOutCubic),
-      ),
-    );
+    _headerSlide = Tween<Offset>(begin: const Offset(0, 0.08), end: Offset.zero)
+        .animate(
+          CurvedAnimation(
+            parent: _entranceCtrl,
+            curve: const Interval(0.0, 0.50, curve: Curves.easeOutCubic),
+          ),
+        );
 
     _tabsFade = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
@@ -75,15 +73,13 @@ class _HomeUtilitiesScreenState extends State<HomeUtilitiesScreen>
         curve: const Interval(0.25, 0.75, curve: Curves.easeOutCubic),
       ),
     );
-    _tabsSlide = Tween<Offset>(
-      begin: const Offset(0, 0.06),
-      end: Offset.zero,
-    ).animate(
-      CurvedAnimation(
-        parent: _entranceCtrl,
-        curve: const Interval(0.25, 0.75, curve: Curves.easeOutCubic),
-      ),
-    );
+    _tabsSlide = Tween<Offset>(begin: const Offset(0, 0.06), end: Offset.zero)
+        .animate(
+          CurvedAnimation(
+            parent: _entranceCtrl,
+            curve: const Interval(0.25, 0.75, curve: Curves.easeOutCubic),
+          ),
+        );
 
     _entranceCtrl.forward();
   }
@@ -108,10 +104,7 @@ class _HomeUtilitiesScreenState extends State<HomeUtilitiesScreen>
             animation: _entranceCtrl,
             builder: (context, child) => FadeTransition(
               opacity: _headerFade,
-              child: SlideTransition(
-                position: _headerSlide,
-                child: child,
-              ),
+              child: SlideTransition(position: _headerSlide, child: child),
             ),
             child: _buildHeader(t),
           ),
@@ -121,10 +114,7 @@ class _HomeUtilitiesScreenState extends State<HomeUtilitiesScreen>
             animation: _entranceCtrl,
             builder: (context, child) => FadeTransition(
               opacity: _tabsFade,
-              child: SlideTransition(
-                position: _tabsSlide,
-                child: child,
-              ),
+              child: SlideTransition(position: _tabsSlide, child: child),
             ),
             child: _buildTabBar(t),
           ),
@@ -164,7 +154,11 @@ class _HomeUtilitiesScreenState extends State<HomeUtilitiesScreen>
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: t.cardBorder),
               ),
-              child: Icon(Icons.chevron_left_rounded, color: t.textPrimary, size: 22),
+              child: Icon(
+                Icons.chevron_left_rounded,
+                color: t.textPrimary,
+                size: 22,
+              ),
             ),
           ),
           const SizedBox(width: 12),
@@ -194,7 +188,6 @@ class _HomeUtilitiesScreenState extends State<HomeUtilitiesScreen>
               ],
             ),
           ),
-
         ],
       ),
     );
@@ -204,56 +197,53 @@ class _HomeUtilitiesScreenState extends State<HomeUtilitiesScreen>
   Widget _buildTabBar(AppThemeTokens t) {
     return ClipRect(
       child: Container(
-      margin: const EdgeInsets.fromLTRB(20, 0, 20, 0),
-      padding: const EdgeInsets.all(3),
-      decoration: BoxDecoration(
-        color: t.panel,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: t.cardBorder),
-      ),
-      child: TabBar(
-        controller: _tabController,
-        padding: EdgeInsets.zero,
-        splashFactory: NoSplash.splashFactory,
-        overlayColor: WidgetStateProperty.all(Colors.transparent),
-        indicator: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              t.accent.primary,
-              t.accent.tertiary,
+        margin: const EdgeInsets.fromLTRB(20, 0, 20, 0),
+        padding: const EdgeInsets.all(3),
+        decoration: BoxDecoration(
+          color: t.panel,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: t.cardBorder),
+        ),
+        child: TabBar(
+          controller: _tabController,
+          padding: EdgeInsets.zero,
+          splashFactory: NoSplash.splashFactory,
+          overlayColor: WidgetStateProperty.all(Colors.transparent),
+          indicator: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [t.accent.primary, t.accent.tertiary],
+            ),
+            borderRadius: BorderRadius.circular(10),
+            boxShadow: [
+              BoxShadow(
+                color: t.accent.primary.withValues(alpha: 0.30),
+                blurRadius: 12,
+                offset: const Offset(0, 3),
+              ),
             ],
           ),
-          borderRadius: BorderRadius.circular(10),
-          boxShadow: [
-            BoxShadow(
-              color: t.accent.primary.withValues(alpha: 0.30),
-              blurRadius: 12,
-              offset: const Offset(0, 3),
-            ),
+          indicatorSize: TabBarIndicatorSize.tab,
+          dividerColor: Colors.transparent,
+          labelColor: t.tileText,
+          unselectedLabelColor: t.mutedText,
+          labelStyle: const TextStyle(
+            fontFamily: 'Inter',
+            fontWeight: FontWeight.w600,
+            fontSize: 13,
+          ),
+          unselectedLabelStyle: const TextStyle(
+            fontFamily: 'Inter',
+            fontWeight: FontWeight.w500,
+            fontSize: 13,
+          ),
+          tabs: [
+            Tab(text: AppLocalizations.t(context, 'home_tab_medi')),
+            Tab(text: AppLocalizations.t(context, 'home_tab_bills')),
+            Tab(text: AppLocalizations.t(context, 'home_tab_contacts')),
           ],
         ),
-        indicatorSize: TabBarIndicatorSize.tab,
-        dividerColor: Colors.transparent,
-        labelColor: t.tileText,
-        unselectedLabelColor: t.mutedText,
-        labelStyle: const TextStyle(
-          fontFamily: 'Inter',
-          fontWeight: FontWeight.w600,
-          fontSize: 13,
-        ),
-        unselectedLabelStyle: const TextStyle(
-          fontFamily: 'Inter',
-          fontWeight: FontWeight.w500,
-          fontSize: 13,
-        ),
-        tabs: [
-          Tab(text: AppLocalizations.t(context, 'home_tab_medi')),
-          Tab(text: AppLocalizations.t(context, 'home_tab_bills')),
-          Tab(text: AppLocalizations.t(context, 'home_tab_contacts')),
-        ],
-      ),
       ),
     );
   }
@@ -266,10 +256,7 @@ class _PressScaleButton extends StatefulWidget {
   final Widget child;
   final VoidCallback onTap;
 
-  const _PressScaleButton({
-    required this.child,
-    required this.onTap,
-  });
+  const _PressScaleButton({required this.child, required this.onTap});
 
   @override
   State<_PressScaleButton> createState() => _PressScaleButtonState();

@@ -9,10 +9,7 @@ import 'editorial_board_widgets.dart';
 class EditorialBoardCanvas extends StatelessWidget {
   final StyleBoardData board;
 
-  const EditorialBoardCanvas({
-    super.key,
-    required this.board,
-  });
+  const EditorialBoardCanvas({super.key, required this.board});
 
   @override
   Widget build(BuildContext context) {
@@ -43,10 +40,7 @@ class EditorialBoardCanvas extends StatelessWidget {
                   top: p.y,
                   width: p.width,
                   height: p.height,
-                  child: EditorialBoardItem(
-                    item: p.item,
-                    rotation: p.rotation,
-                  ),
+                  child: EditorialBoardItem(item: p.item, rotation: p.rotation),
                 );
               }),
               Positioned(
@@ -79,9 +73,7 @@ class _EditorialBackgroundDecor extends StatelessWidget {
   Widget build(BuildContext context) {
     return Positioned.fill(
       child: IgnorePointer(
-        child: CustomPaint(
-          painter: _EditorialBackgroundPainter(),
-        ),
+        child: CustomPaint(painter: _EditorialBackgroundPainter()),
       ),
     );
   }
@@ -90,9 +82,12 @@ class _EditorialBackgroundDecor extends StatelessWidget {
 class _EditorialBackgroundPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    final softPink = Paint()..color = const Color(0xFFFFE8EE).withValues(alpha: 0.62);
-    final softLilac = Paint()..color = const Color(0xFFEFE5FA).withValues(alpha: 0.72);
-    final softCream = Paint()..color = const Color(0xFFFFF3D9).withValues(alpha: 0.58);
+    final softPink = Paint()
+      ..color = const Color(0xFFFFE8EE).withValues(alpha: 0.62);
+    final softLilac = Paint()
+      ..color = const Color(0xFFEFE5FA).withValues(alpha: 0.72);
+    final softCream = Paint()
+      ..color = const Color(0xFFFFF3D9).withValues(alpha: 0.58);
 
     canvas.drawOval(
       Rect.fromCenter(

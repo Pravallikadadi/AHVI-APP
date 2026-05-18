@@ -53,6 +53,7 @@ class _DailyWearScreenState extends State<DailyWearScreen>
       const Color(0xFFF7F9FE),
     );
   }
+
   Color get bg2Color => _bg2;
   // Same treatment for panel surfaces (10+ card backgrounds).
   Color get panelColor {
@@ -63,6 +64,7 @@ class _DailyWearScreenState extends State<DailyWearScreen>
       const Color(0xE6FFFFFF),
     );
   }
+
   Color get panel2Color => _panel2;
   Color get cardBorderColor => _cardBorder;
   Color get textColor => _text;
@@ -1079,11 +1081,11 @@ class _DailyWearScreenState extends State<DailyWearScreen>
       _scrollChatToBottom();
       _saveCurrentSession();
       if (_micActive) _speakMessage(message);
-    } catch (_) {
+    } catch (err) {
       if (!mounted) return;
       final message = _ChatMessage(
         id: DateTime.now().microsecondsSinceEpoch,
-        text: "I couldn't reach AHVI for this request. Please try again.",
+        text: 'AHVI style request failed: $err',
         isUser: false,
         createdAt: DateTime.now(),
       );

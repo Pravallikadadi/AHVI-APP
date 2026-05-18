@@ -28,9 +28,7 @@ class BaseTheme {
       titleMedium: TextStyle(color: darkText),
       titleSmall: TextStyle(color: darkText),
     ),
-    cardTheme: const CardThemeData(
-      color: darkBgSecondary,
-    ),
+    cardTheme: const CardThemeData(color: darkBgSecondary),
   );
 
   static final ThemeData light = ThemeData(
@@ -43,8 +41,6 @@ class BaseTheme {
       titleMedium: TextStyle(color: lightText),
       titleSmall: TextStyle(color: lightText),
     ),
-    cardTheme: const CardThemeData(
-      color: lightBgSecondary,
-    ),
+    cardTheme: const CardThemeData(color: lightBgSecondary),
   );
 }

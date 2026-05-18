@@ -45,15 +45,13 @@ class _DietAndFitnessScreenState extends State<DietAndFitnessScreen>
         curve: const Interval(0.0, 0.50, curve: Curves.easeOutCubic),
       ),
     );
-    _headerSlide = Tween<Offset>(
-      begin: const Offset(0, 0.08),
-      end: Offset.zero,
-    ).animate(
-      CurvedAnimation(
-        parent: _entranceCtrl,
-        curve: const Interval(0.0, 0.50, curve: Curves.easeOutCubic),
-      ),
-    );
+    _headerSlide = Tween<Offset>(begin: const Offset(0, 0.08), end: Offset.zero)
+        .animate(
+          CurvedAnimation(
+            parent: _entranceCtrl,
+            curve: const Interval(0.0, 0.50, curve: Curves.easeOutCubic),
+          ),
+        );
 
     _tabsFade = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
@@ -61,15 +59,13 @@ class _DietAndFitnessScreenState extends State<DietAndFitnessScreen>
         curve: const Interval(0.25, 0.75, curve: Curves.easeOutCubic),
       ),
     );
-    _tabsSlide = Tween<Offset>(
-      begin: const Offset(0, 0.06),
-      end: Offset.zero,
-    ).animate(
-      CurvedAnimation(
-        parent: _entranceCtrl,
-        curve: const Interval(0.25, 0.75, curve: Curves.easeOutCubic),
-      ),
-    );
+    _tabsSlide = Tween<Offset>(begin: const Offset(0, 0.06), end: Offset.zero)
+        .animate(
+          CurvedAnimation(
+            parent: _entranceCtrl,
+            curve: const Interval(0.25, 0.75, curve: Curves.easeOutCubic),
+          ),
+        );
 
     _entranceCtrl.forward();
   }
@@ -140,7 +136,11 @@ class _DietAndFitnessScreenState extends State<DietAndFitnessScreen>
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: t.cardBorder),
               ),
-              child: Icon(Icons.chevron_left_rounded, color: t.textPrimary, size: 22),
+              child: Icon(
+                Icons.chevron_left_rounded,
+                color: t.textPrimary,
+                size: 22,
+              ),
             ),
           ),
           const SizedBox(width: 12),

@@ -30,10 +30,25 @@ class LookItem {
 }
 
 enum LookBadgeStyle {
-  streetwear, athleisure, boho, minimalist, vintage, monochrome, cottagecore, defaultBadge
+  streetwear,
+  athleisure,
+  boho,
+  minimalist,
+  vintage,
+  monochrome,
+  cottagecore,
+  defaultBadge,
 }
+
 enum LookBgStyle {
-  streetwear, athleisure, boho, minimalist, vintage, monochrome, cottagecore, defaultBg
+  streetwear,
+  athleisure,
+  boho,
+  minimalist,
+  vintage,
+  monochrome,
+  cottagecore,
+  defaultBg,
 }
 
 // ── Filter pill data ─────────────────────────────────────────────────────────
@@ -66,7 +81,11 @@ class _EverythingElseScreenState extends State<EverythingElseScreen> {
   List<FilterPillData> _filters = [];
 
   final List<String> _excludedMainCategories = [
-    'gym', 'office', 'party', 'daily wear', 'home'
+    'gym',
+    'office',
+    'party',
+    'daily wear',
+    'home',
   ];
 
   @override
@@ -78,32 +97,59 @@ class _EverythingElseScreenState extends State<EverythingElseScreen> {
   Future<void> _fetchDynamicLooks() async {
     try {
       final appwrite = Provider.of<AppwriteService>(context, listen: false);
-      final docs = await appwrite.getAllSavedBoards();
+      final primaryDocs = await appwrite.getSavedBoardsByOccasion(
+        'Everything Else',
+      );
+      final allDocs = await appwrite.getAllSavedBoards();
+      final docs = [
+        ...primaryDocs,
+        ...allDocs.where((doc) {
+          final data = doc.data;
+          final boardCategory = (data['boardCategory'] ?? '').toString();
+          final hasCategory =
+              (data['boardCategory'] ?? data['boardCategoryLabel'] ?? '')
+                  .toString()
+                  .trim()
+                  .isNotEmpty;
+          final occasion = (data['occasion'] ?? '').toString().toLowerCase();
+          return boardCategory == 'custom' ||
+              (!hasCategory && !_excludedMainCategories.contains(occasion));
+        }),
+      ];
 
       final Set<String> uniqueCategories = {};
       final List<LookItem> loadedLooks = [];
 
       for (var doc in docs) {
-        final occasion = doc.data['occasion']?.toString() ?? 'Uncategorized';
+        final occasion =
+            doc.data['boardCategoryLabel']?.toString() ??
+            doc.data['occasion']?.toString() ??
+            'Everything Else';
         if (_excludedMainCategories.contains(occasion.toLowerCase())) continue;
 
         uniqueCategories.add(occasion);
 
-        final styleIndex = occasion.hashCode % (LookBadgeStyle.values.length - 1);
+        final styleIndex =
+            occasion.hashCode % (LookBadgeStyle.values.length - 1);
         final dynamicBadge = LookBadgeStyle.values[styleIndex];
         final dynamicBg = LookBgStyle.values[styleIndex];
 
-        loadedLooks.add(LookItem(
-          id: doc.$id,
-          title: occasion.toUpperCase(),
-          description: 'Style board generated for $occasion',
-          emoji: '✨',
-          category: occasion,
-          filter: occasion.toLowerCase(),
-          imageUrl: doc.data['imageUrl'],
-          badge: dynamicBadge,
-          bg: dynamicBg,
-        ));
+        loadedLooks.add(
+          LookItem(
+            id: doc.$id,
+            title: (doc.data['title'] ?? occasion).toString(),
+            description:
+                (doc.data['outfitDescription'] ??
+                        'Style board generated for $occasion')
+                    .toString(),
+            emoji: '✨',
+            category: occasion,
+            filter: occasion.toLowerCase(),
+            imageUrl: doc.data['imageUrl'],
+            badge: dynamicBadge,
+            bg: dynamicBg,
+          ),
+        );
       }
 
       // Build dynamic filter pills with localized "All" label
@@ -189,17 +235,19 @@ class _EverythingElseScreenState extends State<EverythingElseScreen> {
                   child: _isLoading
                       ? Center(
                           child: CircularProgressIndicator(
-                              color: _t.accent.primary))
+                            color: _t.accent.primary,
+                          ),
+                        )
                       : _looks.isEmpty
-                          ? _EmptyState()
-                          : filtered.isEmpty
-                              ? _NoResultsState()
-                              : _LooksGrid(
-                                  looks: filtered,
-                                  onDelete: _deleteLook,
-                                  onShare: (look) =>
-                                      _showToast(context.tr('wardrobe_share')),
-                                ),
+                      ? _EmptyState()
+                      : filtered.isEmpty
+                      ? _NoResultsState()
+                      : _LooksGrid(
+                          looks: filtered,
+                          onDelete: _deleteLook,
+                          onShare: (look) =>
+                              _showToast(context.tr('wardrobe_share')),
+                        ),
                 ),
               ),
             ],
@@ -212,8 +260,10 @@ class _EverythingElseScreenState extends State<EverythingElseScreen> {
               right: 0,
               child: Center(
                 child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 18,
+                    vertical: 8,
+                  ),
                   decoration: BoxDecoration(
                     color: _phoneShell,
                     borderRadius: BorderRadius.circular(999),
@@ -247,7 +297,11 @@ class _Header extends StatelessWidget {
     return Container(
       width: double.infinity,
       padding: EdgeInsets.fromLTRB(
-          14, MediaQuery.of(context).padding.top + 12, 14, 16),
+        14,
+        MediaQuery.of(context).padding.top + 12,
+        14,
+        16,
+      ),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
@@ -269,8 +323,11 @@ class _Header extends StatelessWidget {
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: t.cardBorder),
               ),
-              child: Icon(Icons.chevron_left_rounded,
-                  color: t.textPrimary, size: 22),
+              child: Icon(
+                Icons.chevron_left_rounded,
+                color: t.textPrimary,
+                size: 22,
+              ),
             ),
           ),
           const SizedBox(height: 16),
@@ -383,7 +440,7 @@ class _LooksGrid extends StatelessWidget {
         crossAxisCount: 2,
         crossAxisSpacing: 10,
         mainAxisSpacing: 10,
-        childAspectRatio: 0.62,
+        childAspectRatio: 0.56,
       ),
       itemCount: looks.length,
       itemBuilder: (context, index) => _LookCard(
@@ -421,10 +478,12 @@ class _LookCardState extends State<_LookCard> {
   LinearGradient _bgGradient(LookBgStyle bg) {
     switch (bg) {
       case LookBgStyle.streetwear:
-        return LinearGradient(colors: [
-          _t.accent.tertiary.withValues(alpha: 0.3),
-          _t.accent.primary.withValues(alpha: 0.15)
-        ]);
+        return LinearGradient(
+          colors: [
+            _t.accent.tertiary.withValues(alpha: 0.3),
+            _t.accent.primary.withValues(alpha: 0.15),
+          ],
+        );
       default:
         return LinearGradient(colors: [_t.panel, _t.backgroundSecondary]);
     }
@@ -432,9 +491,12 @@ class _LookCardState extends State<_LookCard> {
 
   Color _badgeColor(LookBadgeStyle badge) {
     switch (badge) {
-      case LookBadgeStyle.streetwear: return _t.accent.primary;
-      case LookBadgeStyle.athleisure: return _t.accent.secondary;
-      default: return _t.mutedText;
+      case LookBadgeStyle.streetwear:
+        return _t.accent.primary;
+      case LookBadgeStyle.athleisure:
+        return _t.accent.secondary;
+      default:
+        return _t.mutedText;
     }
   }
 
@@ -444,7 +506,8 @@ class _LookCardState extends State<_LookCard> {
         return _t.accent.primary.withValues(alpha: 0.12);
       case LookBadgeStyle.minimalist:
         return _t.accent.primary.withValues(alpha: 0.15);
-      default: return _t.panel;
+      default:
+        return _t.panel;
     }
   }
 
@@ -496,11 +559,14 @@ class _LookCardState extends State<_LookCard> {
                       : AspectRatio(
                           aspectRatio: aspectRatio,
                           child: Container(
-                            decoration:
-                                BoxDecoration(gradient: _bgGradient(look.bg)),
+                            decoration: BoxDecoration(
+                              gradient: _bgGradient(look.bg),
+                            ),
                             child: Center(
-                              child: Text(look.emoji,
-                                  style: const TextStyle(fontSize: 32)),
+                              child: Text(
+                                look.emoji,
+                                style: const TextStyle(fontSize: 32),
+                              ),
                             ),
                           ),
                         ),
@@ -516,14 +582,16 @@ class _LookCardState extends State<_LookCard> {
                           width: 28,
                           height: 28,
                           decoration: BoxDecoration(
-                            color:
-                                _t.phoneShellInner.withValues(alpha: 0.85),
+                            color: _t.phoneShellInner.withValues(alpha: 0.85),
                             shape: BoxShape.circle,
                             border: Border.all(color: _t.cardBorder, width: 1),
                           ),
                           child: Center(
-                            child: Icon(Icons.close,
-                                size: 14, color: _t.textPrimary),
+                            child: Icon(
+                              Icons.close,
+                              size: 14,
+                              color: _t.textPrimary,
+                            ),
                           ),
                         ),
                       ),
@@ -531,53 +599,59 @@ class _LookCardState extends State<_LookCard> {
                   ),
                 ],
               ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      margin: const EdgeInsets.only(bottom: 6),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 6, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: _badgeBg(look.badge),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        look.category.toUpperCase(),
-                        style: TextStyle(
-                          fontFamily: 'Inter',
-                          fontSize: 8,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 0.5,
-                          color: _badgeColor(look.badge),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        margin: const EdgeInsets.only(bottom: 6),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 3,
+                        ),
+                        decoration: BoxDecoration(
+                          color: _badgeBg(look.badge),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          look.category.toUpperCase(),
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 8,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 0.5,
+                            color: _badgeColor(look.badge),
+                          ),
                         ),
                       ),
-                    ),
-                    Text(
-                      look.title,
-                      style: TextStyle(
-                        fontFamily: 'Inter',
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        color: _t.textPrimary,
-                        height: 1.3,
+                      Text(
+                        look.title,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: _t.textPrimary,
+                          height: 1.3,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      look.description,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontFamily: 'Inter',
-                        fontSize: 11,
-                        color: _t.mutedText,
-                        height: 1.4,
+                      const SizedBox(height: 4),
+                      Text(
+                        look.description,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 11,
+                          color: _t.mutedText,
+                          height: 1.4,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
               // Try On button
@@ -606,8 +680,11 @@ class _LookCardState extends State<_LookCard> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.auto_awesome_rounded,
-                            size: 14, color: onAccent),
+                        Icon(
+                          Icons.auto_awesome_rounded,
+                          size: 14,
+                          color: onAccent,
+                        ),
                         const SizedBox(width: 6),
                         Text(
                           context.tr('daily_wear_try_on'),
