@@ -226,6 +226,9 @@ class BackendService {
     String? resolvedPrompt,
     String? currentLookId,
     Map<String, dynamic>? styleContext,
+    bool showClosestOption = false,
+    bool allowClosestOption = false,
+    bool closest = false,
   }) async {
     final startedAt = DateTime.now();
     try {
@@ -291,6 +294,9 @@ class BackendService {
               'include_base64': false,
               if (styleAction != null && styleAction.trim().isNotEmpty)
                 'style_action': styleAction.trim(),
+              if (showClosestOption) 'show_closest_option': true,
+              if (allowClosestOption) 'allow_closest_option': true,
+              if (closest) 'closest': true,
               if (excludeStyleSignatures.isNotEmpty)
                 'exclude_style_signatures': excludeStyleSignatures,
               if (requestedBoardCount != null)

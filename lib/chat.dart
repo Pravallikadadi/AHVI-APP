@@ -284,6 +284,14 @@ bool _isStyleMoreChip(String value) {
       text.contains('different footwear');
 }
 
+bool _isShowClosestChip(String value) {
+  final text = value.toLowerCase().trim();
+  return text == 'show closest option' ||
+      text == 'show_closest_option' ||
+      text == 'show closest' ||
+      text == 'closest option';
+}
+
 String _chipLabel(dynamic chip) => AhviChip.fromDynamic(chip).label;
 
 String _chipValue(dynamic chip) => AhviChip.fromDynamic(chip).value;
@@ -1127,6 +1135,13 @@ class _ChatScreenState extends State<ChatScreen>
     _scrollToBottom();
     try {
       final backend = Provider.of<BackendService>(context, listen: false);
+      final isClosestAction = _module == 'style' && _isShowClosestChip(queryText);
+      final resolvedStylePrompt = isClosestAction ? _lastResolvedStylePrompt() : '';
+      final originalStylePrompt = resolvedStylePrompt.contains('·')
+          ? resolvedStylePrompt.split('·').first.trim()
+          : resolvedStylePrompt;
+      final interpretedOccasion =
+          resolvedStylePrompt.toLowerCase().contains('beach') ? 'beach' : null;
       // Only style / wardrobe / daily_wear flows go through /api/text which
       // builds boards. Every other module (home, utilities, fitness, diet,
       // skincare, medi, bills, calendar) goes through the shared module chat
@@ -1141,6 +1156,28 @@ class _ChatScreenState extends State<ChatScreen>
               List<Map<String, String>>.from(_chatHistory),
               _runningMemory,
               moduleContext: _module == 'daily_wear' ? 'style' : _module,
+              styleAction: isClosestAction ? 'show_closest_option' : null,
+              action: isClosestAction ? 'show_closest_option' : null,
+              previousPrompt:
+                  isClosestAction && originalStylePrompt.isNotEmpty
+                  ? originalStylePrompt
+                  : null,
+              resolvedPrompt:
+                  isClosestAction && resolvedStylePrompt.isNotEmpty
+                  ? resolvedStylePrompt
+                  : null,
+              styleContext:
+                  isClosestAction && resolvedStylePrompt.isNotEmpty
+                  ? {
+                      'original_prompt': originalStylePrompt,
+                      'resolved_prompt': resolvedStylePrompt,
+                      if (interpretedOccasion != null)
+                        'interpreted_occasion': interpretedOccasion,
+                    }
+                  : null,
+              showClosestOption: isClosestAction,
+              allowClosestOption: isClosestAction,
+              closest: isClosestAction,
             )
           : await backend.sendModuleChat(
               domain: _module,
@@ -1152,6 +1189,7 @@ class _ChatScreenState extends State<ChatScreen>
         _runningMemory = response['updated_memory'];
       }
       final parsed = AhviResponse.fromMap(response);
+      final responseBoards = _extractStyleBoardsFromResponse(response);
       final rawMessage = response['message'];
       final aiText =
           (response['message_text'] ??
@@ -1159,18 +1197,30 @@ class _ChatScreenState extends State<ChatScreen>
                   (rawMessage is Map ? rawMessage['content'] : rawMessage) ??
                   AppLocalizations.t(context, 'chat_connection_error'))
               .toString();
-      _chatHistory.add({'role': 'assistant', 'content': aiText});
+      final closestEmptyFallback =
+          isClosestAction && responseBoards.isEmpty
+          ? "I couldn't build even a closest option from the available wardrobe slots."
+          : aiText;
+      final duplicateWeakMatch =
+          parsed.type == 'weak_match' &&
+          _messages.isNotEmpty &&
+          !_messages.last.isMe &&
+          _messages.last.text.trim() == aiText.trim();
+      _chatHistory.add({'role': 'assistant', 'content': closestEmptyFallback});
       setState(
-        () => _messages.add(
-          _ChatMessage(
-            text: aiText,
-            isMe: false,
-            chips: parsed.chips.map((chip) => chip.toJson()).toList(),
-            boardId: response['board_ids'],
-            packId: response['pack_ids'],
-            cards: _extractStyleBoardsFromResponse(response),
-          ),
-        ),
+        () {
+          if (duplicateWeakMatch && !isClosestAction) return;
+          _messages.add(
+            _ChatMessage(
+              text: closestEmptyFallback,
+              isMe: false,
+              chips: parsed.chips.map((chip) => chip.toJson()).toList(),
+              boardId: response['board_ids'],
+              packId: response['pack_ids'],
+              cards: responseBoards,
+            ),
+          );
+        },
       );
       _saveCurrentSession();
     } catch (e) {
@@ -1668,6 +1718,23 @@ class _ChatScreenState extends State<ChatScreen>
   String _lastUserPrompt() {
     for (final row in _chatHistory.reversed) {
       if (row['role'] == 'user') return (row['content'] ?? '').trim();
+    }
+    return '';
+  }
+
+  String _lastResolvedStylePrompt() {
+    for (final row in _chatHistory.reversed) {
+      if (row['role'] != 'user') continue;
+      final text = (row['content'] ?? '').trim();
+      if (text.isEmpty || _isShowClosestChip(text) || _isStyleMoreChip(text)) {
+        continue;
+      }
+      if (text.contains('·')) return text;
+    }
+    for (final row in _chatHistory.reversed) {
+      if (row['role'] != 'user') continue;
+      final text = (row['content'] ?? '').trim();
+      if (text.isNotEmpty && !_isShowClosestChip(text)) return text;
     }
     return '';
   }
