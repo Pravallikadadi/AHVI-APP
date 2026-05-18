@@ -215,6 +215,17 @@ class BackendService {
     String? styleAction,
     List<String> excludeStyleSignatures = const [],
     int? requestedBoardCount,
+    // Style-session context handoff. When the user taps a chip /
+    // button / retry, the FE must attach these so the backend never
+    // sees a bare label ("Next best options", "Casual beach walk",
+    // "Try again") without the originating prompt.
+    String? action,
+    String? clarification,
+    String? sessionId,
+    String? previousPrompt,
+    String? resolvedPrompt,
+    String? currentLookId,
+    Map<String, dynamic>? styleContext,
   }) async {
     final startedAt = DateTime.now();
     try {
@@ -246,6 +257,22 @@ class BackendService {
         historyForRequest.add({'role': 'user', 'content': query});
       }
 
+      final extraContext = <String, dynamic>{
+        if (action != null && action.trim().isNotEmpty) 'action': action.trim(),
+        if (clarification != null && clarification.trim().isNotEmpty)
+          'clarification': clarification.trim(),
+        if (sessionId != null && sessionId.trim().isNotEmpty)
+          'session_id': sessionId.trim(),
+        if (previousPrompt != null && previousPrompt.trim().isNotEmpty)
+          'previous_prompt': previousPrompt.trim(),
+        if (resolvedPrompt != null && resolvedPrompt.trim().isNotEmpty)
+          'resolved_prompt': resolvedPrompt.trim(),
+        if (currentLookId != null && currentLookId.trim().isNotEmpty)
+          'current_look_id': currentLookId.trim(),
+        if (styleContext != null && styleContext.isNotEmpty)
+          'style_context': styleContext,
+      };
+
       final response = await http
           .post(
             Uri.parse('$baseUrl/api/text'),
@@ -256,6 +283,7 @@ class BackendService {
               'current_memory': _memoryPayload(currentMemory),
               'user_profile': {...?userProfile, 'user_id': authedUserId},
               'user_id': authedUserId,
+              ...extraContext,
               'module_context': moduleContext,
               // Chat style boards render from live wardrobe item cards.
               // Requesting base64 board renders here makes /api/text much
