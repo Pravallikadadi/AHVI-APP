@@ -557,7 +557,7 @@
   "medi_log_no_entries": "No entries yet.",
   "medi_notifications_empty": "Notifications empty",
   "medi_failed_load": "Failed to load data",
-  "medi_sync_error": "Sync error. Refresh to verify.",
+  "medi_sync_error": "Saved locally. Refresh to verify.",
   "medi_medicine_removed": "Medicine removed",
   "medi_remove_failed": "Failed to remove",
   "medi_marked_taken": "{name} marked as taken",

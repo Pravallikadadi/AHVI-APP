@@ -188,7 +188,8 @@ class _SkincareScreenState extends State<SkincareScreen>
   bool _isNight = false;
   String _skinType = '';
   List<String> _concerns = [];
-  Set<int> _completedSteps = {};
+  Set<int> _dayCompletedSteps = {};
+  Set<int> _nightCompletedSteps = {};
   bool _chatOpen = false;
 
   // â”€â”€ F01: back-btn hover state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -213,6 +214,16 @@ class _SkincareScreenState extends State<SkincareScreen>
   // Translated labels â€” only call inside build() or methods called from build()
   List<String> _currentRoutine(BuildContext ctx) =>
       _currentRoutineKeys.map((k) => AppLocalizations.t(ctx, k)).toList();
+  Set<int> get _completedSteps =>
+      _isNight ? _nightCompletedSteps : _dayCompletedSteps;
+  set _completedSteps(Set<int> value) {
+    if (_isNight) {
+      _nightCompletedSteps = value;
+    } else {
+      _dayCompletedSteps = value;
+    }
+  }
+
   int get _completed => _completedSteps.length;
   int get _total => _currentRoutineKeys.length;
   double get _progressPct => _total == 0 ? 0 : _completed / _total;
@@ -320,7 +331,6 @@ class _SkincareScreenState extends State<SkincareScreen>
   void _setRoutine(bool night) {
     setState(() {
       _isNight = night;
-      _completedSteps = {};
     });
     // â”€â”€ F20: Re-trigger step slideUp animations on routine switch â”€â”€â”€â”€â”€â”€â”€â”€â”€
     _buildStepAnimations();
@@ -331,7 +341,6 @@ class _SkincareScreenState extends State<SkincareScreen>
   void _setSkin(String type) {
     setState(() {
       _skinType = type;
-      _completedSteps = {};
       _concerns = [];
     });
   }
@@ -348,7 +357,10 @@ class _SkincareScreenState extends State<SkincareScreen>
 
   void _markStep(int index) {
     if (_completedSteps.contains(index)) return;
-    setState(() => _completedSteps.add(index));
+    setState(() {
+      final updated = Set<int>.from(_completedSteps)..add(index);
+      _completedSteps = updated;
+    });
   }
 
   @override

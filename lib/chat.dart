@@ -292,6 +292,40 @@ bool _isShowClosestChip(String value) {
       text == 'closest option';
 }
 
+bool _isPlanPackRequest(String value) {
+  final text = value.toLowerCase().trim();
+  final asksForPacking =
+      text.contains('pack') ||
+      text.contains('packing') ||
+      text.contains('carry-on') ||
+      text.contains('carry on');
+  final tripContext =
+      text.contains('trip') ||
+      text.contains('travel') ||
+      text.contains('beach') ||
+      text.contains('vacation') ||
+      text.contains('destination');
+  return asksForPacking && (tripContext || text.contains('plan'));
+}
+
+String _styleChipQuery(String value) {
+  switch (value.toLowerCase().trim()) {
+    case 'office':
+      return 'office outfit';
+    case 'casual':
+      return 'casual outfit';
+    case 'date':
+      return 'date night outfit';
+    case 'party':
+      return 'party outfit';
+    case 'travel':
+      return 'airport travel outfit';
+    case 'workout':
+      return 'workout outfit';
+  }
+  return value;
+}
+
 String _chipLabel(dynamic chip) => AhviChip.fromDynamic(chip).label;
 
 String _chipValue(dynamic chip) => AhviChip.fromDynamic(chip).value;
@@ -1004,7 +1038,8 @@ class _ChatScreenState extends State<ChatScreen>
   }
 
   void _handleChipTap(String chip) {
-    if (_module == 'style' && _isStyleMoreChip(chip)) {
+    const styleModules = {'style', 'wardrobe', 'daily_wear'};
+    if (styleModules.contains(_module) && _isStyleMoreChip(chip)) {
       _requestMoreStyleBoards(chip);
       return;
     }
@@ -1033,13 +1068,22 @@ class _ChatScreenState extends State<ChatScreen>
 
     try {
       final backend = Provider.of<BackendService>(context, listen: false);
+      final resolvedPrompt = _lastResolvedStylePrompt();
+      final requestPrompt = resolvedPrompt.isNotEmpty ? resolvedPrompt : chip;
       final response = await backend.sendChatQuery(
-        chip,
+        requestPrompt,
         'user_$_userName',
         List<Map<String, String>>.from(_chatHistory),
         _runningMemory,
         moduleContext: _module,
-        styleAction: 'more_options',
+        styleAction: chip.toLowerCase().contains('shoe')
+            ? 'try_different_shoes'
+            : 'more_options',
+        action: chip.toLowerCase().contains('shoe')
+            ? 'try_different_shoes'
+            : 'more_options',
+        previousPrompt: resolvedPrompt.isNotEmpty ? resolvedPrompt : null,
+        resolvedPrompt: resolvedPrompt.isNotEmpty ? resolvedPrompt : null,
         excludeStyleSignatures: exclude,
         requestedBoardCount: 3,
       );
@@ -1135,8 +1179,16 @@ class _ChatScreenState extends State<ChatScreen>
     _scrollToBottom();
     try {
       final backend = Provider.of<BackendService>(context, listen: false);
-      final isClosestAction = _module == 'style' && _isShowClosestChip(queryText);
-      final resolvedStylePrompt = isClosestAction ? _lastResolvedStylePrompt() : '';
+      const styleModules = {'style', 'wardrobe', 'daily_wear'};
+      final isStyleModule = styleModules.contains(_module);
+      final backendQueryText = isStyleModule
+          ? _styleChipQuery(queryText)
+          : queryText;
+      final isPlanPackRequest = !isStyleModule && _isPlanPackRequest(queryText);
+      final isClosestAction = isStyleModule && _isShowClosestChip(queryText);
+      final resolvedStylePrompt = isClosestAction
+          ? _lastResolvedStylePrompt()
+          : '';
       final originalStylePrompt = resolvedStylePrompt.contains('·')
           ? resolvedStylePrompt.split('·').first.trim()
           : resolvedStylePrompt;
@@ -1148,26 +1200,24 @@ class _ChatScreenState extends State<ChatScreen>
       // which runs a module-aware LLM prompt. Same routing as the AHVI
       // stylist sheet, brought to the ChatScreen so Home/Utilities chats
       // actually return text instead of an empty style response.
-      const styleModules = {'style', 'wardrobe', 'daily_wear'};
-      final response = styleModules.contains(_module)
+      final response = isStyleModule || isPlanPackRequest
           ? await backend.sendChatQuery(
-              queryText,
+              backendQueryText,
               'user_$_userName',
               List<Map<String, String>>.from(_chatHistory),
               _runningMemory,
-              moduleContext: _module == 'daily_wear' ? 'style' : _module,
+              moduleContext: isPlanPackRequest
+                  ? 'chat'
+                  : (_module == 'daily_wear' ? 'style' : _module),
               styleAction: isClosestAction ? 'show_closest_option' : null,
               action: isClosestAction ? 'show_closest_option' : null,
-              previousPrompt:
-                  isClosestAction && originalStylePrompt.isNotEmpty
+              previousPrompt: isClosestAction && originalStylePrompt.isNotEmpty
                   ? originalStylePrompt
                   : null,
-              resolvedPrompt:
-                  isClosestAction && resolvedStylePrompt.isNotEmpty
+              resolvedPrompt: isClosestAction && resolvedStylePrompt.isNotEmpty
                   ? resolvedStylePrompt
                   : null,
-              styleContext:
-                  isClosestAction && resolvedStylePrompt.isNotEmpty
+              styleContext: isClosestAction && resolvedStylePrompt.isNotEmpty
                   ? {
                       'original_prompt': originalStylePrompt,
                       'resolved_prompt': resolvedStylePrompt,
@@ -1197,8 +1247,7 @@ class _ChatScreenState extends State<ChatScreen>
                   (rawMessage is Map ? rawMessage['content'] : rawMessage) ??
                   AppLocalizations.t(context, 'chat_connection_error'))
               .toString();
-      final closestEmptyFallback =
-          isClosestAction && responseBoards.isEmpty
+      final closestEmptyFallback = isClosestAction && responseBoards.isEmpty
           ? "I couldn't build even a closest option from the available wardrobe slots."
           : aiText;
       final duplicateWeakMatch =
@@ -1207,21 +1256,19 @@ class _ChatScreenState extends State<ChatScreen>
           !_messages.last.isMe &&
           _messages.last.text.trim() == aiText.trim();
       _chatHistory.add({'role': 'assistant', 'content': closestEmptyFallback});
-      setState(
-        () {
-          if (duplicateWeakMatch && !isClosestAction) return;
-          _messages.add(
-            _ChatMessage(
-              text: closestEmptyFallback,
-              isMe: false,
-              chips: parsed.chips.map((chip) => chip.toJson()).toList(),
-              boardId: response['board_ids'],
-              packId: response['pack_ids'],
-              cards: responseBoards,
-            ),
-          );
-        },
-      );
+      setState(() {
+        if (duplicateWeakMatch && !isClosestAction) return;
+        _messages.add(
+          _ChatMessage(
+            text: closestEmptyFallback,
+            isMe: false,
+            chips: parsed.chips.map((chip) => chip.toJson()).toList(),
+            boardId: response['board_ids'],
+            packId: response['pack_ids'],
+            cards: responseBoards,
+          ),
+        );
+      });
       _saveCurrentSession();
     } catch (e) {
       if (!mounted) return;
@@ -3955,6 +4002,12 @@ class _OutfitBoardSwiperState extends State<_OutfitBoardSwiper> {
                         ? h * 0.180
                         : h * 0.142;
                     final railItemW = w * 0.250;
+                    final bottomText =
+                        '${bottom?['name'] ?? ''} ${bottom?['category'] ?? ''} ${bottom?['subcategory'] ?? ''}'
+                            .toLowerCase();
+                    final bottomIsShorts =
+                        bottomText.contains('short') ||
+                        bottomText.contains('skirt');
 
                     return Container(
                       width: double.infinity,
@@ -3994,16 +4047,17 @@ class _OutfitBoardSwiperState extends State<_OutfitBoardSwiper> {
                             ),
                           ),
 
-                          // Background layer: bottom/pants.
+                          // Bottoms need their own visible lane; do not hide
+                          // shorts/trousers entirely behind the shirt hero.
                           if (dress == null)
                             positionedItem(
                               item: bottom,
-                              left: w * 0.345 + 3,
-                              topPx: h * 0.000,
-                              width: w * 0.430,
-                              height: h * 0.895,
+                              left: bottomIsShorts ? w * 0.455 : w * 0.405,
+                              topPx: bottomIsShorts ? h * 0.300 : h * 0.115,
+                              width: bottomIsShorts ? w * 0.345 : w * 0.390,
+                              height: bottomIsShorts ? h * 0.455 : h * 0.760,
                               t: t,
-                              scale: 1.42,
+                              scale: bottomIsShorts ? 1.08 : 1.18,
                             ),
 
                           // Dress path uses the main canvas area.
@@ -4022,24 +4076,24 @@ class _OutfitBoardSwiperState extends State<_OutfitBoardSwiper> {
                           if (dress == null)
                             positionedItem(
                               item: top,
-                              left: w * 0.005,
-                              topPx: h * 0.065 + 5,
-                              width: w * 0.615,
-                              height: h * 0.720,
+                              left: -w * 0.005,
+                              topPx: h * 0.045,
+                              width: w * 0.585,
+                              height: h * 0.700,
                               t: t,
-                              scale: 1.46,
+                              scale: 1.34,
                             ),
 
                           // Footwear: bottom-left anchor.
                           positionedItem(
                             item: footwear,
-                            left: -w * 0.055,
-                            topPx: h * 0.615,
-                            width: w * 0.520,
-                            height: h * 0.350,
+                            left: -w * 0.025,
+                            topPx: h * 0.650,
+                            width: w * 0.455,
+                            height: h * 0.300,
                             t: t,
                             alignment: Alignment.bottomLeft,
-                            scale: 1.58,
+                            scale: 1.34,
                           ),
 
                           // Controlled right accessory rail.

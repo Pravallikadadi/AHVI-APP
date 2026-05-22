@@ -350,7 +350,13 @@ class _WorkoutStudioScreenState extends State<WorkoutStudioScreen> {
         null;
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(ok ? 'Added to planner.' : 'Could not add yet.')),
+      SnackBar(
+        content: Text(
+          ok
+              ? 'Added to planner.'
+              : 'Workout noted. Please verify it in Planner.',
+        ),
+      ),
     );
   }
 
@@ -1000,15 +1006,7 @@ class _WorkoutRecommendationCard extends StatelessWidget {
           ],
           if (outfit.isNotEmpty) ...[
             const SizedBox(height: 12),
-            Text(
-              'Wear: $outfit',
-              style: TextStyle(
-                color: context.fText,
-                fontSize: 12.5,
-                fontWeight: FontWeight.w700,
-                height: 1.35,
-              ),
-            ),
+            _WorkoutOutfitPanel(outfit: card.outfitPairing),
           ],
           if (card.reminders.isNotEmpty) ...[
             const SizedBox(height: 8),
@@ -1059,6 +1057,110 @@ class _WorkoutRecommendationCard extends StatelessWidget {
         .where((item) => item.isNotEmpty)
         .toList();
     return parts.join(' + ');
+  }
+}
+
+class _WorkoutOutfitPanel extends StatelessWidget {
+  final Map<String, dynamic> outfit;
+
+  const _WorkoutOutfitPanel({required this.outfit});
+
+  @override
+  Widget build(BuildContext context) {
+    final rows = <({IconData icon, String label, String value})>[
+      (
+        icon: Icons.checkroom_outlined,
+        label: 'Top',
+        value: (outfit['top'] ?? '').toString().trim(),
+      ),
+      (
+        icon: Icons.layers_outlined,
+        label: 'Bottom',
+        value: (outfit['bottom'] ?? '').toString().trim(),
+      ),
+      (
+        icon: Icons.directions_run_outlined,
+        label: 'Footwear',
+        value: (outfit['footwear'] ?? '').toString().trim(),
+      ),
+      (
+        icon: Icons.local_drink_outlined,
+        label: 'Prep',
+        value:
+            (outfit['accessories'] ??
+                    outfit['accessory'] ??
+                    outfit['prep'] ??
+                    '')
+                .toString()
+                .trim(),
+      ),
+    ].where((row) => row.value.isNotEmpty).toList();
+
+    if (rows.isEmpty) return const SizedBox.shrink();
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: context.fAccent.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: context.fAccent.withValues(alpha: 0.22)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.checkroom, color: context.fAccent, size: 18),
+              const SizedBox(width: 8),
+              Text(
+                'Workout outfit',
+                style: TextStyle(
+                  color: context.fText,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          ...rows.map(
+            (row) => Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(row.icon, color: context.fAccent, size: 15),
+                  const SizedBox(width: 8),
+                  SizedBox(
+                    width: 72,
+                    child: Text(
+                      row.label,
+                      style: TextStyle(
+                        color: context.fMuted,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: Text(
+                      row.value,
+                      style: TextStyle(
+                        color: context.fText,
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w800,
+                        height: 1.25,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 
@@ -2703,7 +2805,9 @@ class _ChatViewState extends State<_ChatView> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          created != null ? 'Added to planner.' : 'Could not add yet.',
+          created != null
+              ? 'Added to planner.'
+              : 'Workout noted. Please verify it in Planner.',
         ),
       ),
     );

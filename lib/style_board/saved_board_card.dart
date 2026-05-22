@@ -31,6 +31,182 @@ class SavedBoardCard extends StatelessWidget {
     return const {};
   }
 
+  List<Map<String, dynamic>> _itemsForBoard(Map<String, dynamic> data) {
+    final ids = <String>[
+      ...((data['itemIds'] as List?) ?? const []).map((id) => id.toString()),
+      ...((data['item_ids'] as List?) ?? const []).map((id) => id.toString()),
+    ].where((id) => id.trim().isNotEmpty).toList();
+    final hydrated = ids
+        .map((id) => wardrobeById[id])
+        .whereType<Map<String, dynamic>>()
+        .toList();
+    if (hydrated.isNotEmpty) return hydrated;
+    final rawItems = data['items'];
+    if (rawItems is List) {
+      return rawItems
+          .whereType<Map>()
+          .map((item) => Map<String, dynamic>.from(item))
+          .toList();
+    }
+    return const [];
+  }
+
+  void _openDetails(BuildContext context, Map<String, dynamic> data) {
+    final title = (data['title'] ?? data['boardCategoryLabel'] ?? 'Saved look')
+        .toString();
+    final category = (data['boardCategoryLabel'] ?? data['occasion'] ?? 'Saved')
+        .toString();
+    final description =
+        (data['outfitDescription'] ??
+                data['description'] ??
+                'AHVI saved style board')
+            .toString();
+    final items = _itemsForBoard(data);
+
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        final sheetTokens = sheetContext.themeTokens;
+        return SafeArea(
+          child: Container(
+            margin: const EdgeInsets.all(14),
+            padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
+            decoration: BoxDecoration(
+              color: sheetTokens.panel,
+              borderRadius: BorderRadius.circular(22),
+              border: Border.all(color: sheetTokens.cardBorder),
+            ),
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Container(
+                          height: 4,
+                          margin: const EdgeInsets.symmetric(horizontal: 120),
+                          decoration: BoxDecoration(
+                            color: sheetTokens.cardBorder,
+                            borderRadius: BorderRadius.circular(99),
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () => Navigator.of(sheetContext).pop(),
+                        icon: Icon(Icons.close, color: sheetTokens.textPrimary),
+                      ),
+                    ],
+                  ),
+                  Text(
+                    title,
+                    style: TextStyle(
+                      color: sheetTokens.textPrimary,
+                      fontSize: 24,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    category,
+                    style: TextStyle(
+                      color: sheetTokens.accent.primary,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.7,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(16),
+                    child: SavedBoardThumb(
+                      source: source,
+                      wardrobeById: wardrobeById,
+                      radius: BorderRadius.circular(16),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  Text(
+                    description,
+                    style: TextStyle(
+                      color: sheetTokens.mutedText,
+                      fontSize: 14,
+                      height: 1.35,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Items in this look',
+                    style: TextStyle(
+                      color: sheetTokens.textPrimary,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  if (items.isEmpty)
+                    Text(
+                      'No item details are attached to this saved board.',
+                      style: TextStyle(color: sheetTokens.mutedText),
+                    )
+                  else
+                    ...items.map((item) {
+                      final name =
+                          (item['name'] ?? item['title'] ?? 'Wardrobe item')
+                              .toString();
+                      final category =
+                          (item['category'] ??
+                                  item['sub_category'] ??
+                                  item['subcategory'] ??
+                                  item['type'] ??
+                                  'Item')
+                              .toString();
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 8,
+                              height: 8,
+                              decoration: BoxDecoration(
+                                color: sheetTokens.accent.primary,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                name,
+                                style: TextStyle(
+                                  color: sheetTokens.textPrimary,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                            Text(
+                              category,
+                              style: TextStyle(
+                                color: sheetTokens.mutedText,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final t = context.themeTokens;
@@ -46,7 +222,10 @@ class SavedBoardCard extends StatelessWidget {
     final onAccent = Theme.of(context).colorScheme.onPrimary;
 
     return GestureDetector(
-      onTap: onTap,
+      onTap: () {
+        onTap?.call();
+        _openDetails(context, data);
+      },
       child: Container(
         decoration: BoxDecoration(
           color: t.panel,
@@ -65,50 +244,49 @@ class SavedBoardCard extends StatelessWidget {
                 radius: BorderRadius.zero,
               ),
             ),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(10, 8, 10, 6),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      category.toUpperCase(),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: t.accent.primary,
-                        fontSize: 8,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 0.5,
-                      ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(10, 8, 10, 6),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    category.toUpperCase(),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: t.accent.primary,
+                      fontSize: 8,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.5,
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      title,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: t.textPrimary,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        height: 1.2,
-                      ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: t.textPrimary,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      height: 1.2,
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      description,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: t.mutedText,
-                        fontSize: 11,
-                        height: 1.25,
-                      ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    description,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: t.mutedText,
+                      fontSize: 11,
+                      height: 1.25,
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
+            const Spacer(),
             Padding(
               padding: const EdgeInsets.fromLTRB(10, 0, 10, 10),
               child: SizedBox(

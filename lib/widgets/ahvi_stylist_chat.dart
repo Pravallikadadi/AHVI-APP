@@ -69,6 +69,22 @@ bool _isShowClosestStyleAction(String value) {
       normalized == 'show closest safe option';
 }
 
+bool _isPlanPackRequest(String value) {
+  final text = value.toLowerCase().trim();
+  final asksForPacking =
+      text.contains('pack') ||
+      text.contains('packing') ||
+      text.contains('carry-on') ||
+      text.contains('carry on');
+  final tripContext =
+      text.contains('trip') ||
+      text.contains('travel') ||
+      text.contains('beach') ||
+      text.contains('vacation') ||
+      text.contains('destination');
+  return asksForPacking && (tripContext || text.contains('plan'));
+}
+
 String? _occasionFromStylePrompt(String value) {
   final normalized = value.toLowerCase();
   if (normalized.contains('beach')) return 'beach';
@@ -690,6 +706,7 @@ class _AhviStylistChatSheetState extends State<_AhviStylistChatSheet>
       final styleModuleContext = widget.moduleContext == 'daily_wear'
           ? 'style'
           : widget.moduleContext;
+      final isPlanPackRequest = _isPlanPackRequest(trimmed);
       final isClosestStyleAction =
           styleModules.contains(widget.moduleContext) &&
           _isShowClosestStyleAction(trimmed);
@@ -702,13 +719,14 @@ class _AhviStylistChatSheetState extends State<_AhviStylistChatSheet>
       final interpretedOccasion = _occasionFromStylePrompt(
         resolvedStylePrompt.isNotEmpty ? resolvedStylePrompt : query,
       );
-      final response = styleModules.contains(widget.moduleContext)
+      final response =
+          styleModules.contains(widget.moduleContext) || isPlanPackRequest
           ? await backend.sendChatQuery(
               query,
               '',
               List<Map<String, String>>.from(_chatHistory),
               _runningMemory,
-              moduleContext: styleModuleContext,
+              moduleContext: isPlanPackRequest ? 'chat' : styleModuleContext,
               styleAction: isClosestStyleAction ? 'show_closest_option' : null,
               action: isClosestStyleAction ? 'show_closest_option' : null,
               previousPrompt:
