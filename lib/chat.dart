@@ -19,6 +19,8 @@ import 'package:myapp/skincare.dart' as skincare_page;
 import 'package:myapp/fitness_page.dart' as fitness_page;
 import 'package:myapp/diet_page.dart' as diet_page;
 import 'package:myapp/theme/theme_tokens.dart';
+import 'package:myapp/models/ahvi_visual_board_model.dart';
+import 'package:myapp/widgets/ahvi_visual_board.dart';
 import 'package:provider/provider.dart';
 
 class _SavedBoardCategory {
@@ -258,6 +260,7 @@ class _ChatMessage {
   // Visual outfit board cards from backend.
   // Each card: { id, title, items: [{ name, image_url, masked_url, color, ... }], ... }
   final List<dynamic> cards;
+  final AhviVisualBoard? visualBoard;
   _ChatMessage({
     required this.text,
     required this.isMe,
@@ -267,6 +270,7 @@ class _ChatMessage {
     this.packId,
     this.local,
     this.cards = const [],
+    this.visualBoard,
   });
 }
 
@@ -1239,6 +1243,9 @@ class _ChatScreenState extends State<ChatScreen>
         _runningMemory = response['updated_memory'];
       }
       final parsed = AhviResponse.fromMap(response);
+      final visualBoard = AhviVisualBoard.isVisualBoard(response)
+          ? AhviVisualBoard.fromJson(response)
+          : null;
       final responseBoards = _extractStyleBoardsFromResponse(response);
       final rawMessage = response['message'];
       final aiText =
@@ -1266,6 +1273,7 @@ class _ChatScreenState extends State<ChatScreen>
             boardId: response['board_ids'],
             packId: response['pack_ids'],
             cards: responseBoards,
+            visualBoard: visualBoard,
           ),
         );
       });
@@ -1655,6 +1663,15 @@ class _ChatScreenState extends State<ChatScreen>
         ),
       ),
       if (!m.isMe && m.cards.isNotEmpty) _outfitBoardView(m.cards, t),
+      if (!m.isMe && m.visualBoard != null)
+        Padding(
+          padding: const EdgeInsets.only(bottom: 16),
+          child: AhviVisualBoardView(
+            board: m.visualBoard!,
+            textColor: t.textPrimary,
+            accentColor: t.accent.primary,
+          ),
+        ),
       if (!m.isMe && m.local != null) _localView(m.local!, t),
       if (!m.isMe && m.chips.isNotEmpty)
         Padding(

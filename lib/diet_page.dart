@@ -11,6 +11,8 @@ import 'package:http/http.dart' as http;
 import 'theme/theme_tokens.dart';
 import 'package:myapp/widgets/ahvi_home_text.dart';
 import 'package:myapp/widgets/ahvi_chat_prompt_bar.dart';
+import 'package:myapp/models/ahvi_visual_board_model.dart';
+import 'package:myapp/widgets/ahvi_visual_board.dart';
 
 // ─── THEME COLORS ────────────────────────────────────────────────────────────
 // NOTE: kAccent and meal-type colors remain constant (not theme-dependent)
@@ -168,7 +170,13 @@ class ChatMessage {
   final String text;
   final bool isBot;
   MealPlan? plan;
-  ChatMessage({required this.text, required this.isBot, this.plan});
+  final AhviVisualBoard? visualBoard;
+  ChatMessage({
+    required this.text,
+    required this.isBot,
+    this.plan,
+    this.visualBoard,
+  });
 }
 
 // ─── IMAGE PROVIDER (Wikipedia / TheMealDB API) ──────────────────────────────
@@ -3386,44 +3394,83 @@ class _ChatScreenState extends State<ChatScreen> {
     final planType = _detectPlanType(lower);
     final planTypeLabel = planType[0].toUpperCase() + planType.substring(1);
 
-    String reply = AppLocalizations.t(
+    // Resolve localized strings before the await so BuildContext is not
+    // used across an async gap.
+    final herePlanText = AppLocalizations.t(
       context,
       'diet_chat_here_plan',
     ).replaceAll('{type}', planTypeLabel);
+    final planNameHealthy = AppLocalizations.t(context, 'diet_plan_healthy');
+    final planNameMediterranean = AppLocalizations.t(
+      context,
+      'diet_plan_mediterranean',
+    );
+    final planNameVegan = AppLocalizations.t(context, 'diet_plan_vegan');
+    final planNameHighProtein = AppLocalizations.t(
+      context,
+      'diet_plan_highprotein',
+    );
+    final planNameKeto = AppLocalizations.t(context, 'diet_plan_keto');
+
+    // Single backend call. Backend returns a structured visual_board for
+    // diet/meal prompts, or plain text otherwise.
+    Map<String, dynamic> response;
+    try {
+      response = await BackendService().sendModuleChat(
+        domain: 'diet',
+        message: t,
+        chatHistory: List<Map<String, String>>.from(_chatHistory),
+      );
+    } catch (err) {
+      response = {'message_text': 'AHVI diet request failed: $err'};
+    }
+
+    // Visual board response — render the structured meal board.
+    if (AhviVisualBoard.isVisualBoard(response)) {
+      final board = AhviVisualBoard.fromJson(response);
+      final boardText = _responseText(response);
+      if (mounted) {
+        setState(() {
+          _isTyping = false;
+          _messages.add(
+            ChatMessage(
+              text: boardText.isEmpty ? board.title : boardText,
+              isBot: true,
+              visualBoard: board,
+            ),
+          );
+          _chatHistory.add({'role': 'assistant', 'content': board.title});
+        });
+      }
+      return;
+    }
+
+    String reply = _responseText(response);
+    if (reply.isEmpty) reply = herePlanText;
     MealPlan? plan;
     String diet = 'healthy';
-    String planName = AppLocalizations.t(context, 'diet_plan_healthy');
+    String planName = planNameHealthy;
 
     if (lower.contains('mediterr')) {
       diet = 'mediterranean';
-      planName = AppLocalizations.t(context, 'diet_plan_mediterranean');
+      planName = planNameMediterranean;
     } else if (lower.contains('vegan')) {
       diet = 'vegan';
-      planName = AppLocalizations.t(context, 'diet_plan_vegan');
+      planName = planNameVegan;
     } else if (lower.contains('high protein') ||
         lower.contains('highprotein') ||
         lower.contains('protein')) {
       diet = 'highprotein';
-      planName = AppLocalizations.t(context, 'diet_plan_highprotein');
+      planName = planNameHighProtein;
     } else if (lower.contains('keto')) {
       diet = 'keto';
-      planName = AppLocalizations.t(context, 'diet_plan_keto');
+      planName = planNameKeto;
     } else if (lower.contains('healthy') ||
         lower.contains('balanced') ||
         lower.contains('plan')) {
       diet = 'healthy';
       planName = 'Healthy Balanced Plan';
     } else {
-      try {
-        final response = await BackendService().sendModuleChat(
-          domain: 'diet',
-          message: t,
-          chatHistory: List<Map<String, String>>.from(_chatHistory),
-        );
-        reply = _responseText(response);
-      } catch (err) {
-        reply = 'AHVI diet request failed: $err';
-      }
       if (reply.isEmpty) {
         reply = 'AHVI returned an empty diet response. Please try again.';
       }
@@ -3435,18 +3482,6 @@ class _ChatScreenState extends State<ChatScreen> {
         });
       }
       return;
-    }
-
-    try {
-      final response = await BackendService().sendModuleChat(
-        domain: 'diet',
-        message: t,
-        chatHistory: List<Map<String, String>>.from(_chatHistory),
-      );
-      final backendReply = _responseText(response);
-      if (backendReply.isNotEmpty) reply = backendReply;
-    } catch (err) {
-      reply = 'AHVI diet request failed: $err';
     }
 
     if (planType == 'weekly') {
@@ -3611,6 +3646,18 @@ class _ChatScreenState extends State<ChatScreen> {
                             ),
                           ),
                         ),
+                        if (m.visualBoard != null)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: AhviVisualBoardView(
+                              board: m.visualBoard!,
+                              surfaceColor: context.dSurface,
+                              textColor: context.dText,
+                              mutedColor: context.dMuted,
+                              accentColor: context.dAccent,
+                              borderColor: context.dBorder,
+                            ),
+                          ),
                         if (m.plan != null)
                           Container(
                             margin: const EdgeInsets.only(bottom: 12),

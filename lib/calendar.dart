@@ -4,6 +4,8 @@ import 'package:myapp/services/ahvi_response_parser.dart';
 import 'package:myapp/services/ahvi_speech_service.dart';
 import 'package:myapp/services/backend_service.dart';
 import 'package:myapp/theme/theme_tokens.dart';
+import 'package:myapp/models/ahvi_visual_board_model.dart';
+import 'package:myapp/widgets/ahvi_visual_board.dart';
 
 void main() {
   runApp(const ScheduleApp());
@@ -1316,11 +1318,13 @@ class ChatMessage {
   final bool isUser;
   final String time;
   final List<AhviChip> chips;
+  final AhviVisualBoard? visualBoard;
   ChatMessage(
     this.text, {
     required this.isUser,
     required this.time,
     this.chips = const [],
+    this.visualBoard,
   });
 }
 
@@ -1479,6 +1483,24 @@ class _StyleChatScreenState extends State<StyleChatScreen> {
             )
             .toList(),
       );
+
+      // Visual board response — render the structured plan board.
+      if (AhviVisualBoard.isVisualBoard(response)) {
+        final board = AhviVisualBoard.fromJson(response);
+        if (!mounted) return;
+        setState(() {
+          _msgs.add(
+            ChatMessage(
+              board.title.isEmpty ? 'Here is your plan.' : board.title,
+              isUser: false,
+              time: AppLocalizations.t(context, 'calendar_chat_time_now'),
+              visualBoard: board,
+            ),
+          );
+        });
+        return;
+      }
+
       final parsed = AhviResponse.fromMap(response);
       reply = parsed.messageText.isNotEmpty
           ? parsed.messageText
@@ -1775,6 +1797,24 @@ class _StyleChatScreenState extends State<StyleChatScreen> {
                                         ),
                                       )
                                       .toList(),
+                                ),
+                              ),
+                            if (!m.isUser && m.visualBoard != null)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 8),
+                                child: ConstrainedBox(
+                                  constraints: BoxConstraints(
+                                    maxWidth:
+                                        MediaQuery.of(context).size.width *
+                                        0.82,
+                                  ),
+                                  child: AhviVisualBoardView(
+                                    board: m.visualBoard!,
+                                    surfaceColor: theme.card,
+                                    textColor: theme.textPrimary,
+                                    mutedColor: theme.mutedText,
+                                    borderColor: theme.cardBorder,
+                                  ),
                                 ),
                               ),
                           ],
