@@ -3001,10 +3001,23 @@ class _AddItemModalState extends State<_AddItemModal>
         ] else if (_capturedBytes != null)
           Stack(
             children: [
-              SizedBox(
-                height: 130,
+              Container(
+                height: 176,
                 width: double.infinity,
-                child: Image.memory(_capturedBytes!, fit: BoxFit.cover),
+                color: t.panel.withValues(alpha: 0.72),
+                child: Center(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 18,
+                      vertical: 10,
+                    ),
+                    child: Image.memory(
+                      _capturedBytes!,
+                      fit: BoxFit.contain,
+                      alignment: Alignment.center,
+                    ),
+                  ),
+                ),
               ),
               // Gradient fade bottom
               Positioned(
