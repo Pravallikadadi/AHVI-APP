@@ -499,6 +499,60 @@ class _CardRow {
   const _CardRow(this.done, this.main, this.sub, this.tag);
 }
 
+IconData _moduleIconFor(String key) {
+  switch (key) {
+    case 'medication':
+      return Icons.medication_rounded;
+    case 'restaurant':
+      return Icons.restaurant_menu_rounded;
+    case 'receipt':
+      return Icons.receipt_long_rounded;
+    case 'fitness':
+      return Icons.fitness_center_rounded;
+    case 'event':
+      return Icons.event_note_rounded;
+    case 'spa':
+      return Icons.spa_rounded;
+    default:
+      return Icons.dashboard_rounded;
+  }
+}
+
+/// Parse a backend `module_card` envelope into a card the chat already
+/// knows how to render (via _localView). Returns null for other responses.
+_LocalResponse? _moduleCardFromResponse(Map<String, dynamic> response) {
+  if ((response['response_type'] ?? '').toString() != 'module_card') return null;
+  final card = response['card'];
+  if (card is! Map) return null;
+  final rows = <_CardRow>[];
+  final rawRows = card['rows'];
+  if (rawRows is List) {
+    for (final r in rawRows) {
+      if (r is! Map) continue;
+      rows.add(
+        _CardRow(
+          r['done'] == true,
+          (r['main'] ?? '').toString(),
+          (r['sub'] ?? '').toString(),
+          (r['tag'] ?? '').toString(),
+        ),
+      );
+    }
+  }
+  final title = (card['title'] ?? 'Summary').toString();
+  return _LocalResponse(
+    type: _RespType.card,
+    intro: (response['message_text'] ?? response['message'] ?? '').toString(),
+    card: _CardData(
+      title,
+      _moduleIconFor((card['icon'] ?? '').toString()),
+      rows,
+      'Open $title',
+      (card['open_key'] ?? '').toString(),
+    ),
+  );
+}
+
 final _local = <String, _LocalResponse>{
   'What should I wear today?': _LocalResponse(
     type: _RespType.outfits,
@@ -668,21 +722,8 @@ final _local = <String, _LocalResponse>{
       'meal',
     ),
   ),
-  'My medicines': _LocalResponse(
-    type: _RespType.card,
-    intro: 'You have 3 medicines tracked.',
-    card: _CardData(
-      'Medicines',
-      Icons.medication_rounded,
-      [
-        _CardRow(true, 'Vitamin D3 — 1 tablet', 'Daily · 08:00', 'Taken'),
-        _CardRow(true, 'Iron Supplement — 1 tablet', 'Daily · 13:00', 'Taken'),
-        _CardRow(false, 'Omega-3 — 2 capsules', 'Daily · 20:00', 'Pending'),
-      ],
-      'Open Medicines',
-      'medi',
-    ),
-  ),
+  // 'My medicines' is no longer a demo card — it routes to the backend
+  // and renders the user's real Appwrite data via _moduleCardFromResponse.
   'Pending bills': _LocalResponse(
     type: _RespType.card,
     intro: 'You have 3 unpaid bills.',
@@ -1246,6 +1287,7 @@ class _ChatScreenState extends State<ChatScreen>
       final visualBoard = AhviVisualBoard.isVisualBoard(response)
           ? AhviVisualBoard.fromJson(response)
           : null;
+      final moduleCard = _moduleCardFromResponse(response);
       final responseBoards = _extractStyleBoardsFromResponse(response);
       final rawMessage = response['message'];
       final aiText =
@@ -1274,6 +1316,7 @@ class _ChatScreenState extends State<ChatScreen>
             packId: response['pack_ids'],
             cards: responseBoards,
             visualBoard: visualBoard,
+            local: moduleCard,
           ),
         );
       });
