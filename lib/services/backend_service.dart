@@ -590,7 +590,8 @@ class BackendService {
               'save_duplicates': saveDuplicates,
             }),
           )
-          .timeout(const Duration(seconds: 120));
+          // Vision enrichment runs 70-150s server-side; keep headroom.
+          .timeout(const Duration(seconds: 180));
 
       if (response.statusCode == 200) {
         final data = await compute(_parseJsonMap, response.body);
@@ -633,7 +634,8 @@ class BackendService {
               'save_duplicates': saveDuplicates,
             }),
           )
-          .timeout(const Duration(seconds: 150));
+          // Batch vision enrichment runs 160-220s server-side; keep headroom.
+          .timeout(const Duration(seconds: 240));
 
       if (response.statusCode == 200) {
         final data = await compute(_parseJsonMap, response.body);
