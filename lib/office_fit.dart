@@ -74,8 +74,17 @@ class _OfficeFitScreenState extends State<OfficeFitScreen> {
   ) {
     final byId = <String, Map<String, dynamic>>{};
     for (final item in items) {
-      final id = (item[r'$id'] ?? item['id'] ?? '').toString();
-      if (id.isNotEmpty) byId[id] = item;
+      for (final rawId in [
+        item[r'$id'],
+        item['id'],
+        item['item_id'],
+        item['itemId'],
+        item['image_id'],
+        item['imageId'],
+      ]) {
+        final id = (rawId ?? '').toString();
+        if (id.isNotEmpty) byId[id] = item;
+      }
     }
     return byId;
   }

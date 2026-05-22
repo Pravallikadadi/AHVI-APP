@@ -1745,7 +1745,19 @@ class _ChatScreenState extends State<ChatScreen>
       title: title,
       prompt: _lastUserPrompt(),
       extra: {
-        'itemIds': slotted.values.map((it) => it['id'] ?? it[r'$id']).toList(),
+        'itemIds': slotted.values
+            .map(
+              (it) =>
+                  it[r'$id'] ??
+                  it['id'] ??
+                  it['item_id'] ??
+                  it['itemId'] ??
+                  it['image_id'] ??
+                  it['imageId'],
+            )
+            .where((id) => id != null && id.toString().trim().isNotEmpty)
+            .map((id) => id.toString())
+            .toList(),
       },
       emoji: '✨',
     );
