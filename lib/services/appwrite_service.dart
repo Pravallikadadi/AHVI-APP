@@ -8,6 +8,10 @@ import 'package:myapp/services/notification_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class AppwriteService extends ChangeNotifier {
+  static final AppwriteService _shared = AppwriteService._internal();
+
+  factory AppwriteService() => _shared;
+
   late Client client;
   late Account account;
   late Databases databases;
@@ -43,7 +47,7 @@ class AppwriteService extends ChangeNotifier {
     _wardrobeInflight = null;
   }
 
-  AppwriteService() {
+  AppwriteService._internal() {
     client = Client()
       ..setEndpoint(Env.appwriteEndpoint)
       ..setProject(Env.appwriteProjectId);
