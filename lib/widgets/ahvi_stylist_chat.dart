@@ -63,6 +63,25 @@ class Attachment {
 //  MODULE CONFIG  — ప్రతి screen కి context, prompts, subtitle
 // ════════════════════════════════════════════════════════════════════
 
+bool _isShowClosestStyleAction(String value) {
+  final normalized = value.trim().toLowerCase().replaceAll('_', ' ');
+  return normalized == 'show closest option' ||
+      normalized == 'show closest safe option';
+}
+
+String? _occasionFromStylePrompt(String value) {
+  final normalized = value.toLowerCase();
+  if (normalized.contains('beach')) return 'beach';
+  if (normalized.contains('office')) return 'office';
+  if (normalized.contains('date')) return 'date';
+  if (normalized.contains('party')) return 'party';
+  if (normalized.contains('travel')) return 'travel';
+  if (normalized.contains('workout') || normalized.contains('gym')) {
+    return 'workout';
+  }
+  return null;
+}
+
 class AhviModuleConfig {
   final String moduleContext;
   final String subtitle;
@@ -616,6 +635,18 @@ class _AhviStylistChatSheetState extends State<_AhviStylistChatSheet>
     );
   }
 
+  String _lastResolvedStylePrompt() {
+    String fallback = '';
+    for (final entry in _chatHistory.reversed) {
+      if (entry['role'] != 'user') continue;
+      final content = (entry['content'] ?? '').trim();
+      if (content.isEmpty || _isShowClosestStyleAction(content)) continue;
+      if (content.contains('·')) return content;
+      fallback = fallback.isEmpty ? content : fallback;
+    }
+    return fallback;
+  }
+
   Future<void> _sendMessage(String text) async {
     final trimmed = text.trim();
     if (trimmed.isEmpty && _pendingAttachment == null) return;
@@ -656,15 +687,51 @@ class _AhviStylistChatSheetState extends State<_AhviStylistChatSheet>
       final backend = Provider.of<BackendService>(context, listen: false);
       final query = prompt.isNotEmpty ? prompt : trimmed;
       final styleModules = {'style', 'wardrobe', 'daily_wear'};
+      final styleModuleContext = widget.moduleContext == 'daily_wear'
+          ? 'style'
+          : widget.moduleContext;
+      final isClosestStyleAction =
+          styleModules.contains(widget.moduleContext) &&
+          _isShowClosestStyleAction(trimmed);
+      final resolvedStylePrompt = isClosestStyleAction
+          ? _lastResolvedStylePrompt()
+          : '';
+      final originalStylePrompt = resolvedStylePrompt.contains('·')
+          ? resolvedStylePrompt.split('·').first.trim()
+          : resolvedStylePrompt;
+      final interpretedOccasion = _occasionFromStylePrompt(
+        resolvedStylePrompt.isNotEmpty ? resolvedStylePrompt : query,
+      );
       final response = styleModules.contains(widget.moduleContext)
           ? await backend.sendChatQuery(
               query,
               '',
               List<Map<String, String>>.from(_chatHistory),
               _runningMemory,
-              moduleContext: widget.moduleContext == 'daily_wear'
-                  ? 'style'
-                  : widget.moduleContext,
+              moduleContext: styleModuleContext,
+              styleAction: isClosestStyleAction ? 'show_closest_option' : null,
+              action: isClosestStyleAction ? 'show_closest_option' : null,
+              previousPrompt:
+                  isClosestStyleAction && originalStylePrompt.isNotEmpty
+                  ? originalStylePrompt
+                  : null,
+              resolvedPrompt:
+                  isClosestStyleAction && resolvedStylePrompt.isNotEmpty
+                  ? resolvedStylePrompt
+                  : null,
+              styleContext: isClosestStyleAction
+                  ? {
+                      if (originalStylePrompt.isNotEmpty)
+                        'original_prompt': originalStylePrompt,
+                      if (resolvedStylePrompt.isNotEmpty)
+                        'resolved_prompt': resolvedStylePrompt,
+                      if (interpretedOccasion != null)
+                        'interpreted_occasion': interpretedOccasion,
+                    }
+                  : null,
+              showClosestOption: isClosestStyleAction,
+              allowClosestOption: isClosestStyleAction,
+              closest: isClosestStyleAction,
             )
           : await backend.sendModuleChat(
               domain: widget.moduleContext,
@@ -689,27 +756,29 @@ class _AhviStylistChatSheetState extends State<_AhviStylistChatSheet>
       if (updatedMemory != null) _runningMemory = updatedMemory.toString();
       final boardPayload = _StyleBoardPayload.fromResponse(response);
       final gapPayload = _WardrobeGapPayload.fromResponse(response);
+      final displayText = isClosestStyleAction && !boardPayload.hasBoards
+          ? "I couldn't build even a closest option from the available wardrobe slots."
+          : gapPayload.active && gapPayload.message.trim().isNotEmpty
+          ? gapPayload.message.trim()
+          : aiText;
 
       setState(() {
         _typing = false;
         _messages.add(
           _SheetMessage(
-            text: gapPayload.active && gapPayload.message.trim().isNotEmpty
-                ? gapPayload.message.trim()
-                : aiText,
+            text: displayText,
             isUser: false,
             boardPayload: boardPayload.hasBoards && !gapPayload.hasContent
                 ? boardPayload
                 : null,
-            wardrobeGapPayload: gapPayload.hasContent ? gapPayload : null,
+            wardrobeGapPayload: isClosestStyleAction && !boardPayload.hasBoards
+                ? null
+                : gapPayload.hasContent
+                ? gapPayload
+                : null,
           ),
         );
-        _chatHistory.add({
-          'role': 'assistant',
-          'content': gapPayload.active && gapPayload.message.trim().isNotEmpty
-              ? gapPayload.message.trim()
-              : aiText,
-        });
+        _chatHistory.add({'role': 'assistant', 'content': displayText});
       });
       _scrollToBottom();
       _saveCurrentSession();
@@ -2656,8 +2725,10 @@ class _PinterestStyleBoardCard extends StatelessWidget {
                       child: _BoardActionButton(
                         label: 'Save Look',
                         filled: true,
-                        onTap: () =>
-                            _toast(context, 'Look saved to your boards.'),
+                        onTap: () => _toast(
+                          context,
+                          'Use the main style board save button to save this look.',
+                        ),
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -2732,7 +2803,17 @@ class _FallbackFashionCollage extends StatelessWidget {
     if (items.isEmpty) {
       return const SizedBox.expand();
     }
-    final normalized = items.take(6).toList();
+    final seen = <String>{};
+    final normalized = <Map<String, dynamic>>[];
+    for (final item in items) {
+      final key = _text(
+        item['id'] ?? item['item_id'] ?? item['name'] ?? item['image_url'],
+        '',
+      ).toLowerCase();
+      if (key.isNotEmpty && !seen.add(key)) continue;
+      normalized.add(item);
+      if (normalized.length >= 5) break;
+    }
     return LayoutBuilder(
       builder: (context, constraints) {
         final w = constraints.maxWidth;
@@ -2913,12 +2994,11 @@ class _BoardActionButton extends StatelessWidget {
 
 Rect _slotFor(int index, double w, double h) {
   final slots = <Rect>[
-    Rect.fromLTWH(w * 0.13, h * 0.15, w * 0.42, h * 0.62),
-    Rect.fromLTWH(w * 0.49, h * 0.56, w * 0.36, h * 0.27),
-    Rect.fromLTWH(w * 0.62, h * 0.27, w * 0.27, h * 0.18),
-    Rect.fromLTWH(w * 0.12, h * 0.06, w * 0.20, h * 0.14),
-    Rect.fromLTWH(w * 0.64, h * 0.08, w * 0.24, h * 0.13),
-    Rect.fromLTWH(w * 0.17, h * 0.77, w * 0.28, h * 0.16),
+    Rect.fromLTWH(w * 0.11, h * 0.14, w * 0.42, h * 0.58),
+    Rect.fromLTWH(w * 0.55, h * 0.42, w * 0.34, h * 0.34),
+    Rect.fromLTWH(w * 0.16, h * 0.75, w * 0.30, h * 0.16),
+    Rect.fromLTWH(w * 0.62, h * 0.13, w * 0.23, h * 0.15),
+    Rect.fromLTWH(w * 0.48, h * 0.78, w * 0.22, h * 0.12),
   ];
   return slots[index % slots.length];
 }
