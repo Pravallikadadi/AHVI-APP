@@ -236,18 +236,22 @@ class _MediTrackScreenState extends State<MediTrackScreen>
       '✅',
     );
 
-    // DB Update
+    // DB Update. Appwrite's datetime attributes require an ISO 8601
+    // string with a timezone designator; toIso8601String() on a local
+    // DateTime omits one, so Appwrite silently rejects the write.
+    // Convert to UTC first — that gives a "...Z" suffix Appwrite accepts.
+    final nowIso = now.toUtc().toIso8601String();
     try {
       final appwrite = Provider.of<AppwriteService>(context, listen: false);
       await appwrite.updateMed(id, {
         'left': newLeft,
-        'lastTaken': now.toIso8601String(),
+        'lastTaken': nowIso,
       });
       await appwrite.createMedLog({
         'medId': id,
         'medName': med['name'],
         'dose': med['dose'],
-        'time': now.toIso8601String(),
+        'time': nowIso,
         'status': 'taken',
       });
     } catch (e) {
