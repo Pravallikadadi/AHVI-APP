@@ -6,6 +6,7 @@ import 'package:myapp/services/backend_service.dart';
 import 'package:myapp/theme/theme_tokens.dart';
 import 'package:myapp/models/ahvi_visual_board_model.dart';
 import 'package:myapp/widgets/ahvi_visual_board.dart';
+import 'package:myapp/widgets/ahvi_module_card.dart';
 
 void main() {
   runApp(const ScheduleApp());
@@ -1319,12 +1320,14 @@ class ChatMessage {
   final String time;
   final List<AhviChip> chips;
   final AhviVisualBoard? visualBoard;
+  final AhviModuleCard? moduleCard;
   ChatMessage(
     this.text, {
     required this.isUser,
     required this.time,
     this.chips = const [],
     this.visualBoard,
+    this.moduleCard,
   });
 }
 
@@ -1483,6 +1486,25 @@ class _StyleChatScreenState extends State<StyleChatScreen> {
             )
             .toList(),
       );
+
+      // Module summary card response (medicines / bills / events / etc).
+      if (AhviModuleCard.isModuleCard(response)) {
+        final card = AhviModuleCard.fromResponse(response);
+        if (card != null) {
+          if (!mounted) return;
+          setState(() {
+            _msgs.add(
+              ChatMessage(
+                card.summary.isEmpty ? card.title : card.summary,
+                isUser: false,
+                time: AppLocalizations.t(context, 'calendar_chat_time_now'),
+                moduleCard: card,
+              ),
+            );
+          });
+          return;
+        }
+      }
 
       // Visual board response — render the structured plan board.
       if (AhviVisualBoard.isVisualBoard(response)) {
@@ -1810,6 +1832,24 @@ class _StyleChatScreenState extends State<StyleChatScreen> {
                                   ),
                                   child: AhviVisualBoardView(
                                     board: m.visualBoard!,
+                                    surfaceColor: theme.card,
+                                    textColor: theme.textPrimary,
+                                    mutedColor: theme.mutedText,
+                                    borderColor: theme.cardBorder,
+                                  ),
+                                ),
+                              ),
+                            if (!m.isUser && m.moduleCard != null)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 8),
+                                child: ConstrainedBox(
+                                  constraints: BoxConstraints(
+                                    maxWidth:
+                                        MediaQuery.of(context).size.width *
+                                        0.82,
+                                  ),
+                                  child: AhviModuleCardView(
+                                    card: m.moduleCard!,
                                     surfaceColor: theme.card,
                                     textColor: theme.textPrimary,
                                     mutedColor: theme.mutedText,

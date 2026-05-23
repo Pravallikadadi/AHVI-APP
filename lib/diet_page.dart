@@ -11,6 +11,7 @@ import 'package:http/http.dart' as http;
 import 'theme/theme_tokens.dart';
 import 'package:myapp/widgets/ahvi_home_text.dart';
 import 'package:myapp/widgets/ahvi_chat_prompt_bar.dart';
+import 'package:myapp/widgets/ahvi_module_card.dart';
 import 'package:myapp/models/ahvi_visual_board_model.dart';
 import 'package:myapp/widgets/ahvi_visual_board.dart';
 
@@ -171,11 +172,13 @@ class ChatMessage {
   final bool isBot;
   MealPlan? plan;
   final AhviVisualBoard? visualBoard;
+  final AhviModuleCard? moduleCard;
   ChatMessage({
     required this.text,
     required this.isBot,
     this.plan,
     this.visualBoard,
+    this.moduleCard,
   });
 }
 
@@ -3425,6 +3428,30 @@ class _ChatScreenState extends State<ChatScreen> {
       response = {'message_text': 'AHVI diet request failed: $err'};
     }
 
+    // Module summary card (medicines/bills/events/etc) — render and return.
+    if (AhviModuleCard.isModuleCard(response)) {
+      final card = AhviModuleCard.fromResponse(response);
+      if (card != null) {
+        if (mounted) {
+          setState(() {
+            _isTyping = false;
+            _messages.add(
+              ChatMessage(
+                text: card.summary.isEmpty ? card.title : card.summary,
+                isBot: true,
+                moduleCard: card,
+              ),
+            );
+            _chatHistory.add({
+              'role': 'assistant',
+              'content': card.summary.isEmpty ? card.title : card.summary,
+            });
+          });
+        }
+        return;
+      }
+    }
+
     // Visual board response — render the structured meal board.
     if (AhviVisualBoard.isVisualBoard(response)) {
       final board = AhviVisualBoard.fromJson(response);
@@ -3651,6 +3678,18 @@ class _ChatScreenState extends State<ChatScreen> {
                             padding: const EdgeInsets.only(bottom: 12),
                             child: AhviVisualBoardView(
                               board: m.visualBoard!,
+                              surfaceColor: context.dSurface,
+                              textColor: context.dText,
+                              mutedColor: context.dMuted,
+                              accentColor: context.dAccent,
+                              borderColor: context.dBorder,
+                            ),
+                          ),
+                        if (m.moduleCard != null)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: AhviModuleCardView(
+                              card: m.moduleCard!,
                               surfaceColor: context.dSurface,
                               textColor: context.dText,
                               mutedColor: context.dMuted,
