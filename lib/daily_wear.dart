@@ -25,58 +25,32 @@ class DailyWearScreen extends StatefulWidget {
 class _DailyWearScreenState extends State<DailyWearScreen>
     with TickerProviderStateMixin {
   AppThemeTokens get _t => context.themeTokens;
-  Color get _bg => _t.backgroundPrimary;
   Color get _cardBorder => _t.cardBorder;
-  Color get _text => _t.textPrimary;
-  Color get _muted => _t.mutedText;
   Color get _accent => _t.accent.primary;
   Color get _accent2 => _t.accent.secondary;
   Color get _accent3 => _t.accent.tertiary;
   Color get _accent4 => _t.accent.primary;
   Color get _accent5 => _t.accent.secondary;
-  Color get _tileText => _t.tileText;
-  Color get _phoneShell => _t.phoneShell;
-  Color get _phoneShellInner => _t.phoneShellInner;
 
-  // Keep Daily Wear clean. The previous accent blend plus full-screen
-  // gradient painter read like a permanent grey overlay on APK.
-  Color get bgColor {
-    final isDark = _bg.computeLuminance() < 0.18;
-    if (isDark) return const Color(0xFF08111F);
-    return const Color(0xFFF9FBFF);
-  }
-
-  Color get bg2Color {
-    final isDark = _bg.computeLuminance() < 0.18;
-    if (isDark) return const Color(0xFF0F1A2D);
-    return Colors.white;
-  }
-
-  // Same treatment for panel surfaces. Avoid translucent panels on Daily Wear
-  // because stacked opacity reads as a grey/blue wash on device.
-  Color get panelColor {
-    final isDark = _bg.computeLuminance() < 0.18;
-    if (isDark) return const Color(0xFF111B2E);
-    return Colors.white;
-  }
-
-  Color get panel2Color {
-    final isDark = _bg.computeLuminance() < 0.18;
-    if (isDark) return const Color(0xFF24304A);
-    return const Color(0xFFE4EAF8);
-  }
+  // Daily Wear is intentionally rendered as a bright editorial board in both
+  // app themes. On Samsung night mode, dark/translucent tokens were being
+  // composited into a permanent grey wash on this page.
+  Color get bgColor => const Color(0xFFF9FBFF);
+  Color get bg2Color => Colors.white;
+  Color get panelColor => Colors.white;
+  Color get panel2Color => const Color(0xFFE4EAF8);
 
   Color get cardBorderColor => _cardBorder;
-  Color get textColor => _text;
-  Color get mutedColor => _muted;
+  Color get textColor => const Color(0xFF1A1D26);
+  Color get mutedColor => const Color(0xFF66708A);
   Color get accentColor => _accent;
   Color get accent2Color => _accent2;
   Color get accent3Color => _accent3;
   Color get accent4Color => _accent4;
   Color get accent5Color => _accent5;
-  Color get tileTextColor => _tileText;
-  Color get phoneShellColor => _phoneShell;
-  Color get phoneShellInnerColor => _phoneShellInner;
+  Color get tileTextColor => const Color(0xFF182031);
+  Color get phoneShellColor => const Color(0xFFEEF2FB);
+  Color get phoneShellInnerColor => const Color(0xFFF4F7FF);
 
   final ValueNotifier<int> _carouselIndexNotifier = ValueNotifier(0);
   int get _carouselIndex => _carouselIndexNotifier.value;
@@ -2613,7 +2587,7 @@ class _DailyWearScreenState extends State<DailyWearScreen>
       Positioned.fill(
         child: GestureDetector(
           onTap: _closeTryOn,
-          child: const ColoredBox(color: Color(0x73000000)),
+          child: const ColoredBox(color: Color(0x00000000)),
         ),
       ),
       // Sheet — no animation
