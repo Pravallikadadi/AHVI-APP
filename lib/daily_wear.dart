@@ -41,17 +41,12 @@ class _DailyWearScreenState extends State<DailyWearScreen>
   Color get _phoneShell => _t.phoneShell;
   Color get _phoneShellInner => _t.phoneShellInner;
 
-  // Light-theme backgroundPrimary token resolves to a cool grey-blue
-  // (#E2EAF8) which fills the Scaffold and reads as a grey overlay on
-  // the entire Daily Wear board. Blend a sliver of accent over white so
-  // the page feels airy. Dark theme keeps its near-black bg unchanged.
+  // Keep Daily Wear clean in light mode. The previous accent blend plus
+  // full-screen gradient painter read like a permanent grey overlay on APK.
   Color get bgColor {
     final isDark = _bg.computeLuminance() < 0.18;
     if (isDark) return _bg;
-    return Color.alphaBlend(
-      accentColor.withValues(alpha: 0.04),
-      const Color(0xFFF7F9FE),
-    );
+    return const Color(0xFFF9FBFF);
   }
 
   Color get bg2Color => _bg2;
@@ -1385,23 +1380,25 @@ class _DailyWearScreenState extends State<DailyWearScreen>
 
   @override
   Widget build(BuildContext context) {
+    final isDark = _bg.computeLuminance() < 0.18;
     return PopScope(
       canPop: true,
       child: Scaffold(
         backgroundColor: bgColor,
         body: Stack(
           children: [
-            Positioned.fill(
-              child: RepaintBoundary(
-                child: CustomPaint(
-                  painter: _BgGradientPainter(
-                    primary: accentColor,
-                    secondary: accent2Color,
-                    tertiary: accent3Color,
+            if (isDark)
+              Positioned.fill(
+                child: RepaintBoundary(
+                  child: CustomPaint(
+                    painter: _BgGradientPainter(
+                      primary: accentColor,
+                      secondary: accent2Color,
+                      tertiary: accent3Color,
+                    ),
                   ),
                 ),
               ),
-            ),
             SafeArea(
               bottom: false,
               child: SingleChildScrollView(
