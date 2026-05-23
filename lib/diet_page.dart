@@ -12,6 +12,8 @@ import 'theme/theme_tokens.dart';
 import 'package:myapp/widgets/ahvi_home_text.dart';
 import 'package:myapp/widgets/ahvi_chat_prompt_bar.dart';
 import 'package:myapp/widgets/ahvi_module_card.dart';
+import 'package:myapp/services/appwrite_service.dart';
+import 'package:provider/provider.dart';
 import 'package:myapp/models/ahvi_visual_board_model.dart';
 import 'package:myapp/widgets/ahvi_visual_board.dart';
 
