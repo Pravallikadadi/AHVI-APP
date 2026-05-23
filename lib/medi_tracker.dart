@@ -255,7 +255,33 @@ class _MediTrackScreenState extends State<MediTrackScreen>
         'status': 'taken',
       });
     } catch (e) {
-      _showToast(AppLocalizations.t(context, 'medi_sync_error'), '⚠️');
+      // Surface the raw Appwrite error to the screen so it can be read
+      // / screenshotted without adb access. Trimmed to keep the toast
+      // sized reasonably.
+      final errText = e.toString();
+      final shown = errText.length > 200
+          ? '${errText.substring(0, 200)}…'
+          : errText;
+      ScaffoldMessenger.of(context).clearSnackBars();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: bg2,
+          behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+          duration: const Duration(seconds: 12),
+          content: Text(
+            'Sync failed: $shown',
+            style: TextStyle(
+              color: textColor,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      );
     }
   }
 
