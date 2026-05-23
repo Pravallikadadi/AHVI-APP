@@ -1326,13 +1326,7 @@ class _MediTrackScreenState extends State<MediTrackScreen>
                 children: [
                   _PressScaleButton(
                     scaleFactor: 0.9,
-                    onTap: () => _showToast(
-                      AppLocalizations.t(
-                        context,
-                        'medi_edit_coming_soon',
-                      ).replaceAll('{name}', med['name'] as String),
-                      '✏️',
-                    ),
+                    onTap: () => _showAddMedSheet(editMed: med),
                     child: Container(
                       width: 34,
                       height: 34,
@@ -2369,13 +2363,26 @@ class _MediTrackScreenState extends State<MediTrackScreen>
   String? _selCat;
   bool _isCustomCat = false;
 
-  void _showAddMedSheet() {
+  void _showAddMedSheet({Map<String, dynamic>? editMed}) {
     final l = AppLocalizations.t;
-    // Initialize dropdowns from localized strings on first open
-    _selFreq ??= l(context, 'medi_freq_once');
-    _selCat ??= l(context, 'medi_cat_diabetes');
-    _isCustomCat = false;
-    _customCatCtrl.clear();
+    final isEditing = editMed != null;
+    if (isEditing) {
+      // Pre-fill the form from the medicine being edited.
+      _nameCtrl.text = (editMed['name'] ?? '').toString();
+      _doseCtrl.text = (editMed['dose'] ?? '').toString();
+      _timeCtrl.text = (editMed['time'] ?? '').toString();
+      final totalVal = editMed['total'] ?? editMed['left'] ?? '';
+      _supplyCtrl.text = totalVal.toString();
+      _selFreq = (editMed['freq'] ?? l(context, 'medi_freq_once')).toString();
+      _selCat = (editMed['cat'] ?? l(context, 'medi_cat_diabetes')).toString();
+      _isCustomCat = false;
+      _customCatCtrl.clear();
+    } else {
+      _selFreq ??= l(context, 'medi_freq_once');
+      _selCat ??= l(context, 'medi_cat_diabetes');
+      _isCustomCat = false;
+      _customCatCtrl.clear();
+    }
 
     showModalBottomSheet(
       context: context,
@@ -2527,28 +2534,48 @@ class _MediTrackScreenState extends State<MediTrackScreen>
                             this.context,
                             listen: false,
                           );
-                          await appwrite.createMed({
-                            'name': name,
-                            'dose': dose,
-                            'freq':
-                                _selFreq ?? l(this.context, 'medi_freq_once'),
-                            'time': _timeCtrl.text.trim().isEmpty
-                                ? '12:00 PM'
-                                : _timeCtrl.text.trim(),
-                            'cat': effectiveCat,
-                            'left': supply,
-                            'total': supply,
-                            'reminder': true,
-                            'lastTaken': '',
-                          });
-
-                          _showToast(
-                            AppLocalizations.t(
-                              this.context,
-                              'medi_medicine_added',
-                            ),
-                            '💊',
-                          );
+                          final resolvedTime =
+                              _timeCtrl.text.trim().isEmpty
+                                  ? '12:00 PM'
+                                  : _timeCtrl.text.trim();
+                          final resolvedFreq =
+                              _selFreq ?? l(this.context, 'medi_freq_once');
+                          if (isEditing) {
+                            // Update existing medicine. Leave `left` and
+                            // `lastTaken` alone so today's taken-state and
+                            // remaining count are not reset by an edit.
+                            await appwrite.updateMed(
+                              editMed['id'] as String,
+                              {
+                                'name': name,
+                                'dose': dose,
+                                'freq': resolvedFreq,
+                                'time': resolvedTime,
+                                'cat': effectiveCat,
+                                'total': supply,
+                              },
+                            );
+                            _showToast('Medicine updated', '✅');
+                          } else {
+                            await appwrite.createMed({
+                              'name': name,
+                              'dose': dose,
+                              'freq': resolvedFreq,
+                              'time': resolvedTime,
+                              'cat': effectiveCat,
+                              'left': supply,
+                              'total': supply,
+                              'reminder': true,
+                              'lastTaken': '',
+                            });
+                            _showToast(
+                              AppLocalizations.t(
+                                this.context,
+                                'medi_medicine_added',
+                              ),
+                              '💊',
+                            );
+                          }
                           Navigator.pop(context);
 
                           _nameCtrl.clear();
