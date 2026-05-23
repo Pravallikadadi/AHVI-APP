@@ -171,6 +171,7 @@ class _BillsScreenState extends State<BillsScreen>
 
   // Holds the picked bill image (camera or gallery)
   File? _pickedImage;
+  bool _isScanningBill = false;
   final ImagePicker _imagePicker = ImagePicker();
 
   // Holds the StatefulBuilder's setState so the sheet rebuilds on toggle
@@ -595,7 +596,10 @@ class _BillsScreenState extends State<BillsScreen>
       );
       if (picked == null) return;
       final file = File(picked.path);
-      _setOverlayState(() => _pickedImage = file);
+      _setOverlayState(() {
+        _pickedImage = file;
+        _isScanningBill = true;
+      });
       _showToast('✦ Scanning bill…');
 
       // Send the image to the backend vision pipeline and prefill the
@@ -606,6 +610,7 @@ class _BillsScreenState extends State<BillsScreen>
         if (!mounted) return;
         if (extracted != null) {
           _setOverlayState(() {
+            _isScanningBill = false;
             final store = (extracted['store'] ?? '').toString().trim();
             if (store.isNotEmpty) _storeCtrl.text = store;
 
@@ -628,6 +633,9 @@ class _BillsScreenState extends State<BillsScreen>
           });
           _showToast('✦ Bill scanned — review and tap Save');
         } else {
+          if (mounted) {
+            _setOverlayState(() => _isScanningBill = false);
+          }
           _showToast(
             "Couldn't read the bill clearly — fill the fields manually.",
           );
@@ -635,6 +643,7 @@ class _BillsScreenState extends State<BillsScreen>
       } catch (e) {
         debugPrint('Bill scan error: $e');
         if (mounted) {
+          _setOverlayState(() => _isScanningBill = false);
           _showToast('Scan failed. Fill the fields manually.');
         }
       }
@@ -1967,7 +1976,10 @@ class _BillsScreenState extends State<BillsScreen>
                 top: 6,
                 right: 6,
                 child: GestureDetector(
-                  onTap: () => _setOverlayState(() => _pickedImage = null),
+                  onTap: () => _setOverlayState(() {
+                    _pickedImage = null;
+                    _isScanningBill = false;
+                  }),
                   child: Container(
                     width: 26,
                     height: 26,
@@ -1995,13 +2007,31 @@ class _BillsScreenState extends State<BillsScreen>
                     color: _accent2.withValues(alpha: 0.85),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Text(
-                    '✦ Ready to scan',
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white,
-                    ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (_isScanningBill) ...[
+                        const SizedBox(
+                          width: 10,
+                          height: 10,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 1.5,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                      ],
+                      Text(
+                        _isScanningBill
+                            ? 'Scanning bill…'
+                            : '✦ Bill scanned',
+                        style: const TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
