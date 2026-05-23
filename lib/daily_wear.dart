@@ -415,6 +415,7 @@ class _DailyWearScreenState extends State<DailyWearScreen>
     // ── Deferred startup ──────────────────────────────────────────────────
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
+      _clearTransientInputOverlay();
       _startAutoPlay();
 
       _updateClock();
@@ -442,6 +443,12 @@ class _DailyWearScreenState extends State<DailyWearScreen>
         if (mounted) _fetchWeather();
       });
     });
+  }
+
+  void _clearTransientInputOverlay() {
+    FocusManager.instance.primaryFocus?.unfocus();
+    _chatFocusNode.unfocus();
+    SystemChannels.textInput.invokeMethod<void>('TextInput.hide');
   }
 
   void _updateClock() {
@@ -853,17 +860,20 @@ class _DailyWearScreenState extends State<DailyWearScreen>
         ),
       ),
     ).whenComplete(() {
+      _clearTransientInputOverlay();
       if (mounted) setState(() => _chatOpen = false);
     });
   }
 
   void _closeChat() {
     _chatGreetingTimer?.cancel();
+    _clearTransientInputOverlay();
     Navigator.of(context).pop();
   }
 
   void _openTryOn([String? outfitId]) {
     HapticFeedback.lightImpact();
+    _clearTransientInputOverlay();
     _resetTryOnSimulation();
     setState(() {
       _tryOnOutfitId = outfitId ?? _currentOutfit['id'] as String;
@@ -873,6 +883,7 @@ class _DailyWearScreenState extends State<DailyWearScreen>
   }
 
   void _closeTryOn() {
+    _clearTransientInputOverlay();
     _resetTryOnSimulation();
     setState(() => _tryOnOpen = false);
   }
