@@ -279,6 +279,52 @@ class _MainScreenState extends State<MainScreen> {
         ),
       );
     });
+    _persistMealPlan(p);
+  }
+
+  /// Persist a saved meal plan to Appwrite so it survives reloads and
+  /// shows up in the chat "Today's meals" card. Daily plans write one
+  /// doc per meal with today's date; weekly / monthly plans spread
+  /// each day's meals across consecutive calendar days.
+  Future<void> _persistMealPlan(MealPlan plan) async {
+    try {
+      final appwrite = Provider.of<AppwriteService>(context, listen: false);
+      final today = DateTime.now();
+      final base = DateTime(today.year, today.month, today.day);
+
+      Future<void> writeOne(Meal m, DateTime forDate) async {
+        await appwrite.createMealPlan({
+          'name': m.name,
+          'mealType': m.type,
+          'kcal': m.cal,
+          'planName': plan.name,
+          'planType': plan.planType,
+          'date': forDate.toUtc().toIso8601String(),
+        });
+      }
+
+      if (plan.planType == 'daily') {
+        for (final m in plan.meals) {
+          await writeOne(m, base);
+        }
+      } else if (plan.planType == 'weekly') {
+        for (var i = 0; i < plan.days.length; i++) {
+          final dayDate = base.add(Duration(days: i));
+          for (final m in plan.days[i].meals) {
+            await writeOne(m, dayDate);
+          }
+        }
+      } else if (plan.planType == 'monthly') {
+        for (var w = 0; w < plan.days.length; w++) {
+          final weekDate = base.add(Duration(days: w * 7));
+          for (final m in plan.days[w].meals) {
+            await writeOne(m, weekDate);
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('Persist meal plan failed: $e');
+    }
   }
 
   void _savePlanFromChat(MealPlan p) {
@@ -290,6 +336,7 @@ class _MainScreenState extends State<MainScreen> {
       meals: List.from(p.meals),
     );
     setState(() => _plans.add(plan));
+    _persistMealPlan(plan);
     _showSnack(
       SnackBar(
         content: Row(
