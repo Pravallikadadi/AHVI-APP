@@ -26,9 +26,6 @@ class _DailyWearScreenState extends State<DailyWearScreen>
     with TickerProviderStateMixin {
   AppThemeTokens get _t => context.themeTokens;
   Color get _bg => _t.backgroundPrimary;
-  Color get _bg2 => _t.backgroundSecondary;
-  Color get _panel => _t.panel;
-  Color get _panel2 => _t.panelBorder;
   Color get _cardBorder => _t.cardBorder;
   Color get _text => _t.textPrimary;
   Color get _muted => _t.mutedText;
@@ -41,26 +38,34 @@ class _DailyWearScreenState extends State<DailyWearScreen>
   Color get _phoneShell => _t.phoneShell;
   Color get _phoneShellInner => _t.phoneShellInner;
 
-  // Keep Daily Wear clean in light mode. The previous accent blend plus
-  // full-screen gradient painter read like a permanent grey overlay on APK.
+  // Keep Daily Wear clean. The previous accent blend plus full-screen
+  // gradient painter read like a permanent grey overlay on APK.
   Color get bgColor {
     final isDark = _bg.computeLuminance() < 0.18;
-    if (isDark) return _bg;
+    if (isDark) return const Color(0xFF08111F);
     return const Color(0xFFF9FBFF);
   }
 
-  Color get bg2Color => _bg2;
-  // Same treatment for panel surfaces (10+ card backgrounds).
-  Color get panelColor {
+  Color get bg2Color {
     final isDark = _bg.computeLuminance() < 0.18;
-    if (isDark) return _panel;
-    return Color.alphaBlend(
-      accentColor.withValues(alpha: 0.06),
-      const Color(0xE6FFFFFF),
-    );
+    if (isDark) return const Color(0xFF0F1A2D);
+    return Colors.white;
   }
 
-  Color get panel2Color => _panel2;
+  // Same treatment for panel surfaces. Avoid translucent panels on Daily Wear
+  // because stacked opacity reads as a grey/blue wash on device.
+  Color get panelColor {
+    final isDark = _bg.computeLuminance() < 0.18;
+    if (isDark) return const Color(0xFF111B2E);
+    return Colors.white;
+  }
+
+  Color get panel2Color {
+    final isDark = _bg.computeLuminance() < 0.18;
+    if (isDark) return const Color(0xFF24304A);
+    return const Color(0xFFE4EAF8);
+  }
+
   Color get cardBorderColor => _cardBorder;
   Color get textColor => _text;
   Color get mutedColor => _muted;
@@ -1380,25 +1385,12 @@ class _DailyWearScreenState extends State<DailyWearScreen>
 
   @override
   Widget build(BuildContext context) {
-    final isDark = _bg.computeLuminance() < 0.18;
     return PopScope(
       canPop: true,
       child: Scaffold(
         backgroundColor: bgColor,
         body: Stack(
           children: [
-            if (isDark)
-              Positioned.fill(
-                child: RepaintBoundary(
-                  child: CustomPaint(
-                    painter: _BgGradientPainter(
-                      primary: accentColor,
-                      secondary: accent2Color,
-                      tertiary: accent3Color,
-                    ),
-                  ),
-                ),
-              ),
             SafeArea(
               bottom: false,
               child: SingleChildScrollView(
@@ -3727,55 +3719,4 @@ class _ShareIconPainter extends CustomPainter {
   @override
   bool shouldRepaint(_ShareIconPainter oldDelegate) =>
       oldDelegate.color != color;
-}
-
-class _BgGradientPainter extends CustomPainter {
-  final Color primary;
-  final Color secondary;
-  final Color tertiary;
-  const _BgGradientPainter({
-    required this.primary,
-    required this.secondary,
-    required this.tertiary,
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint();
-    final gradients = [
-      RadialGradient(
-        center: const Alignment(-0.8, -0.84),
-        radius: 0.65,
-        colors: [
-          primary.withValues(alpha: 0.12),
-          primary.withValues(alpha: 0.0),
-        ],
-      ),
-      RadialGradient(
-        center: const Alignment(0.76, 0.64),
-        radius: 0.55,
-        colors: [
-          secondary.withValues(alpha: 0.10),
-          secondary.withValues(alpha: 0.0),
-        ],
-      ),
-      RadialGradient(
-        center: Alignment.center,
-        radius: 0.45,
-        colors: [
-          tertiary.withValues(alpha: 0.07),
-          tertiary.withValues(alpha: 0.0),
-        ],
-      ),
-    ];
-    for (final gradient in gradients) {
-      paint.shader = gradient.createShader(
-        Rect.fromLTWH(0, 0, size.width, size.height),
-      );
-      canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), paint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(_BgGradientPainter oldDelegate) => false;
 }
