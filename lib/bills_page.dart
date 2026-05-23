@@ -594,8 +594,50 @@ class _BillsScreenState extends State<BillsScreen>
         maxWidth: 1600,
       );
       if (picked == null) return;
-      _setOverlayState(() => _pickedImage = File(picked.path));
-      _showToast('✦ Image ready for AI scan!');
+      final file = File(picked.path);
+      _setOverlayState(() => _pickedImage = file);
+      _showToast('✦ Scanning bill…');
+
+      // Send the image to the backend vision pipeline and prefill the
+      // form fields from the extracted bill data.
+      try {
+        final bytes = await file.readAsBytes();
+        final extracted = await BackendService().scanBill(bytes);
+        if (!mounted) return;
+        if (extracted != null) {
+          _setOverlayState(() {
+            final store = (extracted['store'] ?? '').toString().trim();
+            if (store.isNotEmpty) _storeCtrl.text = store;
+
+            final amt = extracted['amount'];
+            if (amt is num && amt > 0) {
+              _amountCtrl.text = amt == amt.toInt()
+                  ? amt.toInt().toString()
+                  : amt.toStringAsFixed(2);
+            }
+
+            final dateStr = (extracted['date'] ?? '').toString().trim();
+            final parsedDate = DateTime.tryParse(dateStr);
+            if (parsedDate != null) _selectedDate = parsedDate;
+
+            final cat = (extracted['category'] ?? '').toString().trim();
+            if (cat.isNotEmpty) _selCategory = cat;
+
+            final items = (extracted['items'] ?? '').toString().trim();
+            if (items.isNotEmpty) _itemsCtrl.text = items;
+          });
+          _showToast('✦ Bill scanned — review and tap Save');
+        } else {
+          _showToast(
+            "Couldn't read the bill clearly — fill the fields manually.",
+          );
+        }
+      } catch (e) {
+        debugPrint('Bill scan error: $e');
+        if (mounted) {
+          _showToast('Scan failed. Fill the fields manually.');
+        }
+      }
     } catch (e) {
       _showToast(
         'Could not access ${source == ImageSource.camera ? 'camera' : 'gallery'}. Check permissions.',

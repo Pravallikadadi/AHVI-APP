@@ -551,6 +551,37 @@ class BackendService {
     }
   }
 
+  /// Bill receipt OCR. Sends a base64 image to the backend's vision
+  /// pipeline; returns the extracted fields (store/amount/date/category/
+  /// items/currency) so the Bills "AI Autofill" sheet can populate.
+  Future<Map<String, dynamic>?> scanBill(Uint8List imageBytes) async {
+    try {
+      final base64String = await compute(_encodeBytes, imageBytes);
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/api/bills/scan'),
+            headers: await _authHeaders(),
+            body: jsonEncode({'image_base64': base64String}),
+          )
+          .timeout(const Duration(seconds: 90));
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final data = await compute(_parseJsonMap, response.body);
+        final extracted = data['extracted'];
+        if (extracted is Map) {
+          return Map<String, dynamic>.from(extracted);
+        }
+        return null;
+      }
+      debugPrint(
+        'Bill scan failed: ${response.statusCode} ${response.body}',
+      );
+      return null;
+    } catch (e) {
+      debugPrint('Bill scan error: $e');
+      return null;
+    }
+  }
+
   // Wardrobe vision and background removal.
   Future<String?> removeBackground(String base64Image) async {
     try {
