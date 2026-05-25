@@ -20,6 +20,7 @@ import 'package:myapp/fitness_page.dart' as fitness_page;
 import 'package:myapp/diet_page.dart' as diet_page;
 import 'package:myapp/theme/theme_tokens.dart';
 import 'package:myapp/models/ahvi_visual_board_model.dart';
+import 'package:myapp/widgets/ahvi_module_card.dart';
 import 'package:myapp/widgets/ahvi_visual_board.dart';
 import 'package:provider/provider.dart';
 
@@ -261,6 +262,8 @@ class _ChatMessage {
   // Each card: { id, title, items: [{ name, image_url, masked_url, color, ... }], ... }
   final List<dynamic> cards;
   final AhviVisualBoard? visualBoard;
+  final AhviModuleCard? moduleCard;
+  final List<Map<String, dynamic>> moduleCards;
   _ChatMessage({
     required this.text,
     required this.isMe,
@@ -271,6 +274,8 @@ class _ChatMessage {
     this.local,
     this.cards = const [],
     this.visualBoard,
+    this.moduleCard,
+    this.moduleCards = const [],
   });
 }
 
@@ -308,8 +313,25 @@ bool _isPlanPackRequest(String value) {
       text.contains('travel') ||
       text.contains('beach') ||
       text.contains('vacation') ||
-      text.contains('destination');
-  return asksForPacking && (tripContext || text.contains('plan'));
+      text.contains('destination') ||
+      text.contains('goa');
+  final prepContext =
+      text.contains('prep') ||
+      text.contains('prepare') ||
+      text.contains('checklist') ||
+      text.contains('plan');
+  final eventPlan =
+      text.contains('camping') ||
+      text.contains('goa trip') ||
+      text.contains('birthday party') ||
+      text.contains('plan a birthday');
+  return (asksForPacking && (tripContext || prepContext)) ||
+      eventPlan ||
+      (prepContext &&
+          (text.contains('camping') ||
+              text.contains('trip') ||
+              text.contains('travel') ||
+              text.contains('party')));
 }
 
 String _styleChipQuery(String value) {
@@ -357,6 +379,49 @@ List<dynamic> _mapDynamicBoards(dynamic value) {
       .whereType<Map>()
       .map((item) => Map<String, dynamic>.from(item))
       .toList();
+}
+
+List<Map<String, dynamic>> _moduleCardsFromResponse(
+  Map<String, dynamic> response,
+) {
+  final out = <Map<String, dynamic>>[];
+  final card = response['card'];
+  if (card is Map) out.add(Map<String, dynamic>.from(card));
+  final cards = response['cards'];
+  if (cards is List) {
+    out.addAll(
+      cards.whereType<Map>().map((item) => Map<String, dynamic>.from(item)),
+    );
+  }
+  if (out.isEmpty && _looksLikeModuleCards(response)) {
+    out.add(response);
+  }
+  return out;
+}
+
+bool _looksLikeModuleCards(Map<String, dynamic> response) {
+  if ((response['response_type'] ?? '').toString() == 'module_card') {
+    return true;
+  }
+  final type = (response['type'] ?? '').toString().toLowerCase();
+  final intent = (response['intent'] ?? '').toString().toLowerCase();
+  final module = (response['module'] ?? response['domain'] ?? '')
+      .toString()
+      .toLowerCase();
+  if (type.contains('checklist') ||
+      type == 'module_response' ||
+      type == 'module_card' ||
+      intent == 'plan_pack' ||
+      module == 'planner' ||
+      module == 'calendar' ||
+      module == 'bills' ||
+      module == 'medicines' ||
+      module == 'meals' ||
+      module == 'workout' ||
+      module == 'skincare') {
+    return true;
+  }
+  return false;
 }
 
 List<dynamic> _mergeStyleBoards(
@@ -521,7 +586,8 @@ IconData _moduleIconFor(String key) {
 /// Parse a backend `module_card` envelope into a card the chat already
 /// knows how to render (via _localView). Returns null for other responses.
 _LocalResponse? _moduleCardFromResponse(Map<String, dynamic> response) {
-  if ((response['response_type'] ?? '').toString() != 'module_card') return null;
+  if ((response['response_type'] ?? '').toString() != 'module_card')
+    return null;
   final card = response['card'];
   if (card is! Map) return null;
   final rows = <_CardRow>[];
@@ -766,6 +832,7 @@ class _ChatScreenState extends State<ChatScreen>
   final Map<String, List<List<String>>> _checklistItemsByTitle = {};
   final Map<String, List<TextEditingController>> _checklistAddCtrlsByTitle = {};
   final Map<String, bool> _checklistSavedByTitle = {};
+  Map<String, dynamic> _lastPlanPackContext = const {};
 
   // ── Voice ──────────────────────────────────────────────────────────────────
   bool _isListening = false;
@@ -1030,6 +1097,9 @@ class _ChatScreenState extends State<ChatScreen>
             packId: old.packId,
             local: old.local,
             cards: mergedBoards,
+            visualBoard: old.visualBoard,
+            moduleCard: old.moduleCard,
+            moduleCards: old.moduleCards,
           );
           _messages.add(
             _ChatMessage(
@@ -1098,6 +1168,14 @@ class _ChatScreenState extends State<ChatScreen>
           ? _styleChipQuery(queryText)
           : queryText;
       final isPlanPackRequest = !isStyleModule && _isPlanPackRequest(queryText);
+      final planActionLabels = {
+        'open checklist',
+        'packing checklist',
+        'weather prep',
+        'save trip plan',
+        'plan outfits',
+      };
+      final isPlanPackAction = planActionLabels.contains(queryText.toLowerCase().trim());
       final isClosestAction = isStyleModule && _isShowClosestChip(queryText);
       final resolvedStylePrompt = isClosestAction
           ? _lastResolvedStylePrompt()
@@ -1113,15 +1191,13 @@ class _ChatScreenState extends State<ChatScreen>
       // which runs a module-aware LLM prompt. Same routing as the AHVI
       // stylist sheet, brought to the ChatScreen so Home/Utilities chats
       // actually return text instead of an empty style response.
-      final response = isStyleModule || isPlanPackRequest
+      final response = isStyleModule
           ? await backend.sendChatQuery(
               backendQueryText,
               'user_$_userName',
               List<Map<String, String>>.from(_chatHistory),
               _runningMemory,
-              moduleContext: isPlanPackRequest
-                  ? 'chat'
-                  : (_module == 'daily_wear' ? 'style' : _module),
+              moduleContext: _module == 'daily_wear' ? 'style' : _module,
               styleAction: isClosestAction ? 'show_closest_option' : null,
               action: isClosestAction ? 'show_closest_option' : null,
               previousPrompt: isClosestAction && originalStylePrompt.isNotEmpty
@@ -1143,8 +1219,9 @@ class _ChatScreenState extends State<ChatScreen>
               closest: isClosestAction,
             )
           : await backend.sendModuleChat(
-              domain: _module,
+              domain: isPlanPackRequest ? 'planner' : _module,
               message: queryText,
+              context: isPlanPackAction ? _lastPlanPackContext : const {},
               chatHistory: List<Map<String, String>>.from(_chatHistory),
             );
       if (!mounted) return;
@@ -1155,9 +1232,34 @@ class _ChatScreenState extends State<ChatScreen>
       final visualBoard = AhviVisualBoard.isVisualBoard(response)
           ? AhviVisualBoard.fromJson(response)
           : null;
-      final moduleCard = _moduleCardFromResponse(response);
-      final responseBoards = _extractStyleBoardsFromResponse(response);
+      final sharedModuleCard = AhviModuleCard.fromResponse(response);
+      final moduleCard = sharedModuleCard == null
+          ? _moduleCardFromResponse(response)
+          : null;
+      final responseBoards = isStyleModule
+          ? _extractStyleBoardsFromResponse(response)
+          : const <dynamic>[];
+      final moduleCards =
+          !isStyleModule &&
+              sharedModuleCard == null &&
+              _looksLikeModuleCards(response)
+          ? _moduleCardsFromResponse(response)
+          : const <Map<String, dynamic>>[];
       final rawMessage = response['message'];
+      final responseData = response['data'];
+      if (responseData is Map &&
+          (response['intent'] == 'plan_pack' ||
+              response['intent'] == 'open_checklist' ||
+              response['intent'] == 'weather_prep' ||
+              response['intent'] == 'save_plan')) {
+        _lastPlanPackContext = {
+          ...Map<String, dynamic>.from(responseData),
+          'last_plan_prompt':
+              responseData['source_text'] ?? _lastPlanPackContext['last_plan_prompt'] ?? queryText,
+          'active_plan_prompt':
+              responseData['source_text'] ?? _lastPlanPackContext['active_plan_prompt'] ?? queryText,
+        };
+      }
       final aiText =
           (response['message_text'] ??
                   response['response'] ??
@@ -1184,6 +1286,8 @@ class _ChatScreenState extends State<ChatScreen>
             packId: response['pack_ids'],
             cards: responseBoards,
             visualBoard: visualBoard,
+            moduleCard: sharedModuleCard,
+            moduleCards: moduleCards,
             local: moduleCard,
           ),
         );
@@ -1217,25 +1321,48 @@ class _ChatScreenState extends State<ChatScreen>
 
   void _openOrganizePage(String pageKey) {
     Widget? page;
-    switch (pageKey) {
+    final key = pageKey.toLowerCase().trim();
+    switch (key) {
       case 'meal':
+      case 'meals':
+      case 'diet':
+      case 'meal_planner':
         page = diet_page.MainScreen(); // Meal Planner
         break;
       case 'medi':
+      case 'med':
+      case 'meds':
+      case 'medicine':
+      case 'medicines':
         page = medi_tracker_page.MediTrackScreen(); // Medicine Tracker
         break;
       case 'bill':
+      case 'bills':
         page = const bills_page.BillsScreen(); // Bills Page
         break;
       case 'workout':
+      case 'fitness':
         page = fitness_page.WorkoutStudioScreen(); // Fitness / Workout
         break;
       case 'calendar':
+      case 'events':
+      case 'event':
+      case 'planner':
+      case 'plan_pack':
+      case 'prepare':
+      case 'prep':
         page = const calendar_page.CalendarShell(); // Calendar Screen
         break;
       case 'skincare':
         page = const skincare_page.SkincareScreen(); // Skincare Screen
         break;
+      case 'style':
+      case 'daily_wear':
+        page = const daily_wear_page.DailyWearScreen();
+        break;
+      case 'wardrobe':
+        Navigator.of(context).maybePop();
+        return;
     }
     if (page == null) return;
     Navigator.of(context).push(MaterialPageRoute(builder: (_) => page!));
@@ -1583,6 +1710,21 @@ class _ChatScreenState extends State<ChatScreen>
             accentColor: t.accent.primary,
           ),
         ),
+      if (!m.isMe && m.moduleCard != null)
+        Padding(
+          padding: const EdgeInsets.only(bottom: 16),
+          child: AhviModuleCardView(
+            card: m.moduleCard!,
+            onOpen: () => _openOrganizePage(m.moduleCard!.openKey),
+            surfaceColor: t.panel,
+            textColor: t.textPrimary,
+            mutedColor: t.mutedText,
+            accentColor: t.accent.primary,
+            borderColor: t.cardBorder,
+          ),
+        ),
+      if (!m.isMe && m.moduleCards.isNotEmpty)
+        _genericModuleCardsView(m.moduleCards, t),
       if (!m.isMe && m.local != null) _localView(m.local!, t),
       if (!m.isMe && m.chips.isNotEmpty)
         Padding(
@@ -2124,6 +2266,376 @@ class _ChatScreenState extends State<ChatScreen>
     );
   }
 
+  Widget _genericModuleCardsView(
+    List<Map<String, dynamic>> cards,
+    AppThemeTokens t,
+  ) {
+    final usable = cards.where((card) => card.isNotEmpty).toList();
+    if (usable.isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Column(
+        children: usable
+            .map((card) => _genericModuleCard(card, t))
+            .toList(growable: false),
+      ),
+    );
+  }
+
+  Widget _genericModuleCard(Map<String, dynamic> card, AppThemeTokens t) {
+    final title =
+        (card['title'] ??
+                card['name'] ??
+                card['label'] ??
+                card['intent'] ??
+                card['module'] ??
+                'Plan')
+            .toString()
+            .replaceAll('_', ' ')
+            .trim();
+    final subtitle =
+        (card['subtitle'] ??
+                card['summary'] ??
+                card['description'] ??
+                card['message_text'] ??
+                card['response'] ??
+                card['message'] ??
+                '')
+            .toString()
+            .trim();
+    final itemMaps = _genericCardItemMaps(card);
+    final items = itemMaps.isEmpty ? _genericCardItems(card) : const <String>[];
+    final action = (card['action'] is Map
+        ? Map<String, dynamic>.from(card['action'] as Map)
+        : card['cta'] is Map
+        ? Map<String, dynamic>.from(card['cta'] as Map)
+        : <String, dynamic>{});
+    final actionModule =
+        (action['module'] ??
+                action['route'] ??
+                card['open_module'] ??
+                card['open_key'] ??
+                card['module'] ??
+                '')
+            .toString();
+    final actionTitle = (action['title'] ?? action['label'] ?? 'Open')
+        .toString()
+        .trim();
+
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(left: 4, right: 20, bottom: 10),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: t.panel,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: t.cardBorder),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(7),
+                decoration: BoxDecoration(
+                  color: t.accent.primary.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(
+                  Icons.checklist_rounded,
+                  size: 16,
+                  color: t.accent.primary,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  title.isEmpty ? 'Plan' : title,
+                  style: TextStyle(
+                    color: t.textPrimary,
+                    fontSize: 14.5,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          if (subtitle.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(
+              subtitle,
+              style: TextStyle(
+                color: t.mutedText,
+                fontSize: 12.5,
+                height: 1.35,
+              ),
+            ),
+          ],
+          if (itemMaps.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            ...itemMaps.take(8).map((item) => _visualChecklistRow(item, t)),
+          ] else if (items.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            ...items
+                .take(8)
+                .map(
+                  (item) => Padding(
+                    padding: const EdgeInsets.only(bottom: 7),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(
+                          Icons.check_circle_outline_rounded,
+                          size: 16,
+                          color: t.accent.primary,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            item,
+                            style: TextStyle(
+                              color: t.textPrimary,
+                              fontSize: 12.5,
+                              height: 1.3,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+          ],
+          if (actionModule.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            GestureDetector(
+              onTap: () {
+                final intent = (action['intent'] ?? '').toString();
+                if (actionModule == 'plan_pack' ||
+                    intent == 'open_checklist' ||
+                    intent == 'view_plan' ||
+                    intent == 'weather_prep') {
+                  _sendMessage(actionTitle);
+                  return;
+                }
+                _openOrganizePage(actionModule);
+              },
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                decoration: BoxDecoration(
+                  color: t.accent.primary.withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: t.accent.primary.withValues(alpha: 0.20),
+                  ),
+                ),
+                child: Text(
+                  actionTitle == 'Open'
+                      ? 'Open ${actionModule.replaceAll('_', ' ')}'
+                      : actionTitle,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: t.accent.primary,
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  List<String> _genericCardItems(Map<String, dynamic> card) {
+    final raw = card['items'] ?? card['steps'] ?? card['checklist'];
+    if (raw is List) {
+      return raw
+          .map((item) {
+            if (item is Map) {
+              return (item['title'] ??
+                      item['label'] ??
+                      item['name'] ??
+                      item['text'] ??
+                      '')
+                  .toString()
+                  .trim();
+            }
+            return item.toString().trim();
+          })
+          .where((item) => item.isNotEmpty)
+          .toList(growable: false);
+    }
+    final sections = card['sections'];
+    if (sections is List) {
+      return sections
+          .whereType<Map>()
+          .expand((section) {
+            final heading = (section['title'] ?? section['label'] ?? '')
+                .toString()
+                .trim();
+            final sectionItems = section['items'];
+            if (sectionItems is! List) {
+              return heading.isEmpty ? const <String>[] : <String>[heading];
+            }
+            return sectionItems.map((item) {
+              final label = item is Map
+                  ? (item['title'] ??
+                            item['label'] ??
+                            item['name'] ??
+                            item['text'] ??
+                            '')
+                        .toString()
+                        .trim()
+                  : item.toString().trim();
+              if (heading.isEmpty || label.isEmpty) return label;
+              return '$heading: $label';
+            });
+          })
+          .where((item) => item.isNotEmpty)
+          .toList(growable: false);
+    }
+    return const [];
+  }
+
+  List<Map<String, dynamic>> _genericCardItemMaps(Map<String, dynamic> card) {
+    final raw = card['items'] ?? card['steps'] ?? card['checklist'];
+    if (raw is List) {
+      return raw
+          .whereType<Map>()
+          .map((item) => Map<String, dynamic>.from(item))
+          .where((item) {
+            final label =
+                (item['label'] ?? item['title'] ?? item['name'] ?? item['text'] ?? '')
+                    .toString()
+                    .trim();
+            return label.isNotEmpty;
+          })
+          .toList(growable: false);
+    }
+    return const [];
+  }
+
+  IconData _fallbackIconFor(String label) {
+    final text = label.toLowerCase();
+    if (text.contains('sunscreen') || text.contains('moistur')) {
+      return Icons.spa_rounded;
+    }
+    if (text.contains('sunglass')) return Icons.wb_sunny_outlined;
+    if (text.contains('charger') || text.contains('power bank')) {
+      return Icons.battery_charging_full_rounded;
+    }
+    if (text.contains('water') || text.contains('hydration')) {
+      return Icons.local_drink_rounded;
+    }
+    if (text.contains('shoe') || text.contains('footwear')) {
+      return Icons.directions_walk_rounded;
+    }
+    if (text.contains('jacket') || text.contains('layer')) {
+      return Icons.checkroom_rounded;
+    }
+    if (text.contains('medicine') || text.contains('first')) {
+      return Icons.medical_services_outlined;
+    }
+    return Icons.checklist_rounded;
+  }
+
+  Widget _visualChecklistRow(Map<String, dynamic> item, AppThemeTokens t) {
+    final label =
+        (item['label'] ?? item['title'] ?? item['name'] ?? item['text'] ?? '')
+            .toString()
+            .trim();
+    final category = (item['category'] ?? '').toString().trim();
+    final imageUrl = (item['imageUrl'] ?? item['image_url'] ?? '').toString().trim();
+    final source = (item['source'] ?? '').toString().trim();
+    final stateKey = '${item['wardrobeItemId'] ?? item['assetIcon'] ?? label}';
+
+    return StatefulBuilder(
+      builder: (context, setRowState) {
+        final saved = _checklistChecksByTitle[stateKey];
+        final done = saved != null && saved.isNotEmpty && saved.first.isNotEmpty
+            ? saved.first.first
+            : item['checked'] == true;
+        return InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: () {
+            setRowState(() {
+              _checklistChecksByTitle[stateKey] = [
+                [!done],
+              ];
+            });
+          },
+          child: Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: Row(
+            children: [
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: t.accent.primary.withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: t.cardBorder),
+                ),
+                clipBehavior: Clip.antiAlias,
+                child: imageUrl.isNotEmpty
+                    ? Image.network(
+                        imageUrl,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => Icon(
+                          _fallbackIconFor(label),
+                          size: 18,
+                          color: t.accent.primary,
+                        ),
+                      )
+                    : Icon(
+                        _fallbackIconFor(label),
+                        size: 18,
+                        color: t.accent.primary,
+                      ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      label,
+                      style: TextStyle(
+                        color: t.textPrimary,
+                        fontSize: 12.8,
+                        height: 1.25,
+                        fontWeight: FontWeight.w700,
+                        decoration: done ? TextDecoration.lineThrough : null,
+                      ),
+                    ),
+                    if (category.isNotEmpty || source.isNotEmpty)
+                      Text(
+                        [category, source == 'wardrobe' ? 'wardrobe' : ''].where((v) => v.isNotEmpty).join(' · '),
+                        style: TextStyle(
+                          color: t.mutedText,
+                          fontSize: 10.8,
+                          height: 1.2,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              Icon(
+                done ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
+                color: done ? t.accent.primary : t.mutedText,
+                size: 19,
+              ),
+            ],
+          ),
+        ),
+        );
+      },
+    );
+  }
+
   Widget _buildChecklistCard(_LocalResponse r, AppThemeTokens t) {
     final title = r.intro.isNotEmpty ? r.intro : 'Checklist';
     const sections = [
@@ -2602,6 +3114,11 @@ class _ChatScreenState extends State<ChatScreen>
   }
 
   Widget _chips(AppThemeTokens t) {
+    // Assistant responses render backend quick_actions directly below the
+    // bubble/card. Avoid mirroring the same row again above the input bar.
+    if (_latestAssistantChips().isNotEmpty) {
+      return const SizedBox.shrink();
+    }
     final chips = _getChipsByModule(context)[_module] ?? const <String>[];
     if (chips.isEmpty) return const SizedBox.shrink();
     return SizedBox(
@@ -2617,6 +3134,20 @@ class _ChatScreenState extends State<ChatScreen>
         ),
       ),
     );
+  }
+
+  List<String> _latestAssistantChips() {
+    for (var i = _messages.length - 1; i >= 0; i--) {
+      final message = _messages[i];
+      if (message.isMe || message.chips.isEmpty) continue;
+      return message.chips
+          .map(_chipLabel)
+          .where((label) => label.trim().isNotEmpty)
+          .toSet()
+          .take(4)
+          .toList(growable: false);
+    }
+    return const [];
   }
 
   Widget _chip(String label, AppThemeTokens t) => Container(
