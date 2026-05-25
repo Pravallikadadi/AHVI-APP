@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:myapp/app_localizations.dart';
 import 'package:myapp/services/backend_service.dart';
+import 'package:myapp/services/appwrite_service.dart';
 import 'package:myapp/theme/theme_tokens.dart';
 import 'package:myapp/theme/theme_controller.dart';
 import 'package:myapp/widgets/ahvi_stylist_chat.dart';
@@ -191,6 +192,8 @@ class _SkincareScreenState extends State<SkincareScreen>
   Set<int> _dayCompletedSteps = {};
   Set<int> _nightCompletedSteps = {};
   bool _chatOpen = false;
+  String? _profileDocumentId;
+  bool _profileLoading = false;
 
   // â”€â”€ F01: back-btn hover state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
@@ -273,6 +276,64 @@ class _SkincareScreenState extends State<SkincareScreen>
     // â”€â”€ F02: Init step animations â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     _buildStepAnimations();
     _playStepAnimations();
+    _loadSkincareProfile();
+  }
+
+  List<int> _intList(dynamic value) {
+    if (value is! List) return const [];
+    return value
+        .map((e) => e is int ? e : int.tryParse(e.toString()))
+        .whereType<int>()
+        .toList();
+  }
+
+  Future<void> _loadSkincareProfile() async {
+    if (_profileLoading) return;
+    _profileLoading = true;
+    try {
+      final service = Provider.of<AppwriteService>(context, listen: false);
+      final doc = await service.getSkincareProfile();
+      if (!mounted || doc == null) return;
+      final data = doc.data;
+      setState(() {
+        _profileDocumentId = doc.$id;
+        _skinType = (data['skinType'] ?? '').toString();
+        _concerns = (data['concerns'] as List? ?? const [])
+            .map((e) => e.toString())
+            .where((e) => e.trim().isNotEmpty)
+            .toList();
+        _dayCompletedSteps = _intList(data['daySteps']).toSet();
+        _nightCompletedSteps = _intList(data['nightSteps']).toSet();
+      });
+    } catch (_) {
+      // Keep the screen usable offline; the next selection will retry save.
+    } finally {
+      _profileLoading = false;
+    }
+  }
+
+  Future<void> _saveSkincareProfile() async {
+    try {
+      final service = Provider.of<AppwriteService>(context, listen: false);
+      var documentId = _profileDocumentId;
+      if (documentId == null || documentId.isEmpty) {
+        final doc = await service.getSkincareProfile();
+        documentId = doc?.$id;
+        if (mounted && documentId != null) {
+          setState(() => _profileDocumentId = documentId);
+        }
+      }
+      if (documentId == null || documentId.isEmpty) return;
+      await service.updateSkincareProfile(
+        documentId: documentId,
+        skinType: _skinType,
+        concerns: List<String>.from(_concerns),
+        daySteps: _dayCompletedSteps.toList()..sort(),
+        nightSteps: _nightCompletedSteps.toList()..sort(),
+      );
+    } catch (_) {
+      // Non-blocking persistence; UI remains responsive.
+    }
   }
 
   // â”€â”€ F02/F20: Build and stagger step slide-up animations â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -343,6 +404,7 @@ class _SkincareScreenState extends State<SkincareScreen>
       _skinType = type;
       _concerns = [];
     });
+    _saveSkincareProfile();
   }
 
   void _toggleConcern(String concern) {
@@ -353,6 +415,7 @@ class _SkincareScreenState extends State<SkincareScreen>
         _concerns.add(concern);
       }
     });
+    _saveSkincareProfile();
   }
 
   void _markStep(int index) {
@@ -361,6 +424,7 @@ class _SkincareScreenState extends State<SkincareScreen>
       final updated = Set<int>.from(_completedSteps)..add(index);
       _completedSteps = updated;
     });
+    _saveSkincareProfile();
   }
 
   @override
