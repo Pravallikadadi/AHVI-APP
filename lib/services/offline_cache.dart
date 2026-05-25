@@ -45,6 +45,7 @@ class OfflineCache extends ChangeNotifier {
   void setUser(String? userId) {
     if (_userId == userId) return;
     _userId = userId;
+    if (!_initialized) return;
     _loadFromPrefs();
     notifyListeners();
   }
