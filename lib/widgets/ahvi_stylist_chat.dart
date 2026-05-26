@@ -1897,6 +1897,10 @@ class _StyleBoardViewModel {
     }
 
     void addBoard(_StyleBoardViewModel board) {
+      if (_styleBoardContainsPrivateWear(board)) {
+        debugPrint('AHVI suppressed private-wear style board: ${board.title}');
+        return;
+      }
       final signature = boardSignature(board.title, board.items);
       if (signature.isEmpty || seen.add(signature)) {
         boards.add(board);
@@ -1981,6 +1985,37 @@ class _StyleBoardViewModel {
 
     return boards;
   }
+}
+
+bool _styleBoardContainsPrivateWear(_StyleBoardViewModel board) {
+  const aliases = {
+    'boxer',
+    'boxer shorts',
+    'briefs',
+    'brief',
+    'underwear',
+    'undergarment',
+    'innerwear',
+    'trunks',
+    'sports trunk',
+    'compression shorts',
+    'compression short',
+    'base layer',
+    'thermal inner',
+    'lingerie',
+    'sleep shorts',
+    'pajama',
+    'pyjama',
+    'lounge shorts',
+  };
+  final blob = [
+    board.title,
+    board.badge ?? '',
+    board.vibe,
+    board.aesthetic,
+    ...board.items.map((item) => item.values.join(' ')),
+  ].join(' ').toLowerCase().replaceAll(RegExp(r'[^a-z0-9]+'), ' ');
+  return aliases.any((alias) => blob.contains(alias));
 }
 
 class _EditorialStyleBoardCard extends StatelessWidget {

@@ -4,6 +4,36 @@ import 'package:myapp/widgets/offline_image.dart';
 import 'board_layout_engine.dart';
 import 'board_models.dart';
 
+const _privateWearAliases = {
+  'boxer',
+  'boxer shorts',
+  'briefs',
+  'brief',
+  'underwear',
+  'undergarment',
+  'innerwear',
+  'trunks',
+  'sports trunk',
+  'compression shorts',
+  'compression short',
+  'base layer',
+  'thermal inner',
+  'lingerie',
+  'sleep shorts',
+  'pajama',
+  'pyjama',
+  'lounge shorts',
+};
+
+bool _containsPrivateWear(Map<String, dynamic> value) {
+  final blob = value.values
+      .where((v) => v is String || v is num || v is bool || v is List || v is Map)
+      .join(' ')
+      .toLowerCase()
+      .replaceAll(RegExp(r'[^a-z0-9]+'), ' ');
+  return _privateWearAliases.any((alias) => blob.contains(alias));
+}
+
 class StyleBoardBody extends StatelessWidget {
   final StyleBoardData board;
   final Color tileColor;
@@ -323,6 +353,14 @@ class _EmptyState extends StatelessWidget {
 }
 
 StyleBoardData boardDataFromMap(Map<String, dynamic> board) {
+  if (_containsPrivateWear(board)) {
+    return const StyleBoardData(
+      title: 'Regenerate look',
+      occasion: '',
+      whyItWorks: 'This look included a private-wear item, so AHVI suppressed it.',
+      items: [],
+    );
+  }
   final rawItems = board['items'] as List? ?? const [];
   final items = <StyleBoardItem>[];
   for (final r in rawItems) {

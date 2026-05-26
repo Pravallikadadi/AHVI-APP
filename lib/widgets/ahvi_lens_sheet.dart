@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:myapp/app_localizations.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:myapp/services/backend_service.dart';
 import 'package:myapp/theme/theme_tokens.dart';
 import 'package:myapp/wardrobe.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 // ── Convenience function ───────────────────────────────────────────────────
 void showAhviLensSheet(
@@ -15,6 +18,8 @@ void showAhviLensSheet(
   final navigator = Navigator.of(context, rootNavigator: true);
   final effectiveOnAddToWardrobe =
       onAddToWardrobe ?? () => showAddToWardrobeModal(navigator.context);
+  final effectiveOnFindSimilar =
+      onFindSimilar ?? () => _runFindSimilarFlow(navigator.context, t);
 
   final renderBox = context.findRenderObject() as RenderBox;
   final buttonPos = renderBox.localToGlobal(Offset.zero);
@@ -29,13 +34,188 @@ void showAhviLensSheet(
       buttonSize: buttonSize,
       t: t,
       onVisualSearch: onVisualSearch,
-      onFindSimilar: onFindSimilar,
+      onFindSimilar: effectiveOnFindSimilar,
       onAddToWardrobe: effectiveOnAddToWardrobe,
       onDismiss: () => entry.remove(),
     ),
   );
 
   overlay.insert(entry);
+}
+
+Future<void> _runFindSimilarFlow(BuildContext context, AppThemeTokens t) async {
+  final picker = ImagePicker();
+  final image = await picker.pickImage(
+    source: ImageSource.gallery,
+    imageQuality: 88,
+    maxWidth: 1600,
+  );
+  if (image == null || !context.mounted) return;
+  showDialog<void>(
+    context: context,
+    barrierDismissible: false,
+    builder: (_) => const Center(child: CircularProgressIndicator()),
+  );
+  final result = await BackendService().findSimilarByImage(
+    await image.readAsBytes(),
+    filename: image.name,
+  );
+  if (context.mounted) Navigator.of(context, rootNavigator: true).pop();
+  if (!context.mounted) return;
+  final matches = List<Map<String, dynamic>>.from(
+    (result?['matches'] as List? ?? const []).whereType<Map>().map(
+      (m) => Map<String, dynamic>.from(m),
+    ),
+  );
+  showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    builder: (_) => _LensSimilarResults(matches: matches, t: t),
+  );
+}
+
+class _LensSimilarResults extends StatelessWidget {
+  final List<Map<String, dynamic>> matches;
+  final AppThemeTokens t;
+
+  const _LensSimilarResults({required this.matches, required this.t});
+
+  @override
+  Widget build(BuildContext context) {
+    return DraggableScrollableSheet(
+      initialChildSize: 0.72,
+      minChildSize: 0.35,
+      maxChildSize: 0.92,
+      builder: (context, controller) => Container(
+        decoration: BoxDecoration(
+          color: t.phoneShellInner,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+        ),
+        padding: const EdgeInsets.fromLTRB(18, 14, 18, 24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 42,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: t.cardBorder.withValues(alpha: 0.5),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+              ),
+            ),
+            const SizedBox(height: 18),
+            Text(
+              'Find Similar',
+              style: TextStyle(
+                color: t.textPrimary,
+                fontSize: 24,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 12),
+            if (matches.isEmpty)
+              Expanded(
+                child: Center(
+                  child: Text(
+                    "I couldn't find similar products for this image yet.",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: t.mutedText, fontSize: 15),
+                  ),
+                ),
+              )
+            else
+              Expanded(
+                child: ListView.separated(
+                  controller: controller,
+                  itemCount: matches.length,
+                  separatorBuilder: (_, _) => const SizedBox(height: 12),
+                  itemBuilder: (_, index) {
+                    final match = matches[index];
+                    final imageUrl = (match['imageUrl'] ?? '').toString();
+                    final url = (match['productUrl'] ?? '').toString();
+                    return InkWell(
+                      onTap: url.isEmpty
+                          ? null
+                          : () => launchUrl(
+                                Uri.parse(url),
+                                mode: LaunchMode.externalApplication,
+                              ),
+                      borderRadius: BorderRadius.circular(16),
+                      child: Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: t.panel,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: t.cardBorder.withValues(alpha: 0.35)),
+                        ),
+                        child: Row(
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(12),
+                              child: imageUrl.isEmpty
+                                  ? Container(
+                                      width: 72,
+                                      height: 72,
+                                      color: t.accent.primary.withValues(alpha: 0.08),
+                                      child: Icon(Icons.image_search_rounded, color: t.accent.primary),
+                                    )
+                                  : Image.network(
+                                      imageUrl,
+                                      width: 72,
+                                      height: 72,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (_, _, _) => Container(
+                                        width: 72,
+                                        height: 72,
+                                        color: t.accent.primary.withValues(alpha: 0.08),
+                                        child: Icon(Icons.image_not_supported_outlined, color: t.accent.primary),
+                                      ),
+                                    ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    (match['title'] ?? 'Similar item').toString(),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      color: t.textPrimary,
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    [
+                                      (match['brand'] ?? '').toString(),
+                                      (match['source'] ?? '').toString(),
+                                    ].where((v) => v.trim().isNotEmpty).join(' · '),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(color: t.mutedText, fontSize: 12),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Icon(Icons.open_in_new_rounded, color: t.mutedText, size: 18),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 // ── Overlay wrapper ────────────────────────────────────────────────────────

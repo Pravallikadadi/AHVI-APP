@@ -824,6 +824,7 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
       'Jewelry',
       'Skincare',
       'Makeup',
+      'Innerwear',
       'Accessories',
     ];
     // Migrate legacy 'Indian Wear' / 'Traditional' to Dresses so the
@@ -900,6 +901,15 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
         .map((v) => v.trim())
         .where((v) => v.isNotEmpty)
         .toList();
+    final nextPrivateWear = _isPrivateWearText(
+      '$nextName $selectedCat ${nextOccasions.join(' ')}',
+    );
+    if (nextPrivateWear) {
+      selectedCat = 'Innerwear';
+      nextOccasions
+        ..clear()
+        ..addAll(['Home', 'Private', 'Lounge']);
+    }
 
     try {
       final backend = Provider.of<BackendService>(context, listen: false);
@@ -1856,6 +1866,31 @@ class _DetectedItem {
       'ITM';
 }
 
+bool _isPrivateWearText(String value) {
+  final clean = value.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]+'), ' ');
+  const aliases = [
+    'boxer',
+    'boxer shorts',
+    'briefs',
+    'brief',
+    'underwear',
+    'undergarment',
+    'innerwear',
+    'trunks',
+    'sports trunk',
+    'compression shorts',
+    'compression short',
+    'base layer',
+    'thermal inner',
+    'lingerie',
+    'sleep shorts',
+    'pajama',
+    'pyjama',
+    'lounge shorts',
+  ];
+  return aliases.any((alias) => clean.contains(alias));
+}
+
 // ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ MODAL STEP ENUM ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬
 class _DetectedTaxonomy {
   final String name;
@@ -2026,6 +2061,7 @@ class _AddItemModalState extends State<_AddItemModal>
     'Jewelry',
     'Makeup',
     'Skincare',
+    'Innerwear',
     'Accessories',
     'Needs Review',
   ];
@@ -2407,13 +2443,18 @@ class _AddItemModalState extends State<_AddItemModal>
       return;
     }
     if (_editingIndex != null) {
+      final privateWear = _isPrivateWearText(
+        '${_nameCtrl.text} $_selectedCat ${_subCategoryCtrl.text}',
+      );
       setState(() {
         _detected[_editingIndex!].name = _nameCtrl.text.trim();
-        _detected[_editingIndex!].category = _selectedCat;
-        _detected[_editingIndex!].subCategory = _subCategoryCtrl.text.trim();
+        _detected[_editingIndex!].category = privateWear ? 'Innerwear' : _selectedCat;
+        _detected[_editingIndex!].subCategory = privateWear ? 'Private Wear' : _subCategoryCtrl.text.trim();
         _detected[_editingIndex!].color = _colorCtrl.text.trim();
         _detected[_editingIndex!].pattern = _patternCtrl.text.trim();
-        _detected[_editingIndex!].occasions = List<String>.from(_selectedOccs);
+        _detected[_editingIndex!].occasions = privateWear
+            ? ['Home', 'Private', 'Lounge']
+            : List<String>.from(_selectedOccs);
         _editingIndex = null;
         _step = _ModalStep.results;
       });
@@ -3451,6 +3492,14 @@ class _AddItemModalState extends State<_AddItemModal>
   // ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ STEP 4: Confirm / Edit detected item form ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬
   Widget _buildEditingBody() {
     final bool isAiFilled = _detected.isNotEmpty && _editingIndex == null;
+    final privateWearDetected = _isPrivateWearText(
+      [
+        _nameCtrl.text,
+        _selectedCat,
+        _subCategoryCtrl.text,
+        _selectedOccs.join(' '),
+      ].join(' '),
+    );
     return SingleChildScrollView(
       key: const ValueKey('editing'),
       child: Column(
@@ -3665,6 +3714,28 @@ class _AddItemModalState extends State<_AddItemModal>
                   ],
                 ),
                 const SizedBox(height: 14),
+                if (privateWearDetected) ...[
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: t.accent.secondary.withValues(alpha: 0.10),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: t.accent.secondary.withValues(alpha: 0.25),
+                      ),
+                    ),
+                    child: Text(
+                      "This item is marked as private wear and won't be used in public outfit boards.",
+                      style: TextStyle(
+                        fontFamily: GoogleFonts.inter().fontFamily,
+                        color: t.textPrimary,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                ],
                 _ModalField(
                   label: AppLocalizations.t(context, 'occasion'),
                   child: Wrap(
@@ -3672,8 +3743,13 @@ class _AddItemModalState extends State<_AddItemModal>
                     runSpacing: 7,
                     children: _occs.map((occ) {
                       final active = _selectedOccs.contains(occ);
+                      final disabled =
+                          privateWearDetected &&
+                          {'Work', 'Dinner', 'Travel'}.contains(occ);
                       return GestureDetector(
-                        onTap: () => setState(
+                        onTap: disabled
+                            ? null
+                            : () => setState(
                           () => active
                               ? _selectedOccs.remove(occ)
                               : _selectedOccs.add(occ),
@@ -3693,7 +3769,7 @@ class _AddItemModalState extends State<_AddItemModal>
                                     ],
                                   )
                                 : null,
-                            color: active ? null : t.panel,
+                            color: active ? null : t.panel.withValues(alpha: disabled ? 0.45 : 1),
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(
                               color: active ? t.accent.primary : t.cardBorder,
@@ -3706,7 +3782,9 @@ class _AddItemModalState extends State<_AddItemModal>
                               fontFamily: GoogleFonts.inter().fontFamily,
                               fontSize: 13,
                               fontWeight: FontWeight.w500,
-                              color: active ? t.textPrimary : t.mutedText,
+                              color: disabled
+                                  ? t.mutedText.withValues(alpha: 0.45)
+                                  : (active ? t.textPrimary : t.mutedText),
                             ),
                           ),
                         ),

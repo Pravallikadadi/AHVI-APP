@@ -157,6 +157,12 @@ class BackendService {
   Map<String, dynamic> _normalizeChatResponse(Map<String, dynamic> data) {
     var cleanText = _messageText(data);
     var extractedChips = List<dynamic>.from(data['chips'] as List? ?? []);
+    final quickActions = List<dynamic>.from(
+      data['quick_actions'] as List? ?? const [],
+    );
+    if (quickActions.isNotEmpty) {
+      extractedChips = quickActions;
+    }
     String? extractedBoardData =
         (data['board_ids'] != null && data['board_ids'].toString().isNotEmpty)
         ? data['board_ids'].toString()
@@ -195,6 +201,7 @@ class BackendService {
       'message': {'role': 'assistant', 'content': cleanText},
       'message_text': cleanText,
       'chips': extractedChips,
+      'quick_actions': quickActions.isNotEmpty ? quickActions : extractedChips,
       'board_ids': extractedBoardData,
       'pack_ids': extractedPackData,
       'full_menu_text': hiddenMenuText,
@@ -509,6 +516,7 @@ class BackendService {
           'message': {'role': 'assistant', 'content': text},
           'message_text': text,
           'chips': data['chips'] ?? const [],
+          'quick_actions': data['quick_actions'] ?? data['chips'] ?? const [],
         });
       }
 
@@ -572,9 +580,7 @@ class BackendService {
         }
         return null;
       }
-      debugPrint(
-        'Bill scan failed: ${response.statusCode} ${response.body}',
-      );
+      debugPrint('Bill scan failed: ${response.statusCode} ${response.body}');
       return null;
     } catch (e) {
       debugPrint('Bill scan error: $e');
@@ -641,6 +647,46 @@ class BackendService {
     } catch (e) {
       debugPrint('Garment analysis error: $e');
       throw BackendRequestException('Scan request failed: $e');
+    }
+  }
+
+  Future<Map<String, dynamic>?> findSimilarByImage(
+    Uint8List imageBytes, {
+    String filename = 'ahvi-lens.jpg',
+  }) async {
+    try {
+      final headers = await _authHeaders();
+      headers.remove('Content-Type');
+      final request = http.MultipartRequest(
+        'POST',
+        Uri.parse('$baseUrl/api/lens/find-similar'),
+      )
+        ..headers.addAll(headers)
+        ..files.add(
+          http.MultipartFile.fromBytes(
+            'file',
+            imageBytes,
+            filename: filename,
+          ),
+        );
+      final streamed = await request.send().timeout(const Duration(seconds: 45));
+      final response = await http.Response.fromStream(streamed);
+      if (response.statusCode == 200) {
+        return await compute(_parseJsonMap, response.body);
+      }
+      debugPrint('Find similar failed: ${response.statusCode} ${response.body}');
+      return {
+        'success': false,
+        'message': 'Could not find similar products yet.',
+        'matches': const [],
+      };
+    } catch (e) {
+      debugPrint('Find similar error: $e');
+      return {
+        'success': false,
+        'message': 'Could not find similar products yet.',
+        'matches': const [],
+      };
     }
   }
 
