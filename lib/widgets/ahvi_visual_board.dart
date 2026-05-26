@@ -284,6 +284,24 @@ class AhviVisualBoardView extends StatelessWidget {
     required bool timeline,
   }) {
     final items = section.items;
+    final isPackingBoard =
+        !timeline &&
+        (board.boardType.toLowerCase().contains('pack') ||
+            board.boardType.toLowerCase().contains('trip'));
+    if (isPackingBoard) {
+      return GridView.builder(
+        itemCount: items.length,
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 3,
+          crossAxisSpacing: 8,
+          mainAxisSpacing: 8,
+          childAspectRatio: 0.78,
+        ),
+        itemBuilder: (context, i) => _packingTile(context, items[i]),
+      );
+    }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: List.generate(items.length, (i) {
@@ -336,6 +354,83 @@ class AhviVisualBoardView extends StatelessWidget {
           ),
         );
       }),
+    );
+  }
+
+  Widget _packingTile(BuildContext context, AhviBoardItem item) {
+    return Container(
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: _accent(context).withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: _border(context).withValues(alpha: 0.75)),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Expanded(child: _packingThumb(context, item)),
+          const SizedBox(height: 6),
+          Text(
+            item.displayText,
+            textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: _text(context),
+              fontSize: 10.5,
+              height: 1.12,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _packingThumb(BuildContext context, AhviBoardItem item) {
+    if (item.imageUrl.isNotEmpty) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(10),
+        child: Image.network(
+          item.imageUrl,
+          width: double.infinity,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => _packingIcon(context, item),
+        ),
+      );
+    }
+    return _packingIcon(context, item);
+  }
+
+  Widget _packingIcon(BuildContext context, AhviBoardItem item) {
+    final label = item.displayText.toLowerCase();
+    final icon = label.contains('sun')
+        ? Icons.wb_sunny_outlined
+        : label.contains('charger') || label.contains('power')
+        ? Icons.battery_charging_full_rounded
+        : label.contains('shoe') || label.contains('footwear')
+        ? Icons.directions_run_rounded
+        : label.contains('water')
+        ? Icons.water_drop_outlined
+        : label.contains('medicine') || label.contains('first')
+        ? Icons.medical_services_outlined
+        : label.contains('jacket') || label.contains('layer')
+        ? Icons.checkroom_rounded
+        : label.contains('toilet') || label.contains('moistur')
+        ? Icons.spa_outlined
+        : label.contains('sunglass')
+        ? Icons.visibility_outlined
+        : Icons.inventory_2_outlined;
+    return Center(
+      child: Container(
+        width: 42,
+        height: 42,
+        decoration: BoxDecoration(
+          color: _accent(context).withValues(alpha: 0.10),
+          shape: BoxShape.circle,
+        ),
+        child: Icon(icon, color: _accent(context), size: 22),
+      ),
     );
   }
 

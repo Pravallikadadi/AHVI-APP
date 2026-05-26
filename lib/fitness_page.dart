@@ -306,6 +306,9 @@ class _WorkoutStudioScreenState extends State<WorkoutStudioScreen> {
       listen: false,
     ).completeWorkout(card.id, difficultyFeedback: 'good');
     if (!mounted) return;
+    if (ok) {
+      setState(() => _todayWorkout = null);
+    }
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(ok ? 'Workout completed.' : 'Could not save yet.'),
@@ -393,7 +396,10 @@ class _WorkoutStudioScreenState extends State<WorkoutStudioScreen> {
         accent: Colors.white,
       ),
     ];
-    WidgetsBinding.instance.addPostFrameCallback((_) => _loadTodayWorkout());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadTodayWorkout();
+      _loadSavedWorkoutOutfits();
+    });
   }
 
   void _addCategory(WorkoutCategory c) {
@@ -401,12 +407,79 @@ class _WorkoutStudioScreenState extends State<WorkoutStudioScreen> {
   }
 
   final List<WorkoutOutfit> _outfits = [];
-  void _addOutfit(WorkoutOutfit o) {
-    setState(() => _outfits.insert(0, o));
+  bool _outfitsLoaded = false;
+
+  Future<void> _loadSavedWorkoutOutfits() async {
+    if (_outfitsLoaded) return;
+    _outfitsLoaded = true;
+    final docs = await Provider.of<AppwriteService>(
+      context,
+      listen: false,
+    ).getWorkoutOutfits();
+    if (!mounted) return;
+    final loaded = docs.map((doc) {
+      final data = doc.data;
+      return WorkoutOutfit(
+        id: doc.$id,
+        name: (data['name'] ?? 'Workout outfit').toString(),
+        catId: (data['cat'] ?? 'gym').toString(),
+        items: _stringList(data['items']),
+        notes: (data['notes'] ?? '').toString(),
+      );
+    }).toList(growable: false);
+    setState(() {
+      _outfits
+        ..clear()
+        ..addAll(loaded);
+    });
   }
 
-  void _deleteOutfit(String id) {
+  Future<void> _addOutfit(WorkoutOutfit o) async {
+    setState(() => _outfits.insert(0, o));
+    try {
+      final doc = await Provider.of<AppwriteService>(
+        context,
+        listen: false,
+      ).createWorkoutOutfit({
+        'name': o.name,
+        'emoji': '🏋️',
+        'cat': o.catId,
+        'tag': 'custom_workout_outfit',
+        'items': o.items,
+        'notes': o.notes,
+      });
+      if (!mounted) return;
+      setState(() {
+        final index = _outfits.indexWhere((item) => item.id == o.id);
+        if (index != -1) {
+          _outfits[index] = WorkoutOutfit(
+            id: doc.$id,
+            name: o.name,
+            catId: o.catId,
+            items: o.items,
+            notes: o.notes,
+            images: o.images,
+          );
+        }
+      });
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Routine saved locally. Sync failed.')),
+      );
+    }
+  }
+
+  Future<void> _deleteOutfit(String id) async {
     setState(() => _outfits.removeWhere((o) => o.id == id));
+    try {
+      await Provider.of<AppwriteService>(
+        context,
+        listen: false,
+      ).deleteWorkoutOutfit(id);
+    } catch (_) {
+      // Keep local delete; stale cloud docs will reload on next sync if delete failed.
+    }
   }
 
   @override
@@ -456,7 +529,7 @@ class _WorkoutStudioScreenState extends State<WorkoutStudioScreen> {
           // FAB (only on home) — pinned bottom-right
           if (_activePage == 'home')
             Positioned(
-              bottom: 30,
+              bottom: MediaQuery.paddingOf(context).bottom + 30,
               right: 20,
               child: _AskAhviFab(
                 onTap: () => setState(() => _activePage = 'chat'),
@@ -551,7 +624,11 @@ class _HomeView extends StatelessWidget {
         : outfits.where((o) => o.catId == selectedTab).toList();
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24),
-      child: Column(
+      child: SingleChildScrollView(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.paddingOf(context).bottom + 120,
+        ),
+        child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Top Bar
@@ -616,11 +693,15 @@ class _HomeView extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           // Grid
-          Expanded(
-            child: filtered.isEmpty
-                ? _EmptyGrid()
-                : GridView.builder(
-                    padding: const EdgeInsets.only(bottom: 100),
+          filtered.isEmpty
+              ? Padding(
+                  padding: const EdgeInsets.only(top: 8, bottom: 48),
+                  child: _EmptyGrid(),
+                )
+              : GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    padding: const EdgeInsets.only(bottom: 24),
                     gridDelegate:
                         const SliverGridDelegateWithFixedCrossAxisCount(
                           crossAxisCount: 3,
@@ -638,8 +719,8 @@ class _HomeView extends StatelessWidget {
                       onDelete: () => onDeleteOutfit(filtered[i].id),
                     ),
                   ),
-          ),
         ],
+      ),
       ),
     );
   }
@@ -2763,6 +2844,13 @@ class _ChatViewState extends State<_ChatView> {
       listen: false,
     ).completeWorkout(card.id, difficultyFeedback: 'good');
     if (!mounted) return;
+    if (ok) {
+      setState(() {
+        _messages.removeWhere(
+          (message) => message.workoutCards.any((item) => item.id == card.id),
+        );
+      });
+    }
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(ok ? 'Workout completed.' : 'Could not save yet.'),
@@ -3112,9 +3200,11 @@ class _ChatViewState extends State<_ChatView> {
               Expanded(
                 child: ListView.builder(
                   controller: _scrollController,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 10,
+                  padding: EdgeInsets.fromLTRB(
+                    20,
+                    10,
+                    20,
+                    MediaQuery.paddingOf(context).bottom + 128,
                   ),
                   itemCount: _messages.length + (_isTyping ? 1 : 0),
                   itemBuilder: (ctx, i) {

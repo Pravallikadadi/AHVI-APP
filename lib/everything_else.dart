@@ -440,7 +440,7 @@ class _LooksGrid extends StatelessWidget {
         crossAxisCount: 2,
         crossAxisSpacing: 10,
         mainAxisSpacing: 10,
-        childAspectRatio: 0.56,
+        childAspectRatio: 0.54,
       ),
       itemCount: looks.length,
       itemBuilder: (context, index) => _LookCard(
@@ -657,7 +657,7 @@ class _LookCardState extends State<_LookCard> {
               // Try On button
               Container(
                 width: double.infinity,
-                margin: const EdgeInsets.fromLTRB(10, 4, 10, 10),
+                margin: const EdgeInsets.fromLTRB(10, 2, 10, 6),
                 child: GestureDetector(
                   onTap: () {},
                   child: Container(

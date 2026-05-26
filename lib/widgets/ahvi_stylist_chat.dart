@@ -224,6 +224,7 @@ Future<void> showAhviStylistChatSheet(
   BuildContext context, {
   String moduleContext = 'style',
   Map<String, dynamic> contextData = const {},
+  Future<void> Function()? onRefresh,
 }) {
   return showModalBottomSheet<void>(
     context: context,
@@ -243,6 +244,7 @@ Future<void> showAhviStylistChatSheet(
             moduleContext: moduleContext,
             contextData: contextData,
             rootContext: context,
+            onRefresh: onRefresh,
           ),
         ),
       );
@@ -352,11 +354,13 @@ class _AhviStylistChatSheet extends StatefulWidget {
   final String moduleContext;
   final Map<String, dynamic> contextData;
   final BuildContext rootContext;
+  final Future<void> Function()? onRefresh;
 
   const _AhviStylistChatSheet({
     this.moduleContext = 'style',
     this.contextData = const {},
     required this.rootContext,
+    this.onRefresh,
   });
 
   @override
@@ -758,6 +762,16 @@ class _AhviStylistChatSheetState extends State<_AhviStylistChatSheet>
               context: widget.contextData,
             );
       if (!mounted) return;
+      final refreshTarget = (response['refresh'] ?? response['data']?['refresh'])
+          ?.toString()
+          .trim()
+          .toLowerCase();
+      if (refreshTarget != null &&
+          refreshTarget.isNotEmpty &&
+          (refreshTarget == widget.moduleContext.toLowerCase() ||
+              refreshTarget == 'medi')) {
+        await widget.onRefresh?.call();
+      }
 
       final rawMessage = response['message'];
       final message =

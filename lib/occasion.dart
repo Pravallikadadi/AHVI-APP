@@ -194,6 +194,8 @@ class _OccasionBoardState extends State<OccasionBoard> {
                       : _looks.isEmpty
                       ? _EmptyState(
                           titleKey: widget.titleKey,
+                          titleLabel: widget.titleLabel,
+                          occasion: widget.occasion,
                           emoji: widget.emptyEmoji,
                         )
                       : _LooksGrid(
@@ -645,8 +647,15 @@ class _LookCardState extends State<_LookCard> {
 // ── Empty state ──────────────────────────────────────────────────────────────
 class _EmptyState extends StatelessWidget {
   final String titleKey;
+  final String? titleLabel;
+  final String occasion;
   final String emoji;
-  const _EmptyState({required this.titleKey, required this.emoji});
+  const _EmptyState({
+    required this.titleKey,
+    required this.emoji,
+    this.titleLabel,
+    this.occasion = '',
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -660,7 +669,9 @@ class _EmptyState extends StatelessWidget {
             Text(emoji, style: const TextStyle(fontSize: 52)),
             const SizedBox(height: 16),
             Text(
-              context.tr(titleKey),
+              titleLabel?.trim().isNotEmpty == true
+                  ? titleLabel!.trim()
+                  : context.tr(titleKey),
               style: TextStyle(
                 fontFamily: 'Inter',
                 fontSize: 18,
@@ -670,7 +681,9 @@ class _EmptyState extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              context.tr('wardrobe_insight_empty'),
+              occasion.toLowerCase().startsWith('custom:')
+                  ? 'This board is empty. Save looks from AHVI chat or wardrobe to add them here.'
+                  : 'No looks saved here yet. Build one in AHVI chat and tap Save.',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontFamily: 'Inter',

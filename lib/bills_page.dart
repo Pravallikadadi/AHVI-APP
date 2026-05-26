@@ -689,7 +689,7 @@ class _BillsScreenState extends State<BillsScreen>
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.light,
       child: Scaffold(
-        resizeToAvoidBottomInset: false,
+        resizeToAvoidBottomInset: true,
         backgroundColor: _t.backgroundPrimary,
         body: Stack(
           children: [
@@ -709,7 +709,7 @@ class _BillsScreenState extends State<BillsScreen>
               animation: _chatSlide,
               builder: (_, __) {
                 return Positioned(
-                  bottom: 170,
+                  bottom: MediaQuery.paddingOf(context).bottom + 170,
                   right: 24,
                   child: Opacity(
                     opacity: _chatSlide.value,
@@ -735,7 +735,7 @@ class _BillsScreenState extends State<BillsScreen>
               AnimatedBuilder(
                 animation: _toastAnim,
                 builder: (_, __) => Positioned(
-                  bottom: 120,
+                  bottom: MediaQuery.paddingOf(context).bottom + 120,
                   left: 0,
                   right: 0,
                   child: Center(
@@ -759,9 +759,10 @@ class _BillsScreenState extends State<BillsScreen>
   //  HEADER
   // ════════════════════════════════════════════════════════════════════
   Widget _buildHeader() {
+    final topInset = MediaQuery.paddingOf(context).top;
     return Container(
       color: _t.backgroundPrimary,
-      padding: EdgeInsets.fromLTRB(24, 4, 24, 12),
+      padding: EdgeInsets.fromLTRB(24, topInset + 12, 24, 12),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
@@ -2022,9 +2023,7 @@ class _BillsScreenState extends State<BillsScreen>
                         const SizedBox(width: 6),
                       ],
                       Text(
-                        _isScanningBill
-                            ? 'Scanning bill…'
-                            : '✦ Bill scanned',
+                        _isScanningBill ? 'Scanning bill…' : '✦ Bill scanned',
                         style: const TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.w700,

@@ -198,7 +198,7 @@ class _VacationScreenState extends State<VacationScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            context.tr('wardrobe_insight_empty'),
+            'No vacation looks saved yet. Build one in AHVI chat and tap Save.',
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: 14, color: t.mutedText, height: 1.5),
           ),

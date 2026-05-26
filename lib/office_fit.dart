@@ -225,9 +225,6 @@ class _OfficeFitScreenState extends State<OfficeFitScreen> {
         return SavedBoardCard(
           source: board,
           wardrobeById: _wardrobeById,
-          onTap: () {
-            // TODO: Fullscreen image viewer
-          },
         );
       },
     );

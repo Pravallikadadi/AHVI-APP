@@ -56,12 +56,22 @@ class AhviBoardItem {
   final String category;
   final List<String> options;
 
+  /// visual checklist thumbnails
+  final String imageUrl;
+  final String iconName;
+  final String source;
+  final bool checked;
+
   const AhviBoardItem({
     this.name = '',
     this.pairing = '',
     this.label = '',
     this.category = '',
     this.options = const [],
+    this.imageUrl = '',
+    this.iconName = '',
+    this.source = '',
+    this.checked = false,
   });
 
   factory AhviBoardItem.fromJson(dynamic raw) {
@@ -72,6 +82,15 @@ class AhviBoardItem {
         label: _str(raw['label'] ?? raw['text'] ?? raw['title']),
         category: _str(raw['category']),
         options: _strList(raw['options']),
+        imageUrl: _str(raw['imageUrl'] ?? raw['image_url']),
+        iconName: _str(
+          raw['iconName'] ??
+              raw['icon_name'] ??
+              raw['assetIcon'] ??
+              raw['asset_icon'],
+        ),
+        source: _str(raw['source']),
+        checked: raw['checked'] == true,
       );
     }
     return AhviBoardItem(label: _str(raw));

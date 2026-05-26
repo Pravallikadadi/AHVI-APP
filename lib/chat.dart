@@ -1432,21 +1432,20 @@ class _ChatScreenState extends State<ChatScreen>
                   final double navBarH = MediaQuery.viewPaddingOf(
                     context,
                   ).bottom;
-                  const double promptBarH = 80.0;
+                  const double promptBarH = 96.0;
+                  const double floatingContentClearance = 92.0;
                   final double listBottomPad = kbH > 0
                       ? promptBarH
-                      : navBarH + promptBarH + (widget.showBackButton ? 0 : 80);
+                      : navBarH +
+                            promptBarH +
+                            floatingContentClearance +
+                            (widget.showBackButton ? 0 : 80);
                   return Column(
                     children: [
                       Expanded(
                         child: ListView.builder(
                           controller: _scrollController,
-                          padding: EdgeInsets.fromLTRB(
-                            20,
-                            16,
-                            20,
-                            listBottomPad,
-                          ),
+                          padding: EdgeInsets.fromLTRB(20, 16, 20, listBottomPad),
                           itemCount: _messages.length,
                           itemBuilder: (_, i) => _msg(_messages[i], t),
                         ),

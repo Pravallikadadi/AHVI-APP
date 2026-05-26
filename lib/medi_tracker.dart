@@ -243,10 +243,7 @@ class _MediTrackScreenState extends State<MediTrackScreen>
     final nowIso = now.toUtc().toIso8601String();
     try {
       final appwrite = Provider.of<AppwriteService>(context, listen: false);
-      await appwrite.updateMed(id, {
-        'left': newLeft,
-        'lastTaken': nowIso,
-      });
+      await appwrite.updateMed(id, {'left': newLeft, 'lastTaken': nowIso});
       await appwrite.createMedLog({
         'medId': id,
         'medName': med['name'],
@@ -815,7 +812,7 @@ class _MediTrackScreenState extends State<MediTrackScreen>
       );
     }
     return SizedBox(
-      height: 80,
+      height: 124,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.fromLTRB(16, 2, 16, 4),
@@ -848,7 +845,9 @@ class _MediTrackScreenState extends State<MediTrackScreen>
       onTap: () {
         if (!taken) _markTaken(id);
       },
-      child: Container(
+      child: SizedBox(
+        width: 230,
+        child: Container(
         decoration: BoxDecoration(
           color: taken ? const Color(0x1404D7C8) : const Color(0x14FFFFFF),
           borderRadius: BorderRadius.circular(14),
@@ -876,12 +875,15 @@ class _MediTrackScreenState extends State<MediTrackScreen>
                     ),
                   ),
                   const SizedBox(width: 10),
-                  Column(
+                  Expanded(
+                    child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
                         name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w800,
@@ -890,6 +892,8 @@ class _MediTrackScreenState extends State<MediTrackScreen>
                       ),
                       Text(
                         dose,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           fontSize: 10,
                           color: muted,
@@ -917,7 +921,7 @@ class _MediTrackScreenState extends State<MediTrackScreen>
                           child: Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 8,
-                              vertical: 4,
+                              vertical: 3,
                             ),
                             decoration: BoxDecoration(
                               gradient: LinearGradient(
@@ -938,7 +942,7 @@ class _MediTrackScreenState extends State<MediTrackScreen>
                                   AppLocalizations.t(context, 'medi_take'),
                                   style: const TextStyle(
                                     color: Colors.white,
-                                    fontSize: 10,
+                                  fontSize: 9.5,
                                     fontWeight: FontWeight.w800,
                                   ),
                                 ),
@@ -948,6 +952,7 @@ class _MediTrackScreenState extends State<MediTrackScreen>
                         ),
                       ],
                     ],
+                  ),
                   ),
                 ],
               ),
@@ -967,6 +972,7 @@ class _MediTrackScreenState extends State<MediTrackScreen>
                 ),
               ),
           ],
+        ),
         ),
       ),
     );
@@ -2357,6 +2363,7 @@ class _MediTrackScreenState extends State<MediTrackScreen>
           'taken_today': meds.where((m) => m['taken'] == true).length,
           'pending_today': meds.where((m) => m['taken'] != true).length,
         },
+        onRefresh: _fetchData,
       ),
     );
   }
@@ -2564,27 +2571,23 @@ class _MediTrackScreenState extends State<MediTrackScreen>
                             this.context,
                             listen: false,
                           );
-                          final resolvedTime =
-                              _timeCtrl.text.trim().isEmpty
-                                  ? '12:00 PM'
-                                  : _timeCtrl.text.trim();
+                          final resolvedTime = _timeCtrl.text.trim().isEmpty
+                              ? '12:00 PM'
+                              : _timeCtrl.text.trim();
                           final resolvedFreq =
                               _selFreq ?? l(this.context, 'medi_freq_once');
                           if (isEditing) {
                             // Update existing medicine. Leave `left` and
                             // `lastTaken` alone so today's taken-state and
                             // remaining count are not reset by an edit.
-                            await appwrite.updateMed(
-                              editMed['id'] as String,
-                              {
-                                'name': name,
-                                'dose': dose,
-                                'freq': resolvedFreq,
-                                'time': resolvedTime,
-                                'cat': effectiveCat,
-                                'total': supply,
-                              },
-                            );
+                            await appwrite.updateMed(editMed['id'] as String, {
+                              'name': name,
+                              'dose': dose,
+                              'freq': resolvedFreq,
+                              'time': resolvedTime,
+                              'cat': effectiveCat,
+                              'total': supply,
+                            });
                             _showToast('Medicine updated', '✅');
                           } else {
                             await appwrite.createMed({

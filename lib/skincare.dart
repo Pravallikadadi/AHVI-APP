@@ -442,6 +442,9 @@ class _SkincareScreenState extends State<SkincareScreen>
         body: Stack(
           children: [
             SingleChildScrollView(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.paddingOf(context).bottom + 112,
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [_buildHeader(), _buildContent()],
@@ -454,7 +457,10 @@ class _SkincareScreenState extends State<SkincareScreen>
                 child: Align(
                   alignment: Alignment.bottomRight,
                   child: Padding(
-                    padding: const EdgeInsets.only(right: 20, bottom: 30),
+                    padding: EdgeInsets.only(
+                      right: 20,
+                      bottom: MediaQuery.paddingOf(context).bottom + 30,
+                    ),
                     child: _AskAhviFab(
                       onTap: () => showAhviStylistChatSheet(
                         context,

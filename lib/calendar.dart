@@ -1451,6 +1451,7 @@ class _StyleChatScreenState extends State<StyleChatScreen> {
       return;
     }
     _textCtrl.text = chip.value;
+    _sendMsg();
   }
 
   Future<void> _sendMsg() async {
@@ -1807,18 +1808,24 @@ class _StyleChatScreenState extends State<StyleChatScreen> {
                             if (!m.isUser && m.chips.isNotEmpty)
                               Padding(
                                 padding: const EdgeInsets.only(top: 8),
-                                child: Wrap(
-                                  spacing: 8,
-                                  runSpacing: 8,
-                                  children: m.chips
-                                      .map(
-                                        (chip) => _chip(
-                                          chip.label,
-                                          theme,
-                                          onTap: () => _handleChip(chip),
-                                        ),
-                                      )
-                                      .toList(),
+                                child: SingleChildScrollView(
+                                  scrollDirection: Axis.horizontal,
+                                  child: Row(
+                                    children: m.chips
+                                        .map(
+                                          (chip) => Padding(
+                                            padding: const EdgeInsets.only(
+                                              right: 8,
+                                            ),
+                                            child: _chip(
+                                              chip.label,
+                                              theme,
+                                              onTap: () => _handleChip(chip),
+                                            ),
+                                          ),
+                                        )
+                                        .toList(),
+                                  ),
                                 ),
                               ),
                             if (!m.isUser && m.visualBoard != null)
@@ -1982,7 +1989,12 @@ class _StyleChatScreenState extends State<StyleChatScreen> {
 
   Widget _chip(String txt, dynamic theme, {VoidCallback? onTap}) {
     return GestureDetector(
-      onTap: onTap ?? () => _textCtrl.text = txt,
+      onTap:
+          onTap ??
+          () {
+            _textCtrl.text = txt;
+            _sendMsg();
+          },
       child: Container(
         margin: const EdgeInsets.only(right: 8),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
