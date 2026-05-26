@@ -899,7 +899,7 @@ class _BoardsScreenState extends State<BoardsScreen>
                   shellColor: _shell,
                   onTap: () => _push(
                     const daily_wear.DailyWearScreen(),
-                  ), // Or whatever your main class is named in daily_wear.dart
+                  ),
                 ),
               ),
             ),

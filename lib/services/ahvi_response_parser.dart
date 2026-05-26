@@ -84,10 +84,18 @@ class AhviResponse {
       ..._checklistItemsFromCards(cards),
     ];
 
+    final rawChips = response['chips'] is List
+        ? response['chips'] as List
+        : const [];
+    final rawQuickActions = response['quick_actions'] is List
+        ? response['quick_actions'] as List
+        : const [];
+    final chipSource = rawQuickActions.isNotEmpty ? rawQuickActions : rawChips;
+
     return AhviResponse(
       messageText: _messageText(response),
       type: type,
-      chips: (response['chips'] is List ? response['chips'] as List : const [])
+      chips: chipSource
           .map(AhviChip.fromDynamic)
           .where((chip) => chip.label.isNotEmpty)
           .toList(growable: false),

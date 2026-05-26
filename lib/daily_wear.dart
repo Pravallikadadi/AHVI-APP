@@ -2119,7 +2119,7 @@ class _DailyWearScreenState extends State<DailyWearScreen>
           final compact = constraints.maxWidth < 360;
           if (compact) {
             return SizedBox(
-              height: 232,
+              height: 268,
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
                 itemCount: optionCards.length,
