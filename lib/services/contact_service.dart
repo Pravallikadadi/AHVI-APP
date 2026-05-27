@@ -92,7 +92,7 @@ class ContactService {
     Map<String, dynamic> fields,
   ) async {
     final response = await http
-        .patch(
+        .put(
           _uri('/api/contacts/$id'),
           headers: await _headers(),
           body: jsonEncode(fields),
