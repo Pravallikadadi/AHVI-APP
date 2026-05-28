@@ -1751,11 +1751,12 @@ class _StyleChatScreenState extends State<StyleChatScreen> {
                             ),
                           ),
 
-                        Column(
-                          crossAxisAlignment: m.isUser
-                              ? CrossAxisAlignment.end
-                              : CrossAxisAlignment.start,
-                          children: [
+                        Flexible(
+                          child: Column(
+                            crossAxisAlignment: m.isUser
+                                ? CrossAxisAlignment.end
+                                : CrossAxisAlignment.start,
+                            children: [
                             Container(
                               constraints: BoxConstraints(
                                 maxWidth:
@@ -1864,7 +1865,8 @@ class _StyleChatScreenState extends State<StyleChatScreen> {
                                   ),
                                 ),
                               ),
-                          ],
+                            ],
+                          ),
                         ),
                       ],
                     ),
