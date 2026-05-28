@@ -107,7 +107,16 @@ class _OccasionBoardState extends State<OccasionBoard> {
                 (doc.data['title'] ?? doc.data['occasion'] ?? widget.occasion)
                     .toString(),
             description:
-                (doc.data['outfitDescription'] ??
+                // Prefer the backend storyteller summary when present, then
+                // fall back to the legacy why-it-works / description fields.
+                (((doc.data['story'] is Map)
+                            ? (doc.data['story']['summary'] ??
+                                doc.data['story']['headline'])
+                            : null) ??
+                        doc.data['why_it_works'] ??
+                        doc.data['whyItWorks'] ??
+                        doc.data['explanation'] ??
+                        doc.data['outfitDescription'] ??
                         'Custom ${widget.occasion} inspiration')
                     .toString(),
             emoji: (doc.data['emoji'] ?? widget.emptyEmoji).toString(),

@@ -399,6 +399,10 @@ StyleBoardData boardDataFromMap(Map<String, dynamic> board) {
       ),
     );
   }
+  final rawStory = board['story'];
+  final story = rawStory is Map
+      ? BoardStory.fromJson(Map<String, dynamic>.from(rawStory))
+      : const BoardStory();
   return StyleBoardData(
     title:
         (board['title'] ?? board['look_name'] ?? board['name'] ?? 'Styled Look')
@@ -411,5 +415,7 @@ StyleBoardData boardDataFromMap(Map<String, dynamic> board) {
                 '')
             .toString(),
     items: items,
+    story: story.isEmpty ? null : story,
+    stylingTip: (board['styling_tip'] ?? board['stylingTip'])?.toString(),
   );
 }

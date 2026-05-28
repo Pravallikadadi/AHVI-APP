@@ -29,19 +29,96 @@ class StyleBoardItem {
   });
 }
 
+/// Premium board story object emitted by the backend `board_storyteller`.
+///
+/// Every field is nullable so the UI can degrade gracefully when the backend
+/// does not yet supply story data.
+@immutable
+class BoardStory {
+  final String? headline;
+  final String? summary;
+  final String? why;
+  final String? personalNote;
+  final String? occasionFit;
+  final String? tip;
+  final String? role;
+
+  const BoardStory({
+    this.headline,
+    this.summary,
+    this.why,
+    this.personalNote,
+    this.occasionFit,
+    this.tip,
+    this.role,
+  });
+
+  factory BoardStory.fromJson(Map<String, dynamic>? json) {
+    if (json == null) return const BoardStory();
+    String? read(String key) {
+      final v = json[key];
+      if (v == null) return null;
+      final s = v.toString().trim();
+      return s.isEmpty ? null : s;
+    }
+
+    return BoardStory(
+      headline: read('headline'),
+      summary: read('summary'),
+      why: read('why'),
+      personalNote: read('personal_note'),
+      occasionFit: read('occasion_fit'),
+      tip: read('tip'),
+      role: read('role'),
+    );
+  }
+
+  bool get isEmpty =>
+      (headline == null || headline!.isEmpty) &&
+      (summary == null || summary!.isEmpty) &&
+      (why == null || why!.isEmpty) &&
+      (personalNote == null || personalNote!.isEmpty) &&
+      (occasionFit == null || occasionFit!.isEmpty) &&
+      (tip == null || tip!.isEmpty) &&
+      (role == null || role!.isEmpty);
+
+  bool get hasExpandableContent =>
+      (why != null && why!.isNotEmpty) ||
+      (personalNote != null && personalNote!.isNotEmpty) ||
+      (occasionFit != null && occasionFit!.isNotEmpty) ||
+      (tip != null && tip!.isNotEmpty);
+}
+
 @immutable
 class StyleBoardData {
   final String title;
   final String? occasion;
   final String? whyItWorks;
   final List<StyleBoardItem> items;
+  final BoardStory? story;
+  final String? stylingTip;
 
   const StyleBoardData({
     required this.title,
     this.occasion,
     this.whyItWorks,
     required this.items,
+    this.story,
+    this.stylingTip,
   });
+
+  /// Preferred short copy for collapsed cards.
+  String? get summaryText =>
+      story?.summary ?? whyItWorks ?? (occasion?.isNotEmpty == true ? occasion : null);
+
+  /// Preferred long copy for expanded "why this works".
+  String? get whyText => story?.why ?? whyItWorks;
+
+  /// Preferred copy for styling tip rows.
+  String? get tipText => story?.tip ?? stylingTip;
+
+  /// Preferred role badge (e.g. "Safest polished option").
+  String? get roleLabel => story?.role ?? occasion;
 }
 
 /// Existing/legacy section layout modes. Keep while older board renderers migrate.
