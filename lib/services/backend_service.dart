@@ -38,8 +38,30 @@ String _honestChatFallback(String reason, String moduleContext) {
       return "AHVI didn't return a result for this. Try rephrasing or try again.";
     case 'network':
     default:
-      return "AHVI network request failed. Check your connection and try again.";
+      return "AHVI had trouble reaching the styling service. Please try again.";
   }
+}
+
+/// Structured log emitter for network-class failures so we can read
+/// endpoint / status / exception type from `adb logcat` without changing
+/// the user-facing string. Call from any catch block that maps to
+/// _honestChatFallback('network', ...).
+void logNetworkFailure({
+  required String endpoint,
+  required Object error,
+  int? statusCode,
+  Duration? timeout,
+  String? responseBody,
+}) {
+  final type = error.runtimeType.toString();
+  final body = (responseBody ?? '').replaceAll('\n', ' | ');
+  // ignore: avoid_print
+  print(
+    '👕 AHVI_NET_FAILURE endpoint=$endpoint status=$statusCode '
+    'type=$type timeout_ms=${timeout?.inMilliseconds} '
+    'err=${error.toString().replaceAll('\n', ' | ').substring(0, error.toString().length > 200 ? 200 : error.toString().length)} '
+    'body=${body.substring(0, body.length > 200 ? 200 : body.length)}',
+  );
 }
 
 bool _isVagueStylePrompt(String query) {
