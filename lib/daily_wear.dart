@@ -1871,13 +1871,17 @@ class _DailyWearScreenState extends State<DailyWearScreen>
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
-                stops: const [0.0, 0.22, 0.55, 0.78, 1.0],
+                // Bottom-only darkening so the white outfit name +
+                // counter chip stay legible. Previous gradient leaked
+                // ~2 % alpha at the very top + 10 % at the midpoint,
+                // which read as a permanent faded grey overlay across
+                // the whole image. The top half is now fully clear.
+                stops: const [0.0, 0.55, 0.78, 1.0],
                 colors: [
-                  Colors.black.withValues(alpha: 0.02),
-                  Colors.black.withValues(alpha: 0),
-                  Colors.black.withValues(alpha: 0.10),
-                  Colors.black.withValues(alpha: 0.25),
-                  Colors.black.withValues(alpha: 0.35),
+                  Colors.transparent,
+                  Colors.transparent,
+                  Colors.black.withValues(alpha: 0.18),
+                  Colors.black.withValues(alpha: 0.32),
                 ],
               ),
             ),
