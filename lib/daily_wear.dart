@@ -415,6 +415,19 @@ class _DailyWearScreenState extends State<DailyWearScreen>
     // ── Deferred startup ──────────────────────────────────────────────────
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
+      // Defensive reset: guarantees the chat / try-on overlay flags are
+      // false on every fresh entry into Daily Wear. Earlier reports of a
+      // "permanent faded overlay" trace back to one of these flags being
+      // stuck true (e.g. a modal that closed during a rebuild before
+      // whenComplete fired), which hides the chat FAB via Visibility and
+      // disables pointer events via IgnorePointer. Resetting here costs
+      // nothing on a clean entry and unblocks a regression entry.
+      if (_chatOpen || _tryOnOpen) {
+        setState(() {
+          _chatOpen = false;
+          _tryOnOpen = false;
+        });
+      }
       _clearTransientInputOverlay();
       _startAutoPlay();
 
