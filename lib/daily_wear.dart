@@ -1440,12 +1440,14 @@ class _DailyWearScreenState extends State<DailyWearScreen>
                 ),
               ),
             ),
-            Visibility(
-              visible: !_chatOpen && !_tryOnOpen,
-              maintainState: true,
-              maintainAnimation: true,
-              maintainSize: true,
-              child: RepaintBoundary(child: _buildChatFab()),
+            Positioned.fill(
+              child: Visibility(
+                visible: !_chatOpen && !_tryOnOpen,
+                maintainState: true,
+                maintainAnimation: true,
+                maintainSize: true,
+                child: RepaintBoundary(child: _buildChatFab()),
+              ),
             ),
             if (_tryOnOpen)
               AnimatedSlide(
@@ -2427,58 +2429,55 @@ class _DailyWearScreenState extends State<DailyWearScreen>
     ),
   );
 
-  Widget _buildChatFab() => Positioned.fill(
-    child: IgnorePointer(
-      ignoring: _chatOpen || _tryOnOpen,
-      child: Align(
-        alignment: Alignment.bottomRight,
-        child: Padding(
-          padding: const EdgeInsets.only(right: 20, bottom: 30),
-          child: _PressScaleButton(
-            scaleDown: 0.95,
-            onTap: _openChat,
-            child: Container(
-              padding: const EdgeInsets.fromLTRB(10, 9, 14, 9),
-              decoration: BoxDecoration(
-                color: _t.accent.primary,
-                borderRadius: BorderRadius.circular(50),
-                boxShadow: [
-                  BoxShadow(
-                    color: _t.accent.primary.withValues(alpha: 0.40),
-                    blurRadius: 16,
-                    offset: const Offset(0, 4),
+  Widget _buildChatFab() => IgnorePointer(
+    ignoring: _chatOpen || _tryOnOpen,
+    child: Align(
+      alignment: Alignment.bottomRight,
+      child: Padding(
+        padding: const EdgeInsets.only(right: 20, bottom: 30),
+        child: _PressScaleButton(
+          scaleDown: 0.95,
+          onTap: _openChat,
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(10, 9, 14, 9),
+            decoration: BoxDecoration(
+              color: _t.accent.primary,
+              borderRadius: BorderRadius.circular(50),
+              boxShadow: [
+                BoxShadow(
+                  color: _t.accent.primary.withValues(alpha: 0.40),
+                  blurRadius: 16,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircleAvatar(
+                  radius: 11,
+                  backgroundColor: Colors.white.withValues(alpha: 0.18),
+                  child: Text(
+                    '✦',
+                    style: TextStyle(fontSize: 11, color: Colors.white),
                   ),
-                ],
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  CircleAvatar(
-                    radius: 11,
-                    backgroundColor: Colors.white.withValues(alpha: 0.18),
-                    child: Text(
-                      '✦',
-                      style: TextStyle(fontSize: 11, color: Colors.white),
-                    ),
+                ),
+                const SizedBox(width: 7),
+                Text(
+                  AppLocalizations.t(context, 'ask_ahvi'),
+                  style: GoogleFonts.anton(
+                    fontSize: 11,
+                    letterSpacing: 0.4,
+                    color: Colors.white,
                   ),
-                  const SizedBox(width: 7),
-                  Text(
-                    AppLocalizations.t(context, 'ask_ahvi'),
-                    style: GoogleFonts.anton(
-                      fontSize: 11,
-                      letterSpacing: 0.4,
-                      color: Colors.white,
-                    ),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ),
       ),
     ),
   );
-
   int _cacheWidth(BuildContext context, double logicalWidth) {
     final ratio = MediaQuery.of(context).devicePixelRatio;
     // Cap at 2x to prevent over-sampling on high-DPI Android devices
