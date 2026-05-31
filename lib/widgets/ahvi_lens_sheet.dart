@@ -51,16 +51,30 @@ Future<void> _runFindSimilarFlow(BuildContext context, AppThemeTokens t) async {
     maxWidth: 1600,
   );
   if (image == null || !context.mounted) return;
+  // CRITICAL: the loading dialog uses barrierDismissible:false to block
+  // taps during the network call. If the await below throws (or returns
+  // before context.mounted fires), the modal scrim sticks forever and
+  // covers every subsequent screen — including Daily Wear. Wrap in
+  // try/finally so the pop ALWAYS runs.
   showDialog<void>(
     context: context,
     barrierDismissible: false,
     builder: (_) => const Center(child: CircularProgressIndicator()),
   );
-  final result = await BackendService().findSimilarByImage(
-    await image.readAsBytes(),
-    filename: image.name,
-  );
-  if (context.mounted) Navigator.of(context, rootNavigator: true).pop();
+  Map<String, dynamic>? result;
+  try {
+    final bytes = await image.readAsBytes();
+    result = await BackendService().findSimilarByImage(
+      bytes,
+      filename: image.name,
+    );
+  } catch (_) {
+    result = null;
+  } finally {
+    if (context.mounted) {
+      Navigator.of(context, rootNavigator: true).pop();
+    }
+  }
   if (!context.mounted) return;
   final matches = List<Map<String, dynamic>>.from(
     (result?['matches'] as List? ?? const []).whereType<Map>().map(

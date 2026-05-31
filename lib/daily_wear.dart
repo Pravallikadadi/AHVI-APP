@@ -416,17 +416,31 @@ class _DailyWearScreenState extends State<DailyWearScreen>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       // Defensive reset: guarantees the chat / try-on overlay flags are
-      // false on every fresh entry into Daily Wear. Earlier reports of a
-      // "permanent faded overlay" trace back to one of these flags being
-      // stuck true (e.g. a modal that closed during a rebuild before
-      // whenComplete fired), which hides the chat FAB via Visibility and
-      // disables pointer events via IgnorePointer. Resetting here costs
-      // nothing on a clean entry and unblocks a regression entry.
+      // false on every fresh entry into Daily Wear.
       if (_chatOpen || _tryOnOpen) {
         setState(() {
           _chatOpen = false;
           _tryOnOpen = false;
         });
+      }
+      // Pop any stuck root-level modal (e.g. a loading dialog from the
+      // AHVI Lens sheet that failed to dismiss because its backend call
+      // threw before Navigator.pop fired). Without this a stale modal
+      // scrim sits on top of Daily Wear and blocks every tap — the
+      // reported "whole screen greyed out, nothing responds" symptom.
+      try {
+        final rootNav = Navigator.of(context, rootNavigator: true);
+        while (rootNav.canPop()) {
+          final route = ModalRoute.of(rootNav.context);
+          // Only pop transient overlay routes; keep the page route.
+          if (route is PopupRoute || route is RawDialogRoute) {
+            rootNav.pop();
+          } else {
+            break;
+          }
+        }
+      } catch (_) {
+        // Best-effort cleanup; never crash Daily Wear because of it.
       }
       _clearTransientInputOverlay();
       _startAutoPlay();
