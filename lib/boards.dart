@@ -339,7 +339,25 @@ class _BoardsScreenState extends State<BoardsScreen>
 
   void _push(Widget page) {
     HapticFeedback.lightImpact();
-    Navigator.of(context).push(
+    // Dismiss any active modal / bottom-sheet / lens overlay before
+    // navigating. Without this a stale modal scrim can sit on top of
+    // the next screen — that's the root of the reported "permanent
+    // faded overlay over Daily Wear" symptom when transitioning from
+    // Home with a chat sheet still mounted.
+    final nav = Navigator.of(context);
+    while (nav.canPop()) {
+      final route = ModalRoute.of(context);
+      // Only pop transient overlays (bottom sheets / dialogs). Don't
+      // pop the underlying page route itself.
+      if (route is PopupRoute || route is RawDialogRoute) {
+        nav.pop();
+      } else {
+        break;
+      }
+    }
+    FocusManager.instance.primaryFocus?.unfocus();
+
+    nav.push(
       PageRouteBuilder<void>(
         opaque: true,
         transitionDuration: _A.slow,

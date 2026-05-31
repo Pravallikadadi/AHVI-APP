@@ -1365,7 +1365,20 @@ class _ChatScreenState extends State<ChatScreen>
         return;
     }
     if (page == null) return;
-    Navigator.of(context).push(MaterialPageRoute(builder: (_) => page!));
+    // Close any active modal / bottom-sheet before navigating to a
+    // full-screen route so no stale scrim leaks onto the destination
+    // (see Daily Wear "permanent faded overlay" regression).
+    final nav = Navigator.of(context);
+    while (nav.canPop()) {
+      final route = ModalRoute.of(context);
+      if (route is PopupRoute || route is RawDialogRoute) {
+        nav.pop();
+      } else {
+        break;
+      }
+    }
+    FocusManager.instance.primaryFocus?.unfocus();
+    nav.push(MaterialPageRoute(builder: (_) => page!));
   }
 
   @override

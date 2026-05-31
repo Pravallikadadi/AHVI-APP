@@ -835,6 +835,8 @@ class _DailyWearScreenState extends State<DailyWearScreen>
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
+      isDismissible: true,
+      enableDrag: true,
       barrierColor: Colors.transparent,
       backgroundColor: Colors.transparent,
       builder: (_) => FractionallySizedBox(
@@ -874,7 +876,14 @@ class _DailyWearScreenState extends State<DailyWearScreen>
       ),
     ).whenComplete(() {
       _clearTransientInputOverlay();
-      if (mounted) setState(() => _chatOpen = false);
+      if (mounted) {
+        setState(() {
+          _chatOpen = false;
+          // Defensive: ensure the try-on flag is also low after any
+          // bottom-sheet closure so no stale overlay state survives.
+          _tryOnOpen = false;
+        });
+      }
     });
   }
 
