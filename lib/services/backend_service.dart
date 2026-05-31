@@ -10,6 +10,12 @@ Map<String, dynamic> _parseJsonMap(String payload) =>
 
 String _encodeBytes(Uint8List bytes) => base64Encode(bytes);
 
+String _styleChatSnippet(Object? value, [int max = 900]) {
+  final text = value is String ? value : jsonEncode(value);
+  final flat = text.replaceAll('\n', ' | ');
+  return flat.length <= max ? flat : flat.substring(0, max);
+}
+
 class BackendRequestException implements Exception {
   final String message;
   const BackendRequestException(this.message);
@@ -305,34 +311,38 @@ class BackendService {
           'style_context': styleContext,
       };
 
+      final requestPayload = {
+        'messages': historyForRequest,
+        'language': 'en',
+        'current_memory': _memoryPayload(currentMemory),
+        'user_profile': {...?userProfile, 'user_id': authedUserId},
+        'user_id': authedUserId,
+        ...extraContext,
+        'module_context': moduleContext,
+        // Chat style boards render from live wardrobe item cards.
+        // Requesting base64 board renders here makes /api/text much
+        // heavier and can leave the UI feeling stuck on slow networks.
+        'include_base64': false,
+        if (styleAction != null && styleAction.trim().isNotEmpty)
+          'style_action': styleAction.trim(),
+        if (showClosestOption) 'show_closest_option': true,
+        if (allowClosestOption) 'allow_closest_option': true,
+        if (closest) 'closest': true,
+        if (excludeStyleSignatures.isNotEmpty)
+          'exclude_style_signatures': excludeStyleSignatures,
+        if (requestedBoardCount != null)
+          'requested_board_count': requestedBoardCount,
+        if (safeWardrobePayload.isNotEmpty) 'wardrobe': safeWardrobePayload,
+      };
+      debugPrint(
+        'style_chat.endpoint=/api/text payload=${_styleChatSnippet(requestPayload)}',
+      );
+
       final response = await http
           .post(
             Uri.parse('$baseUrl/api/text'),
             headers: await _authHeaders(),
-            body: jsonEncode({
-              'messages': historyForRequest,
-              'language': 'en',
-              'current_memory': _memoryPayload(currentMemory),
-              'user_profile': {...?userProfile, 'user_id': authedUserId},
-              'user_id': authedUserId,
-              ...extraContext,
-              'module_context': moduleContext,
-              // Chat style boards render from live wardrobe item cards.
-              // Requesting base64 board renders here makes /api/text much
-              // heavier and can leave the UI feeling stuck on slow networks.
-              'include_base64': false,
-              if (styleAction != null && styleAction.trim().isNotEmpty)
-                'style_action': styleAction.trim(),
-              if (showClosestOption) 'show_closest_option': true,
-              if (allowClosestOption) 'allow_closest_option': true,
-              if (closest) 'closest': true,
-              if (excludeStyleSignatures.isNotEmpty)
-                'exclude_style_signatures': excludeStyleSignatures,
-              if (requestedBoardCount != null)
-                'requested_board_count': requestedBoardCount,
-              if (safeWardrobePayload.isNotEmpty)
-                'wardrobe': safeWardrobePayload,
-            }),
+            body: jsonEncode(requestPayload),
           )
           .timeout(const Duration(seconds: 120));
 
@@ -340,6 +350,8 @@ class BackendService {
           DateTime.now().difference(startedAt).inMilliseconds / 1000;
 
       if (response.statusCode == 200) {
+        debugPrint('style_chat.status_code=${response.statusCode}');
+        debugPrint('style_chat.response_body=${_styleChatSnippet(response.body)}');
         Map<String, dynamic> data;
         try {
           data = await compute(_parseJsonMap, response.body);
@@ -407,6 +419,8 @@ class BackendService {
       debugPrint(
         'AHVI_BACKEND_FAIL endpoint=/api/text status=${response.statusCode} body=${response.body}',
       );
+      debugPrint('style_chat.status_code=${response.statusCode}');
+      debugPrint('style_chat.response_body=${_styleChatSnippet(response.body)}');
       try {
         final data = await compute(_parseJsonMap, response.body);
         if (data['error'] != null || data['message'] != null) {
@@ -420,6 +434,10 @@ class BackendService {
       final failedAfter =
           DateTime.now().difference(startedAt).inMilliseconds / 1000;
       debugPrint('AHVI_BACKEND_EXCEPTION endpoint=/api/text error=$e');
+      debugPrint('style_chat.exception_type=${e.runtimeType} endpoint=/api/text error=$e');
+      if (e is TimeoutException || e.toString().toLowerCase().contains('timeout')) {
+        debugPrint('style_chat.timeout endpoint=/api/text seconds=120');
+      }
       debugPrint('AHVI_BACKEND_EXCEPTION stack=$st');
       debugPrint(
         'AHVI_FAILURE_AFTER endpoint=/api/text seconds=${failedAfter.toStringAsFixed(2)} error=$e',
@@ -503,19 +521,23 @@ class BackendService {
       }
 
       final moduleStarted = DateTime.now();
+      final modulePayload = {
+        'domain': module,
+        'module': module,
+        'message': query,
+        'history': historyForRequest,
+        'context': context ?? const {},
+        'context_data': context ?? const {},
+        'user_profile': {...?userProfile, 'user_id': authedUserId},
+      };
+      debugPrint(
+        'style_chat.endpoint=/api/module-chat payload=${_styleChatSnippet(modulePayload)}',
+      );
       final response = await http
           .post(
             Uri.parse('$baseUrl/api/module-chat'),
             headers: await _authHeaders(),
-            body: jsonEncode({
-              'domain': module,
-              'module': module,
-              'message': query,
-              'history': historyForRequest,
-              'context': context ?? const {},
-              'context_data': context ?? const {},
-              'user_profile': {...?userProfile, 'user_id': authedUserId},
-            }),
+            body: jsonEncode(modulePayload),
           )
           // Backend's chat_completion has a 45s budget. Give the network +
           // serialization 30s of headroom so the frontend never wins the race
@@ -527,6 +549,8 @@ class BackendService {
           DateTime.now().difference(moduleStarted).inMilliseconds / 1000;
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
+        debugPrint('style_chat.status_code=${response.statusCode}');
+        debugPrint('style_chat.response_body=${_styleChatSnippet(response.body)}');
         final data = await compute(_parseJsonMap, response.body);
         final text = _messageText(data);
         debugPrint(
@@ -547,11 +571,17 @@ class BackendService {
         'status=${response.statusCode} seconds=${moduleElapsed.toStringAsFixed(2)} '
         'body=${response.body}',
       );
+      debugPrint('style_chat.status_code=${response.statusCode}');
+      debugPrint('style_chat.response_body=${_styleChatSnippet(response.body)}');
       throw Exception(
         'Failed module chat: ${response.statusCode} ${response.body}',
       );
     } catch (e, st) {
       debugPrint('AHVI_BACKEND_EXCEPTION endpoint=/api/module-chat error=$e');
+      debugPrint('style_chat.exception_type=${e.runtimeType} endpoint=/api/module-chat error=$e');
+      if (e is TimeoutException || e.toString().toLowerCase().contains('timeout')) {
+        debugPrint('style_chat.timeout endpoint=/api/module-chat seconds=75');
+      }
       debugPrint('AHVI_BACKEND_EXCEPTION stack=$st');
 
       final errStr = e.toString().toLowerCase();
