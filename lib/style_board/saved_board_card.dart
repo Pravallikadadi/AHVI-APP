@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:appwrite/models.dart' as appwrite_models;
 import 'package:flutter/material.dart';
 
@@ -42,13 +44,9 @@ class SavedBoardCard extends StatelessWidget {
         .whereType<Map<String, dynamic>>()
         .toList();
     if (hydrated.isNotEmpty) return hydrated;
-    final rawItems = data['items'];
-    if (rawItems is List) {
-      return rawItems
-          .whereType<Map>()
-          .map((item) => Map<String, dynamic>.from(item))
-          .toList();
-    }
+
+    final savedItems = _savedBoardItems(data);
+    if (savedItems.isNotEmpty) return savedItems;
 
     final extractedImages = extractSavedBoardImages(data);
     if (extractedImages.length >= 2) {
@@ -62,6 +60,57 @@ class SavedBoardCard extends StatelessWidget {
       ];
     }
     return const [];
+  }
+
+  List<Map<String, dynamic>> _savedBoardItems(Map<String, dynamic> data) {
+    final out = <Map<String, dynamic>>[];
+    void addItems(Object? raw) {
+      Object? items = raw;
+      if (raw is String && raw.trim().isNotEmpty) {
+        try {
+          items = jsonDecode(raw);
+        } catch (_) {
+          items = null;
+        }
+      }
+      if (items is! Iterable) return;
+      for (final item in items) {
+        if (item is Map) out.add(Map<String, dynamic>.from(item));
+      }
+    }
+
+    Object? payload(Object? raw) {
+      if (raw is Map) return raw;
+      if (raw is String && raw.trim().isNotEmpty) {
+        try {
+          final decoded = jsonDecode(raw);
+          return decoded is Map ? decoded : null;
+        } catch (_) {
+          return null;
+        }
+      }
+      return null;
+    }
+
+    addItems(data['outfitItems']);
+    addItems(data['items']);
+    final snakePayload = payload(data['board_payload']);
+    if (snakePayload is Map) addItems(snakePayload['items']);
+    final camelPayload = payload(data['boardPayload']);
+    if (camelPayload is Map) addItems(camelPayload['items']);
+    return out.where((item) {
+      final url =
+          (item['imageUrl'] ??
+                  item['image_url'] ??
+                  item['masked_url'] ??
+                  item['maskedUrl'] ??
+                  item['url'] ??
+                  item['thumbnailUrl'])
+              ?.toString()
+              .trim() ??
+          '';
+      return url.isNotEmpty;
+    }).toList();
   }
 
   void _openDetails(BuildContext context, Map<String, dynamic> data) {

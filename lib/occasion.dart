@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:myapp/theme/theme_tokens.dart';
 import 'package:myapp/services/appwrite_service.dart';
 import 'package:myapp/app_localizations.dart';
-import 'package:myapp/style_board/saved_board_images.dart';
+import 'package:myapp/style_board/saved_board_card.dart';
 
 // ── Data model ───────────────────────────────────────────────────────────────
 class LookItem {
@@ -84,7 +84,8 @@ class _OccasionBoardState extends State<OccasionBoard> {
 
   bool _isLoading = true;
   String? _toastMessage;
-  List<LookItem> _looks = [];
+  List<dynamic> _boards = [];
+  Map<String, Map<String, dynamic>> _wardrobeById = const {};
 
   @override
   void initState() {
@@ -95,50 +96,17 @@ class _OccasionBoardState extends State<OccasionBoard> {
   Future<void> _fetchLooks() async {
     try {
       final appwrite = Provider.of<AppwriteService>(context, listen: false);
-      final docs = await appwrite.getSavedBoardsByOccasion(widget.occasion);
-
-      final List<LookItem> loadedLooks = [];
-      for (var doc in docs) {
-        final outfitImages = extractSavedBoardImages(
-          Map<String, dynamic>.from(doc.data),
-        );
-        final badgeIndex = doc.$id.length % LookBadgeStyle.values.length;
-        final dynamicBadge = LookBadgeStyle.values[badgeIndex];
-        final dynamicBg = LookBgStyle.values[badgeIndex];
-
-        loadedLooks.add(
-          LookItem(
-            id: doc.$id,
-            title:
-                (doc.data['title'] ?? doc.data['occasion'] ?? widget.occasion)
-                    .toString(),
-            description:
-                // Prefer the backend storyteller summary when present, then
-                // fall back to the legacy why-it-works / description fields.
-                (((doc.data['story'] is Map)
-                            ? (doc.data['story']['summary'] ??
-                                  doc.data['story']['headline'])
-                            : null) ??
-                        doc.data['why_it_works'] ??
-                        doc.data['whyItWorks'] ??
-                        doc.data['explanation'] ??
-                        doc.data['outfitDescription'] ??
-                        'Custom ${widget.occasion} inspiration')
-                    .toString(),
-            emoji: (doc.data['emoji'] ?? widget.emptyEmoji).toString(),
-            category: (doc.data['boardCategoryLabel'] ?? widget.occasion)
-                .toString(),
-            imageUrl: outfitImages.isNotEmpty ? outfitImages.first : null,
-            outfitImages: outfitImages,
-            badge: dynamicBadge,
-            bg: dynamicBg,
-          ),
-        );
-      }
+      final results = await Future.wait([
+        appwrite.getSavedBoardsByOccasion(widget.occasion),
+        appwrite.getWardrobeItems(),
+      ]);
+      final docs = results[0] as List;
+      final wardrobe = results[1] as List<Map<String, dynamic>>;
 
       if (mounted) {
         setState(() {
-          _looks = loadedLooks;
+          _boards = docs;
+          _wardrobeById = _buildIdMap(wardrobe);
           _isLoading = false;
         });
       }
@@ -149,7 +117,7 @@ class _OccasionBoardState extends State<OccasionBoard> {
   }
 
   Future<void> _deleteLook(String id) async {
-    setState(() => _looks.removeWhere((l) => l.id == id));
+    setState(() => _boards.removeWhere((board) => _boardId(board) == id));
     try {
       final appwrite = Provider.of<AppwriteService>(context, listen: false);
       await appwrite.deleteSavedBoard(id);
@@ -166,11 +134,42 @@ class _OccasionBoardState extends State<OccasionBoard> {
     });
   }
 
+  Map<String, Map<String, dynamic>> _buildIdMap(
+    List<Map<String, dynamic>> items,
+  ) {
+    final byId = <String, Map<String, dynamic>>{};
+    for (final item in items) {
+      for (final rawId in [
+        item[r'$id'],
+        item['id'],
+        item['item_id'],
+        item['itemId'],
+        item['image_id'],
+        item['imageId'],
+      ]) {
+        final id = (rawId ?? '').toString().trim();
+        if (id.isNotEmpty) byId[id] = item;
+      }
+    }
+    return byId;
+  }
+
+  String _boardId(dynamic board) {
+    try {
+      final value = board.$id;
+      if (value != null) return value.toString();
+    } catch (_) {}
+    if (board is Map) {
+      return (board[r'$id'] ?? board['id'] ?? '').toString();
+    }
+    return '';
+  }
+
   @override
   Widget build(BuildContext context) {
-    final countText = _looks.isEmpty
+    final countText = _boards.isEmpty
         ? context.tr('wardrobe_empty_title')
-        : '${_looks.length} ${context.tr('fitness_saved')}';
+        : '${_boards.length} ${context.tr('fitness_saved')}';
 
     return Scaffold(
       backgroundColor: _bg,
@@ -207,7 +206,7 @@ class _OccasionBoardState extends State<OccasionBoard> {
                             color: _t.accent.primary,
                           ),
                         )
-                      : _looks.isEmpty
+                      : _boards.isEmpty
                       ? _EmptyState(
                           titleKey: widget.titleKey,
                           titleLabel: widget.titleLabel,
@@ -215,10 +214,8 @@ class _OccasionBoardState extends State<OccasionBoard> {
                           emoji: widget.emptyEmoji,
                         )
                       : _LooksGrid(
-                          looks: _looks,
-                          onDelete: _deleteLook,
-                          onShare: (look) =>
-                              _showToast(context.tr('wardrobe_share')),
+                          boards: _boards,
+                          wardrobeById: _wardrobeById,
                         ),
                 ),
               ),
@@ -352,15 +349,10 @@ class _Header extends StatelessWidget {
 
 // ── Looks Grid ───────────────────────────────────────────────────────────────
 class _LooksGrid extends StatelessWidget {
-  final List<LookItem> looks;
-  final void Function(String id) onDelete;
-  final void Function(LookItem look) onShare;
+  final List<dynamic> boards;
+  final Map<String, Map<String, dynamic>> wardrobeById;
 
-  const _LooksGrid({
-    required this.looks,
-    required this.onDelete,
-    required this.onShare,
-  });
+  const _LooksGrid({required this.boards, required this.wardrobeById});
 
   @override
   Widget build(BuildContext context) {
@@ -372,13 +364,9 @@ class _LooksGrid extends StatelessWidget {
         mainAxisSpacing: 10,
         childAspectRatio: 0.56,
       ),
-      itemCount: looks.length,
-      itemBuilder: (context, index) => _LookCard(
-        look: looks[index],
-        featured: index == 0,
-        onDelete: onDelete,
-        onShare: onShare,
-      ),
+      itemCount: boards.length,
+      itemBuilder: (context, index) =>
+          SavedBoardCard(source: boards[index], wardrobeById: wardrobeById),
     );
   }
 }

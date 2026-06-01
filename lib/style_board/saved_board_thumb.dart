@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:appwrite/models.dart' as appwrite_models;
 
@@ -57,6 +59,9 @@ class SavedBoardThumb extends StatelessWidget {
     }
     if (out.isNotEmpty) return out;
 
+    final savedItems = _savedBoardItems(_data);
+    if (savedItems.isNotEmpty) return savedItems;
+
     final images = extractSavedBoardImages(_data);
     if (images.length < 2) return const [];
     for (var i = 0; i < images.length; i++) {
@@ -67,6 +72,57 @@ class SavedBoardThumb extends StatelessWidget {
       });
     }
     return out;
+  }
+
+  List<Map<String, dynamic>> _savedBoardItems(Map<String, dynamic> data) {
+    final out = <Map<String, dynamic>>[];
+    void addItems(Object? raw) {
+      Object? items = raw;
+      if (raw is String && raw.trim().isNotEmpty) {
+        try {
+          items = jsonDecode(raw);
+        } catch (_) {
+          items = null;
+        }
+      }
+      if (items is! Iterable) return;
+      for (final item in items) {
+        if (item is Map) out.add(Map<String, dynamic>.from(item));
+      }
+    }
+
+    Object? payload(Object? raw) {
+      if (raw is Map) return raw;
+      if (raw is String && raw.trim().isNotEmpty) {
+        try {
+          final decoded = jsonDecode(raw);
+          return decoded is Map ? decoded : null;
+        } catch (_) {
+          return null;
+        }
+      }
+      return null;
+    }
+
+    addItems(data['outfitItems']);
+    addItems(data['items']);
+    final snakePayload = payload(data['board_payload']);
+    if (snakePayload is Map) addItems(snakePayload['items']);
+    final camelPayload = payload(data['boardPayload']);
+    if (camelPayload is Map) addItems(camelPayload['items']);
+    return out.where((item) {
+      final url =
+          (item['imageUrl'] ??
+                  item['image_url'] ??
+                  item['masked_url'] ??
+                  item['maskedUrl'] ??
+                  item['url'] ??
+                  item['thumbnailUrl'])
+              ?.toString()
+              .trim() ??
+          '';
+      return url.isNotEmpty;
+    }).toList();
   }
 
   @override

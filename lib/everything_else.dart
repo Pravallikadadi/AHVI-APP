@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:myapp/theme/theme_tokens.dart';
 import 'package:myapp/services/appwrite_service.dart';
 import 'package:myapp/app_localizations.dart';
+import 'package:myapp/style_board/saved_board_card.dart';
 import 'package:myapp/style_board/saved_board_images.dart';
 
 // ── Data model ───────────────────────────────────────────────────────────────
@@ -92,6 +93,12 @@ class FilterPillData {
   const FilterPillData(this.label, this.filter);
 }
 
+class _SavedBoardEntry {
+  final dynamic source;
+  final String filter;
+  const _SavedBoardEntry({required this.source, required this.filter});
+}
+
 // ── Main Screen ──────────────────────────────────────────────────────────────
 class EverythingElseScreen extends StatefulWidget {
   const EverythingElseScreen({super.key});
@@ -111,7 +118,9 @@ class _EverythingElseScreenState extends State<EverythingElseScreen> {
   String _activeFilter = 'all';
   String? _toastMessage;
 
+  List<_SavedBoardEntry> _boards = [];
   List<LookItem> _looks = [];
+  Map<String, Map<String, dynamic>> _wardrobeById = const {};
   List<FilterPillData> _filters = [];
 
   final List<String> _excludedMainCategories = [
@@ -135,6 +144,7 @@ class _EverythingElseScreenState extends State<EverythingElseScreen> {
         'Everything Else',
       );
       final allDocs = await appwrite.getAllSavedBoards();
+      final wardrobe = await appwrite.getWardrobeItems();
       final docs = [
         ...primaryDocs,
         ...allDocs.where((doc) {
@@ -152,6 +162,7 @@ class _EverythingElseScreenState extends State<EverythingElseScreen> {
       ];
 
       final Set<String> uniqueCategories = {};
+      final List<_SavedBoardEntry> loadedBoards = [];
       final List<LookItem> loadedLooks = [];
 
       for (var doc in docs) {
@@ -165,6 +176,9 @@ class _EverythingElseScreenState extends State<EverythingElseScreen> {
         if (_excludedMainCategories.contains(occasion.toLowerCase())) continue;
 
         uniqueCategories.add(occasion);
+        loadedBoards.add(
+          _SavedBoardEntry(source: doc, filter: occasion.toLowerCase()),
+        );
 
         final styleIndex =
             occasion.hashCode % (LookBadgeStyle.values.length - 1);
@@ -200,7 +214,9 @@ class _EverythingElseScreenState extends State<EverythingElseScreen> {
 
       if (mounted) {
         setState(() {
+          _boards = loadedBoards;
           _looks = loadedLooks;
+          _wardrobeById = _buildIdMap(wardrobe);
           _filters = dynamicFilters;
           _isLoading = false;
         });
@@ -211,14 +227,16 @@ class _EverythingElseScreenState extends State<EverythingElseScreen> {
     }
   }
 
-  List<LookItem> get _filtered => _activeFilter == 'all'
-      ? _looks
-      : _looks.where((l) => l.filter == _activeFilter).toList();
+  List<_SavedBoardEntry> get _filtered => _activeFilter == 'all'
+      ? _boards
+      : _boards.where((board) => board.filter == _activeFilter).toList();
 
   void _setFilter(String f) => setState(() => _activeFilter = f);
 
   Future<void> _deleteLook(String id) async {
-    setState(() => _looks.removeWhere((l) => l.id == id));
+    setState(
+      () => _boards.removeWhere((board) => _boardId(board.source) == id),
+    );
     try {
       final appwrite = Provider.of<AppwriteService>(context, listen: false);
       await appwrite.deleteSavedBoard(id);
@@ -235,10 +253,41 @@ class _EverythingElseScreenState extends State<EverythingElseScreen> {
     });
   }
 
+  Map<String, Map<String, dynamic>> _buildIdMap(
+    List<Map<String, dynamic>> items,
+  ) {
+    final byId = <String, Map<String, dynamic>>{};
+    for (final item in items) {
+      for (final rawId in [
+        item[r'$id'],
+        item['id'],
+        item['item_id'],
+        item['itemId'],
+        item['image_id'],
+        item['imageId'],
+      ]) {
+        final id = (rawId ?? '').toString().trim();
+        if (id.isNotEmpty) byId[id] = item;
+      }
+    }
+    return byId;
+  }
+
+  String _boardId(dynamic board) {
+    try {
+      final value = board.$id;
+      if (value != null) return value.toString();
+    } catch (_) {}
+    if (board is Map) {
+      return (board[r'$id'] ?? board['id'] ?? '').toString();
+    }
+    return '';
+  }
+
   @override
   Widget build(BuildContext context) {
     final filtered = _filtered;
-    final countText = _looks.isEmpty
+    final countText = _boards.isEmpty
         ? context.tr('wardrobe_empty_title')
         : '${filtered.length} ${context.tr('fitness_saved')}';
 
@@ -276,15 +325,13 @@ class _EverythingElseScreenState extends State<EverythingElseScreen> {
                             color: _t.accent.primary,
                           ),
                         )
-                      : _looks.isEmpty
+                      : _boards.isEmpty
                       ? _EmptyState()
                       : filtered.isEmpty
                       ? _NoResultsState()
                       : _LooksGrid(
-                          looks: filtered,
-                          onDelete: _deleteLook,
-                          onShare: (look) =>
-                              _showToast(context.tr('wardrobe_share')),
+                          boards: filtered,
+                          wardrobeById: _wardrobeById,
                         ),
                 ),
               ),
@@ -460,15 +507,10 @@ class _FilterRow extends StatelessWidget {
 
 // ── Looks Grid ───────────────────────────────────────────────────────────────
 class _LooksGrid extends StatelessWidget {
-  final List<LookItem> looks;
-  final void Function(String id) onDelete;
-  final void Function(LookItem look) onShare;
+  final List<_SavedBoardEntry> boards;
+  final Map<String, Map<String, dynamic>> wardrobeById;
 
-  const _LooksGrid({
-    required this.looks,
-    required this.onDelete,
-    required this.onShare,
-  });
+  const _LooksGrid({required this.boards, required this.wardrobeById});
 
   @override
   Widget build(BuildContext context) {
@@ -480,12 +522,10 @@ class _LooksGrid extends StatelessWidget {
         mainAxisSpacing: 10,
         childAspectRatio: 0.54,
       ),
-      itemCount: looks.length,
-      itemBuilder: (context, index) => _LookCard(
-        look: looks[index],
-        featured: index == 0,
-        onDelete: onDelete,
-        onShare: onShare,
+      itemCount: boards.length,
+      itemBuilder: (context, index) => SavedBoardCard(
+        source: boards[index].source,
+        wardrobeById: wardrobeById,
       ),
     );
   }
