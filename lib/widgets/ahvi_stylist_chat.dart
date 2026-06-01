@@ -870,100 +870,10 @@ class _AhviStylistChatSheetState extends State<_AhviStylistChatSheet>
     }
   }
 
-  /// Module context బట్టి reply customize చేయండి.
-  /// Backend connect అయినప్పుడు ఇక్కడ API call చేయండి.
-  String _buildReply(BuildContext context, String query) {
-    final q = query.toLowerCase();
-    final module = widget.moduleContext;
-
-    // Module-specific replies
-    if (module == 'bills') {
-      if (q.contains('pending') || q.contains('bill')) {
-        return 'You have 3 pending bills this month. Total: ₹13,248. Want details?';
-      }
-      if (q.contains('scan') || q.contains('receipt')) {
-        return 'Tap the + button → Scan Receipt to capture your bill with the camera!';
-      }
-      if (q.contains('add')) {
-        return 'Tap the + button → Camera or Files to add a new bill!';
-      }
-      return 'I can help you track bills, scan receipts, and manage spending. What would you like?';
-    }
-
-    if (module == 'skincare') {
-      if (q.contains('morning') || q.contains('routine')) {
-        return 'Your morning routine: Cleanser → Vitamin C serum → Moisturiser → SPF 50. Takes about 5 minutes!';
-      }
-      if (q.contains('spf') || q.contains('sunscreen')) {
-        return 'For Indian skin, SPF 50 PA+++ is ideal. Try Biore UV or Re\'equil Sun Protect.';
-      }
-      if (q.contains('acne')) {
-        return 'For acne: Use salicylic acid cleanser, niacinamide serum, and avoid heavy moisturisers during the day.';
-      }
-      return 'I can guide your skincare routine, product picks, and skin concerns. Ask away!';
-    }
-
-    if (module == 'medi') {
-      if (q.contains('today') || q.contains('medicine') || q.contains('dose')) {
-        return 'Today\'s medicines: Vitamin D3 (08:00 ✓), Iron Supplement (13:00 ✓), Omega-3 (20:00 pending).';
-      }
-      if (q.contains('missed') || q.contains('forgot')) {
-        return 'If you missed a dose, take it as soon as you remember — unless it\'s almost time for the next one. Never double dose.';
-      }
-      if (q.contains('reminder')) {
-        return 'Tap the bell icon on any medicine to set a reminder. I\'ll notify you on time!';
-      }
-      return 'I can help with medicine tracking, reminders, and dose schedules. What do you need?';
-    }
-
-    if (module == 'diet') {
-      if (q.contains('keto')) {
-        return 'Keto plan: Keep carbs under 20g/day. Focus on eggs, meat, nuts, avocado, and leafy greens. Want a weekly plan?';
-      }
-      if (q.contains('protein') || q.contains('high protein')) {
-        return 'High protein meals: Paneer bhurji, eggs, dal, chicken, and Greek yogurt. Aim for 1.6g per kg of body weight.';
-      }
-      if (q.contains('vegan')) {
-        return 'Vegan plan: Lentils, chickpeas, tofu, quinoa, nuts, and seeds cover all essential nutrients!';
-      }
-      return 'I can build meal plans, track calories, and suggest recipes. What\'s your goal?';
-    }
-
-    if (module == 'fitness') {
-      if (q.contains('today') || q.contains('workout')) {
-        return 'Today\'s plan: Warm-up (10 min) → Squats 4×12 → Lunges 3×15 → Plank 3×45s. Ready to go?';
-      }
-      if (q.contains('beginner')) {
-        return 'Beginner plan: Start with 3 days/week. Day 1: Upper body. Day 2: Lower body. Day 3: Full body or cardio.';
-      }
-      if (q.contains('home') || q.contains('no gym')) {
-        return 'Home workout: Push-ups, squats, lunges, plank, and mountain climbers — no equipment needed!';
-      }
-      return 'I can design workout plans, track progress, and give exercise tips. What\'s your fitness goal?';
-    }
-
-    if (module == 'wardrobe') {
-      if (q.contains('today') || q.contains('outfit')) {
-        return AppLocalizations.t(context, 'ai_sug_4');
-      }
-      if (q.contains('capsule') || q.contains('minimal')) {
-        return 'Capsule wardrobe: 5 whites, 3 neutrals, 2 black trousers, 1 blazer, 2 jeans. Mix and match 20+ looks!';
-      }
-      return AppLocalizations.t(context, 'ai_sug_4');
-    }
-
-    // Default / style fallback
-    if (q.contains('wear') || q.contains('outfit')) {
-      return AppLocalizations.t(context, 'ai_sug_4');
-    }
-    if (q.contains('routine') || q.contains('skin')) {
-      return AppLocalizations.t(context, 'ai_sug_2');
-    }
-    if (q.contains('plan') || q.contains('meal') || q.contains('workout')) {
-      return AppLocalizations.t(context, 'ai_sug_3');
-    }
-    return AppLocalizations.t(context, 'chat_greeting');
-  }
+  // _buildReply() removed — backend (/api/text, /api/module-chat) owns
+  // all greeting / clarification / module / style replies. Frontend only
+  // renders the response and shows technical fallbacks (timeout / auth /
+  // parse / server / network) on real HTTP failure.
 
   // ── History Panel (custom in-sheet slide-in, replaces Flutter Drawer) ──
   bool _drawerOpen = false;

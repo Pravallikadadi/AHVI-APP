@@ -70,63 +70,6 @@ void logNetworkFailure({
   );
 }
 
-bool _isVagueStylePrompt(String query) {
-  final normalized = query
-      .toLowerCase()
-      .replaceAll(RegExp(r'[^a-z0-9\s]'), ' ')
-      .replaceAll(RegExp(r'\s+'), ' ')
-      .trim();
-  const vague = {
-    'outfit for today',
-    'suggest outfit for today',
-    'suggest an outfit for today',
-    'style me',
-    'what should i wear',
-    'what to wear',
-    'outfit',
-    'today outfit',
-    'daily wear',
-  };
-  return vague.contains(normalized);
-}
-
-Map<String, dynamic> _styleClarificationResponse(String query) {
-  const message =
-      'What are we dressing for today? Pick an occasion, or tell me the weather, timing, mood, and any dress code.';
-  return {
-    'success': true,
-    'ok': true,
-    'type': 'style_clarification',
-    'message': {'role': 'assistant', 'content': message},
-    'message_text': message,
-    'response': message,
-    'cards': const [],
-    'style_boards': const [],
-    'chips': const [
-      {'label': 'Office', 'value': 'office outfit'},
-      {'label': 'Casual', 'value': 'casual outfit'},
-      {'label': 'Date', 'value': 'date outfit tonight'},
-      {'label': 'Party', 'value': 'party outfit tonight'},
-      {'label': 'Travel', 'value': 'airport travel outfit'},
-      {'label': 'Workout', 'value': 'workout outfit'},
-    ],
-    'data': {
-      'outfits': const [],
-      'rendered_boards': const [],
-      'clarification': {
-        'prompt': query,
-        'questions': const [
-          'occasion',
-          'weather/timing',
-          'mood/style',
-          'comfort/dress code',
-        ],
-      },
-    },
-    'meta': {'mode': 'local_style_intent_clarification'},
-  };
-}
-
 class BackendService {
   final String baseUrl = Env.backendApiUrl;
   final AppwriteService _appwriteService;
@@ -267,13 +210,6 @@ class BackendService {
   }) async {
     final startedAt = DateTime.now();
     try {
-      final styleModules = {'style', 'wardrobe', 'daily_wear'};
-      if (styleModules.contains(moduleContext) && _isVagueStylePrompt(query)) {
-        debugPrint(
-          'AHVI_STYLE_INTENT_LOCAL intent_status=clarify prompt_len=${query.trim().length} module=$moduleContext',
-        );
-        return _normalizeChatResponse(_styleClarificationResponse(query));
-      }
       final authedUserId = await _currentUserId();
       var wardrobeForRequest = fetchedWardrobe;
       if (wardrobeForRequest == null &&
