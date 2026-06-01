@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:appwrite/models.dart' as appwrite_models;
 
 import 'package:myapp/widgets/offline_image.dart';
+import 'saved_board_images.dart';
 import 'board_renderer.dart';
 
 class SavedBoardThumb extends StatelessWidget {
@@ -26,6 +27,7 @@ class SavedBoardThumb extends StatelessWidget {
     if (source is Map) {
       final data = (source as Map)['data'];
       if (data is Map) return Map<String, dynamic>.from(data);
+      return Map<String, dynamic>.from(source as Map);
     }
     return const {};
   }
@@ -45,12 +47,24 @@ class SavedBoardThumb extends StatelessWidget {
 
   List<Map<String, dynamic>> _hydrateItems() {
     final raw = _data['itemIds'] ?? _data['item_ids'] ?? const [];
-    if (raw is! Iterable) return const [];
     final out = <Map<String, dynamic>>[];
-    for (final id in raw) {
-      final key = id.toString();
-      final item = wardrobeById[key];
-      if (item != null) out.add(item);
+    if (raw is Iterable) {
+      for (final id in raw) {
+        final key = id.toString();
+        final item = wardrobeById[key];
+        if (item != null) out.add(item);
+      }
+    }
+    if (out.isNotEmpty) return out;
+
+    final images = extractSavedBoardImages(_data);
+    if (images.length < 2) return const [];
+    for (var i = 0; i < images.length; i++) {
+      out.add({
+        'id': 'saved-board-image-$i',
+        'name': 'Item ${i + 1}',
+        'imageUrl': images[i],
+      });
     }
     return out;
   }
@@ -58,7 +72,8 @@ class SavedBoardThumb extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final data = _data;
-    final imageUrl = (data['imageUrl'] ?? '').toString();
+    final images = extractSavedBoardImages(data);
+    final imageUrl = images.isNotEmpty ? images.first : '';
     final items = _hydrateItems();
 
     if (items.length >= 2) {

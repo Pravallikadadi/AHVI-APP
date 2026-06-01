@@ -2,6 +2,7 @@ import 'package:appwrite/models.dart' as appwrite_models;
 import 'package:flutter/material.dart';
 
 import 'package:myapp/app_localizations.dart';
+import 'package:myapp/style_board/saved_board_images.dart';
 import 'package:myapp/style_board/saved_board_thumb.dart';
 import 'package:myapp/theme/theme_tokens.dart';
 
@@ -47,6 +48,18 @@ class SavedBoardCard extends StatelessWidget {
           .whereType<Map>()
           .map((item) => Map<String, dynamic>.from(item))
           .toList();
+    }
+
+    final extractedImages = extractSavedBoardImages(data);
+    if (extractedImages.length >= 2) {
+      return [
+        for (var i = 0; i < extractedImages.length; i++)
+          {
+            'id': 'saved-board-image-$i',
+            'name': 'Item ${i + 1}',
+            'imageUrl': extractedImages[i],
+          },
+      ];
     }
     return const [];
   }

@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:myapp/theme/theme_tokens.dart';
 import 'package:myapp/services/appwrite_service.dart';
 import 'package:myapp/app_localizations.dart';
+import 'package:myapp/style_board/saved_board_images.dart';
 
 // ── Data model ───────────────────────────────────────────────────────────────
 class LookItem {
@@ -12,6 +13,7 @@ class LookItem {
   final String emoji;
   final String category;
   final String? imageUrl;
+  final List<String> outfitImages;
   final LookBadgeStyle badge;
   final LookBgStyle bg;
 
@@ -22,6 +24,7 @@ class LookItem {
     required this.emoji,
     required this.category,
     this.imageUrl,
+    this.outfitImages = const [],
     required this.badge,
     required this.bg,
   });
@@ -96,6 +99,9 @@ class _OccasionBoardState extends State<OccasionBoard> {
 
       final List<LookItem> loadedLooks = [];
       for (var doc in docs) {
+        final outfitImages = extractSavedBoardImages(
+          Map<String, dynamic>.from(doc.data),
+        );
         final badgeIndex = doc.$id.length % LookBadgeStyle.values.length;
         final dynamicBadge = LookBadgeStyle.values[badgeIndex];
         final dynamicBg = LookBgStyle.values[badgeIndex];
@@ -111,7 +117,7 @@ class _OccasionBoardState extends State<OccasionBoard> {
                 // fall back to the legacy why-it-works / description fields.
                 (((doc.data['story'] is Map)
                             ? (doc.data['story']['summary'] ??
-                                doc.data['story']['headline'])
+                                  doc.data['story']['headline'])
                             : null) ??
                         doc.data['why_it_works'] ??
                         doc.data['whyItWorks'] ??
@@ -122,7 +128,8 @@ class _OccasionBoardState extends State<OccasionBoard> {
             emoji: (doc.data['emoji'] ?? widget.emptyEmoji).toString(),
             category: (doc.data['boardCategoryLabel'] ?? widget.occasion)
                 .toString(),
-            imageUrl: doc.data['thumbnailUrl'] ?? doc.data['imageUrl'],
+            imageUrl: outfitImages.isNotEmpty ? outfitImages.first : null,
+            outfitImages: outfitImages,
             badge: dynamicBadge,
             bg: dynamicBg,
           ),
@@ -487,7 +494,12 @@ class _LookCardState extends State<_LookCard> {
               // Image / placeholder
               Stack(
                 children: [
-                  look.imageUrl != null && look.imageUrl!.isNotEmpty
+                  look.outfitImages.length >= 2
+                      ? AspectRatio(
+                          aspectRatio: aspectRatio,
+                          child: _SavedLookImageGrid(images: look.outfitImages),
+                        )
+                      : look.imageUrl != null && look.imageUrl!.isNotEmpty
                       ? AspectRatio(
                           aspectRatio: aspectRatio,
                           child: Image.network(
@@ -648,6 +660,37 @@ class _LookCardState extends State<_LookCard> {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _SavedLookImageGrid extends StatelessWidget {
+  final List<String> images;
+
+  const _SavedLookImageGrid({required this.images});
+
+  @override
+  Widget build(BuildContext context) {
+    final visible = images.take(5).toList();
+    return Container(
+      color: const Color(0xFFFFFCF5),
+      padding: const EdgeInsets.all(8),
+      child: GridView.builder(
+        physics: const NeverScrollableScrollPhysics(),
+        padding: EdgeInsets.zero,
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          crossAxisSpacing: 6,
+          mainAxisSpacing: 6,
+        ),
+        itemCount: visible.length,
+        itemBuilder: (context, index) {
+          return ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: Image.network(visible[index], fit: BoxFit.contain),
+          );
+        },
       ),
     );
   }
