@@ -926,31 +926,43 @@ class BackendService {
         };
       }
 
-      final response = await http
-          .post(
-            Uri.parse('$baseUrl/api/wardrobe/capture/delete-selected'),
-            headers: await _authHeaders(),
-            body: jsonEncode({
-              'user_id': await _currentUserId(),
-              'item_ids': ids,
-              'items': items,
-              'delete_r2': deleteR2,
-            }),
-          )
-          .timeout(const Duration(seconds: 35));
+      final deleted = <Map<String, dynamic>>[];
+      final errors = <Map<String, dynamic>>[];
 
-      if (response.statusCode == 200) {
-        return await compute(_parseJsonMap, response.body);
+      for (final id in ids) {
+        final response = await http
+            .delete(
+              Uri.parse('$baseUrl/api/wardrobe/${Uri.encodeComponent(id)}'),
+              headers: await _authHeaders(),
+            )
+            .timeout(const Duration(seconds: 35));
+
+        if (response.statusCode >= 200 && response.statusCode < 300) {
+          final body = await compute(_parseJsonMap, response.body);
+          if (body['success'] == true) {
+            deleted.add(body);
+            continue;
+          }
+          errors.add({'id': id, 'status': response.statusCode, 'error': body});
+          continue;
+        }
+
+        debugPrint(
+          'Wardrobe delete failed: ${response.statusCode} ${response.body}',
+        );
+        errors.add({
+          'id': id,
+          'status': response.statusCode,
+          'error': response.body,
+        });
       }
 
-      debugPrint(
-        'Wardrobe delete failed: ${response.statusCode} ${response.body}',
-      );
-
       return {
-        'success': false,
-        'status': response.statusCode,
-        'error': response.body,
+        'success': errors.isEmpty,
+        'deleted_count': deleted.length,
+        'error_count': errors.length,
+        'deleted': deleted,
+        'errors': errors,
       };
     } catch (e) {
       debugPrint('Wardrobe delete error: $e');

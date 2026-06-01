@@ -1030,24 +1030,21 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
           ),
           TextButton(
             onPressed: () async {
+              final appwriteService = Provider.of<AppwriteService>(
+                context,
+                listen: false,
+              );
+              final offlineCache = Provider.of<OfflineCache>(
+                context,
+                listen: false,
+              );
               Navigator.of(context).pop();
-
-              final previous = List<WardrobeItem>.from(_wardrobe);
-
-              setState(() => _wardrobe.removeWhere((i) => i.id == id));
-              await _saveWardrobeCache();
 
               try {
                 final deleted = await _deleteWardrobeItemPersistently(item);
 
                 if (!deleted) {
                   if (!mounted) return;
-                  setState(() {
-                    _wardrobe
-                      ..clear()
-                      ..addAll(previous);
-                  });
-                  await _saveWardrobeCache();
                   _showToast(
                     'Could not remove "${item.name}" from cloud. Please try again.',
                   );
@@ -1055,23 +1052,16 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
                 }
 
                 if (!mounted) return;
-                Provider.of<AppwriteService>(
-                  context,
-                  listen: false,
-                ).invalidateWardrobeCache();
-                await Provider.of<OfflineCache>(
-                  context,
-                  listen: false,
-                ).removeWardrobeItem(item.id, deleteImages: true);
+                setState(() => _wardrobe.removeWhere((i) => i.id == id));
+                await _saveWardrobeCache();
+                appwriteService.invalidateWardrobeCache();
+                await offlineCache.removeWardrobeItem(
+                  item.id,
+                  deleteImages: true,
+                );
                 _showToast('"${item.name}" removed');
               } catch (e) {
                 if (!mounted) return;
-                setState(() {
-                  _wardrobe
-                    ..clear()
-                    ..addAll(previous);
-                });
-                await _saveWardrobeCache();
                 _showToast(
                   'Could not remove "${item.name}". Please try again.',
                 );
