@@ -2030,6 +2030,8 @@ class _AddItemModalState extends State<_AddItemModal>
   bool _isGalleryPick = false;
   List<_DetectedItem> _detected = [];
   String? _detectError;
+  bool _isSavingWardrobe = false;
+  bool _saveComplete = false;
 
   // ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ Edit form ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬
   final _nameCtrl = TextEditingController();
@@ -2452,6 +2454,7 @@ class _AddItemModalState extends State<_AddItemModal>
   }
 
   Future<void> _confirmAndSave() async {
+    if (_isSavingWardrobe) return;
     final selected = _detected.where((i) => i.selected).toList();
     if (selected.isEmpty) {
       _toast('Select at least one item');
@@ -2463,17 +2466,19 @@ class _AddItemModalState extends State<_AddItemModal>
     }
     HapticFeedback.lightImpact();
     final payloads = selected.map((item) => item.toBackendPayload()).toList();
-    final saveResult = await Provider.of<BackendService>(
-      context,
-      listen: false,
-    ).saveWardrobeLabels(payloads);
+    final backendService = Provider.of<BackendService>(context, listen: false);
+    setState(() {
+      _isSavingWardrobe = true;
+      _saveComplete = false;
+    });
+    final saveResult = await backendService.saveWardrobeLabels(payloads);
     if (!mounted) return;
     if (saveResult == null || saveResult['success'] != true) {
+      setState(() => _isSavingWardrobe = false);
       _toast('Could not save wardrobe items. Please try again.');
       return;
     }
 
-    Navigator.of(context).pop();
     for (final item in selected) {
       final displayBytes = item.maskedImageBytes ?? _capturedBytes;
       widget.onSave({
@@ -2493,6 +2498,14 @@ class _AddItemModalState extends State<_AddItemModal>
         'remoteSaved': true,
       });
     }
+    HapticFeedback.mediumImpact();
+    setState(() {
+      _isSavingWardrobe = false;
+      _saveComplete = true;
+    });
+    await Future.delayed(const Duration(milliseconds: 650));
+    if (!mounted) return;
+    Navigator.of(context).pop();
   }
 
   void _manualSave() {
@@ -2672,7 +2685,9 @@ class _AddItemModalState extends State<_AddItemModal>
         children: [
           if (_step == _ModalStep.results || _step == _ModalStep.editing)
             GestureDetector(
-              onTap: _step == _ModalStep.editing
+              onTap: _isSavingWardrobe
+                  ? null
+                  : _step == _ModalStep.editing
                   ? (_editingIndex != null
                         ? () => setState(() {
                             _editingIndex = null;
@@ -2727,7 +2742,7 @@ class _AddItemModalState extends State<_AddItemModal>
             ),
           ),
           GestureDetector(
-            onTap: () => Navigator.of(context).pop(),
+            onTap: _isSavingWardrobe ? null : () => Navigator.of(context).pop(),
             child: Container(
               width: 30,
               height: 30,
@@ -2751,12 +2766,68 @@ class _AddItemModalState extends State<_AddItemModal>
       switchOutCurve: Curves.easeIn,
       transitionBuilder: (child, anim) =>
           FadeTransition(opacity: anim, child: child),
-      child: switch (_step) {
-        _ModalStep.camera => _buildCameraBody(),
-        _ModalStep.detecting => _buildDetectingBody(),
-        _ModalStep.results => _buildResultsBody(),
-        _ModalStep.editing => _buildEditingBody(),
-      },
+      child: _saveComplete
+          ? _buildSaveCompleteBody()
+          : switch (_step) {
+              _ModalStep.camera => _buildCameraBody(),
+              _ModalStep.detecting => _buildDetectingBody(),
+              _ModalStep.results => _buildResultsBody(),
+              _ModalStep.editing => _buildEditingBody(),
+            },
+    );
+  }
+
+  Widget _buildSaveCompleteBody() {
+    final savedCount = _detected.where((i) => i.selected).length;
+    return Container(
+      key: const ValueKey('wardrobe-save-complete'),
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(24, 36, 24, 40),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 74,
+            height: 74,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [t.accent.primary, t.accent.tertiary],
+              ),
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: t.accent.primary.withValues(alpha: 0.30),
+                  blurRadius: 24,
+                  offset: const Offset(0, 10),
+                ),
+              ],
+            ),
+            child: Icon(Icons.check_rounded, color: t.textPrimary, size: 38),
+          ),
+          const SizedBox(height: 18),
+          Text(
+            savedCount == 1 ? 'Added to wardrobe' : '$savedCount items added',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontFamily: GoogleFonts.inter().fontFamily,
+              fontSize: 20,
+              fontWeight: FontWeight.w800,
+              color: t.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Saved with AI labels and ready for outfit styling.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontFamily: GoogleFonts.inter().fontFamily,
+              fontSize: 13,
+              height: 1.4,
+              color: t.mutedText,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -3210,6 +3281,7 @@ class _AddItemModalState extends State<_AddItemModal>
                 const Spacer(),
                 GestureDetector(
                   onTap: () {
+                    if (_isSavingWardrobe) return;
                     final all = _detected.every((i) => i.selected);
                     if (all) {
                       // deselect all
@@ -3262,6 +3334,7 @@ class _AddItemModalState extends State<_AddItemModal>
                 final item = _detected[i];
                 return GestureDetector(
                   onTap: () {
+                    if (_isSavingWardrobe) return;
                     final selCount = _detected.where((d) => d.selected).length;
                     if (!item.selected && selCount >= 6) {
                       _toast('Maximum 6 items per outfit');
@@ -3269,7 +3342,7 @@ class _AddItemModalState extends State<_AddItemModal>
                     }
                     setState(() => item.selected = !item.selected);
                   },
-                  onLongPress: () => _editItem(i),
+                  onLongPress: _isSavingWardrobe ? null : () => _editItem(i),
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 180),
                     padding: const EdgeInsets.symmetric(
@@ -3800,6 +3873,8 @@ class _AddItemModalState extends State<_AddItemModal>
   }
 
   Widget _buildFooter() {
+    if (_saveComplete) return const SizedBox.shrink();
+
     final int selCount = _detected.where((i) => i.selected).length;
 
     // Camera step ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â only Cancel, no manual option
@@ -3871,27 +3946,34 @@ class _AddItemModalState extends State<_AddItemModal>
       );
     }
 
-    final String primaryLabel = switch (_step) {
-      _ModalStep.camera => '',
-      _ModalStep.detecting => 'Detecting...',
-      _ModalStep.results =>
-        selCount == 0
-            ? AppLocalizations.t(context, 'wardrobe_select_items')
-            : 'Add $selCount/6 item${selCount != 1 ? 's' : ''} to Wardrobe',
-      _ModalStep.editing =>
-        _editingIndex != null ? 'Save changes' : 'Save to wardrobe',
-    };
+    final String primaryLabel = _isSavingWardrobe
+        ? 'Saving to wardrobe...'
+        : switch (_step) {
+            _ModalStep.camera => '',
+            _ModalStep.detecting => 'Detecting...',
+            _ModalStep.results =>
+              selCount == 0
+                  ? AppLocalizations.t(context, 'wardrobe_select_items')
+                  : 'Add $selCount/6 item${selCount != 1 ? 's' : ''} to Wardrobe',
+            _ModalStep.editing =>
+              _editingIndex != null ? 'Save changes' : 'Save to wardrobe',
+          };
     final bool primaryDisabled =
+        _isSavingWardrobe ||
         (_step == _ModalStep.results && selCount == 0) ||
         _step == _ModalStep.detecting;
-    final VoidCallback? primaryAction = switch (_step) {
-      _ModalStep.camera => null,
-      _ModalStep.detecting => null,
-      _ModalStep.results =>
-        (selCount == 0 || _detected.isEmpty) ? null : () => _confirmAndSave(),
-      _ModalStep.editing =>
-        _editingIndex != null ? _saveEditedItem : _manualSave,
-    };
+    final VoidCallback? primaryAction = _isSavingWardrobe
+        ? null
+        : switch (_step) {
+            _ModalStep.camera => null,
+            _ModalStep.detecting => null,
+            _ModalStep.results =>
+              (selCount == 0 || _detected.isEmpty)
+                  ? null
+                  : () => _confirmAndSave(),
+            _ModalStep.editing =>
+              _editingIndex != null ? _saveEditedItem : _manualSave,
+          };
 
     return Container(
       padding: const EdgeInsets.fromLTRB(18, 12, 18, 20),
@@ -3902,7 +3984,7 @@ class _AddItemModalState extends State<_AddItemModal>
       child: Row(
         children: [
           GestureDetector(
-            onTap: () => Navigator.of(context).pop(),
+            onTap: _isSavingWardrobe ? null : () => Navigator.of(context).pop(),
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 13),
               decoration: BoxDecoration(
@@ -3941,14 +4023,33 @@ class _AddItemModalState extends State<_AddItemModal>
                   borderRadius: BorderRadius.circular(14),
                 ),
                 alignment: Alignment.center,
-                child: Text(
-                  primaryLabel,
-                  style: TextStyle(
-                    fontFamily: GoogleFonts.inter().fontFamily,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: t.textPrimary,
-                  ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (_isSavingWardrobe) ...[
+                      SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            t.textPrimary,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                    ],
+                    Text(
+                      primaryLabel,
+                      style: TextStyle(
+                        fontFamily: GoogleFonts.inter().fontFamily,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: t.textPrimary,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
