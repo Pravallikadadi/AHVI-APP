@@ -667,6 +667,28 @@ class _AhviStylistChatSheetState extends State<_AhviStylistChatSheet>
     return fallback;
   }
 
+  String _pendingStyleClarificationPrompt() {
+    for (var i = _chatHistory.length - 1; i >= 0; i--) {
+      final entry = _chatHistory[i];
+      if (entry['role'] != 'assistant') continue;
+      final text = (entry['content'] ?? '').toLowerCase();
+      final isClarification =
+          text.contains('what are we dressing') ||
+          text.contains('pick an occasion') ||
+          text.contains('what are you dressing for');
+      if (!isClarification) continue;
+      for (var j = i - 1; j >= 0; j--) {
+        final previous = _chatHistory[j];
+        if (previous['role'] != 'user') continue;
+        final prompt = (previous['content'] ?? '').trim();
+        if (prompt.isNotEmpty && !_isShowClosestStyleAction(prompt)) {
+          return prompt;
+        }
+      }
+    }
+    return '';
+  }
+
   Future<void> _sendMessage(String text) async {
     final trimmed = text.trim();
     if (trimmed.isEmpty && _pendingAttachment == null) return;
@@ -714,6 +736,15 @@ class _AhviStylistChatSheetState extends State<_AhviStylistChatSheet>
       final isClosestStyleAction =
           styleModules.contains(widget.moduleContext) &&
           _isShowClosestStyleAction(trimmed);
+      final pendingClarificationPrompt =
+          styleModules.contains(widget.moduleContext) && !isClosestStyleAction
+          ? _pendingStyleClarificationPrompt()
+          : '';
+      final isClarificationAnswer =
+          pendingClarificationPrompt.isNotEmpty && trimmed.isNotEmpty;
+      final clarificationResolvedPrompt = isClarificationAnswer
+          ? '$pendingClarificationPrompt · $trimmed'
+          : '';
       final resolvedStylePrompt = isClosestStyleAction
           ? _lastResolvedStylePrompt()
           : '';
@@ -732,16 +763,27 @@ class _AhviStylistChatSheetState extends State<_AhviStylistChatSheet>
               _runningMemory,
               moduleContext: isPlanPackRequest ? 'chat' : styleModuleContext,
               styleAction: isClosestStyleAction ? 'show_closest_option' : null,
-              action: isClosestStyleAction ? 'show_closest_option' : null,
-              previousPrompt:
-                  isClosestStyleAction && originalStylePrompt.isNotEmpty
+              action: isClosestStyleAction
+                  ? 'show_closest_option'
+                  : (isClarificationAnswer ? 'clarification_selected' : null),
+              clarification: isClarificationAnswer ? trimmed : null,
+              previousPrompt: isClarificationAnswer
+                  ? pendingClarificationPrompt
+                  : isClosestStyleAction && originalStylePrompt.isNotEmpty
                   ? originalStylePrompt
                   : null,
-              resolvedPrompt:
-                  isClosestStyleAction && resolvedStylePrompt.isNotEmpty
+              resolvedPrompt: isClarificationAnswer
+                  ? clarificationResolvedPrompt
+                  : isClosestStyleAction && resolvedStylePrompt.isNotEmpty
                   ? resolvedStylePrompt
                   : null,
-              styleContext: isClosestStyleAction
+              styleContext: isClarificationAnswer
+                  ? {
+                      'original_prompt': pendingClarificationPrompt,
+                      'clarification': trimmed,
+                      'resolved_prompt': clarificationResolvedPrompt,
+                    }
+                  : isClosestStyleAction
                   ? {
                       if (originalStylePrompt.isNotEmpty)
                         'original_prompt': originalStylePrompt,
@@ -762,10 +804,11 @@ class _AhviStylistChatSheetState extends State<_AhviStylistChatSheet>
               context: widget.contextData,
             );
       if (!mounted) return;
-      final refreshTarget = (response['refresh'] ?? response['data']?['refresh'])
-          ?.toString()
-          .trim()
-          .toLowerCase();
+      final refreshTarget =
+          (response['refresh'] ?? response['data']?['refresh'])
+              ?.toString()
+              .trim()
+              .toLowerCase();
       if (refreshTarget != null &&
           refreshTarget.isNotEmpty &&
           (refreshTarget == widget.moduleContext.toLowerCase() ||

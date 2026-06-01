@@ -1175,8 +1175,19 @@ class _ChatScreenState extends State<ChatScreen>
         'save trip plan',
         'plan outfits',
       };
-      final isPlanPackAction = planActionLabels.contains(queryText.toLowerCase().trim());
+      final isPlanPackAction = planActionLabels.contains(
+        queryText.toLowerCase().trim(),
+      );
       final isClosestAction = isStyleModule && _isShowClosestChip(queryText);
+      final pendingClarificationPrompt = isStyleModule && !isClosestAction
+          ? _pendingStyleClarificationPrompt()
+          : '';
+      final isClarificationAnswer =
+          pendingClarificationPrompt.isNotEmpty &&
+          visibleText.trim().isNotEmpty;
+      final clarificationResolvedPrompt = isClarificationAnswer
+          ? '$pendingClarificationPrompt · $visibleText'
+          : '';
       final resolvedStylePrompt = isClosestAction
           ? _lastResolvedStylePrompt()
           : '';
@@ -1199,14 +1210,27 @@ class _ChatScreenState extends State<ChatScreen>
               _runningMemory,
               moduleContext: _module == 'daily_wear' ? 'style' : _module,
               styleAction: isClosestAction ? 'show_closest_option' : null,
-              action: isClosestAction ? 'show_closest_option' : null,
-              previousPrompt: isClosestAction && originalStylePrompt.isNotEmpty
+              action: isClosestAction
+                  ? 'show_closest_option'
+                  : (isClarificationAnswer ? 'clarification_selected' : null),
+              clarification: isClarificationAnswer ? visibleText : null,
+              previousPrompt: isClarificationAnswer
+                  ? pendingClarificationPrompt
+                  : isClosestAction && originalStylePrompt.isNotEmpty
                   ? originalStylePrompt
                   : null,
-              resolvedPrompt: isClosestAction && resolvedStylePrompt.isNotEmpty
+              resolvedPrompt: isClarificationAnswer
+                  ? clarificationResolvedPrompt
+                  : isClosestAction && resolvedStylePrompt.isNotEmpty
                   ? resolvedStylePrompt
                   : null,
-              styleContext: isClosestAction && resolvedStylePrompt.isNotEmpty
+              styleContext: isClarificationAnswer
+                  ? {
+                      'original_prompt': pendingClarificationPrompt,
+                      'clarification': visibleText,
+                      'resolved_prompt': clarificationResolvedPrompt,
+                    }
+                  : isClosestAction && resolvedStylePrompt.isNotEmpty
                   ? {
                       'original_prompt': originalStylePrompt,
                       'resolved_prompt': resolvedStylePrompt,
@@ -1255,9 +1279,13 @@ class _ChatScreenState extends State<ChatScreen>
         _lastPlanPackContext = {
           ...Map<String, dynamic>.from(responseData),
           'last_plan_prompt':
-              responseData['source_text'] ?? _lastPlanPackContext['last_plan_prompt'] ?? queryText,
+              responseData['source_text'] ??
+              _lastPlanPackContext['last_plan_prompt'] ??
+              queryText,
           'active_plan_prompt':
-              responseData['source_text'] ?? _lastPlanPackContext['active_plan_prompt'] ?? queryText,
+              responseData['source_text'] ??
+              _lastPlanPackContext['active_plan_prompt'] ??
+              queryText,
         };
       }
       final aiText =
@@ -1458,7 +1486,12 @@ class _ChatScreenState extends State<ChatScreen>
                       Expanded(
                         child: ListView.builder(
                           controller: _scrollController,
-                          padding: EdgeInsets.fromLTRB(20, 16, 20, listBottomPad),
+                          padding: EdgeInsets.fromLTRB(
+                            20,
+                            16,
+                            20,
+                            listBottomPad,
+                          ),
                           itemCount: _messages.length,
                           itemBuilder: (_, i) => _msg(_messages[i], t),
                         ),
@@ -1876,6 +1909,30 @@ class _ChatScreenState extends State<ChatScreen>
       if (row['role'] != 'user') continue;
       final text = (row['content'] ?? '').trim();
       if (text.isNotEmpty && !_isShowClosestChip(text)) return text;
+    }
+    return '';
+  }
+
+  String _pendingStyleClarificationPrompt() {
+    for (var i = _chatHistory.length - 1; i >= 0; i--) {
+      final row = _chatHistory[i];
+      if (row['role'] != 'assistant') continue;
+      final text = (row['content'] ?? '').toLowerCase();
+      final isClarification =
+          text.contains('what are we dressing') ||
+          text.contains('pick an occasion') ||
+          text.contains('what are you dressing for');
+      if (!isClarification) continue;
+      for (var j = i - 1; j >= 0; j--) {
+        final previous = _chatHistory[j];
+        if (previous['role'] != 'user') continue;
+        final prompt = (previous['content'] ?? '').trim();
+        if (prompt.isNotEmpty &&
+            !_isShowClosestChip(prompt) &&
+            !_isStyleMoreChip(prompt)) {
+          return prompt;
+        }
+      }
     }
     return '';
   }
@@ -2520,7 +2577,11 @@ class _ChatScreenState extends State<ChatScreen>
           .map((item) => Map<String, dynamic>.from(item))
           .where((item) {
             final label =
-                (item['label'] ?? item['title'] ?? item['name'] ?? item['text'] ?? '')
+                (item['label'] ??
+                        item['title'] ??
+                        item['name'] ??
+                        item['text'] ??
+                        '')
                     .toString()
                     .trim();
             return label.isNotEmpty;
@@ -2560,7 +2621,9 @@ class _ChatScreenState extends State<ChatScreen>
             .toString()
             .trim();
     final category = (item['category'] ?? '').toString().trim();
-    final imageUrl = (item['imageUrl'] ?? item['image_url'] ?? '').toString().trim();
+    final imageUrl = (item['imageUrl'] ?? item['image_url'] ?? '')
+        .toString()
+        .trim();
     final source = (item['source'] ?? '').toString().trim();
     final stateKey = '${item['wardrobeItemId'] ?? item['assetIcon'] ?? label}';
 
@@ -2580,69 +2643,74 @@ class _ChatScreenState extends State<ChatScreen>
             });
           },
           child: Padding(
-          padding: const EdgeInsets.only(bottom: 8),
-          child: Row(
-            children: [
-              Container(
-                width: 38,
-                height: 38,
-                decoration: BoxDecoration(
-                  color: t.accent.primary.withValues(alpha: 0.10),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: t.cardBorder),
-                ),
-                clipBehavior: Clip.antiAlias,
-                child: imageUrl.isNotEmpty
-                    ? Image.network(
-                        imageUrl,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => Icon(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Row(
+              children: [
+                Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: t.accent.primary.withValues(alpha: 0.10),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: t.cardBorder),
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: imageUrl.isNotEmpty
+                      ? Image.network(
+                          imageUrl,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => Icon(
+                            _fallbackIconFor(label),
+                            size: 18,
+                            color: t.accent.primary,
+                          ),
+                        )
+                      : Icon(
                           _fallbackIconFor(label),
                           size: 18,
                           color: t.accent.primary,
                         ),
-                      )
-                    : Icon(
-                        _fallbackIconFor(label),
-                        size: 18,
-                        color: t.accent.primary,
-                      ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      label,
-                      style: TextStyle(
-                        color: t.textPrimary,
-                        fontSize: 12.8,
-                        height: 1.25,
-                        fontWeight: FontWeight.w700,
-                        decoration: done ? TextDecoration.lineThrough : null,
-                      ),
-                    ),
-                    if (category.isNotEmpty || source.isNotEmpty)
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                       Text(
-                        [category, source == 'wardrobe' ? 'wardrobe' : ''].where((v) => v.isNotEmpty).join(' · '),
+                        label,
                         style: TextStyle(
-                          color: t.mutedText,
-                          fontSize: 10.8,
-                          height: 1.2,
+                          color: t.textPrimary,
+                          fontSize: 12.8,
+                          height: 1.25,
+                          fontWeight: FontWeight.w700,
+                          decoration: done ? TextDecoration.lineThrough : null,
                         ),
                       ),
-                  ],
+                      if (category.isNotEmpty || source.isNotEmpty)
+                        Text(
+                          [
+                            category,
+                            source == 'wardrobe' ? 'wardrobe' : '',
+                          ].where((v) => v.isNotEmpty).join(' · '),
+                          style: TextStyle(
+                            color: t.mutedText,
+                            fontSize: 10.8,
+                            height: 1.2,
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
-              ),
-              Icon(
-                done ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
-                color: done ? t.accent.primary : t.mutedText,
-                size: 19,
-              ),
-            ],
+                Icon(
+                  done
+                      ? Icons.check_circle_rounded
+                      : Icons.radio_button_unchecked_rounded,
+                  color: done ? t.accent.primary : t.mutedText,
+                  size: 19,
+                ),
+              ],
+            ),
           ),
-        ),
         );
       },
     );
