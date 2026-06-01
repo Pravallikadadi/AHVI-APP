@@ -2,8 +2,11 @@ import 'dart:convert';
 
 import 'package:appwrite/models.dart' as appwrite_models;
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:share_plus/share_plus.dart';
 
 import 'package:myapp/app_localizations.dart';
+import 'package:myapp/services/appwrite_service.dart';
 import 'package:myapp/style_board/saved_board_images.dart';
 import 'package:myapp/style_board/saved_board_thumb.dart';
 import 'package:myapp/theme/theme_tokens.dart';
@@ -114,16 +117,34 @@ class SavedBoardCard extends StatelessWidget {
   }
 
   void _openDetails(BuildContext context, Map<String, dynamic> data) {
+    final boardId = _boardId();
     final title = (data['title'] ?? data['boardCategoryLabel'] ?? 'Saved look')
         .toString();
     final category = (data['boardCategoryLabel'] ?? data['occasion'] ?? 'Saved')
         .toString();
-    final description =
-        (data['outfitDescription'] ??
-                data['description'] ??
-                'AHVI saved style board')
-            .toString();
+    final description = _firstText(data, const [
+      'whyItWorks',
+      'why_it_works',
+      'explanation',
+      'outfitDescription',
+      'description',
+    ], fallback: 'AHVI saved style board');
+    final whyItWorks = _firstText(data, const [
+      'whyItWorks',
+      'why_it_works',
+      'explanation',
+      'outfitDescription',
+    ]);
+    final stylingTip = _firstText(data, const [
+      'stylingTip',
+      'styling_tip',
+      'styleTip',
+      'tip',
+    ]);
     final items = _itemsForBoard(data);
+    debugPrint('saved_board.open boardId=$boardId');
+    debugPrint('saved_board.payload keys=${data.keys.toList()}');
+    debugPrint('saved_board.items count=${items.length}');
 
     showModalBottomSheet<void>(
       context: context,
@@ -183,22 +204,43 @@ class SavedBoardCard extends StatelessWidget {
                   const SizedBox(height: 12),
                   ClipRRect(
                     borderRadius: BorderRadius.circular(16),
-                    child: SavedBoardThumb(
-                      source: source,
-                      wardrobeById: wardrobeById,
-                      radius: BorderRadius.circular(16),
+                    child: SizedBox(
+                      height: 340,
+                      width: double.infinity,
+                      child: SavedBoardThumb(
+                        source: source,
+                        wardrobeById: wardrobeById,
+                        radius: BorderRadius.circular(16),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 14),
-                  Text(
-                    description,
-                    style: TextStyle(
-                      color: sheetTokens.mutedText,
-                      fontSize: 14,
-                      height: 1.35,
+                  if (whyItWorks.isNotEmpty) ...[
+                    _DetailSection(
+                      title: 'Why it works',
+                      body: whyItWorks,
+                      tokens: sheetTokens,
                     ),
-                  ),
-                  const SizedBox(height: 16),
+                    const SizedBox(height: 12),
+                  ] else ...[
+                    Text(
+                      description,
+                      style: TextStyle(
+                        color: sheetTokens.mutedText,
+                        fontSize: 14,
+                        height: 1.35,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+                  if (stylingTip.isNotEmpty) ...[
+                    _DetailSection(
+                      title: 'Styling tip',
+                      body: stylingTip,
+                      tokens: sheetTokens,
+                    ),
+                    const SizedBox(height: 16),
+                  ],
                   Text(
                     'Items in this look',
                     style: TextStyle(
@@ -260,6 +302,68 @@ class SavedBoardCard extends StatelessWidget {
                         ),
                       );
                     }),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () async {
+                            await SharePlus.instance.share(
+                              ShareParams(
+                                text: '$title\n\n$description',
+                                subject: title,
+                              ),
+                            );
+                          },
+                          icon: const Icon(Icons.ios_share_rounded, size: 18),
+                          label: const Text('Share'),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: FilledButton.icon(
+                          style: FilledButton.styleFrom(
+                            backgroundColor: Colors.redAccent,
+                            foregroundColor: Colors.white,
+                          ),
+                          onPressed: boardId.isEmpty
+                              ? null
+                              : () async {
+                                  try {
+                                    await Provider.of<AppwriteService>(
+                                      context,
+                                      listen: false,
+                                    ).deleteSavedBoard(boardId);
+                                    if (sheetContext.mounted) {
+                                      Navigator.of(sheetContext).pop();
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        const SnackBar(
+                                          content: Text('Saved look deleted'),
+                                        ),
+                                      );
+                                    }
+                                  } catch (_) {
+                                    if (sheetContext.mounted) {
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        const SnackBar(
+                                          content: Text(
+                                            'Could not delete saved look',
+                                          ),
+                                        ),
+                                      );
+                                    }
+                                  }
+                                },
+                          icon: const Icon(Icons.delete_outline, size: 18),
+                          label: const Text('Delete'),
+                        ),
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),
@@ -267,6 +371,39 @@ class SavedBoardCard extends StatelessWidget {
         );
       },
     );
+  }
+
+  String _boardId() {
+    if (source is appwrite_models.Document) {
+      return (source as appwrite_models.Document).$id;
+    }
+    if (source is Map) {
+      final map = source as Map;
+      return (map[r'$id'] ?? map['id'] ?? '').toString();
+    }
+    return '';
+  }
+
+  String _firstText(
+    Map<String, dynamic> data,
+    List<String> keys, {
+    String fallback = '',
+  }) {
+    for (final key in keys) {
+      final value = data[key];
+      if (value is Map) {
+        final nested = _firstText(Map<String, dynamic>.from(value), const [
+          'summary',
+          'headline',
+          'why',
+          'tip',
+        ]);
+        if (nested.isNotEmpty) return nested;
+      }
+      final text = value?.toString().trim() ?? '';
+      if (text.isNotEmpty && text.toLowerCase() != 'null') return text;
+    }
+    return fallback;
   }
 
   @override
@@ -376,6 +513,53 @@ class SavedBoardCard extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _DetailSection extends StatelessWidget {
+  final String title;
+  final String body;
+  final AppThemeTokens tokens;
+
+  const _DetailSection({
+    required this.title,
+    required this.body,
+    required this.tokens,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: tokens.backgroundSecondary,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: tokens.cardBorder),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: TextStyle(
+              color: tokens.textPrimary,
+              fontSize: 13,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 5),
+          Text(
+            body,
+            style: TextStyle(
+              color: tokens.mutedText,
+              fontSize: 13,
+              height: 1.35,
+            ),
+          ),
+        ],
       ),
     );
   }
