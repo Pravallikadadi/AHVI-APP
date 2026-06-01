@@ -1681,6 +1681,7 @@ class _DetectedItem {
   final String? rawUrl;
   final String? maskedUrl;
   final String? maskedImageBase64;
+  final int? sourceImageIndex;
   final Map<String, dynamic> raw;
   bool selected;
 
@@ -1699,6 +1700,7 @@ class _DetectedItem {
     this.rawUrl,
     this.maskedUrl,
     this.maskedImageBase64,
+    this.sourceImageIndex,
     this.raw = const {},
     this.selected = true,
   });
@@ -1730,6 +1732,7 @@ class _DetectedItem {
       'raw_url': rawUrl,
       'masked_url': maskedUrl,
       'masked_image_base64': maskedImageBase64,
+      if (sourceImageIndex != null) 'source_image_index': sourceImageIndex,
     });
     return payload;
   }
@@ -1758,6 +1761,8 @@ class _DetectedItem {
         s.contains('jean') ||
         s.contains('short') ||
         s.contains('skirt') ||
+        s.contains('legging') ||
+        s.contains('leggings') ||
         s.contains('jogger') ||
         s.contains('chino')) {
       return 'Bottoms';
@@ -2252,6 +2257,11 @@ class _AddItemModalState extends State<_AddItemModal>
         rawUrl: data['raw_url']?.toString(),
         maskedUrl: data['masked_url']?.toString(),
         maskedImageBase64: data['masked_image_base64']?.toString(),
+        sourceImageIndex: data['source_image_index'] is num
+            ? (data['source_image_index'] as num).toInt()
+            : (data['batch_index'] is num
+                  ? (data['batch_index'] as num).toInt()
+                  : null),
         raw: data,
         selected: true,
       );
@@ -2345,6 +2355,7 @@ class _AddItemModalState extends State<_AddItemModal>
                 rawUrl: item.rawUrl,
                 maskedUrl: item.maskedUrl,
                 maskedImageBase64: item.maskedImageBase64,
+                sourceImageIndex: item.sourceImageIndex,
                 raw: item.raw,
                 selected: true,
               ),
@@ -2480,7 +2491,17 @@ class _AddItemModalState extends State<_AddItemModal>
     }
 
     for (final item in selected) {
-      final displayBytes = item.maskedImageBytes ?? _capturedBytes;
+      final remoteUrl = item.maskedUrl ?? item.rawUrl;
+      Uint8List? displayBytes = item.maskedImageBytes;
+      if (displayBytes == null && (remoteUrl == null || remoteUrl.isEmpty)) {
+        final index = item.sourceImageIndex;
+        displayBytes = _isGalleryPick &&
+                index != null &&
+                index >= 0 &&
+                index < _galleryImages.length
+            ? _galleryImages[index]
+            : _capturedBytes;
+      }
       widget.onSave({
         'id': item.id,
         'name': _cleanUiText(item.name, fallback: 'Item'),
@@ -2491,8 +2512,8 @@ class _AddItemModalState extends State<_AddItemModal>
           item.pattern,
         ].where((v) => v != null && v.isNotEmpty && v != 'null').join(', '),
         'imageBytes': displayBytes,
-        'imageUrl': item.maskedUrl ?? item.rawUrl,
-        'maskedUrl': item.maskedUrl ?? item.rawUrl,
+        'imageUrl': remoteUrl,
+        'maskedUrl': remoteUrl,
         'worn': 0,
         'liked': false,
         'remoteSaved': true,
