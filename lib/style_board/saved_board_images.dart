@@ -31,8 +31,16 @@ List<String> extractSavedBoardImages(Map<String, dynamic> data) {
   }
 
   void readItems(Object? raw) {
-    if (raw is! Iterable) return;
-    for (final item in raw) {
+    Object? items = raw;
+    if (raw is String && raw.trim().isNotEmpty) {
+      try {
+        items = jsonDecode(raw);
+      } catch (_) {
+        items = null;
+      }
+    }
+    if (items is! Iterable) return;
+    for (final item in items) {
       readItem(item);
     }
   }

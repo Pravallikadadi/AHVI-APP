@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:appwrite/appwrite.dart';
@@ -709,6 +710,10 @@ class AppwriteService extends ChangeNotifier {
                 .where((e) => e.isNotEmpty)
                 .toList()
           : <String>[];
+      final outfitItems = _savedBoardItemList(extra?['outfitItems']);
+      final items = _savedBoardItemList(extra?['items']);
+      final boardPayload = _savedBoardPayload(extra?['board_payload']);
+      final boardPayloadCamel = _savedBoardPayload(extra?['boardPayload']);
 
       final storageOccasion = _savedBoardOccasionLabel(occasion);
       final categoryLabel = boardCategoryLabel?.trim().isNotEmpty == true
@@ -735,6 +740,12 @@ class AppwriteService extends ChangeNotifier {
         'emoji': (emoji ?? '').trim().isEmpty ? '✨' : emoji!.trim(),
         'createdAt': nowIso,
       };
+      if (outfitItems.isNotEmpty) richData['outfitItems'] = outfitItems;
+      if (items.isNotEmpty) richData['items'] = items;
+      if (boardPayload.isNotEmpty) richData['board_payload'] = boardPayload;
+      if (boardPayloadCamel.isNotEmpty) {
+        richData['boardPayload'] = boardPayloadCamel;
+      }
 
       try {
         return await databases.createDocument(
@@ -745,8 +756,43 @@ class AppwriteService extends ChangeNotifier {
         );
       } catch (e) {
         debugPrint(
-          'Rich saved board write failed, retrying minimal schema: $e',
+          'Rich saved board write failed, retrying JSON payload schema: $e',
         );
+      }
+
+      if (outfitItems.isNotEmpty || items.isNotEmpty) {
+        final payloadItems = outfitItems.isNotEmpty ? outfitItems : items;
+        final jsonPayload = jsonEncode({
+          'title': richData['title'],
+          'occasion': storageOccasion,
+          'items': payloadItems,
+        });
+        try {
+          return await databases.createDocument(
+            databaseId: Env.appwriteDatabaseId,
+            collectionId: Env.savedBoardsCollection,
+            documentId: ID.unique(),
+            data: {
+              'userId': user.$id,
+              'occasion': storageOccasion,
+              'imageUrl': cleanImageUrl,
+              'thumbnailUrl': cleanImageUrl,
+              'itemIds': itemIds,
+              'boardCategory': categoryKey,
+              'boardCategoryLabel': categoryLabel,
+              'title': richData['title'],
+              'prompt': richData['prompt'],
+              'outfitDescription': richData['outfitDescription'],
+              'emoji': richData['emoji'],
+              'createdAt': nowIso,
+              'board_payload': jsonPayload,
+            },
+          );
+        } catch (e) {
+          debugPrint(
+            'JSON saved board write failed, retrying minimal schema: $e',
+          );
+        }
       }
 
       return await databases.createDocument(
@@ -764,6 +810,32 @@ class AppwriteService extends ChangeNotifier {
       debugPrint('Error saving board: $e');
       return null;
     }
+  }
+
+  List<Map<String, dynamic>> _savedBoardItemList(Object? raw) {
+    if (raw is! Iterable) return const <Map<String, dynamic>>[];
+    return raw
+        .whereType<Map>()
+        .map((item) => Map<String, dynamic>.from(item))
+        .where((item) {
+          final url =
+              (item['imageUrl'] ??
+                      item['image_url'] ??
+                      item['masked_url'] ??
+                      item['maskedUrl'] ??
+                      item['url'] ??
+                      item['thumbnailUrl'])
+                  ?.toString()
+                  .trim() ??
+              '';
+          return url.isNotEmpty;
+        })
+        .toList();
+  }
+
+  Map<String, dynamic> _savedBoardPayload(Object? raw) {
+    if (raw is Map) return Map<String, dynamic>.from(raw);
+    return const <String, dynamic>{};
   }
 
   String _savedBoardOccasionLabel(String value) {

@@ -1837,6 +1837,7 @@ class _ChatScreenState extends State<ChatScreen>
       orElse: () => const <String, dynamic>{},
     );
     final imageUrl = _flatLayImageUrlKv(firstWithImage);
+    final outfitItems = _savedBoardOutfitItems(slotted);
     final existingTitles =
         (await appwrite.getSavedBoardsByOccasion(
               _savedCategoryOccasion(selectedCategory),
@@ -1873,6 +1874,18 @@ class _ChatScreenState extends State<ChatScreen>
             .where((id) => id != null && id.toString().trim().isNotEmpty)
             .map((id) => id.toString())
             .toList(),
+        'outfitItems': outfitItems,
+        'items': outfitItems,
+        'board_payload': {
+          'title': title,
+          'occasion': _savedCategoryOccasion(selectedCategory),
+          'items': outfitItems,
+        },
+        'boardPayload': {
+          'title': title,
+          'occasion': _savedCategoryOccasion(selectedCategory),
+          'items': outfitItems,
+        },
       },
       emoji: '✨',
     );
@@ -1887,6 +1900,56 @@ class _ChatScreenState extends State<ChatScreen>
         ),
       ),
     );
+  }
+
+  List<Map<String, dynamic>> _savedBoardOutfitItems(
+    Map<String, Map<String, dynamic>> slotted,
+  ) {
+    final items = <Map<String, dynamic>>[];
+    final seen = <String>{};
+    for (final entry in _flatLaySortedEntriesKv(slotted)) {
+      final item = entry.value;
+      final imageUrl = _flatLayImageUrlKv(item);
+      if (imageUrl.isEmpty || seen.contains(imageUrl)) continue;
+      seen.add(imageUrl);
+
+      final rawId =
+          item[r'$id'] ??
+          item['id'] ??
+          item['item_id'] ??
+          item['itemId'] ??
+          item['image_id'] ??
+          item['imageId'];
+      final id = rawId?.toString().trim() ?? '';
+      final name = (item['name'] ?? item['label'] ?? item['title'] ?? entry.key)
+          .toString()
+          .trim();
+      final category =
+          (item['category'] ??
+                  item['sub_category'] ??
+                  item['subcategory'] ??
+                  item['type'] ??
+                  entry.key)
+              .toString()
+              .trim();
+      final maskedUrl = (item['masked_url'] ?? item['maskedUrl'] ?? imageUrl)
+          .toString();
+
+      items.add({
+        if (id.isNotEmpty) 'id': id,
+        if (id.isNotEmpty) 'item_id': id,
+        'role': entry.key,
+        'name': name.isEmpty ? entry.key : name,
+        'category': category.isEmpty ? entry.key : category,
+        'imageUrl': imageUrl,
+        'image_url': imageUrl,
+        'maskedUrl': maskedUrl,
+        'masked_url': maskedUrl,
+        'url': imageUrl,
+        'thumbnailUrl': imageUrl,
+      });
+    }
+    return items;
   }
 
   String _lastUserPrompt() {
