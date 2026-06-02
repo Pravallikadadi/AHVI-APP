@@ -829,6 +829,7 @@ class _AhviStylistChatSheetState extends State<_AhviStylistChatSheet>
 
       final updatedMemory = response['updated_memory'];
       if (updatedMemory != null) _runningMemory = updatedMemory.toString();
+      final moduleCards = _moduleCardsFromSheetResponse(response);
       final boardPayload = _StyleBoardPayload.fromResponse(response);
       final gapPayload = _WardrobeGapPayload.fromResponse(response);
       final displayText = isClosestStyleAction && !boardPayload.hasBoards
@@ -843,10 +844,16 @@ class _AhviStylistChatSheetState extends State<_AhviStylistChatSheet>
           _SheetMessage(
             text: displayText,
             isUser: false,
-            boardPayload: boardPayload.hasBoards && !gapPayload.hasContent
+            moduleCards: moduleCards,
+            boardPayload:
+                moduleCards.isEmpty &&
+                    boardPayload.hasBoards &&
+                    !gapPayload.hasContent
                 ? boardPayload
                 : null,
-            wardrobeGapPayload: isClosestStyleAction && !boardPayload.hasBoards
+            wardrobeGapPayload: moduleCards.isNotEmpty
+                ? null
+                : isClosestStyleAction && !boardPayload.hasBoards
                 ? null
                 : gapPayload.hasContent
                 ? gapPayload
@@ -1326,6 +1333,7 @@ class _SheetMessage {
   final bool isUser;
   final _StyleBoardPayload? boardPayload;
   final _WardrobeGapPayload? wardrobeGapPayload;
+  final List<Map<String, dynamic>> moduleCards;
 
   _SheetMessage({
     this.text,
@@ -1333,6 +1341,7 @@ class _SheetMessage {
     required this.isUser,
     this.boardPayload,
     this.wardrobeGapPayload,
+    this.moduleCards = const [],
   }) : assert(text != null || textKey != null);
 
   String resolve(BuildContext context) {
@@ -1358,16 +1367,57 @@ class _StyleBoardPayload {
       renderedBoards.isNotEmpty || cards.isNotEmpty || outfits.isNotEmpty;
 
   static _StyleBoardPayload fromResponse(Map<String, dynamic> response) {
+    if ((response['type'] ?? '').toString().toLowerCase() ==
+        'module_response') {
+      return const _StyleBoardPayload(
+        cards: [],
+        renderedBoards: [],
+        outfits: [],
+      );
+    }
     final data = response['data'] is Map
         ? Map<String, dynamic>.from(response['data'] as Map)
         : <String, dynamic>{};
     return _StyleBoardPayload(
-      cards: _mapList(response['cards']),
+      cards: _mapList(response['style_boards']),
       renderedBoards: _mapList(data['rendered_boards']),
       outfits: _mapList(data['outfits']),
       boardId: response['board_ids']?.toString(),
     );
   }
+}
+
+bool _isModuleResponse(Map<String, dynamic> response) {
+  final type = (response['type'] ?? '').toString().toLowerCase();
+  final module = (response['module'] ?? response['domain'] ?? '')
+      .toString()
+      .toLowerCase();
+  return type == 'module_response' ||
+      type == 'module_card' ||
+      module == 'calendar' ||
+      module == 'planner' ||
+      module == 'diet' ||
+      module == 'fitness' ||
+      module == 'skincare' ||
+      module == 'medi' ||
+      module == 'bills';
+}
+
+List<Map<String, dynamic>> _moduleCardsFromSheetResponse(
+  Map<String, dynamic> response,
+) {
+  if (!_isModuleResponse(response)) return const [];
+  final cards = <Map<String, dynamic>>[];
+  final card = response['card'];
+  if (card is Map) cards.add(Map<String, dynamic>.from(card));
+  final rawCards = response['cards'];
+  if (rawCards is List) {
+    cards.addAll(
+      rawCards.whereType<Map>().map((item) => Map<String, dynamic>.from(item)),
+    );
+  }
+  if (cards.isEmpty) cards.add(response);
+  return cards;
 }
 
 class _WardrobeGapPayload {
@@ -1531,6 +1581,8 @@ class _Bubble extends StatelessWidget {
             payload: msg.wardrobeGapPayload!,
             onPrompt: onPrompt,
           ),
+        if (msg.moduleCards.isNotEmpty)
+          _SheetModuleCards(cards: msg.moduleCards, onPrompt: onPrompt),
         if (msg.boardPayload != null)
           _StyleBoardCarousel(payload: msg.boardPayload!),
       ],
@@ -1573,6 +1625,161 @@ class _Bubble extends StatelessWidget {
 // ════════════════════════════════════════════════════════════════════
 //  ADD MENU ROW  — list style matching design
 // ════════════════════════════════════════════════════════════════════
+
+class _SheetModuleCards extends StatelessWidget {
+  final List<Map<String, dynamic>> cards;
+  final ValueChanged<String> onPrompt;
+
+  const _SheetModuleCards({required this.cards, required this.onPrompt});
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.themeTokens;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: cards.map((card) {
+        final title = _text(
+          card['title'] ?? card['name'] ?? card['label'],
+          'Plan',
+        );
+        final subtitle = _text(
+          card['subtitle'] ?? card['summary'] ?? card['description'],
+          '',
+        );
+        final rawItems = card['items'];
+        final items = rawItems is List
+            ? rawItems
+                  .map((item) => item.toString())
+                  .where((item) => item.trim().isNotEmpty)
+                  .toList()
+            : const <String>[];
+        final cta = card['cta'] is Map
+            ? Map<String, dynamic>.from(card['cta'] as Map)
+            : <String, dynamic>{};
+        final ctaLabel = (cta['label'] ?? '').toString().trim();
+        final ctaValue =
+            (cta['value'] ?? cta['module'] ?? cta['route'] ?? ctaLabel)
+                .toString()
+                .trim();
+        return Container(
+          width: 280,
+          margin: const EdgeInsets.only(top: 4, bottom: 14),
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: t.panel,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: t.cardBorder, width: 1.1),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    Icons.event_note_rounded,
+                    size: 18,
+                    color: t.accent.primary,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      title,
+                      style: TextStyle(
+                        color: t.textPrimary,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              if (subtitle.isNotEmpty) ...[
+                const SizedBox(height: 6),
+                Text(
+                  subtitle,
+                  style: TextStyle(
+                    color: t.mutedText,
+                    fontSize: 11.5,
+                    height: 1.35,
+                  ),
+                ),
+              ],
+              if (items.isNotEmpty) ...[
+                const SizedBox(height: 10),
+                ...items
+                    .take(6)
+                    .map(
+                      (item) => Padding(
+                        padding: const EdgeInsets.only(bottom: 7),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Container(
+                              width: 6,
+                              height: 6,
+                              margin: const EdgeInsets.only(top: 6),
+                              decoration: BoxDecoration(
+                                color: t.accent.secondary,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                item,
+                                style: TextStyle(
+                                  color: t.textPrimary,
+                                  fontSize: 12,
+                                  height: 1.32,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+              ],
+              if (ctaLabel.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                GestureDetector(
+                  onTap: ctaValue.isEmpty ? null : () => onPrompt(ctaValue),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 11,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: t.accent.primary.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(999),
+                      border: Border.all(
+                        color: t.accent.primary.withValues(alpha: 0.25),
+                      ),
+                    ),
+                    child: Text(
+                      ctaLabel,
+                      style: TextStyle(
+                        color: t.accent.primary,
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        );
+      }).toList(),
+    );
+  }
+}
 
 class _WardrobeGapCard extends StatelessWidget {
   final _WardrobeGapPayload payload;

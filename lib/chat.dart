@@ -357,13 +357,15 @@ String _chipLabel(dynamic chip) => AhviChip.fromDynamic(chip).label;
 String _chipValue(dynamic chip) => AhviChip.fromDynamic(chip).value;
 
 List<dynamic> _extractStyleBoardsFromResponse(Map<String, dynamic> response) {
+  if ((response['type'] ?? '').toString().toLowerCase() == 'module_response') {
+    return const [];
+  }
   final data = response['data'] is Map
       ? Map<String, dynamic>.from(response['data'] as Map)
       : <String, dynamic>{};
 
   for (final value in [
     response['style_boards'],
-    response['cards'],
     data['outfits'],
     data['rendered_boards'],
   ]) {
@@ -1260,13 +1262,11 @@ class _ChatScreenState extends State<ChatScreen>
       final moduleCard = sharedModuleCard == null
           ? _moduleCardFromResponse(response)
           : null;
-      final responseBoards = isStyleModule
-          ? _extractStyleBoardsFromResponse(response)
-          : const <dynamic>[];
-      final moduleCards =
-          !isStyleModule &&
-              sharedModuleCard == null &&
-              _looksLikeModuleCards(response)
+      final isModuleResponse = _looksLikeModuleCards(response);
+      final responseBoards = isModuleResponse
+          ? const <dynamic>[]
+          : _extractStyleBoardsFromResponse(response);
+      final moduleCards = isModuleResponse && sharedModuleCard == null
           ? _moduleCardsFromResponse(response)
           : const <Map<String, dynamic>>[];
       final rawMessage = response['message'];
@@ -1745,16 +1745,6 @@ class _ChatScreenState extends State<ChatScreen>
                 ),
         ),
       ),
-      if (!m.isMe && m.cards.isNotEmpty) _outfitBoardView(m.cards, t),
-      if (!m.isMe && m.visualBoard != null)
-        Padding(
-          padding: const EdgeInsets.only(bottom: 16),
-          child: AhviVisualBoardView(
-            board: m.visualBoard!,
-            textColor: t.textPrimary,
-            accentColor: t.accent.primary,
-          ),
-        ),
       if (!m.isMe && m.moduleCard != null)
         Padding(
           padding: const EdgeInsets.only(bottom: 16),
@@ -1770,6 +1760,23 @@ class _ChatScreenState extends State<ChatScreen>
         ),
       if (!m.isMe && m.moduleCards.isNotEmpty)
         _genericModuleCardsView(m.moduleCards, t),
+      if (!m.isMe &&
+          m.moduleCard == null &&
+          m.moduleCards.isEmpty &&
+          m.cards.isNotEmpty)
+        _outfitBoardView(m.cards, t),
+      if (!m.isMe &&
+          m.moduleCard == null &&
+          m.moduleCards.isEmpty &&
+          m.visualBoard != null)
+        Padding(
+          padding: const EdgeInsets.only(bottom: 16),
+          child: AhviVisualBoardView(
+            board: m.visualBoard!,
+            textColor: t.textPrimary,
+            accentColor: t.accent.primary,
+          ),
+        ),
       if (!m.isMe && m.local != null) _localView(m.local!, t),
       if (!m.isMe && m.chips.isNotEmpty)
         Padding(
