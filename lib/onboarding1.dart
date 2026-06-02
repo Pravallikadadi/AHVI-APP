@@ -43,6 +43,7 @@ class _Screen1State extends State<Screen1> with TickerProviderStateMixin {
   // ── [ADDED B06] Press states for pills and button ──
   final List<bool> _pillPressed = [false, false, false];
   bool _btnPressed = false;
+  bool _isSaving = false;
 
   // ── [ADDED B04] FocusNodes for inputs ──
   late FocusNode _nameFocus;
@@ -340,6 +341,7 @@ class _Screen1State extends State<Screen1> with TickerProviderStateMixin {
   }
 
   Future<void> _onContinue() async {
+    if (_isSaving) return;
     if (!_isValid) {
       _showValidationError(
         'Please complete your name, date of birth, and shop preferences.',
@@ -359,35 +361,61 @@ class _Screen1State extends State<Screen1> with TickerProviderStateMixin {
       return;
     }
 
-    context.read<ProfileController>().updateBasics(
-      name: _nameCtrl.text.trim(),
-      phone: _phoneCtrl.text.trim().isNotEmpty
-          ? '$_selectedCountryCode ${_phoneCtrl.text.trim()}'
-          : '',
-      gender: gender,
-      dob: dob,
-      skinTone: _selectedSkinTone,
-      bodyShape: _selectedBodyShape,
-      shopPrefs: _shopPrefs,
-    );
+    final name = _nameCtrl.text.trim();
+    final phone = _phoneCtrl.text.trim().isNotEmpty
+        ? '$_selectedCountryCode ${_phoneCtrl.text.trim()}'
+        : '';
 
-    debugPrint(
-      'AHVI_ONBOARDING1_SAVE '
-      'gender=$shoppingGender '
-      'skinTone=$_selectedSkinTone '
-      'bodyShape=$_selectedBodyShape '
-      'shopPrefs=${_shopPrefs.join(',')}',
-    );
+    setState(() => _isSaving = true);
 
-    await appwrite.updateCurrentUserProfileFields({
-      'gender': shoppingGender,
-      'skinTone': _selectedSkinTone,
-      'bodyShape': _selectedBodyShape,
-      'onboarding1': true,
-    });
+    try {
+      context.read<ProfileController>().updateBasics(
+        name: name,
+        phone: phone,
+        gender: gender,
+        dob: dob,
+        skinTone: _selectedSkinTone,
+        bodyShape: _selectedBodyShape,
+        shopPrefs: _shopPrefs,
+      );
 
-    if (!mounted) return;
-    Navigator.of(context).pushNamed(AppRoutes.onboarding2);
+      debugPrint(
+        'AHVI_ONBOARDING1_SAVE_START '
+        'gender=$shoppingGender '
+        'skinTone=$_selectedSkinTone '
+        'bodyShape=$_selectedBodyShape '
+        'shopPrefs=${_shopPrefs.join(',')}',
+      );
+
+      await appwrite.ensureCurrentUserProfile();
+      await appwrite.updateCurrentUserProfileFields({
+        'name': name,
+        'phone': phone,
+        'dob': dob,
+        'gender': shoppingGender,
+        'skinTone': _selectedSkinTone,
+        'bodyShape': _selectedBodyShape,
+        'shopPrefs': _shopPrefs.toList(),
+        'onboarding1': true,
+      });
+
+      debugPrint('AHVI_ONBOARDING1_SAVE_SUCCESS');
+
+      if (!mounted) return;
+      Navigator.of(context).pushReplacementNamed(AppRoutes.onboarding2);
+    } catch (e, st) {
+      debugPrint('AHVI_ONBOARDING1_SAVE_FAILED error=$e');
+      debugPrint('$st');
+      if (!mounted) return;
+      _showValidationError('Could not save your profile. Please try again.');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSaving = false;
+          _btnPressed = false;
+        });
+      }
+    }
   }
 
   @override
@@ -1699,12 +1727,19 @@ class _Screen1State extends State<Screen1> with TickerProviderStateMixin {
           children: [
             // ── [ADDED B09, B10] Continue button with navigation + press-down ──
             GestureDetector(
-              onTapDown: (_) => setState(() => _btnPressed = true),
+              onTapDown: (_) {
+                if (_isSaving) return;
+                setState(() => _btnPressed = true);
+              },
               onTapUp: (_) {
+                if (_isSaving) return;
                 setState(() => _btnPressed = false);
                 _onContinue();
               },
-              onTapCancel: () => setState(() => _btnPressed = false),
+              onTapCancel: () {
+                if (_isSaving) return;
+                setState(() => _btnPressed = false);
+              },
               child: AnimatedScale(
                 // [ADDED B10] scale 0.98 on press, matching HTML :active
                 scale: _btnPressed ? 0.98 : 1.0,
@@ -1766,10 +1801,23 @@ class _Screen1State extends State<Screen1> with TickerProviderStateMixin {
                       ),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
-                        children: const [
+                        children: [
+                          if (_isSaving) ...[
+                            const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  textColor,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                          ],
                           Text(
-                            'Continue',
-                            style: TextStyle(
+                            _isSaving ? 'Saving...' : 'Continue',
+                            style: const TextStyle(
                               fontSize: 15.5,
                               fontWeight: FontWeight.w600,
                               color: textColor,
@@ -1777,14 +1825,15 @@ class _Screen1State extends State<Screen1> with TickerProviderStateMixin {
                               fontFamily: 'DM Sans',
                             ),
                           ),
-                          SizedBox(width: 8),
-                          Text(
-                            '→',
-                            style: TextStyle(
-                              fontSize: 15,
-                              color: Color(0xA6F5F7FF),
+                          if (!_isSaving) const SizedBox(width: 8),
+                          if (!_isSaving)
+                            const Text(
+                              '→',
+                              style: TextStyle(
+                                fontSize: 15,
+                                color: Color(0xA6F5F7FF),
+                              ),
                             ),
-                          ),
                         ],
                       ),
                     ],

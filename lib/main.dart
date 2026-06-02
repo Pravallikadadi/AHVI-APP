@@ -1083,6 +1083,14 @@ class _AuthWrapperState extends State<AuthWrapper> {
   bool? _isLoggedIn;
   // null = not yet known, true = first time, false = returning user
   bool? _isFirstTime;
+  String? _nextRoute;
+
+  String _nextRouteForProfile(Map<String, dynamic>? profile) {
+    if (profile?['onboarding1'] != true) return AppRoutes.onboarding1;
+    if (profile?['onboarding2'] != true) return AppRoutes.onboarding2;
+    if (profile?['onboarding3'] != true) return AppRoutes.onboarding3;
+    return AppRoutes.main;
+  }
 
   @override
   void initState() {
@@ -1103,16 +1111,18 @@ class _AuthWrapperState extends State<AuthWrapper> {
   Future<void> _checkAuth() async {
     try {
       final appwrite = Provider.of<AppwriteService>(context, listen: false);
+      final profileController = Provider.of<ProfileController>(
+        context,
+        listen: false,
+      );
       final user = await appwrite.getCurrentUser();
+      Map<String, dynamic>? profile;
       if (user != null) {
         // AHVI auth persistence fix:
         // Appwrite session survives restart, but ProfileController is in-memory.
         // Rehydrate it on cold start so UI does not fall back to "New User".
         try {
-          Provider.of<ProfileController>(
-            context,
-            listen: false,
-          ).loadFromAccount(name: user.name, email: user.email);
+          profileController.loadFromAccount(name: user.name, email: user.email);
         } catch (e) {
           debugPrint("Profile hydration skipped: $e");
         }
@@ -1120,13 +1130,22 @@ class _AuthWrapperState extends State<AuthWrapper> {
         unawaited(
           AhviNotificationService.instance.registerForCurrentUser(appwrite),
         );
+
+        try {
+          await appwrite.cacheCurrentUser();
+          await appwrite.ensureCurrentUserProfile();
+          profile = await appwrite.refreshCurrentUserProfile();
+        } catch (e) {
+          debugPrint('Cold-start profile hydration failed: $e');
+        }
       }
 
       // Appwrite users document is the source of truth.
       // SharedPreferences is only a local cache and is refreshed from Appwrite.
-      final onboardingDone = user != null
-          ? await appwrite.isCurrentUserOnboardingComplete()
-          : false;
+      final nextRoute = user != null
+          ? _nextRouteForProfile(profile)
+          : AppRoutes.signin;
+      final onboardingDone = nextRoute == AppRoutes.main;
 
       debugPrint(
         'AHVI_AUTH_START user=${user?.$id} onboardingDone=$onboardingDone',
@@ -1136,6 +1155,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
         setState(() {
           _isLoggedIn = user != null;
           _isFirstTime = user != null ? !onboardingDone : true;
+          _nextRoute = nextRoute;
           _authDone = true;
         });
         _maybeNavigate();
@@ -1146,6 +1166,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
         setState(() {
           _isLoggedIn = false;
           _isFirstTime = true;
+          _nextRoute = AppRoutes.signin;
           _authDone = true;
         });
         _maybeNavigate();
@@ -1165,7 +1186,11 @@ class _AuthWrapperState extends State<AuthWrapper> {
       if (_isFirstTime == true) {
         // DON'T mark onboardingComplete here — only mark it in onboarding3
         // when user actually taps "Save & Continue"
-        destination = const Screen1();
+        destination = switch (_nextRoute) {
+          AppRoutes.onboarding2 => const Screen2(),
+          AppRoutes.onboarding3 => const Screen3(),
+          _ => const Screen1(),
+        };
       } else {
         destination = const MainNavigationShell();
       }

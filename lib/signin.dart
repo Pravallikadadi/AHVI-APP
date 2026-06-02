@@ -22,35 +22,34 @@ class AhviApp extends StatelessWidget {
 
 /// Source-of-truth onboarding gate.
 ///
-/// Routes the user to onboarding1 ONLY if their Appwrite profile is
-/// incomplete (missing gender or onboarding1/2/3 flags). Otherwise sends
-/// them straight to the main shell. Relying on SharedPreferences alone is
-/// wrong because a returning user on a fresh install / new device has no
-/// local cache, even though Appwrite already has onboardingComplete=true.
+String _nextRouteForProfile(Map<String, dynamic>? profile) {
+  if (profile?['onboarding1'] != true) return AppRoutes.onboarding1;
+  if (profile?['onboarding2'] != true) return AppRoutes.onboarding2;
+  if (profile?['onboarding3'] != true) return AppRoutes.onboarding3;
+  return AppRoutes.main;
+}
+
+/// Routes the user to the exact incomplete onboarding step. Relying on
+/// SharedPreferences alone is wrong because a returning user on a fresh
+/// install / new device has no local cache.
 Future<void> _routeAfterSignIn(BuildContext context) async {
   if (!context.mounted) return;
   final appwrite = Provider.of<AppwriteService>(context, listen: false);
 
-  bool onboardingDone = false;
+  String nextRoute = AppRoutes.onboarding1;
   try {
-    onboardingDone = await appwrite.isCurrentUserOnboardingComplete();
+    await appwrite.ensureCurrentUserProfile();
+    final profile = await appwrite.refreshCurrentUserProfile();
+    nextRoute = _nextRouteForProfile(profile);
   } catch (e) {
     debugPrint('AHVI_SIGNIN_GATE failed to read onboarding state: $e');
-    onboardingDone = false;
+    nextRoute = AppRoutes.onboarding1;
   }
 
-  debugPrint('AHVI_SIGNIN_GATE onboardingDone=$onboardingDone');
+  debugPrint('AHVI_SIGNIN_GATE nextRoute=$nextRoute');
 
   if (!context.mounted) return;
-  if (onboardingDone) {
-    Navigator.of(
-      context,
-    ).pushNamedAndRemoveUntil(AppRoutes.main, (route) => false);
-  } else {
-    Navigator.of(
-      context,
-    ).pushNamedAndRemoveUntil(AppRoutes.onboarding1, (route) => false);
-  }
+  Navigator.of(context).pushNamedAndRemoveUntil(nextRoute, (route) => false);
 }
 
 class SignInScreen extends StatelessWidget {
@@ -285,8 +284,58 @@ class _EmailAuthScreenState extends State<EmailAuthScreen> {
     }
   }
 
-  void _onCreateAccount() {
-    Navigator.of(context).pushNamed(AppRoutes.onboarding1);
+  Future<void> _onCreateAccount() async {
+    final email = _emailCtrl.text.trim();
+    final password = _passwordCtrl.text;
+
+    if (!_isValidEmail(email)) {
+      _showSnackBar('Please enter a valid email address.');
+      return;
+    }
+    if (password.length < 8) {
+      _showSnackBar('Use a password with at least 8 characters.');
+      return;
+    }
+
+    setState(() => _isLoading = true);
+    try {
+      final appwrite = Provider.of<AppwriteService>(context, listen: false);
+      final name = email.split('@').first;
+      context.read<ProfileController>().reset();
+      await appwrite.registerEmailPassword(email, password, name);
+
+      try {
+        final account = await appwrite.account.get();
+        if (mounted) {
+          context.read<ProfileController>().loadFromAccount(
+            name: account.name,
+            email: account.email,
+          );
+        }
+      } catch (_) {}
+
+      try {
+        await AhviNotificationService.instance.registerForCurrentUser(appwrite);
+      } catch (_) {}
+
+      if (!mounted) return;
+      await _routeAfterSignIn(context);
+    } on AppwriteException catch (e) {
+      if (e.code == 409) {
+        _showSnackBar(
+          'An account already exists for this email. Sign in instead.',
+        );
+      } else {
+        _showSnackBar(
+          e.message ?? 'Could not create account. Please try again.',
+        );
+      }
+    } catch (e) {
+      debugPrint('AHVI_EMAIL_SIGNUP_UI_FAILED error=$e');
+      _showSnackBar('Could not create account. Please try again.');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   @override

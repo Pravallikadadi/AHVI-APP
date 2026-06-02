@@ -125,6 +125,16 @@ class AppwriteService extends ChangeNotifier {
     invalidateWardrobeCache();
   }
 
+  Future<void> _deleteExistingSessionsForAuthSwitch() async {
+    try {
+      await account.deleteSessions();
+    } catch (_) {
+      try {
+        await account.deleteSession(sessionId: 'current');
+      } catch (_) {}
+    }
+  }
+
   Future<Session?> loginEmailPassword(String email, String password) async {
     try {
       // Wipe any previous user's in-memory state before authenticating
@@ -198,16 +208,41 @@ class AppwriteService extends ChangeNotifier {
     String password,
     String name,
   ) async {
+    final cleanEmail = email.trim();
+    final cleanName = name.trim();
     try {
+      debugPrint("AHVI_EMAIL_SIGNUP_CREATE_START email=$cleanEmail");
+      clearUserCache();
+      await clearCachedUserIdentity();
+      await _deleteExistingSessionsForAuthSwitch();
+
       final user = await account.create(
         userId: ID.unique(),
-        email: email,
+        email: cleanEmail,
         password: password,
-        name: name,
+        name: cleanName,
       );
+
+      debugPrint("AHVI_EMAIL_SIGNUP_ACCOUNT_CREATED userId=${user.$id}");
+
+      await account.createEmailPasswordSession(
+        email: cleanEmail,
+        password: password,
+      );
+
+      debugPrint("AHVI_EMAIL_SIGNUP_SESSION_CREATED");
+
+      await cacheCurrentUser();
+      await ensureCurrentUserProfile();
+      await refreshCurrentUserProfile();
+
+      debugPrint("AHVI_EMAIL_SIGNUP_PROFILE_READY");
+
+      notifyListeners();
       return user;
-    } catch (e) {
-      debugPrint("Register error: $e");
+    } catch (e, st) {
+      debugPrint("AHVI_EMAIL_SIGNUP_FAILED error=$e");
+      debugPrint("$st");
       rethrow;
     }
   }
@@ -362,54 +397,152 @@ class AppwriteService extends ChangeNotifier {
     return done;
   }
 
-  Future<void> updateCurrentUserProfileFields(Map<String, dynamic> data) async {
-    final user = await getCurrentUser();
-    if (user == null) throw Exception('User not authenticated');
-
-    final usersCollectionId = Env.usersCollection.trim();
-    if (usersCollectionId.isEmpty) {
-      throw Exception('Users collection env is empty');
-    }
-
-    await ensureCurrentUserProfile();
-
-    final cleaned = Map<String, dynamic>.from(data)
+  Map<String, dynamic> _cleanProfilePayload(Map<String, dynamic> data) {
+    return Map<String, dynamic>.from(data)
       ..removeWhere((key, value) => value == null);
-
-    debugPrint('AHVI_PROFILE_UPDATE fields=$cleaned');
-
-    await databases.updateDocument(
-      databaseId: Env.appwriteDatabaseId,
-      collectionId: usersCollectionId,
-      documentId: user.$id,
-      data: cleaned,
-    );
-
-    await refreshCurrentUserProfile();
-    notifyListeners();
   }
 
-  Future<void> ensureCurrentUserProfile() async {
-    if (_userProfileSyncInFlight) return;
+  Map<String, dynamic> _coreProfilePayload(Map<String, dynamic> data) {
+    const coreKeys = {
+      'name',
+      'username',
+      'email',
+      'gender',
+      'onboarding1',
+      'onboarding2',
+      'onboarding3',
+      'stylePreferences',
+    };
+    final out = <String, dynamic>{};
+    for (final entry in data.entries) {
+      if (coreKeys.contains(entry.key) && entry.value != null) {
+        out[entry.key] = entry.value;
+      }
+    }
+    return out;
+  }
+
+  Future<Document> _updateProfileDocumentWithFallback({
+    required String usersCollectionId,
+    required String documentId,
+    required Map<String, dynamic> payload,
+  }) async {
+    final cleaned = _cleanProfilePayload(payload);
+    try {
+      return await databases.updateDocument(
+        databaseId: Env.appwriteDatabaseId,
+        collectionId: usersCollectionId,
+        documentId: documentId,
+        data: cleaned,
+      );
+    } on AppwriteException catch (e) {
+      final fallback = _coreProfilePayload(cleaned);
+      if (fallback.isEmpty || fallback.length == cleaned.length) rethrow;
+      debugPrint(
+        'AHVI_PROFILE_UPDATE_SCHEMA_RETRY error=${e.message} keys=${fallback.keys.toList()}',
+      );
+      return await databases.updateDocument(
+        databaseId: Env.appwriteDatabaseId,
+        collectionId: usersCollectionId,
+        documentId: documentId,
+        data: fallback,
+      );
+    }
+  }
+
+  Future<Document> _createProfileDocumentWithFallback({
+    required String usersCollectionId,
+    required String documentId,
+    required Map<String, dynamic> payload,
+  }) async {
+    final cleaned = _cleanProfilePayload(payload);
+    try {
+      return await databases.createDocument(
+        databaseId: Env.appwriteDatabaseId,
+        collectionId: usersCollectionId,
+        documentId: documentId,
+        data: cleaned,
+        permissions: [
+          Permission.read(Role.user(documentId)),
+          Permission.update(Role.user(documentId)),
+          Permission.delete(Role.user(documentId)),
+        ],
+      );
+    } on AppwriteException catch (e) {
+      final fallback = _coreProfilePayload(cleaned);
+      if (fallback.isEmpty || fallback.length == cleaned.length) rethrow;
+      debugPrint(
+        'AHVI_PROFILE_CREATE_SCHEMA_RETRY error=${e.message} keys=${fallback.keys.toList()}',
+      );
+      return await databases.createDocument(
+        databaseId: Env.appwriteDatabaseId,
+        collectionId: usersCollectionId,
+        documentId: documentId,
+        data: fallback,
+        permissions: [
+          Permission.read(Role.user(documentId)),
+          Permission.update(Role.user(documentId)),
+          Permission.delete(Role.user(documentId)),
+        ],
+      );
+    }
+  }
+
+  Future<void> updateCurrentUserProfileFields(Map<String, dynamic> data) async {
+    try {
+      final user = await getCurrentUser();
+      if (user == null) throw Exception('User not authenticated');
+
+      final usersCollectionId = Env.usersCollection.trim();
+      if (usersCollectionId.isEmpty) {
+        throw Exception('Users collection env is empty');
+      }
+
+      debugPrint('AHVI_PROFILE_UPDATE_START fields=${data.keys.toList()}');
+
+      await ensureCurrentUserProfile();
+
+      final updated = await _updateProfileDocumentWithFallback(
+        usersCollectionId: usersCollectionId,
+        documentId: user.$id,
+        payload: {...data, 'updatedAt': DateTime.now().toIso8601String()},
+      );
+
+      _cachedUserProfileData = Map<String, dynamic>.from(updated.data);
+      await refreshCurrentUserProfile();
+      debugPrint('AHVI_PROFILE_UPDATE_SUCCESS userId=${user.$id}');
+      notifyListeners();
+    } catch (e, st) {
+      debugPrint('AHVI_PROFILE_UPDATE_FAILED error=$e');
+      debugPrint('$st');
+      rethrow;
+    }
+  }
+
+  Future<Document?> ensureCurrentUserProfile() async {
+    if (_userProfileSyncInFlight) return null;
 
     final usersCollectionId = Env.usersCollection.trim();
     if (usersCollectionId.isEmpty) {
       debugPrint(
         '⚠️ Users collection env is empty. Skipping user profile sync.',
       );
-      return;
+      return null;
     }
 
     _userProfileSyncInFlight = true;
 
     try {
       final user = await account.get();
+      debugPrint('AHVI_PROFILE_ENSURE_START userId=${user.$id}');
 
       final displayName = user.name.toString().trim().isNotEmpty
           ? user.name.toString().trim()
           : user.email.toString().split('@').first;
+      final now = DateTime.now().toIso8601String();
 
       final createData = <String, dynamic>{
+        'userId': user.$id,
         'name': displayName,
         'username': _safeUsernameFromUser(user),
         'email': user.email,
@@ -420,6 +553,13 @@ class AppwriteService extends ChangeNotifier {
         'onboarding2': false,
         'onboarding3': false,
         'stylePreferences': <String>[],
+        'skinTone': '',
+        'bodyShape': '',
+        'shopPrefs': <String>[],
+        'dob': '',
+        'phone': '',
+        'createdAt': now,
+        'updatedAt': now,
       };
 
       try {
@@ -428,17 +568,19 @@ class AppwriteService extends ChangeNotifier {
           collectionId: usersCollectionId,
           documentId: user.$id,
         );
+        debugPrint('AHVI_PROFILE_EXISTS userId=${user.$id}');
 
         // IMPORTANT: Do not overwrite onboarding/profile answers on relogin.
         // Only refresh identity fields that come from Appwrite Auth.
-        final updated = await databases.updateDocument(
-          databaseId: Env.appwriteDatabaseId,
-          collectionId: usersCollectionId,
+        final updated = await _updateProfileDocumentWithFallback(
+          usersCollectionId: usersCollectionId,
           documentId: user.$id,
-          data: {
+          payload: {
+            'userId': user.$id,
             'name': displayName,
             'username': _safeUsernameFromUser(user),
             'email': user.email,
+            'updatedAt': now,
           },
         );
 
@@ -448,31 +590,33 @@ class AppwriteService extends ChangeNotifier {
         });
 
         debugPrint('✅ User profile synced: ${user.$id}');
+        return updated;
       } on AppwriteException catch (e) {
         if (e.code == 404) {
-          final created = await databases.createDocument(
-            databaseId: Env.appwriteDatabaseId,
-            collectionId: usersCollectionId,
+          debugPrint('AHVI_PROFILE_CREATE_START userId=${user.$id}');
+          final created = await _createProfileDocumentWithFallback(
+            usersCollectionId: usersCollectionId,
             documentId: user.$id,
-            data: createData,
-            permissions: [
-              Permission.read(Role.user(user.$id)),
-              Permission.update(Role.user(user.$id)),
-              Permission.delete(Role.user(user.$id)),
-            ],
+            payload: createData,
           );
 
           _cachedUserProfileData = Map<String, dynamic>.from(created.data);
           debugPrint('✅ User profile created: ${user.$id}');
-          return;
+          debugPrint('AHVI_PROFILE_CREATE_SUCCESS userId=${user.$id}');
+          return created;
         }
 
         debugPrint(
           '❌ User profile sync AppwriteException: code=${e.code}, type=${e.type}, message=${e.message}',
         );
+        debugPrint('AHVI_PROFILE_CREATE_FAILED error=${e.message}');
+        rethrow;
       }
-    } catch (e) {
+    } catch (e, st) {
       debugPrint('❌ User profile sync failed: $e');
+      debugPrint('AHVI_PROFILE_CREATE_FAILED error=$e');
+      debugPrint('$st');
+      rethrow;
     } finally {
       _userProfileSyncInFlight = false;
     }
