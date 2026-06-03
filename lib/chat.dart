@@ -11,6 +11,9 @@ import 'package:myapp/app_localizations.dart';
 import 'package:myapp/widgets/ahvi_chat_prompt_bar.dart';
 import 'package:myapp/widgets/ahvi_home_text.dart';
 import 'package:myapp/widgets/ahvi_header.dart';
+import 'package:myapp/feature/chat/models/ahvi_response_block.dart';
+import 'package:myapp/feature/chat/services/ahvi_block_response_parser.dart';
+import 'package:myapp/feature/chat/widgets/blocks/ahvi_block_renderer.dart';
 import 'package:myapp/services/appwrite_service.dart';
 import 'package:myapp/services/ahvi_response_parser.dart';
 import 'package:myapp/services/ahvi_speech_service.dart';
@@ -281,41 +284,6 @@ class _ChatMessage {
   });
 }
 
-enum AhviBlockType {
-  text,
-  visualDirections,
-  styleBoards,
-  visualBoard,
-  moduleCards,
-  wardrobeGap,
-  checklist,
-  plan,
-  unknown,
-}
-
-class AhviResponseBlock {
-  final AhviBlockType type;
-  final Map<String, dynamic> data;
-
-  const AhviResponseBlock({required this.type, required this.data});
-}
-
-class AhviParsedResponse {
-  final String text;
-  final List<AhviResponseBlock> blocks;
-  final List<dynamic> chips;
-  final String? boardId;
-  final String? packId;
-
-  const AhviParsedResponse({
-    required this.text,
-    required this.blocks,
-    required this.chips,
-    this.boardId,
-    this.packId,
-  });
-}
-
 bool _isStyleMoreChip(String value) {
   final text = value.toLowerCase().trim();
   return text == 'more looks' ||
@@ -438,94 +406,6 @@ List<String> _blockStringList(dynamic value) {
       .toList(growable: false);
 }
 
-List<Map<String, dynamic>> _extractVisualDirectionsFromResponse(
-  Map<String, dynamic> response,
-) {
-  final data = response['data'] is Map
-      ? Map<String, dynamic>.from(response['data'] as Map)
-      : <String, dynamic>{};
-  final raw =
-      response['visual_directions'] ??
-      data['visual_directions'] ??
-      response['visualDirections'] ??
-      data['visualDirections'];
-  if (raw is! List) return const [];
-  return raw
-      .whereType<Map>()
-      .map((item) => Map<String, dynamic>.from(item))
-      .toList(growable: false);
-}
-
-AhviParsedResponse parseAhviResponse(Map<String, dynamic> response) {
-  final parsed = AhviResponse.fromMap(response);
-  final rawMessage = response['message'];
-  final text =
-      (response['message_text'] ??
-              response['response'] ??
-              (rawMessage is Map ? rawMessage['content'] : rawMessage) ??
-              '')
-          .toString();
-  final blocks = <AhviResponseBlock>[];
-
-  final visualDirections = _extractVisualDirectionsFromResponse(response);
-  if (visualDirections.isNotEmpty) {
-    blocks.add(
-      AhviResponseBlock(
-        type: AhviBlockType.visualDirections,
-        data: {'directions': visualDirections},
-      ),
-    );
-  }
-
-  if (AhviVisualBoard.isVisualBoard(response)) {
-    blocks.add(
-      AhviResponseBlock(
-        type: AhviBlockType.visualBoard,
-        data: {'board': AhviVisualBoard.fromJson(response)},
-      ),
-    );
-  }
-
-  final sharedModuleCard = AhviModuleCard.fromResponse(response);
-  if (sharedModuleCard != null) {
-    blocks.add(
-      AhviResponseBlock(
-        type: AhviBlockType.moduleCards,
-        data: {'module_card': sharedModuleCard},
-      ),
-    );
-  } else if (_looksLikeModuleCards(response)) {
-    final moduleCards = _moduleCardsFromResponse(response);
-    if (moduleCards.isNotEmpty) {
-      final intent = (response['intent'] ?? '').toString().toLowerCase();
-      final type = intent == 'plan_pack' || intent == 'open_checklist'
-          ? AhviBlockType.checklist
-          : AhviBlockType.moduleCards;
-      blocks.add(
-        AhviResponseBlock(type: type, data: {'cards': moduleCards}),
-      );
-    }
-  } else {
-    final styleBoards = _extractStyleBoardsFromResponse(response);
-    if (styleBoards.isNotEmpty) {
-      blocks.add(
-        AhviResponseBlock(
-          type: AhviBlockType.styleBoards,
-          data: {'boards': styleBoards},
-        ),
-      );
-    }
-  }
-
-  return AhviParsedResponse(
-    text: text,
-    blocks: blocks,
-    chips: parsed.chips.map((chip) => chip.toJson()).toList(),
-    boardId: response['board_ids']?.toString(),
-    packId: response['pack_ids']?.toString(),
-  );
-}
-
 List<Map<String, dynamic>> _moduleCardsFromResponse(
   Map<String, dynamic> response,
 ) {
@@ -600,14 +480,16 @@ List<AhviResponseBlock> _replaceStyleBoardBlock(
 ) {
   if (blocks.isEmpty) return blocks;
   var replaced = false;
-  final next = blocks.map((block) {
-    if (block.type != AhviBlockType.styleBoards) return block;
-    replaced = true;
-    return AhviResponseBlock(
-      type: AhviBlockType.styleBoards,
-      data: {'boards': boards},
-    );
-  }).toList(growable: true);
+  final next = blocks
+      .map((block) {
+        if (block.type != AhviBlockType.styleBoards) return block;
+        replaced = true;
+        return AhviResponseBlock(
+          type: AhviBlockType.styleBoards,
+          data: {'boards': boards},
+        );
+      })
+      .toList(growable: true);
   if (!replaced && boards.isNotEmpty) {
     next.add(
       AhviResponseBlock(
@@ -1456,10 +1338,9 @@ class _ChatScreenState extends State<ChatScreen>
               queryText,
         };
       }
-      final aiText =
-          parsedResponse.text.trim().isNotEmpty
-              ? parsedResponse.text
-              : AppLocalizations.t(context, 'chat_connection_error');
+      final aiText = parsedResponse.text.trim().isNotEmpty
+          ? parsedResponse.text
+          : AppLocalizations.t(context, 'chat_connection_error');
       final closestEmptyFallback = isClosestAction && responseBoards.isEmpty
           ? "I couldn't build even a closest option from the available wardrobe slots."
           : aiText;
@@ -1943,43 +1824,13 @@ class _ChatScreenState extends State<ChatScreen>
   );
 
   Widget _renderBlock(AhviResponseBlock block, AppThemeTokens t) {
-    switch (block.type) {
-      case AhviBlockType.visualDirections:
-        final directions = block.data['directions'];
-        return _visualDirectionCardsView(
-          directions is List ? directions : const [],
-          t,
-        );
-      case AhviBlockType.styleBoards:
-        final boards = block.data['boards'];
-        return _outfitBoardView(boards is List ? boards : const [], t);
-      case AhviBlockType.visualBoard:
-        final board = block.data['board'];
-        return board is AhviVisualBoard
-            ? _visualBoardView(board, t)
-            : const SizedBox.shrink();
-      case AhviBlockType.moduleCards:
-      case AhviBlockType.checklist:
-      case AhviBlockType.plan:
-        final moduleCard = block.data['module_card'];
-        if (moduleCard is AhviModuleCard) {
-          return _moduleCardView(moduleCard, t);
-        }
-        final cards = block.data['cards'];
-        return _genericModuleCardsView(
-          cards is List
-              ? cards
-                    .whereType<Map>()
-                    .map((item) => Map<String, dynamic>.from(item))
-                    .toList(growable: false)
-              : const [],
-          t,
-        );
-      case AhviBlockType.text:
-      case AhviBlockType.wardrobeGap:
-      case AhviBlockType.unknown:
-        return const SizedBox.shrink();
-    }
+    return AhviBlockRenderer(
+      block: block,
+      styleBoardsBuilder: (boards) => _outfitBoardView(boards, t),
+      visualBoardBuilder: (board) => _visualBoardView(board, t),
+      moduleCardBuilder: (card) => _moduleCardView(card, t),
+      moduleCardsBuilder: (cards) => _genericModuleCardsView(cards, t),
+    );
   }
 
   Widget _moduleCardView(AhviModuleCard card, AppThemeTokens t) {
