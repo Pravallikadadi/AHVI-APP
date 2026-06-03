@@ -306,6 +306,42 @@ bool _isShowClosestChip(String value) {
       text == 'closest option';
 }
 
+bool _isStyleActionChip(String value) {
+  final text = value.toLowerCase().trim();
+  return text == 'use my wardrobe' ||
+      text == 'use wardrobe' ||
+      text == 'use_wardrobe' ||
+      text == 'from my wardrobe' ||
+      text == 'show visual inspiration' ||
+      text == 'visual inspiration' ||
+      text == 'show_visual_inspiration' ||
+      text == 'find missing pieces' ||
+      text == 'missing pieces' ||
+      text == 'find_missing_pieces' ||
+      text == 'find this';
+}
+
+String _stripStyleActionPrefix(String value) {
+  var text = value.trim();
+  final lower = text.toLowerCase();
+  for (final prefix in [
+    'use my wardrobe for ',
+    'use wardrobe for ',
+    'from my wardrobe for ',
+    'show visual inspiration for ',
+    'visual inspiration for ',
+    'find missing pieces for ',
+    'missing pieces for ',
+    'find this for ',
+  ]) {
+    if (lower.startsWith(prefix)) {
+      text = text.substring(prefix.length).trim();
+      break;
+    }
+  }
+  return text;
+}
+
 bool _isPlanPackRequest(String value) {
   final text = value.toLowerCase().trim();
   final asksForPacking =
@@ -1075,13 +1111,58 @@ class _ChatScreenState extends State<ChatScreen>
       _requestMoreStyleBoards(chip);
       return;
     }
+    final resolvedChip = styleModules.contains(_module)
+        ? _resolveStyleActionChipQuery(chip)
+        : chip;
     final local = _local[chip];
-    if (local == null) return _sendMessage(chip);
+    if (local == null) return _sendMessage(resolvedChip, chip);
     setState(() {
       _messages.add(_ChatMessage(text: chip, isMe: true));
       _messages.add(_ChatMessage(text: local.intro, isMe: false, local: local));
     });
     _scrollToBottom();
+  }
+
+  String _resolveStyleActionChipQuery(String value) {
+    if (!_isStyleActionChip(value)) return value;
+    final baseIntent = _lastStyleActionBaseIntent();
+    if (baseIntent.isEmpty) return value;
+    final text = value.toLowerCase().trim();
+    if (text == 'use my wardrobe' ||
+        text == 'use wardrobe' ||
+        text == 'use_wardrobe' ||
+        text == 'from my wardrobe') {
+      return 'Use my wardrobe for $baseIntent';
+    }
+    if (text == 'find missing pieces' ||
+        text == 'missing pieces' ||
+        text == 'find_missing_pieces' ||
+        text == 'find this') {
+      return 'Find missing pieces for $baseIntent';
+    }
+    if (text == 'show visual inspiration' ||
+        text == 'visual inspiration' ||
+        text == 'show_visual_inspiration') {
+      return 'Show visual inspiration for $baseIntent';
+    }
+    return value;
+  }
+
+  String _lastStyleActionBaseIntent() {
+    for (var i = _chatHistory.length - 1; i >= 0; i--) {
+      final row = _chatHistory[i];
+      if (row['role'] != 'user') continue;
+      final text = (row['content'] ?? '').trim();
+      if (text.isEmpty || _isShowClosestChip(text) || _isStyleMoreChip(text)) {
+        continue;
+      }
+      if (_isStyleActionChip(text)) continue;
+      final stripped = _stripStyleActionPrefix(text);
+      if (stripped.isNotEmpty && !_isStyleActionChip(stripped)) {
+        return stripped;
+      }
+    }
+    return '';
   }
 
   Future<void> _requestMoreStyleBoards(String chip) async {
@@ -1814,7 +1895,13 @@ class _ChatScreenState extends State<ChatScreen>
               final label = _chipLabel(c);
               final value = _chipValue(c);
               return GestureDetector(
-                onTap: () => _sendMessage(value, label),
+                onTap: () {
+                  const styleModules = {'style', 'wardrobe', 'daily_wear'};
+                  final query = styleModules.contains(_module)
+                      ? _resolveStyleActionChipQuery(value)
+                      : value;
+                  _sendMessage(query, label);
+                },
                 child: _chip(label, t),
               );
             }).toList(),
