@@ -255,6 +255,7 @@ class _ChatMessage {
   final bool isMe;
   final bool isGreeting;
   final List<dynamic> chips;
+  final List<AhviResponseBlock> blocks;
   final String? boardId;
   final String? packId;
   final _LocalResponse? local;
@@ -269,6 +270,7 @@ class _ChatMessage {
     required this.isMe,
     this.isGreeting = false,
     this.chips = const [],
+    this.blocks = const [],
     this.boardId,
     this.packId,
     this.local,
@@ -276,6 +278,41 @@ class _ChatMessage {
     this.visualBoard,
     this.moduleCard,
     this.moduleCards = const [],
+  });
+}
+
+enum AhviBlockType {
+  text,
+  visualDirections,
+  styleBoards,
+  visualBoard,
+  moduleCards,
+  wardrobeGap,
+  checklist,
+  plan,
+  unknown,
+}
+
+class AhviResponseBlock {
+  final AhviBlockType type;
+  final Map<String, dynamic> data;
+
+  const AhviResponseBlock({required this.type, required this.data});
+}
+
+class AhviParsedResponse {
+  final String text;
+  final List<AhviResponseBlock> blocks;
+  final List<dynamic> chips;
+  final String? boardId;
+  final String? packId;
+
+  const AhviParsedResponse({
+    required this.text,
+    required this.blocks,
+    required this.chips,
+    this.boardId,
+    this.packId,
   });
 }
 
@@ -383,6 +420,112 @@ List<dynamic> _mapDynamicBoards(dynamic value) {
       .toList();
 }
 
+String _blockText(dynamic value, String fallback) {
+  final text = value?.toString().trim() ?? '';
+  return text.isEmpty || text == 'null' ? fallback : text;
+}
+
+String? _blockNullableText(dynamic value) {
+  final text = value?.toString().trim() ?? '';
+  return text.isEmpty || text == 'null' ? null : text;
+}
+
+List<String> _blockStringList(dynamic value) {
+  if (value is! List) return const [];
+  return value
+      .map((item) => item.toString().trim())
+      .where((item) => item.isNotEmpty && item != 'null')
+      .toList(growable: false);
+}
+
+List<Map<String, dynamic>> _extractVisualDirectionsFromResponse(
+  Map<String, dynamic> response,
+) {
+  final data = response['data'] is Map
+      ? Map<String, dynamic>.from(response['data'] as Map)
+      : <String, dynamic>{};
+  final raw =
+      response['visual_directions'] ??
+      data['visual_directions'] ??
+      response['visualDirections'] ??
+      data['visualDirections'];
+  if (raw is! List) return const [];
+  return raw
+      .whereType<Map>()
+      .map((item) => Map<String, dynamic>.from(item))
+      .toList(growable: false);
+}
+
+AhviParsedResponse parseAhviResponse(Map<String, dynamic> response) {
+  final parsed = AhviResponse.fromMap(response);
+  final rawMessage = response['message'];
+  final text =
+      (response['message_text'] ??
+              response['response'] ??
+              (rawMessage is Map ? rawMessage['content'] : rawMessage) ??
+              '')
+          .toString();
+  final blocks = <AhviResponseBlock>[];
+
+  final visualDirections = _extractVisualDirectionsFromResponse(response);
+  if (visualDirections.isNotEmpty) {
+    blocks.add(
+      AhviResponseBlock(
+        type: AhviBlockType.visualDirections,
+        data: {'directions': visualDirections},
+      ),
+    );
+  }
+
+  if (AhviVisualBoard.isVisualBoard(response)) {
+    blocks.add(
+      AhviResponseBlock(
+        type: AhviBlockType.visualBoard,
+        data: {'board': AhviVisualBoard.fromJson(response)},
+      ),
+    );
+  }
+
+  final sharedModuleCard = AhviModuleCard.fromResponse(response);
+  if (sharedModuleCard != null) {
+    blocks.add(
+      AhviResponseBlock(
+        type: AhviBlockType.moduleCards,
+        data: {'module_card': sharedModuleCard},
+      ),
+    );
+  } else if (_looksLikeModuleCards(response)) {
+    final moduleCards = _moduleCardsFromResponse(response);
+    if (moduleCards.isNotEmpty) {
+      final intent = (response['intent'] ?? '').toString().toLowerCase();
+      final type = intent == 'plan_pack' || intent == 'open_checklist'
+          ? AhviBlockType.checklist
+          : AhviBlockType.moduleCards;
+      blocks.add(
+        AhviResponseBlock(type: type, data: {'cards': moduleCards}),
+      );
+    }
+  } else {
+    final styleBoards = _extractStyleBoardsFromResponse(response);
+    if (styleBoards.isNotEmpty) {
+      blocks.add(
+        AhviResponseBlock(
+          type: AhviBlockType.styleBoards,
+          data: {'boards': styleBoards},
+        ),
+      );
+    }
+  }
+
+  return AhviParsedResponse(
+    text: text,
+    blocks: blocks,
+    chips: parsed.chips.map((chip) => chip.toJson()).toList(),
+    boardId: response['board_ids']?.toString(),
+    packId: response['pack_ids']?.toString(),
+  );
+}
+
 List<Map<String, dynamic>> _moduleCardsFromResponse(
   Map<String, dynamic> response,
 ) {
@@ -449,6 +592,31 @@ List<dynamic> _mergeStyleBoards(
     add(board);
   }
   return merged;
+}
+
+List<AhviResponseBlock> _replaceStyleBoardBlock(
+  List<AhviResponseBlock> blocks,
+  List<dynamic> boards,
+) {
+  if (blocks.isEmpty) return blocks;
+  var replaced = false;
+  final next = blocks.map((block) {
+    if (block.type != AhviBlockType.styleBoards) return block;
+    replaced = true;
+    return AhviResponseBlock(
+      type: AhviBlockType.styleBoards,
+      data: {'boards': boards},
+    );
+  }).toList(growable: true);
+  if (!replaced && boards.isNotEmpty) {
+    next.add(
+      AhviResponseBlock(
+        type: AhviBlockType.styleBoards,
+        data: {'boards': boards},
+      ),
+    );
+  }
+  return next;
 }
 
 List<String> _styleBoardSignatures(List<dynamic> boards) {
@@ -1095,6 +1263,7 @@ class _ChatScreenState extends State<ChatScreen>
             isMe: old.isMe,
             isGreeting: old.isGreeting,
             chips: old.chips,
+            blocks: _replaceStyleBoardBlock(old.blocks, mergedBoards),
             boardId: old.boardId,
             packId: old.packId,
             local: old.local,
@@ -1254,7 +1423,7 @@ class _ChatScreenState extends State<ChatScreen>
       if (response['updated_memory'] != null) {
         _runningMemory = response['updated_memory'];
       }
-      final parsed = AhviResponse.fromMap(response);
+      final parsedResponse = parseAhviResponse(response);
       final visualBoard = AhviVisualBoard.isVisualBoard(response)
           ? AhviVisualBoard.fromJson(response)
           : null;
@@ -1269,7 +1438,6 @@ class _ChatScreenState extends State<ChatScreen>
       final moduleCards = isModuleResponse && sharedModuleCard == null
           ? _moduleCardsFromResponse(response)
           : const <Map<String, dynamic>>[];
-      final rawMessage = response['message'];
       final responseData = response['data'];
       if (responseData is Map &&
           (response['intent'] == 'plan_pack' ||
@@ -1289,16 +1457,14 @@ class _ChatScreenState extends State<ChatScreen>
         };
       }
       final aiText =
-          (response['message_text'] ??
-                  response['response'] ??
-                  (rawMessage is Map ? rawMessage['content'] : rawMessage) ??
-                  AppLocalizations.t(context, 'chat_connection_error'))
-              .toString();
+          parsedResponse.text.trim().isNotEmpty
+              ? parsedResponse.text
+              : AppLocalizations.t(context, 'chat_connection_error');
       final closestEmptyFallback = isClosestAction && responseBoards.isEmpty
           ? "I couldn't build even a closest option from the available wardrobe slots."
           : aiText;
       final duplicateWeakMatch =
-          parsed.type == 'weak_match' &&
+          (response['type'] ?? '').toString() == 'weak_match' &&
           _messages.isNotEmpty &&
           !_messages.last.isMe &&
           _messages.last.text.trim() == aiText.trim();
@@ -1309,9 +1475,10 @@ class _ChatScreenState extends State<ChatScreen>
           _ChatMessage(
             text: closestEmptyFallback,
             isMe: false,
-            chips: parsed.chips.map((chip) => chip.toJson()).toList(),
-            boardId: response['board_ids'],
-            packId: response['pack_ids'],
+            chips: parsedResponse.chips,
+            blocks: parsedResponse.blocks,
+            boardId: parsedResponse.boardId,
+            packId: parsedResponse.packId,
             cards: responseBoards,
             visualBoard: visualBoard,
             moduleCard: sharedModuleCard,
@@ -1745,38 +1912,16 @@ class _ChatScreenState extends State<ChatScreen>
                 ),
         ),
       ),
-      if (!m.isMe && m.moduleCard != null)
-        Padding(
-          padding: const EdgeInsets.only(bottom: 16),
-          child: AhviModuleCardView(
-            card: m.moduleCard!,
-            onOpen: () => _openOrganizePage(m.moduleCard!.openKey),
-            surfaceColor: t.panel,
-            textColor: t.textPrimary,
-            mutedColor: t.mutedText,
-            accentColor: t.accent.primary,
-            borderColor: t.cardBorder,
-          ),
-        ),
-      if (!m.isMe && m.moduleCards.isNotEmpty)
+      if (!m.isMe && m.blocks.isNotEmpty)
+        ...m.blocks.map((block) => _renderBlock(block, t)),
+      if (!m.isMe && m.blocks.isEmpty && m.moduleCard != null)
+        _moduleCardView(m.moduleCard!, t),
+      if (!m.isMe && m.blocks.isEmpty && m.moduleCards.isNotEmpty)
         _genericModuleCardsView(m.moduleCards, t),
-      if (!m.isMe &&
-          m.moduleCard == null &&
-          m.moduleCards.isEmpty &&
-          m.cards.isNotEmpty)
+      if (!m.isMe && m.blocks.isEmpty && m.cards.isNotEmpty)
         _outfitBoardView(m.cards, t),
-      if (!m.isMe &&
-          m.moduleCard == null &&
-          m.moduleCards.isEmpty &&
-          m.visualBoard != null)
-        Padding(
-          padding: const EdgeInsets.only(bottom: 16),
-          child: AhviVisualBoardView(
-            board: m.visualBoard!,
-            textColor: t.textPrimary,
-            accentColor: t.accent.primary,
-          ),
-        ),
+      if (!m.isMe && m.blocks.isEmpty && m.visualBoard != null)
+        _visualBoardView(m.visualBoard!, t),
       if (!m.isMe && m.local != null) _localView(m.local!, t),
       if (!m.isMe && m.chips.isNotEmpty)
         Padding(
@@ -1796,6 +1941,238 @@ class _ChatScreenState extends State<ChatScreen>
         ),
     ],
   );
+
+  Widget _renderBlock(AhviResponseBlock block, AppThemeTokens t) {
+    switch (block.type) {
+      case AhviBlockType.visualDirections:
+        final directions = block.data['directions'];
+        return _visualDirectionCardsView(
+          directions is List ? directions : const [],
+          t,
+        );
+      case AhviBlockType.styleBoards:
+        final boards = block.data['boards'];
+        return _outfitBoardView(boards is List ? boards : const [], t);
+      case AhviBlockType.visualBoard:
+        final board = block.data['board'];
+        return board is AhviVisualBoard
+            ? _visualBoardView(board, t)
+            : const SizedBox.shrink();
+      case AhviBlockType.moduleCards:
+      case AhviBlockType.checklist:
+      case AhviBlockType.plan:
+        final moduleCard = block.data['module_card'];
+        if (moduleCard is AhviModuleCard) {
+          return _moduleCardView(moduleCard, t);
+        }
+        final cards = block.data['cards'];
+        return _genericModuleCardsView(
+          cards is List
+              ? cards
+                    .whereType<Map>()
+                    .map((item) => Map<String, dynamic>.from(item))
+                    .toList(growable: false)
+              : const [],
+          t,
+        );
+      case AhviBlockType.text:
+      case AhviBlockType.wardrobeGap:
+      case AhviBlockType.unknown:
+        return const SizedBox.shrink();
+    }
+  }
+
+  Widget _moduleCardView(AhviModuleCard card, AppThemeTokens t) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: AhviModuleCardView(
+        card: card,
+        onOpen: () => _openOrganizePage(card.openKey),
+        surfaceColor: t.panel,
+        textColor: t.textPrimary,
+        mutedColor: t.mutedText,
+        accentColor: t.accent.primary,
+        borderColor: t.cardBorder,
+      ),
+    );
+  }
+
+  Widget _visualBoardView(AhviVisualBoard board, AppThemeTokens t) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: AhviVisualBoardView(
+        board: board,
+        textColor: t.textPrimary,
+        accentColor: t.accent.primary,
+      ),
+    );
+  }
+
+  Widget _visualDirectionCardsView(List<dynamic> directions, AppThemeTokens t) {
+    final usable = directions
+        .whereType<Map>()
+        .map((item) => Map<String, dynamic>.from(item))
+        .where((item) => item.isNotEmpty)
+        .toList(growable: false);
+    if (usable.isEmpty) return const SizedBox.shrink();
+
+    return SizedBox(
+      height: 310,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        physics: const BouncingScrollPhysics(),
+        itemCount: usable.length,
+        separatorBuilder: (_, _) => const SizedBox(width: 12),
+        itemBuilder: (context, index) {
+          final direction = usable[index];
+          final title = _blockText(direction['title'], 'Style Direction');
+          final description = _blockText(direction['description'], '');
+          final styleNote = _blockText(
+            direction['style_note'] ?? direction['styleNote'],
+            '',
+          );
+          final imageUrl = _blockNullableText(
+            direction['image_url'] ?? direction['imageUrl'],
+          );
+          final palette = _blockStringList(direction['palette']).take(5);
+          final pieces = _blockStringList(direction['pieces']).take(5);
+
+          return Container(
+            width: 300,
+            margin: const EdgeInsets.only(bottom: 16),
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: t.panel,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: t.cardBorder),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.05),
+                  blurRadius: 12,
+                  offset: const Offset(0, 5),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (imageUrl != null) ...[
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(14),
+                    child: Image.network(
+                      imageUrl,
+                      height: 82,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, _, _) => const SizedBox.shrink(),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                ],
+                Row(
+                  children: [
+                    Icon(
+                      Icons.auto_awesome_rounded,
+                      size: 16,
+                      color: t.accent.primary,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        title,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: t.textPrimary,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w900,
+                          height: 1.1,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                if (description.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    description,
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: t.textPrimary.withValues(alpha: 0.82),
+                      fontSize: 12,
+                      height: 1.32,
+                    ),
+                  ),
+                ],
+                if (palette.isNotEmpty) ...[
+                  const SizedBox(height: 10),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: palette
+                        .map(
+                          (color) => Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 5,
+                            ),
+                            decoration: BoxDecoration(
+                              color: t.accent.secondary.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(999),
+                              border: Border.all(
+                                color: t.accent.secondary.withValues(
+                                  alpha: 0.22,
+                                ),
+                              ),
+                            ),
+                            child: Text(
+                              color,
+                              style: TextStyle(
+                                color: t.textPrimary,
+                                fontSize: 10.5,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        )
+                        .toList(growable: false),
+                  ),
+                ],
+                if (pieces.isNotEmpty) ...[
+                  const SizedBox(height: 10),
+                  Text(
+                    pieces.join(' · '),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: t.mutedText,
+                      fontSize: 11.5,
+                      height: 1.3,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+                const Spacer(),
+                if (styleNote.isNotEmpty)
+                  Text(
+                    styleNote,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: t.textPrimary,
+                      fontSize: 11.4,
+                      height: 1.3,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
 
   // Magazine flat-lay composition: dynamic boards in a horizontal swipe
   // (PageView). Each board is a single white canvas with one item per
