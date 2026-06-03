@@ -19,11 +19,15 @@ AhviParsedResponse parseAhviResponse(Map<String, dynamic> response) {
   final blocks = <AhviResponseBlock>[];
 
   final visualDirections = _extractVisualDirections(response, data);
-  if (visualDirections.isNotEmpty) {
+  final hasVisualDirections = visualDirections.isNotEmpty;
+  if (hasVisualDirections) {
     blocks.add(
       AhviResponseBlock(
         type: AhviBlockType.visualDirections,
-        data: {'directions': visualDirections},
+        data: {
+          'directions': visualDirections,
+          'visual_directions': visualDirections,
+        },
       ),
     );
   }
@@ -63,7 +67,9 @@ AhviParsedResponse parseAhviResponse(Map<String, dynamic> response) {
   final planBlock = _extractPlanBlock(response, data);
   if (planBlock != null) blocks.add(planBlock);
 
-  final sharedModuleCard = AhviModuleCard.fromResponse(response);
+  final sharedModuleCard = hasVisualDirections
+      ? null
+      : AhviModuleCard.fromResponse(response);
   if (sharedModuleCard != null) {
     blocks.add(
       AhviResponseBlock(
@@ -72,7 +78,11 @@ AhviParsedResponse parseAhviResponse(Map<String, dynamic> response) {
       ),
     );
   } else {
-    final moduleCards = _extractModuleCards(response, data);
+    final moduleCards = _extractModuleCards(
+      response,
+      data,
+      suppressVisualDirectionCards: hasVisualDirections,
+    );
     if (moduleCards.isNotEmpty) {
       blocks.add(
         AhviResponseBlock(
@@ -153,8 +163,9 @@ List<Map<String, dynamic>> _extractStyleBoards(
 
 List<Map<String, dynamic>> _extractModuleCards(
   Map<String, dynamic> response,
-  Map<String, dynamic> data,
-) {
+  Map<String, dynamic> data, {
+  bool suppressVisualDirectionCards = false,
+}) {
   final out = <Map<String, dynamic>>[];
   void add(dynamic value) {
     if (value is Map) out.add(Map<String, dynamic>.from(value));
@@ -174,7 +185,13 @@ List<Map<String, dynamic>> _extractModuleCards(
   if (out.isEmpty && _looksLikeModuleResponse(response, data)) {
     out.add(response);
   }
-  return out;
+  if (!suppressVisualDirectionCards) return out;
+  return out
+      .where((card) {
+        final type = (card['type'] ?? '').toString().toLowerCase().trim();
+        return type != 'visual_direction' && type != 'style_reasoning';
+      })
+      .toList(growable: false);
 }
 
 Map<String, dynamic> _extractWardrobeGap(
