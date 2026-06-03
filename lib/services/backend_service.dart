@@ -318,6 +318,7 @@ class BackendService {
           'has_message=${data['message'] != null || data['message_text'] != null} '
           'cards=${(data['cards'] as List?)?.length ?? 0} '
           'style_boards=${(data['style_boards'] as List?)?.length ?? 0} '
+          'visual_directions=${(data['visual_directions'] as List?)?.length ?? ((data['data'] as Map?)?['visual_directions'] as List?)?.length ?? 0} '
           'rendered_boards=${((data['data'] as Map?)?['rendered_boards'] as List?)?.length ?? 0} '
           'chips=${(data['chips'] as List?)?.length ?? 0} '
           'requires_wardrobe=${data['requires_wardrobe']} '

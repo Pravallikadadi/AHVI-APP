@@ -832,6 +832,7 @@ class _AhviStylistChatSheetState extends State<_AhviStylistChatSheet>
       final moduleCards = _moduleCardsFromSheetResponse(response);
       final boardPayload = _StyleBoardPayload.fromResponse(response);
       final gapPayload = _WardrobeGapPayload.fromResponse(response);
+      final visualPayload = _VisualDirectionPayload.fromResponse(response);
       final displayText = isClosestStyleAction && !boardPayload.hasBoards
           ? "I couldn't build even a closest option from the available wardrobe slots."
           : gapPayload.active && gapPayload.message.trim().isNotEmpty
@@ -845,6 +846,9 @@ class _AhviStylistChatSheetState extends State<_AhviStylistChatSheet>
             text: displayText,
             isUser: false,
             moduleCards: moduleCards,
+            visualDirectionPayload: visualPayload.hasDirections
+                ? visualPayload
+                : null,
             boardPayload:
                 moduleCards.isEmpty &&
                     boardPayload.hasBoards &&
@@ -1333,6 +1337,7 @@ class _SheetMessage {
   final bool isUser;
   final _StyleBoardPayload? boardPayload;
   final _WardrobeGapPayload? wardrobeGapPayload;
+  final _VisualDirectionPayload? visualDirectionPayload;
   final List<Map<String, dynamic>> moduleCards;
 
   _SheetMessage({
@@ -1341,6 +1346,7 @@ class _SheetMessage {
     required this.isUser,
     this.boardPayload,
     this.wardrobeGapPayload,
+    this.visualDirectionPayload,
     this.moduleCards = const [],
   }) : assert(text != null || textKey != null);
 
@@ -1383,6 +1389,37 @@ class _StyleBoardPayload {
       renderedBoards: _mapList(data['rendered_boards']),
       outfits: _mapList(data['outfits']),
       boardId: response['board_ids']?.toString(),
+    );
+  }
+}
+
+class _VisualDirectionPayload {
+  final List<Map<String, dynamic>> directions;
+
+  const _VisualDirectionPayload({required this.directions});
+
+  bool get hasDirections => directions.isNotEmpty;
+
+  static _VisualDirectionPayload fromResponse(Map<String, dynamic> response) {
+    final data = response['data'] is Map
+        ? Map<String, dynamic>.from(response['data'] as Map)
+        : <String, dynamic>{};
+
+    final raw =
+        response['visual_directions'] ??
+        data['visual_directions'] ??
+        response['visualDirections'] ??
+        data['visualDirections'];
+
+    if (raw is! List) {
+      return const _VisualDirectionPayload(directions: []);
+    }
+
+    return _VisualDirectionPayload(
+      directions: raw
+          .whereType<Map>()
+          .map((item) => Map<String, dynamic>.from(item))
+          .toList(),
     );
   }
 }
@@ -1526,6 +1563,14 @@ List<Map<String, dynamic>> _mapList(dynamic value) {
       .toList();
 }
 
+List<String> _stringList(dynamic value) {
+  if (value is! List) return const [];
+  return value
+      .map((item) => item.toString().trim())
+      .where((item) => item.isNotEmpty && item != 'null')
+      .toList();
+}
+
 class _Bubble extends StatelessWidget {
   final _SheetMessage msg;
   final ValueChanged<String> onPrompt;
@@ -1583,6 +1628,11 @@ class _Bubble extends StatelessWidget {
           ),
         if (msg.moduleCards.isNotEmpty)
           _SheetModuleCards(cards: msg.moduleCards, onPrompt: onPrompt),
+        if (msg.visualDirectionPayload != null)
+          _VisualDirectionCards(
+            payload: msg.visualDirectionPayload!,
+            onPrompt: onPrompt,
+          ),
         if (msg.boardPayload != null)
           _StyleBoardCarousel(payload: msg.boardPayload!),
       ],
@@ -1777,6 +1827,213 @@ class _SheetModuleCards extends StatelessWidget {
           ),
         );
       }).toList(),
+    );
+  }
+}
+
+class _VisualDirectionCards extends StatelessWidget {
+  final _VisualDirectionPayload payload;
+  final ValueChanged<String> onPrompt;
+
+  const _VisualDirectionCards({required this.payload, required this.onPrompt});
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.themeTokens;
+    final width = math.min(MediaQuery.sizeOf(context).width - 72, 318.0);
+    return SizedBox(
+      width: width,
+      height: 310,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        physics: const BouncingScrollPhysics(),
+        itemCount: payload.directions.length,
+        separatorBuilder: (_, _) => const SizedBox(width: 12),
+        itemBuilder: (context, index) {
+          final direction = payload.directions[index];
+          final title = _text(direction['title'], 'Style Direction');
+          final description = _text(direction['description'], '');
+          final styleNote = _text(
+            direction['style_note'] ?? direction['styleNote'],
+            '',
+          );
+          final imageUrl = _nullableText(
+            direction['image_url'] ?? direction['imageUrl'],
+          );
+          final palette = _stringList(direction['palette']).take(5).toList();
+          final pieces = _stringList(direction['pieces']).take(5).toList();
+          final prompt = 'Use my wardrobe for: $title';
+
+          return Container(
+            width: width,
+            margin: const EdgeInsets.only(top: 4, bottom: 14),
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: t.panel,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: t.cardBorder, width: 1.1),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.06),
+                  blurRadius: 12,
+                  offset: const Offset(0, 5),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (imageUrl != null) ...[
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(14),
+                    child: Image.network(
+                      imageUrl,
+                      height: 86,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, _, _) => const SizedBox.shrink(),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                ],
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: 28,
+                      height: 28,
+                      decoration: BoxDecoration(
+                        color: t.accent.primary.withValues(alpha: 0.11),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Icon(
+                        Icons.auto_awesome_rounded,
+                        size: 15,
+                        color: t.accent.primary,
+                      ),
+                    ),
+                    const SizedBox(width: 9),
+                    Expanded(
+                      child: Text(
+                        title,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: t.textPrimary,
+                          fontSize: 15,
+                          height: 1.1,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                if (description.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    description,
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: t.textPrimary.withValues(alpha: 0.82),
+                      fontSize: 11.8,
+                      height: 1.32,
+                    ),
+                  ),
+                ],
+                if (palette.isNotEmpty) ...[
+                  const SizedBox(height: 10),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: palette
+                        .map(
+                          (color) => Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 5,
+                            ),
+                            decoration: BoxDecoration(
+                              color: t.accent.secondary.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(999),
+                              border: Border.all(
+                                color: t.accent.secondary.withValues(
+                                  alpha: 0.2,
+                                ),
+                              ),
+                            ),
+                            child: Text(
+                              color,
+                              style: TextStyle(
+                                color: t.textPrimary,
+                                fontSize: 10.5,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        )
+                        .toList(),
+                  ),
+                ],
+                if (pieces.isNotEmpty) ...[
+                  const SizedBox(height: 10),
+                  Text(
+                    pieces.join(' · '),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: t.mutedText,
+                      fontSize: 11.3,
+                      height: 1.3,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+                if (styleNote.isNotEmpty) ...[
+                  const Spacer(),
+                  Text(
+                    styleNote,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: t.textPrimary,
+                      fontSize: 11.3,
+                      height: 1.3,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ] else
+                  const Spacer(),
+                const SizedBox(height: 10),
+                GestureDetector(
+                  onTap: () => onPrompt(prompt),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 11,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: t.accent.primary.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(999),
+                      border: Border.all(
+                        color: t.accent.primary.withValues(alpha: 0.24),
+                      ),
+                    ),
+                    child: Text(
+                      'Use my wardrobe',
+                      style: TextStyle(
+                        color: t.accent.primary,
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
     );
   }
 }
