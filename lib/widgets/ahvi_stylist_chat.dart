@@ -16,6 +16,8 @@ import 'package:myapp/services/backend_service.dart';
 import 'package:myapp/widgets/ahvi_chat_prompt_bar.dart';
 import 'package:myapp/widgets/ahvi_home_text.dart';
 import 'package:myapp/theme/theme_tokens.dart';
+import 'package:myapp/feature/chat/widgets/blocks/ahvi_block_renderer.dart'
+    show VisualInspirationCard, MissingPieceIntelligenceCard;
 import 'package:provider/provider.dart';
 
 // ════════════════════════════════════════════════════════════════════
@@ -833,6 +835,14 @@ class _AhviStylistChatSheetState extends State<_AhviStylistChatSheet>
       final boardPayload = _StyleBoardPayload.fromResponse(response);
       final gapPayload = _WardrobeGapPayload.fromResponse(response);
       final visualPayload = _VisualDirectionPayload.fromResponse(response);
+      final visualInspiration = _styleBlockFromResponse(
+        response,
+        'visual_inspiration_board',
+      );
+      final missingPiece = _styleBlockFromResponse(
+        response,
+        'missing_piece_intelligence',
+      );
       final displayText = isClosestStyleAction && !boardPayload.hasBoards
           ? "I couldn't build even a closest option from the available wardrobe slots."
           : gapPayload.active && gapPayload.message.trim().isNotEmpty
@@ -849,6 +859,8 @@ class _AhviStylistChatSheetState extends State<_AhviStylistChatSheet>
             visualDirectionPayload: visualPayload.hasDirections
                 ? visualPayload
                 : null,
+            visualInspiration: visualInspiration,
+            missingPiece: missingPiece,
             boardPayload:
                 moduleCards.isEmpty &&
                     boardPayload.hasBoards &&
@@ -1338,6 +1350,8 @@ class _SheetMessage {
   final _StyleBoardPayload? boardPayload;
   final _WardrobeGapPayload? wardrobeGapPayload;
   final _VisualDirectionPayload? visualDirectionPayload;
+  final Map<String, dynamic>? visualInspiration;
+  final Map<String, dynamic>? missingPiece;
   final List<Map<String, dynamic>> moduleCards;
 
   _SheetMessage({
@@ -1347,6 +1361,8 @@ class _SheetMessage {
     this.boardPayload,
     this.wardrobeGapPayload,
     this.visualDirectionPayload,
+    this.visualInspiration,
+    this.missingPiece,
     this.moduleCards = const [],
   }) : assert(text != null || textKey != null);
 
@@ -1563,6 +1579,33 @@ List<Map<String, dynamic>> _mapList(dynamic value) {
       .toList();
 }
 
+/// Style V2: pull a typed block from response top-level, data, or blocks[].
+Map<String, dynamic>? _styleBlockFromResponse(
+  Map<String, dynamic> response,
+  String key,
+) {
+  final direct = response[key];
+  if (direct is Map && direct.isNotEmpty) {
+    return Map<String, dynamic>.from(direct);
+  }
+  final data = response['data'];
+  if (data is Map) {
+    final fromData = data[key];
+    if (fromData is Map && fromData.isNotEmpty) {
+      return Map<String, dynamic>.from(fromData);
+    }
+  }
+  final blocks = response['blocks'];
+  if (blocks is List) {
+    for (final b in blocks) {
+      if (b is Map && (b['type'] ?? '').toString() == key) {
+        return Map<String, dynamic>.from(b);
+      }
+    }
+  }
+  return null;
+}
+
 List<String> _stringList(dynamic value) {
   if (value is! List) return const [];
   return value
@@ -1628,6 +1671,11 @@ class _Bubble extends StatelessWidget {
           ),
         if (msg.moduleCards.isNotEmpty)
           _SheetModuleCards(cards: msg.moduleCards, onPrompt: onPrompt),
+        if (msg.visualInspiration != null)
+          VisualInspirationCard(
+            data: msg.visualInspiration!,
+            onSendMessage: onPrompt,
+          ),
         if (msg.visualDirectionPayload != null)
           _VisualDirectionCards(
             payload: msg.visualDirectionPayload!,
@@ -1635,6 +1683,11 @@ class _Bubble extends StatelessWidget {
           ),
         if (msg.boardPayload != null)
           _StyleBoardCarousel(payload: msg.boardPayload!),
+        if (msg.missingPiece != null)
+          MissingPieceIntelligenceCard(
+            data: msg.missingPiece!,
+            onSendMessage: onPrompt,
+          ),
       ],
     );
 

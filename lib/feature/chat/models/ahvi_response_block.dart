@@ -1,10 +1,12 @@
 enum AhviBlockType {
   text,
+  visualInspiration,
   visualDirections,
   styleBoards,
   visualBoard,
   moduleCards,
   wardrobeGap,
+  missingPiece,
   checklist,
   plan,
   image,

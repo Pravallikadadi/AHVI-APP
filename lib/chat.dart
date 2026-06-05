@@ -1917,6 +1917,7 @@ class _ChatScreenState extends State<ChatScreen>
       visualBoardBuilder: (board) => _visualBoardView(board, t),
       moduleCardBuilder: (card) => _moduleCardView(card, t),
       moduleCardsBuilder: (cards) => _genericModuleCardsView(cards, t),
+      onSendMessage: (msg) => _sendMessage(msg),
     );
   }
 

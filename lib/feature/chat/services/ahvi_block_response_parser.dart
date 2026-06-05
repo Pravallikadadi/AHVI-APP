@@ -18,6 +18,17 @@ AhviParsedResponse parseAhviResponse(Map<String, dynamic> response) {
           .toString();
   final blocks = <AhviResponseBlock>[];
 
+  // Style V2: visual inspiration board renders FIRST (before directions).
+  final visualInspiration = _extractVisualInspiration(response, data);
+  if (visualInspiration.isNotEmpty) {
+    blocks.add(
+      AhviResponseBlock(
+        type: AhviBlockType.visualInspiration,
+        data: visualInspiration,
+      ),
+    );
+  }
+
   final visualDirections = _extractVisualDirections(response, data);
   final hasVisualDirections = visualDirections.isNotEmpty;
   if (hasVisualDirections) {
@@ -107,6 +118,14 @@ AhviParsedResponse parseAhviResponse(Map<String, dynamic> response) {
     }
   }
 
+  // Style V2: missing-piece intelligence renders AFTER boards.
+  final missingPiece = _extractMissingPiece(response, data);
+  if (missingPiece.isNotEmpty) {
+    blocks.add(
+      AhviResponseBlock(type: AhviBlockType.missingPiece, data: missingPiece),
+    );
+  }
+
   debugPrint('AHVI_PARSED_BLOCKS: ${blocks.map((e) => e.type).toList()}');
 
   return AhviParsedResponse(
@@ -129,6 +148,53 @@ List<Map<String, dynamic>> _mapList(dynamic value) {
       .whereType<Map>()
       .map((item) => Map<String, dynamic>.from(item))
       .toList(growable: false);
+}
+
+/// Find a typed block (matching `type == wanted`) inside response["blocks"].
+Map<String, dynamic> _blockByType(
+  Map<String, dynamic> response,
+  String wanted,
+) {
+  final raw = response['blocks'];
+  if (raw is List) {
+    for (final b in raw) {
+      if (b is Map && (b['type'] ?? '').toString() == wanted) {
+        return Map<String, dynamic>.from(b);
+      }
+    }
+  }
+  return const {};
+}
+
+Map<String, dynamic> _extractVisualInspiration(
+  Map<String, dynamic> response,
+  Map<String, dynamic> data,
+) {
+  final direct =
+      response['visual_inspiration_board'] ??
+      data['visual_inspiration_board'];
+  if (direct is Map && direct.isNotEmpty) {
+    return Map<String, dynamic>.from(direct);
+  }
+  return _blockByType(response, 'visual_inspiration_board');
+}
+
+Map<String, dynamic> _extractMissingPiece(
+  Map<String, dynamic> response,
+  Map<String, dynamic> data,
+) {
+  final direct =
+      response['missing_piece_intelligence'] ??
+      data['missing_piece_intelligence'];
+  if (direct is Map && direct.isNotEmpty) {
+    final m = Map<String, dynamic>.from(direct);
+    if (_mapList(m['missing_items']).isNotEmpty) return m;
+  }
+  final block = _blockByType(response, 'missing_piece_intelligence');
+  if (block.isNotEmpty && _mapList(block['missing_items']).isNotEmpty) {
+    return block;
+  }
+  return const {};
 }
 
 List<Map<String, dynamic>> _extractVisualDirections(
