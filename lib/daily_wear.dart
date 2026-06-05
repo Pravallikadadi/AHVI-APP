@@ -823,6 +823,48 @@ class _DailyWearScreenState extends State<DailyWearScreen>
       ),
       green: true,
     );
+    // Record the wear so AHVI learns. Best-effort: only fires when the outfit
+    // carries real wardrobe item ids; demo outfits without ids are skipped.
+    _recordWear(outfit);
+  }
+
+  void _recordWear(Map<String, dynamic> outfit) {
+    final ids = <String>[];
+    void addFrom(dynamic v) {
+      if (v is List) {
+        for (final e in v) {
+          if (e is Map) {
+            final id = (e['id'] ?? e['\$id'] ?? e['item_id'] ?? '')
+                .toString()
+                .trim();
+            if (id.isNotEmpty) ids.add(id);
+          } else if (e is String && e.trim().isNotEmpty) {
+            ids.add(e.trim());
+          }
+        }
+      }
+    }
+
+    addFrom(outfit['items']);
+    addFrom(outfit['used_wardrobe_items']);
+    addFrom(outfit['item_ids']);
+    if (ids.isEmpty) return; // demo outfit — nothing real to record.
+
+    BackendService()
+        .wearToday(
+          itemIds: ids,
+          boardId: (outfit['id'] ?? '').toString(),
+          occasion: (outfit['occasion'] ?? '').toString(),
+        )
+        .then((ok) {
+          if (!mounted) return;
+          _showToast(
+            ok
+                ? 'Added to your style history'
+                : "Couldn't update style history",
+            green: ok,
+          );
+        });
   }
 
   void _openChat() {

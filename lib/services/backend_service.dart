@@ -107,6 +107,39 @@ class BackendService {
     };
   }
 
+  /// Records a "wear today" event so AHVI learns what the user actually wears.
+  /// Fire-and-forget friendly; returns true on success. Skips silently when
+  /// there are no real item ids to record.
+  Future<bool> wearToday({
+    required List<String> itemIds,
+    String boardId = '',
+    String occasion = '',
+  }) async {
+    final ids = itemIds
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toList(growable: false);
+    if (ids.isEmpty) return false;
+    try {
+      final userId = await _currentUserId();
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/api/style/wear-today'),
+            headers: await _authHeaders(),
+            body: jsonEncode({
+              'user_id': userId,
+              'board_id': boardId,
+              'item_ids': ids,
+              'occasion': occasion,
+            }),
+          )
+          .timeout(const Duration(seconds: 20));
+      return response.statusCode >= 200 && response.statusCode < 300;
+    } catch (_) {
+      return false;
+    }
+  }
+
   Object _memoryPayload(String currentMemory) {
     final trimmed = currentMemory.trim();
     if (trimmed.isEmpty) return <String, dynamic>{};
