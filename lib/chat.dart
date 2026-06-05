@@ -2124,11 +2124,44 @@ class _ChatScreenState extends State<ChatScreen>
         .toList();
     if (boards.isEmpty) return const SizedBox.shrink();
 
-    return _OutfitBoardSwiper(
+    // Phase 3: if the backend rendered an editorial board PNG (top-level
+    // image_url), show it first; the item swiper stays below as detail.
+    // No-op when image_url is absent (renderer gated off) — existing fallback.
+    final editorialUrl = _editorialBoardImageUrl(boards.first);
+    final swiper = _OutfitBoardSwiper(
       boards: boards,
       t: t,
       onSave: _saveBoardToPlanner,
     );
+    if (editorialUrl == null) return swiper;
+    debugPrint('AHVI_BOARD_IMAGE_RENDERED_FRONTEND url=$editorialUrl');
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(bottom: 12, right: 20, left: 4),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(18),
+            child: Image.network(
+              editorialUrl,
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+              loadingBuilder: (ctx, child, progress) =>
+                  progress == null ? child : const SizedBox.shrink(),
+            ),
+          ),
+        ),
+        swiper,
+      ],
+    );
+  }
+
+  String? _editorialBoardImageUrl(Map<String, dynamic> board) {
+    for (final key in ['image_url', 'imageUrl', 'board_image_url']) {
+      final v = (board[key] ?? '').toString().trim();
+      if (v.isNotEmpty && v != 'null' && v.startsWith('http')) return v;
+    }
+    return null;
   }
 
   Future<void> _saveBoardToPlanner(
