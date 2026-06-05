@@ -914,6 +914,9 @@ class _ChatScreenState extends State<ChatScreen>
   final List<_ChatMessage> _messages = [];
   final List<Map<String, String>> _chatHistory = [];
   String _runningMemory = '';
+  // Persisted style-pairing session — kept across follow-ups so anchor/route/
+  // persona survive "use my wardrobe" / "show visual inspiration" / etc.
+  Map<String, dynamic>? _lastStyleContext;
   bool _isTyping = false;
   String _userName = 'User';
   final Map<String, List<List<bool>>> _checklistChecksByTitle = {};
@@ -1081,6 +1084,7 @@ class _ChatScreenState extends State<ChatScreen>
         ..add(_ChatMessage(text: '', isMe: false, isGreeting: true));
       _chatHistory.clear();
       _runningMemory = '';
+      _lastStyleContext = null;
     });
     _scrollToBottom();
   }
@@ -1101,8 +1105,24 @@ class _ChatScreenState extends State<ChatScreen>
         );
       }
       _runningMemory = '';
+      _lastStyleContext = null;
     });
     _scrollToBottom();
+  }
+
+  Map<String, dynamic>? _extractLastStyleContext(Map<String, dynamic> response) {
+    final direct = response['last_style_context'];
+    if (direct is Map && direct.isNotEmpty) {
+      return Map<String, dynamic>.from(direct);
+    }
+    final data = response['data'];
+    if (data is Map) {
+      final fromData = data['last_style_context'];
+      if (fromData is Map && fromData.isNotEmpty) {
+        return Map<String, dynamic>.from(fromData);
+      }
+    }
+    return null;
   }
 
   void _handleChipTap(String chip) {
@@ -1197,6 +1217,7 @@ class _ChatScreenState extends State<ChatScreen>
             : 'more_options',
         previousPrompt: resolvedPrompt.isNotEmpty ? resolvedPrompt : null,
         resolvedPrompt: resolvedPrompt.isNotEmpty ? resolvedPrompt : null,
+        lastStyleContext: _lastStyleContext,
         excludeStyleSignatures: exclude,
         requestedBoardCount: 3,
       );
@@ -1372,6 +1393,7 @@ class _ChatScreenState extends State<ChatScreen>
                         'interpreted_occasion': interpretedOccasion,
                     }
                   : null,
+              lastStyleContext: _lastStyleContext,
               showClosestOption: isClosestAction,
               allowClosestOption: isClosestAction,
               closest: isClosestAction,
@@ -1386,6 +1408,10 @@ class _ChatScreenState extends State<ChatScreen>
       if (response['updated_memory'] != null) {
         _runningMemory = response['updated_memory'];
       }
+      // Persist style-pairing session context (anchor/route/persona) so the
+      // next follow-up keeps it. A new pairing response replaces the old one.
+      final lsc = _extractLastStyleContext(response);
+      if (lsc != null) _lastStyleContext = lsc;
       final parsedResponse = parseAhviResponse(response);
       final visualBoard = AhviVisualBoard.isVisualBoard(response)
           ? AhviVisualBoard.fromJson(response)

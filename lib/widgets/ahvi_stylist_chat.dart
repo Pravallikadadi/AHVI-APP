@@ -378,6 +378,7 @@ class _AhviStylistChatSheetState extends State<_AhviStylistChatSheet>
   final List<_SheetMessage> _messages = [];
   final List<Map<String, String>> _chatHistory = [];
   String _runningMemory = '';
+  Map<String, dynamic>? _lastStyleContext;
   bool _typing = false;
   bool _chipsVisible = true;
   bool _chatHasText = false;
@@ -795,6 +796,7 @@ class _AhviStylistChatSheetState extends State<_AhviStylistChatSheet>
                         'interpreted_occasion': interpretedOccasion,
                     }
                   : null,
+              lastStyleContext: _lastStyleContext,
               showClosestOption: isClosestStyleAction,
               allowClosestOption: isClosestStyleAction,
               closest: isClosestStyleAction,
@@ -831,6 +833,8 @@ class _AhviStylistChatSheetState extends State<_AhviStylistChatSheet>
 
       final updatedMemory = response['updated_memory'];
       if (updatedMemory != null) _runningMemory = updatedMemory.toString();
+      final _lsc = _styleBlockFromResponse(response, 'last_style_context');
+      if (_lsc != null) _lastStyleContext = _lsc;
       final moduleCards = _moduleCardsFromSheetResponse(response);
       final boardPayload = _StyleBoardPayload.fromResponse(response);
       final gapPayload = _WardrobeGapPayload.fromResponse(response);

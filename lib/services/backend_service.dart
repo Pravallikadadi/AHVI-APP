@@ -140,10 +140,17 @@ class BackendService {
     }
   }
 
-  Object _memoryPayload(String currentMemory) {
+  Object _memoryPayload(
+    String currentMemory, [
+    Map<String, dynamic>? lastStyleContext,
+  ]) {
+    final out = <String, dynamic>{};
     final trimmed = currentMemory.trim();
-    if (trimmed.isEmpty) return <String, dynamic>{};
-    return {'summary': trimmed};
+    if (trimmed.isNotEmpty) out['summary'] = trimmed;
+    if (lastStyleContext != null && lastStyleContext.isNotEmpty) {
+      out['last_style_context'] = lastStyleContext;
+    }
+    return out;
   }
 
   String _messageText(Map<String, dynamic> data) {
@@ -237,6 +244,9 @@ class BackendService {
     String? resolvedPrompt,
     String? currentLookId,
     Map<String, dynamic>? styleContext,
+    // Persisted style-pairing session (anchor/route/persona). Echoed into
+    // current_memory so backend follow-ups keep the anchor.
+    Map<String, dynamic>? lastStyleContext,
     bool showClosestOption = false,
     bool allowClosestOption = false,
     bool closest = false,
@@ -283,7 +293,7 @@ class BackendService {
       final requestPayload = {
         'messages': historyForRequest,
         'language': 'en',
-        'current_memory': _memoryPayload(currentMemory),
+        'current_memory': _memoryPayload(currentMemory, lastStyleContext),
         'user_profile': {...?userProfile, 'user_id': authedUserId},
         'user_id': authedUserId,
         ...extraContext,
