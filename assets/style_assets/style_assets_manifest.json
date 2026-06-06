@@ -1,0 +1,1055 @@
+{
+  "version": "1.0",
+  "source": "Meghna",
+  "note": "Local accessory inspiration assets for Complete the Look / Visual Inspiration. Not owned wardrobe items.",
+  "assets": [
+    {
+      "id": "earrings_01",
+      "name": "Earrings 01",
+      "category": "earrings",
+      "gender": "women",
+      "archetypes": [
+        "Modern Romantic",
+        "Gallery Night",
+        "Italian Summer",
+        "Quiet Luxury"
+      ],
+      "occasions": [
+        "date",
+        "dinner",
+        "party",
+        "wedding"
+      ],
+      "colors": [
+        "gold"
+      ],
+      "asset_path": "assets/style_assets/accessories/earrings/earring_01.jpg",
+      "source": "Meghna"
+    },
+    {
+      "id": "earrings_02",
+      "name": "Earrings 02",
+      "category": "earrings",
+      "gender": "women",
+      "archetypes": [
+        "Modern Romantic",
+        "Gallery Night",
+        "Italian Summer",
+        "Quiet Luxury"
+      ],
+      "occasions": [
+        "date",
+        "dinner",
+        "party",
+        "wedding"
+      ],
+      "colors": [
+        "gold"
+      ],
+      "asset_path": "assets/style_assets/accessories/earrings/earring_02.jpg",
+      "source": "Meghna"
+    },
+    {
+      "id": "earrings_03",
+      "name": "Earrings 03",
+      "category": "earrings",
+      "gender": "women",
+      "archetypes": [
+        "Modern Romantic",
+        "Gallery Night",
+        "Italian Summer",
+        "Quiet Luxury"
+      ],
+      "occasions": [
+        "date",
+        "dinner",
+        "party",
+        "wedding"
+      ],
+      "colors": [
+        "gold"
+      ],
+      "asset_path": "assets/style_assets/accessories/earrings/earring_03.jpg",
+      "source": "Meghna"
+    },
+    {
+      "id": "earrings_04",
+      "name": "Earrings 04",
+      "category": "earrings",
+      "gender": "women",
+      "archetypes": [
+        "Modern Romantic",
+        "Gallery Night",
+        "Italian Summer",
+        "Quiet Luxury"
+      ],
+      "occasions": [
+        "date",
+        "dinner",
+        "party",
+        "wedding"
+      ],
+      "colors": [
+        "gold"
+      ],
+      "asset_path": "assets/style_assets/accessories/earrings/earring_04.jpg",
+      "source": "Meghna"
+    },
+    {
+      "id": "earrings_05",
+      "name": "Earrings 05",
+      "category": "earrings",
+      "gender": "women",
+      "archetypes": [
+        "Modern Romantic",
+        "Gallery Night",
+        "Italian Summer",
+        "Quiet Luxury"
+      ],
+      "occasions": [
+        "date",
+        "dinner",
+        "party",
+        "wedding"
+      ],
+      "colors": [
+        "gold"
+      ],
+      "asset_path": "assets/style_assets/accessories/earrings/earring_05.jpg",
+      "source": "Meghna"
+    },
+    {
+      "id": "earrings_06",
+      "name": "Earrings 06",
+      "category": "earrings",
+      "gender": "women",
+      "archetypes": [
+        "Modern Romantic",
+        "Gallery Night",
+        "Italian Summer",
+        "Quiet Luxury"
+      ],
+      "occasions": [
+        "date",
+        "dinner",
+        "party",
+        "wedding"
+      ],
+      "colors": [
+        "gold"
+      ],
+      "asset_path": "assets/style_assets/accessories/earrings/earring_06.jpg",
+      "source": "Meghna"
+    },
+    {
+      "id": "earrings_07",
+      "name": "Earrings 07",
+      "category": "earrings",
+      "gender": "women",
+      "archetypes": [
+        "Modern Romantic",
+        "Gallery Night",
+        "Italian Summer",
+        "Quiet Luxury"
+      ],
+      "occasions": [
+        "date",
+        "dinner",
+        "party",
+        "wedding"
+      ],
+      "colors": [
+        "gold"
+      ],
+      "asset_path": "assets/style_assets/accessories/earrings/earring_07.jpg",
+      "source": "Meghna"
+    },
+    {
+      "id": "earrings_08",
+      "name": "Earrings 08",
+      "category": "earrings",
+      "gender": "women",
+      "archetypes": [
+        "Modern Romantic",
+        "Gallery Night",
+        "Italian Summer",
+        "Quiet Luxury"
+      ],
+      "occasions": [
+        "date",
+        "dinner",
+        "party",
+        "wedding"
+      ],
+      "colors": [
+        "gold"
+      ],
+      "asset_path": "assets/style_assets/accessories/earrings/earring_08.jpg",
+      "source": "Meghna"
+    },
+    {
+      "id": "necklaces_01",
+      "name": "Necklace 01",
+      "category": "necklaces",
+      "gender": "women",
+      "archetypes": [
+        "Quiet Luxury",
+        "Modern Romantic",
+        "Gallery Night"
+      ],
+      "occasions": [
+        "date",
+        "dinner",
+        "wedding",
+        "party"
+      ],
+      "colors": [
+        "gold"
+      ],
+      "asset_path": "assets/style_assets/accessories/necklaces/necklace_01.jpg",
+      "source": "Meghna"
+    },
+    {
+      "id": "necklaces_02",
+      "name": "Necklace 02",
+      "category": "necklaces",
+      "gender": "women",
+      "archetypes": [
+        "Quiet Luxury",
+        "Modern Romantic",
+        "Gallery Night"
+      ],
+      "occasions": [
+        "date",
+        "dinner",
+        "wedding",
+        "party"
+      ],
+      "colors": [
+        "gold"
+      ],
+      "asset_path": "assets/style_assets/accessories/necklaces/necklace_02.jpg",
+      "source": "Meghna"
+    },
+    {
+      "id": "necklaces_03",
+      "name": "Necklace 03",
+      "category": "necklaces",
+      "gender": "women",
+      "archetypes": [
+        "Quiet Luxury",
+        "Modern Romantic",
+        "Gallery Night"
+      ],
+      "occasions": [
+        "date",
+        "dinner",
+        "wedding",
+        "party"
+      ],
+      "colors": [
+        "gold"
+      ],
+      "asset_path": "assets/style_assets/accessories/necklaces/necklace_03.jpg",
+      "source": "Meghna"
+    },
+    {
+      "id": "necklaces_04",
+      "name": "Necklace 04",
+      "category": "necklaces",
+      "gender": "women",
+      "archetypes": [
+        "Quiet Luxury",
+        "Modern Romantic",
+        "Gallery Night"
+      ],
+      "occasions": [
+        "date",
+        "dinner",
+        "wedding",
+        "party"
+      ],
+      "colors": [
+        "gold"
+      ],
+      "asset_path": "assets/style_assets/accessories/necklaces/necklace_04.jpg",
+      "source": "Meghna"
+    },
+    {
+      "id": "necklaces_05",
+      "name": "Necklace 05",
+      "category": "necklaces",
+      "gender": "women",
+      "archetypes": [
+        "Quiet Luxury",
+        "Modern Romantic",
+        "Gallery Night"
+      ],
+      "occasions": [
+        "date",
+        "dinner",
+        "wedding",
+        "party"
+      ],
+      "colors": [
+        "gold"
+      ],
+      "asset_path": "assets/style_assets/accessories/necklaces/necklace_05.jpg",
+      "source": "Meghna"
+    },
+    {
+      "id": "necklaces_06",
+      "name": "Necklace 06",
+      "category": "necklaces",
+      "gender": "women",
+      "archetypes": [
+        "Quiet Luxury",
+        "Modern Romantic",
+        "Gallery Night"
+      ],
+      "occasions": [
+        "date",
+        "dinner",
+        "wedding",
+        "party"
+      ],
+      "colors": [
+        "gold"
+      ],
+      "asset_path": "assets/style_assets/accessories/necklaces/necklace_06.jpg",
+      "source": "Meghna"
+    },
+    {
+      "id": "necklaces_07",
+      "name": "Necklace 07",
+      "category": "necklaces",
+      "gender": "women",
+      "archetypes": [
+        "Quiet Luxury",
+        "Modern Romantic",
+        "Gallery Night"
+      ],
+      "occasions": [
+        "date",
+        "dinner",
+        "wedding",
+        "party"
+      ],
+      "colors": [
+        "gold"
+      ],
+      "asset_path": "assets/style_assets/accessories/necklaces/necklace_07.jpg",
+      "source": "Meghna"
+    },
+    {
+      "id": "necklaces_08",
+      "name": "Necklace 08",
+      "category": "necklaces",
+      "gender": "women",
+      "archetypes": [
+        "Quiet Luxury",
+        "Modern Romantic",
+        "Gallery Night"
+      ],
+      "occasions": [
+        "date",
+        "dinner",
+        "wedding",
+        "party"
+      ],
+      "colors": [
+        "gold"
+      ],
+      "asset_path": "assets/style_assets/accessories/necklaces/necklace_08.jpg",
+      "source": "Meghna"
+    },
+    {
+      "id": "bracelets_01",
+      "name": "Bracelet 01",
+      "category": "bracelets",
+      "gender": "unisex",
+      "archetypes": [
+        "Quiet Luxury",
+        "Smart Casual Edge",
+        "Refined Weekend"
+      ],
+      "occasions": [
+        "everyday",
+        "dinner",
+        "weekend"
+      ],
+      "colors": [
+        "gold"
+      ],
+      "asset_path": "assets/style_assets/accessories/bracelets/bracelet_01.jpg",
+      "source": "Meghna"
+    },
+    {
+      "id": "bracelets_02",
+      "name": "Bracelet 02",
+      "category": "bracelets",
+      "gender": "unisex",
+      "archetypes": [
+        "Quiet Luxury",
+        "Smart Casual Edge",
+        "Refined Weekend"
+      ],
+      "occasions": [
+        "everyday",
+        "dinner",
+        "weekend"
+      ],
+      "colors": [
+        "gold"
+      ],
+      "asset_path": "assets/style_assets/accessories/bracelets/bracelet_02.jpg",
+      "source": "Meghna"
+    },
+    {
+      "id": "bracelets_03",
+      "name": "Bracelet 03",
+      "category": "bracelets",
+      "gender": "unisex",
+      "archetypes": [
+        "Quiet Luxury",
+        "Smart Casual Edge",
+        "Refined Weekend"
+      ],
+      "occasions": [
+        "everyday",
+        "dinner",
+        "weekend"
+      ],
+      "colors": [
+        "gold"
+      ],
+      "asset_path": "assets/style_assets/accessories/bracelets/bracelet_03.jpg",
+      "source": "Meghna"
+    },
+    {
+      "id": "bracelets_04",
+      "name": "Bracelet 04",
+      "category": "bracelets",
+      "gender": "unisex",
+      "archetypes": [
+        "Quiet Luxury",
+        "Smart Casual Edge",
+        "Refined Weekend"
+      ],
+      "occasions": [
+        "everyday",
+        "dinner",
+        "weekend"
+      ],
+      "colors": [
+        "gold"
+      ],
+      "asset_path": "assets/style_assets/accessories/bracelets/bracelet_04.jpg",
+      "source": "Meghna"
+    },
+    {
+      "id": "bracelets_05",
+      "name": "Bracelet 05",
+      "category": "bracelets",
+      "gender": "unisex",
+      "archetypes": [
+        "Quiet Luxury",
+        "Smart Casual Edge",
+        "Refined Weekend"
+      ],
+      "occasions": [
+        "everyday",
+        "dinner",
+        "weekend"
+      ],
+      "colors": [
+        "gold"
+      ],
+      "asset_path": "assets/style_assets/accessories/bracelets/bracelet_05.jpg",
+      "source": "Meghna"
+    },
+    {
+      "id": "bracelets_06",
+      "name": "Bracelet 06",
+      "category": "bracelets",
+      "gender": "unisex",
+      "archetypes": [
+        "Quiet Luxury",
+        "Smart Casual Edge",
+        "Refined Weekend"
+      ],
+      "occasions": [
+        "everyday",
+        "dinner",
+        "weekend"
+      ],
+      "colors": [
+        "gold"
+      ],
+      "asset_path": "assets/style_assets/accessories/bracelets/bracelet_06.jpg",
+      "source": "Meghna"
+    },
+    {
+      "id": "bracelets_07",
+      "name": "Bracelet 07",
+      "category": "bracelets",
+      "gender": "unisex",
+      "archetypes": [
+        "Quiet Luxury",
+        "Smart Casual Edge",
+        "Refined Weekend"
+      ],
+      "occasions": [
+        "everyday",
+        "dinner",
+        "weekend"
+      ],
+      "colors": [
+        "gold"
+      ],
+      "asset_path": "assets/style_assets/accessories/bracelets/bracelet_07.jpg",
+      "source": "Meghna"
+    },
+    {
+      "id": "bracelets_08",
+      "name": "Bracelet 08",
+      "category": "bracelets",
+      "gender": "unisex",
+      "archetypes": [
+        "Quiet Luxury",
+        "Smart Casual Edge",
+        "Refined Weekend"
+      ],
+      "occasions": [
+        "everyday",
+        "dinner",
+        "weekend"
+      ],
+      "colors": [
+        "gold"
+      ],
+      "asset_path": "assets/style_assets/accessories/bracelets/bracelet_08.jpg",
+      "source": "Meghna"
+    },
+    {
+      "id": "sets_01",
+      "name": "Jewelry Set 01",
+      "category": "jewelry_set",
+      "gender": "women",
+      "archetypes": [
+        "Gallery Night",
+        "Modern Romantic",
+        "Quiet Luxury"
+      ],
+      "occasions": [
+        "wedding",
+        "party",
+        "dinner"
+      ],
+      "colors": [
+        "gold"
+      ],
+      "asset_path": "assets/style_assets/accessories/sets/set_01.jpg",
+      "source": "Meghna"
+    },
+    {
+      "id": "sets_02",
+      "name": "Jewelry Set 02",
+      "category": "jewelry_set",
+      "gender": "women",
+      "archetypes": [
+        "Gallery Night",
+        "Modern Romantic",
+        "Quiet Luxury"
+      ],
+      "occasions": [
+        "wedding",
+        "party",
+        "dinner"
+      ],
+      "colors": [
+        "gold"
+      ],
+      "asset_path": "assets/style_assets/accessories/sets/set_02.jpg",
+      "source": "Meghna"
+    },
+    {
+      "id": "sets_03",
+      "name": "Jewelry Set 03",
+      "category": "jewelry_set",
+      "gender": "women",
+      "archetypes": [
+        "Gallery Night",
+        "Modern Romantic",
+        "Quiet Luxury"
+      ],
+      "occasions": [
+        "wedding",
+        "party",
+        "dinner"
+      ],
+      "colors": [
+        "gold"
+      ],
+      "asset_path": "assets/style_assets/accessories/sets/set_03.jpg",
+      "source": "Meghna"
+    },
+    {
+      "id": "sets_04",
+      "name": "Jewelry Set 04",
+      "category": "jewelry_set",
+      "gender": "women",
+      "archetypes": [
+        "Gallery Night",
+        "Modern Romantic",
+        "Quiet Luxury"
+      ],
+      "occasions": [
+        "wedding",
+        "party",
+        "dinner"
+      ],
+      "colors": [
+        "gold"
+      ],
+      "asset_path": "assets/style_assets/accessories/sets/set_04.jpg",
+      "source": "Meghna"
+    },
+    {
+      "id": "sets_05",
+      "name": "Jewelry Set 05",
+      "category": "jewelry_set",
+      "gender": "women",
+      "archetypes": [
+        "Gallery Night",
+        "Modern Romantic",
+        "Quiet Luxury"
+      ],
+      "occasions": [
+        "wedding",
+        "party",
+        "dinner"
+      ],
+      "colors": [
+        "gold"
+      ],
+      "asset_path": "assets/style_assets/accessories/sets/set_05.jpg",
+      "source": "Meghna"
+    },
+    {
+      "id": "sets_06",
+      "name": "Jewelry Set 06",
+      "category": "jewelry_set",
+      "gender": "women",
+      "archetypes": [
+        "Gallery Night",
+        "Modern Romantic",
+        "Quiet Luxury"
+      ],
+      "occasions": [
+        "wedding",
+        "party",
+        "dinner"
+      ],
+      "colors": [
+        "gold"
+      ],
+      "asset_path": "assets/style_assets/accessories/sets/set_06.jpg",
+      "source": "Meghna"
+    },
+    {
+      "id": "sets_07",
+      "name": "Jewelry Set 07",
+      "category": "jewelry_set",
+      "gender": "women",
+      "archetypes": [
+        "Gallery Night",
+        "Modern Romantic",
+        "Quiet Luxury"
+      ],
+      "occasions": [
+        "wedding",
+        "party",
+        "dinner"
+      ],
+      "colors": [
+        "gold"
+      ],
+      "asset_path": "assets/style_assets/accessories/sets/set_07.jpg",
+      "source": "Meghna"
+    },
+    {
+      "id": "sets_08",
+      "name": "Jewelry Set 08",
+      "category": "jewelry_set",
+      "gender": "women",
+      "archetypes": [
+        "Gallery Night",
+        "Modern Romantic",
+        "Quiet Luxury"
+      ],
+      "occasions": [
+        "wedding",
+        "party",
+        "dinner"
+      ],
+      "colors": [
+        "gold"
+      ],
+      "asset_path": "assets/style_assets/accessories/sets/set_08.jpg",
+      "source": "Meghna"
+    },
+    {
+      "id": "bags_01",
+      "name": "Bag 01",
+      "category": "bag",
+      "gender": "unisex",
+      "archetypes": [
+        "Refined Weekend",
+        "Urban Minimalist",
+        "Italian Summer",
+        "Power Casual"
+      ],
+      "occasions": [
+        "weekend",
+        "travel",
+        "work",
+        "casual"
+      ],
+      "colors": [
+        "neutral"
+      ],
+      "asset_path": "assets/style_assets/accessories/bags/bag_01.jpg",
+      "source": "Meghna"
+    },
+    {
+      "id": "bags_02",
+      "name": "Bag 02",
+      "category": "bag",
+      "gender": "unisex",
+      "archetypes": [
+        "Refined Weekend",
+        "Urban Minimalist",
+        "Italian Summer",
+        "Power Casual"
+      ],
+      "occasions": [
+        "weekend",
+        "travel",
+        "work",
+        "casual"
+      ],
+      "colors": [
+        "neutral"
+      ],
+      "asset_path": "assets/style_assets/accessories/bags/bag_02.jpg",
+      "source": "Meghna"
+    },
+    {
+      "id": "bags_03",
+      "name": "Bag 03",
+      "category": "bag",
+      "gender": "unisex",
+      "archetypes": [
+        "Refined Weekend",
+        "Urban Minimalist",
+        "Italian Summer",
+        "Power Casual"
+      ],
+      "occasions": [
+        "weekend",
+        "travel",
+        "work",
+        "casual"
+      ],
+      "colors": [
+        "neutral"
+      ],
+      "asset_path": "assets/style_assets/accessories/bags/bag_03.jpg",
+      "source": "Meghna"
+    },
+    {
+      "id": "bags_04",
+      "name": "Bag 04",
+      "category": "bag",
+      "gender": "unisex",
+      "archetypes": [
+        "Refined Weekend",
+        "Urban Minimalist",
+        "Italian Summer",
+        "Power Casual"
+      ],
+      "occasions": [
+        "weekend",
+        "travel",
+        "work",
+        "casual"
+      ],
+      "colors": [
+        "neutral"
+      ],
+      "asset_path": "assets/style_assets/accessories/bags/bag_04.jpg",
+      "source": "Meghna"
+    },
+    {
+      "id": "bags_05",
+      "name": "Bag 05",
+      "category": "bag",
+      "gender": "unisex",
+      "archetypes": [
+        "Refined Weekend",
+        "Urban Minimalist",
+        "Italian Summer",
+        "Power Casual"
+      ],
+      "occasions": [
+        "weekend",
+        "travel",
+        "work",
+        "casual"
+      ],
+      "colors": [
+        "neutral"
+      ],
+      "asset_path": "assets/style_assets/accessories/bags/bag_05.jpg",
+      "source": "Meghna"
+    },
+    {
+      "id": "bags_06",
+      "name": "Bag 06",
+      "category": "bag",
+      "gender": "unisex",
+      "archetypes": [
+        "Refined Weekend",
+        "Urban Minimalist",
+        "Italian Summer",
+        "Power Casual"
+      ],
+      "occasions": [
+        "weekend",
+        "travel",
+        "work",
+        "casual"
+      ],
+      "colors": [
+        "neutral"
+      ],
+      "asset_path": "assets/style_assets/accessories/bags/bag_06.jpg",
+      "source": "Meghna"
+    },
+    {
+      "id": "bags_07",
+      "name": "Bag 07",
+      "category": "bag",
+      "gender": "unisex",
+      "archetypes": [
+        "Refined Weekend",
+        "Urban Minimalist",
+        "Italian Summer",
+        "Power Casual"
+      ],
+      "occasions": [
+        "weekend",
+        "travel",
+        "work",
+        "casual"
+      ],
+      "colors": [
+        "neutral"
+      ],
+      "asset_path": "assets/style_assets/accessories/bags/bag_07.jpg",
+      "source": "Meghna"
+    },
+    {
+      "id": "bags_08",
+      "name": "Bag 08",
+      "category": "bag",
+      "gender": "unisex",
+      "archetypes": [
+        "Refined Weekend",
+        "Urban Minimalist",
+        "Italian Summer",
+        "Power Casual"
+      ],
+      "occasions": [
+        "weekend",
+        "travel",
+        "work",
+        "casual"
+      ],
+      "colors": [
+        "neutral"
+      ],
+      "asset_path": "assets/style_assets/accessories/bags/bag_08.jpg",
+      "source": "Meghna"
+    },
+    {
+      "id": "phone_slings_01",
+      "name": "Phone Sling 01",
+      "category": "phone_sling",
+      "gender": "unisex",
+      "archetypes": [
+        "Urban Minimalist",
+        "Weekend Explorer",
+        "Travel Uniform"
+      ],
+      "occasions": [
+        "casual",
+        "travel",
+        "weekend"
+      ],
+      "colors": [
+        "neutral"
+      ],
+      "asset_path": "assets/style_assets/accessories/phone_slings/phone_sling_01.jpg",
+      "source": "Meghna"
+    },
+    {
+      "id": "phone_slings_02",
+      "name": "Phone Sling 02",
+      "category": "phone_sling",
+      "gender": "unisex",
+      "archetypes": [
+        "Urban Minimalist",
+        "Weekend Explorer",
+        "Travel Uniform"
+      ],
+      "occasions": [
+        "casual",
+        "travel",
+        "weekend"
+      ],
+      "colors": [
+        "neutral"
+      ],
+      "asset_path": "assets/style_assets/accessories/phone_slings/phone_sling_02.jpg",
+      "source": "Meghna"
+    },
+    {
+      "id": "phone_slings_03",
+      "name": "Phone Sling 03",
+      "category": "phone_sling",
+      "gender": "unisex",
+      "archetypes": [
+        "Urban Minimalist",
+        "Weekend Explorer",
+        "Travel Uniform"
+      ],
+      "occasions": [
+        "casual",
+        "travel",
+        "weekend"
+      ],
+      "colors": [
+        "neutral"
+      ],
+      "asset_path": "assets/style_assets/accessories/phone_slings/phone_sling_03.jpg",
+      "source": "Meghna"
+    },
+    {
+      "id": "phone_slings_04",
+      "name": "Phone Sling 04",
+      "category": "phone_sling",
+      "gender": "unisex",
+      "archetypes": [
+        "Urban Minimalist",
+        "Weekend Explorer",
+        "Travel Uniform"
+      ],
+      "occasions": [
+        "casual",
+        "travel",
+        "weekend"
+      ],
+      "colors": [
+        "neutral"
+      ],
+      "asset_path": "assets/style_assets/accessories/phone_slings/phone_sling_04.jpg",
+      "source": "Meghna"
+    },
+    {
+      "id": "phone_slings_05",
+      "name": "Phone Sling 05",
+      "category": "phone_sling",
+      "gender": "unisex",
+      "archetypes": [
+        "Urban Minimalist",
+        "Weekend Explorer",
+        "Travel Uniform"
+      ],
+      "occasions": [
+        "casual",
+        "travel",
+        "weekend"
+      ],
+      "colors": [
+        "neutral"
+      ],
+      "asset_path": "assets/style_assets/accessories/phone_slings/phone_sling_05.jpg",
+      "source": "Meghna"
+    },
+    {
+      "id": "phone_slings_06",
+      "name": "Phone Sling 06",
+      "category": "phone_sling",
+      "gender": "unisex",
+      "archetypes": [
+        "Urban Minimalist",
+        "Weekend Explorer",
+        "Travel Uniform"
+      ],
+      "occasions": [
+        "casual",
+        "travel",
+        "weekend"
+      ],
+      "colors": [
+        "neutral"
+      ],
+      "asset_path": "assets/style_assets/accessories/phone_slings/phone_sling_06.jpg",
+      "source": "Meghna"
+    },
+    {
+      "id": "phone_slings_07",
+      "name": "Phone Sling 07",
+      "category": "phone_sling",
+      "gender": "unisex",
+      "archetypes": [
+        "Urban Minimalist",
+        "Weekend Explorer",
+        "Travel Uniform"
+      ],
+      "occasions": [
+        "casual",
+        "travel",
+        "weekend"
+      ],
+      "colors": [
+        "neutral"
+      ],
+      "asset_path": "assets/style_assets/accessories/phone_slings/phone_sling_07.jpg",
+      "source": "Meghna"
+    },
+    {
+      "id": "phone_slings_08",
+      "name": "Phone Sling 08",
+      "category": "phone_sling",
+      "gender": "unisex",
+      "archetypes": [
+        "Urban Minimalist",
+        "Weekend Explorer",
+        "Travel Uniform"
+      ],
+      "occasions": [
+        "casual",
+        "travel",
+        "weekend"
+      ],
+      "colors": [
+        "neutral"
+      ],
+      "asset_path": "assets/style_assets/accessories/phone_slings/phone_sling_08.jpg",
+      "source": "Meghna"
+    }
+  ]
+}

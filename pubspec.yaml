@@ -59,3 +59,11 @@ flutter:
     - assets/shop/
     - assets/images/
     - assets/lang/
+    - assets/style_assets/
+    - assets/style_assets/style_assets_manifest.json
+    - assets/style_assets/accessories/earrings/
+    - assets/style_assets/accessories/necklaces/
+    - assets/style_assets/accessories/bracelets/
+    - assets/style_assets/accessories/sets/
+    - assets/style_assets/accessories/bags/
+    - assets/style_assets/accessories/phone_slings/
