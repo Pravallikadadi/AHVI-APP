@@ -35,6 +35,10 @@ class AhviBlockRenderer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     switch (block.type) {
+      case AhviBlockType.transitionPlan:
+        return TransitionPlanCard(data: block.data);
+      case AhviBlockType.stylistReasoning:
+        return StylistReasoningCard(data: block.data);
       case AhviBlockType.visualInspiration:
         return VisualInspirationCard(
           data: block.data,
@@ -70,6 +74,217 @@ class AhviBlockRenderer extends StatelessWidget {
       case AhviBlockType.unknown:
         return const SizedBox.shrink();
     }
+  }
+}
+
+/// Style V2 — Transition Plan (keep / swap / add / avoid / dinner-ready).
+class TransitionPlanCard extends StatelessWidget {
+  final Map<String, dynamic> data;
+  const TransitionPlanCard({super.key, required this.data});
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.themeTokens;
+    final keep = _strList(data['keep']);
+    final swap = _strList(data['swap']);
+    final add = _strList(data['add']);
+    final avoid = _strList(data['avoid']);
+    final dinnerReady = _s(data['dinner_ready']);
+    if (keep.isEmpty &&
+        swap.isEmpty &&
+        add.isEmpty &&
+        avoid.isEmpty &&
+        dinnerReady.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    debugPrint('AHVI_TRANSITION_PLAN_RENDERED keep=${keep.length} swap=${swap.length} add=${add.length}');
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 16, right: 20, left: 4),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: t.panel,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: t.cardBorder),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.swap_horiz_rounded, size: 15, color: t.accent.primary),
+              const SizedBox(width: 6),
+              Text(
+                'TRANSITION STRATEGY',
+                style: TextStyle(
+                  color: t.accent.primary,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 1.0,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          _planSection('KEEP', keep, '✓', const Color(0xFF3A8A57), t),
+          _planSection('SWAP', swap, '→', t.accent.primary, t),
+          _planSection('ADD', add, '+', const Color(0xFF3A5C8C), t),
+          _planSection('AVOID', avoid, '✕', const Color(0xFFB0534A), t),
+          if (dinnerReady.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(
+              'DINNER READY',
+              style: TextStyle(
+                color: t.mutedText,
+                fontSize: 9.5,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.8,
+              ),
+            ),
+            const SizedBox(height: 3),
+            Text(
+              dinnerReady,
+              style: TextStyle(color: t.textPrimary, fontSize: 12.5, height: 1.3),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _planSection(
+    String label,
+    List<String> items,
+    String glyph,
+    Color color,
+    dynamic t,
+  ) {
+    if (items.isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              color: t.mutedText,
+              fontSize: 9.5,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.8,
+            ),
+          ),
+          const SizedBox(height: 3),
+          ...items.map(
+            (it) => Padding(
+              padding: const EdgeInsets.only(top: 2),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(glyph, style: TextStyle(color: color, fontSize: 12.5, fontWeight: FontWeight.w700)),
+                  const SizedBox(width: 7),
+                  Expanded(
+                    child: Text(
+                      it,
+                      style: TextStyle(color: t.textPrimary, fontSize: 12.5, height: 1.3),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Style V2 — "Why this fits YOU" stylist reasoning.
+class StylistReasoningCard extends StatelessWidget {
+  final Map<String, dynamic> data;
+  const StylistReasoningCard({super.key, required this.data});
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.themeTokens;
+    final archetype = _s(data['archetype']);
+    final why = _s(data['why_this_fits_you']);
+    final dna = _s(data['dna_alignment']);
+    final wardrobe = _s(data['wardrobe_alignment']);
+    if (archetype.isEmpty && why.isEmpty) return const SizedBox.shrink();
+    debugPrint('AHVI_STYLIST_REASONING_RENDERED archetype=$archetype');
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 16, right: 20, left: 4),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [t.panel, t.accent.primary.withValues(alpha: 0.05)],
+        ),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: t.cardBorder),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.person_pin_rounded, size: 15, color: t.accent.primary),
+              const SizedBox(width: 6),
+              Text(
+                'WHY THIS FITS YOU',
+                style: TextStyle(
+                  color: t.accent.primary,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 1.0,
+                ),
+              ),
+            ],
+          ),
+          if (archetype.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(
+              archetype,
+              style: TextStyle(
+                color: t.textPrimary,
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+          if (why.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Text(why, style: TextStyle(color: t.textPrimary, fontSize: 12.5, height: 1.4)),
+          ],
+          if (dna.isNotEmpty) _reasonRow('Style DNA', dna, t),
+          if (wardrobe.isNotEmpty) _reasonRow('Wardrobe', wardrobe, t),
+        ],
+      ),
+    );
+  }
+
+  Widget _reasonRow(String label, String value, dynamic t) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 64,
+            child: Text(label, style: TextStyle(color: t.mutedText, fontSize: 11)),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: TextStyle(color: t.textPrimary, fontSize: 12, height: 1.35),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 
@@ -252,6 +467,46 @@ class MissingPieceIntelligenceCard extends StatelessWidget {
               onSendMessage: onSendMessage,
             ),
           ),
+          _wardrobeReality(t),
+        ],
+      ),
+    );
+  }
+
+  // Phase 5: "you own X / adding Y unlocks archetypes Z".
+  Widget _wardrobeReality(dynamic t) {
+    final owned = _strList(data['owned_items']);
+    final adding = _strList(data['adding_items']);
+    final unlocks = _strList(data['unlocks_archetypes']);
+    if (owned.isEmpty && unlocks.isEmpty) return const SizedBox.shrink();
+    Widget list(String label, List<String> xs, String glyph) {
+      if (xs.isEmpty) return const SizedBox.shrink();
+      return Padding(
+        padding: const EdgeInsets.only(top: 8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(label, style: TextStyle(color: t.mutedText, fontSize: 10, fontWeight: FontWeight.w700, letterSpacing: 0.6)),
+            const SizedBox(height: 2),
+            ...xs.map((x) => Text('$glyph $x', style: TextStyle(color: t.textPrimary, fontSize: 12, height: 1.35))),
+          ],
+        ),
+      );
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(top: 6),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: t.accent.primary.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          list('YOU ALREADY OWN', owned, '✓'),
+          list('ADDING', adding, '✓'),
+          list('WOULD UNLOCK', unlocks, '◆'),
         ],
       ),
     );

@@ -18,7 +18,18 @@ AhviParsedResponse parseAhviResponse(Map<String, dynamic> response) {
           .toString();
   final blocks = <AhviResponseBlock>[];
 
-  // Style V2: visual inspiration board renders FIRST (before directions).
+  // Style V2: transition plan (keep/swap/add) renders first.
+  final transitionPlan = _blockByType(response, 'transition_plan');
+  if (transitionPlan.isNotEmpty) {
+    blocks.add(
+      AhviResponseBlock(
+        type: AhviBlockType.transitionPlan,
+        data: transitionPlan,
+      ),
+    );
+  }
+
+  // Visual inspiration board.
   final visualInspiration = _extractVisualInspiration(response, data);
   if (visualInspiration.isNotEmpty) {
     blocks.add(
@@ -116,6 +127,18 @@ AhviParsedResponse parseAhviResponse(Map<String, dynamic> response) {
         ),
       );
     }
+  }
+
+  // Style V2: "why this fits you" stylist reasoning, after directions.
+  final stylistReasoning = _blockByType(response, 'stylist_reasoning');
+  if (stylistReasoning.isNotEmpty &&
+      (stylistReasoning['archetype'] ?? '').toString().trim().isNotEmpty) {
+    blocks.add(
+      AhviResponseBlock(
+        type: AhviBlockType.stylistReasoning,
+        data: stylistReasoning,
+      ),
+    );
   }
 
   // Style V2: missing-piece intelligence renders AFTER boards.

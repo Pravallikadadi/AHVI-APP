@@ -17,7 +17,11 @@ import 'package:myapp/widgets/ahvi_chat_prompt_bar.dart';
 import 'package:myapp/widgets/ahvi_home_text.dart';
 import 'package:myapp/theme/theme_tokens.dart';
 import 'package:myapp/feature/chat/widgets/blocks/ahvi_block_renderer.dart'
-    show VisualInspirationCard, MissingPieceIntelligenceCard;
+    show
+        VisualInspirationCard,
+        MissingPieceIntelligenceCard,
+        TransitionPlanCard,
+        StylistReasoningCard;
 import 'package:provider/provider.dart';
 
 // ════════════════════════════════════════════════════════════════════
@@ -847,6 +851,8 @@ class _AhviStylistChatSheetState extends State<_AhviStylistChatSheet>
         response,
         'missing_piece_intelligence',
       );
+      final transitionPlan = _styleBlockFromResponse(response, 'transition_plan');
+      final stylistReasoning = _styleBlockFromResponse(response, 'stylist_reasoning');
       final displayText = isClosestStyleAction && !boardPayload.hasBoards
           ? "I couldn't build even a closest option from the available wardrobe slots."
           : gapPayload.active && gapPayload.message.trim().isNotEmpty
@@ -865,6 +871,8 @@ class _AhviStylistChatSheetState extends State<_AhviStylistChatSheet>
                 : null,
             visualInspiration: visualInspiration,
             missingPiece: missingPiece,
+            transitionPlan: transitionPlan,
+            stylistReasoning: stylistReasoning,
             boardPayload:
                 moduleCards.isEmpty &&
                     boardPayload.hasBoards &&
@@ -1356,6 +1364,8 @@ class _SheetMessage {
   final _VisualDirectionPayload? visualDirectionPayload;
   final Map<String, dynamic>? visualInspiration;
   final Map<String, dynamic>? missingPiece;
+  final Map<String, dynamic>? transitionPlan;
+  final Map<String, dynamic>? stylistReasoning;
   final List<Map<String, dynamic>> moduleCards;
 
   _SheetMessage({
@@ -1367,6 +1377,8 @@ class _SheetMessage {
     this.visualDirectionPayload,
     this.visualInspiration,
     this.missingPiece,
+    this.transitionPlan,
+    this.stylistReasoning,
     this.moduleCards = const [],
   }) : assert(text != null || textKey != null);
 
@@ -1675,11 +1687,15 @@ class _Bubble extends StatelessWidget {
           ),
         if (msg.moduleCards.isNotEmpty)
           _SheetModuleCards(cards: msg.moduleCards, onPrompt: onPrompt),
+        if (msg.transitionPlan != null)
+          TransitionPlanCard(data: msg.transitionPlan!),
         if (msg.visualInspiration != null)
           VisualInspirationCard(
             data: msg.visualInspiration!,
             onSendMessage: onPrompt,
           ),
+        if (msg.stylistReasoning != null)
+          StylistReasoningCard(data: msg.stylistReasoning!),
         if (msg.visualDirectionPayload != null)
           _VisualDirectionCards(
             payload: msg.visualDirectionPayload!,
@@ -1909,6 +1925,12 @@ class _VisualDirectionCards extends StatelessWidget {
         itemBuilder: (context, index) {
           final direction = payload.directions[index];
           final title = _text(direction['title'], 'Style Direction');
+          final archetype = _text(direction['archetype'], '');
+          final primaryLabel = archetype.isNotEmpty ? archetype : title;
+          final secondaryLabel =
+              archetype.isNotEmpty && archetype.toLowerCase() != title.toLowerCase()
+                  ? title
+                  : '';
           final description = _text(direction['description'], '');
           final styleNote = _text(
             direction['style_note'] ?? direction['styleNote'],
@@ -1972,7 +1994,7 @@ class _VisualDirectionCards extends StatelessWidget {
                     const SizedBox(width: 9),
                     Expanded(
                       child: Text(
-                        title,
+                        primaryLabel,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
@@ -1985,6 +2007,23 @@ class _VisualDirectionCards extends StatelessWidget {
                     ),
                   ],
                 ),
+                if (secondaryLabel.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Padding(
+                    padding: const EdgeInsets.only(left: 37),
+                    child: Text(
+                      secondaryLabel,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: t.mutedText,
+                        fontSize: 11.4,
+                        height: 1.2,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ],
                 if (description.isNotEmpty) ...[
                   const SizedBox(height: 8),
                   Text(
@@ -2285,6 +2324,8 @@ class _StyleBoardCarousel extends StatelessWidget {
 
 class _StyleBoardViewModel {
   final String title;
+  final String? styleArchetype;
+  final String? boardRole;
   final String? badge;
   final String? imageBase64;
   final String? imageUrl;
@@ -2295,6 +2336,8 @@ class _StyleBoardViewModel {
 
   const _StyleBoardViewModel({
     required this.title,
+    this.styleArchetype,
+    this.boardRole,
     this.badge,
     this.imageBase64,
     this.imageUrl,
@@ -2390,6 +2433,18 @@ class _StyleBoardViewModel {
             board['label'] ?? board['title'] ?? board['name'],
             'AHVI Style Board',
           ),
+          styleArchetype: _nullableText(
+            board['style_archetype'] ??
+                (board['style_metadata'] is Map
+                    ? (board['style_metadata'] as Map)['style_archetype']
+                    : null),
+          ),
+          boardRole: _nullableText(
+            board['board_role'] ??
+                (board['style_metadata'] is Map
+                    ? (board['style_metadata'] as Map)['board_role']
+                    : null),
+          ),
           badge: _nullableText(
             board['badge'] ?? board['occasion_label'] ?? board['occasion'],
           ),
@@ -2420,6 +2475,18 @@ class _StyleBoardViewModel {
               card['title'] ?? card['name'] ?? card['label'],
               'Styled Look',
             ),
+            styleArchetype: _nullableText(
+              card['style_archetype'] ??
+                  (card['style_metadata'] is Map
+                      ? (card['style_metadata'] as Map)['style_archetype']
+                      : null),
+            ),
+            boardRole: _nullableText(
+              card['board_role'] ??
+                  (card['style_metadata'] is Map
+                      ? (card['style_metadata'] as Map)['board_role']
+                      : null),
+            ),
             badge: _nullableText(
               card['badge'] ?? card['occasion_label'] ?? card['occasion'],
             ),
@@ -2439,6 +2506,18 @@ class _StyleBoardViewModel {
             title: _text(
               outfit['title'] ?? outfit['name'] ?? outfit['label'],
               'Styled Look',
+            ),
+            styleArchetype: _nullableText(
+              outfit['style_archetype'] ??
+                  (outfit['style_metadata'] is Map
+                      ? (outfit['style_metadata'] as Map)['style_archetype']
+                      : null),
+            ),
+            boardRole: _nullableText(
+              outfit['board_role'] ??
+                  (outfit['style_metadata'] is Map
+                      ? (outfit['style_metadata'] as Map)['board_role']
+                      : null),
             ),
             badge: _nullableText(
               outfit['badge'] ?? outfit['occasion_label'] ?? outfit['occasion'],
@@ -3144,6 +3223,15 @@ class _PinterestStyleBoardCard extends StatelessWidget {
     final itemLine = _itemLine(board.items);
     final chips = _chipsFor(board);
     final imageHeight = width * 1.34;
+    final primaryTitle = (board.styleArchetype?.trim().isNotEmpty == true)
+        ? board.styleArchetype!.trim()
+        : board.title;
+    final secondaryTitle = [
+      if (board.boardRole?.trim().isNotEmpty == true) board.boardRole!.trim(),
+      if (board.title.trim().isNotEmpty &&
+          board.title.trim().toLowerCase() != primaryTitle.toLowerCase())
+        board.title.trim(),
+    ].join(' · ');
 
     return Container(
       width: width,
@@ -3178,7 +3266,7 @@ class _PinterestStyleBoardCard extends StatelessWidget {
                   children: [
                     Expanded(
                       child: Text(
-                        board.title,
+                        primaryTitle,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
@@ -3215,6 +3303,20 @@ class _PinterestStyleBoardCard extends StatelessWidget {
                       ),
                   ],
                 ),
+                if (secondaryTitle.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    secondaryTitle,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: t.mutedText,
+                      fontSize: 11.4,
+                      height: 1.2,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 6),
                 Text(
                   itemLine,
