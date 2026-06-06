@@ -23,6 +23,7 @@ import 'package:myapp/feature/chat/widgets/blocks/ahvi_block_renderer.dart'
         TransitionPlanCard,
         StylistReasoningCard,
         StyleAdviceCard;
+import 'package:myapp/feature/chat/widgets/blocks/visual_directions/visual_direction_carousel.dart';
 import 'package:provider/provider.dart';
 
 // ════════════════════════════════════════════════════════════════════
@@ -853,7 +854,10 @@ class _AhviStylistChatSheetState extends State<_AhviStylistChatSheet>
         'missing_piece_intelligence',
       );
       final transitionPlan = _styleBlockFromResponse(response, 'transition_plan');
-      final stylistReasoning = _styleBlockFromResponse(response, 'stylist_reasoning');
+      final rawStylistReasoning = _styleBlockFromResponse(response, 'stylist_reasoning');
+      final stylistReasoning = visualPayload.hasDirections || boardPayload.hasBoards
+          ? null
+          : rawStylistReasoning;
       final adviceBlock = _styleBlockFromResponse(response, 'body_proportion_advice') ??
           _styleBlockFromResponse(response, 'color_advice') ??
           _styleBlockFromResponse(response, 'occasion_advice');
@@ -1629,14 +1633,6 @@ Map<String, dynamic>? _styleBlockFromResponse(
   return null;
 }
 
-List<String> _stringList(dynamic value) {
-  if (value is! List) return const [];
-  return value
-      .map((item) => item.toString().trim())
-      .where((item) => item.isNotEmpty && item != 'null')
-      .toList();
-}
-
 class _Bubble extends StatelessWidget {
   final _SheetMessage msg;
   final ValueChanged<String> onPrompt;
@@ -1920,228 +1916,16 @@ class _VisualDirectionCards extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final t = context.themeTokens;
     final width = math.min(MediaQuery.sizeOf(context).width - 72, 318.0);
     return SizedBox(
       width: width,
-      height: 310,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        physics: const BouncingScrollPhysics(),
-        itemCount: payload.directions.length,
-        separatorBuilder: (_, _) => const SizedBox(width: 12),
-        itemBuilder: (context, index) {
-          final direction = payload.directions[index];
-          final title = _text(direction['title'], 'Style Direction');
-          final archetype = _text(direction['archetype'], '');
-          final primaryLabel = archetype.isNotEmpty ? archetype : title;
-          final secondaryLabel =
-              archetype.isNotEmpty && archetype.toLowerCase() != title.toLowerCase()
-                  ? title
-                  : '';
-          final description = _text(direction['description'], '');
-          final styleNote = _text(
-            direction['style_note'] ?? direction['styleNote'],
-            '',
-          );
-          final imageUrl = _nullableText(
-            direction['image_url'] ?? direction['imageUrl'],
-          );
-          final palette = _stringList(direction['palette']).take(5).toList();
-          final pieces = _stringList(direction['pieces']).take(5).toList();
-          final prompt = 'Use my wardrobe for: $title';
-
-          return Container(
-            width: width,
-            margin: const EdgeInsets.only(top: 4, bottom: 14),
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: t.panel,
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: t.cardBorder, width: 1.1),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.06),
-                  blurRadius: 12,
-                  offset: const Offset(0, 5),
-                ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (imageUrl != null) ...[
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(14),
-                    child: Image.network(
-                      imageUrl,
-                      height: 86,
-                      width: double.infinity,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, _, _) => const SizedBox.shrink(),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                ],
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      width: 28,
-                      height: 28,
-                      decoration: BoxDecoration(
-                        color: t.accent.primary.withValues(alpha: 0.11),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Icon(
-                        Icons.auto_awesome_rounded,
-                        size: 15,
-                        color: t.accent.primary,
-                      ),
-                    ),
-                    const SizedBox(width: 9),
-                    Expanded(
-                      child: Text(
-                        primaryLabel,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: t.textPrimary,
-                          fontSize: 15,
-                          height: 1.1,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                if (secondaryLabel.isNotEmpty) ...[
-                  const SizedBox(height: 4),
-                  Padding(
-                    padding: const EdgeInsets.only(left: 37),
-                    child: Text(
-                      secondaryLabel,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: t.mutedText,
-                        fontSize: 11.4,
-                        height: 1.2,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                ],
-                if (description.isNotEmpty) ...[
-                  const SizedBox(height: 8),
-                  Text(
-                    description,
-                    maxLines: 3,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: t.textPrimary.withValues(alpha: 0.82),
-                      fontSize: 11.8,
-                      height: 1.32,
-                    ),
-                  ),
-                ],
-                if (palette.isNotEmpty) ...[
-                  const SizedBox(height: 10),
-                  Wrap(
-                    spacing: 6,
-                    runSpacing: 6,
-                    children: palette
-                        .map(
-                          (color) => Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 5,
-                            ),
-                            decoration: BoxDecoration(
-                              color: t.accent.secondary.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(999),
-                              border: Border.all(
-                                color: t.accent.secondary.withValues(
-                                  alpha: 0.2,
-                                ),
-                              ),
-                            ),
-                            child: Text(
-                              color,
-                              style: TextStyle(
-                                color: t.textPrimary,
-                                fontSize: 10.5,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ),
-                        )
-                        .toList(),
-                  ),
-                ],
-                if (pieces.isNotEmpty) ...[
-                  const SizedBox(height: 10),
-                  Text(
-                    pieces.join(' · '),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: t.mutedText,
-                      fontSize: 11.3,
-                      height: 1.3,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-                if (styleNote.isNotEmpty) ...[
-                  const Spacer(),
-                  Text(
-                    styleNote,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: t.textPrimary,
-                      fontSize: 11.3,
-                      height: 1.3,
-                      fontStyle: FontStyle.italic,
-                    ),
-                  ),
-                ] else
-                  const Spacer(),
-                const SizedBox(height: 10),
-                GestureDetector(
-                  onTap: () => onPrompt(prompt),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 11,
-                      vertical: 8,
-                    ),
-                    decoration: BoxDecoration(
-                      color: t.accent.primary.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(999),
-                      border: Border.all(
-                        color: t.accent.primary.withValues(alpha: 0.24),
-                      ),
-                    ),
-                    child: Text(
-                      'Use my wardrobe',
-                      style: TextStyle(
-                        color: t.accent.primary,
-                        fontSize: 11.5,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          );
-        },
+      child: VisualDirectionCarousel(
+        directions: payload.directions,
+        cardWidth: width,
       ),
     );
   }
 }
-
 class _WardrobeGapCard extends StatelessWidget {
   final _WardrobeGapPayload payload;
   final ValueChanged<String> onPrompt;

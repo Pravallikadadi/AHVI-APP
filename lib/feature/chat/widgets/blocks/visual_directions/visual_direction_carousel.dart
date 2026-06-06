@@ -3,221 +3,237 @@ import 'package:myapp/theme/theme_tokens.dart';
 
 class VisualDirectionCarousel extends StatelessWidget {
   final List<Map<String, dynamic>> directions;
+  final double? cardWidth;
 
-  const VisualDirectionCarousel({super.key, required this.directions});
+  const VisualDirectionCarousel({
+    super.key,
+    required this.directions,
+    this.cardWidth,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final usable = directions.where((item) => item.isNotEmpty).toList();
+    if (usable.isEmpty) return const SizedBox.shrink();
+
+    final width = cardWidth ?? 310.0;
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      physics: const BouncingScrollPhysics(),
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          for (var index = 0; index < usable.length; index++) ...[
+            _VisualDirectionCard(direction: usable[index], width: width),
+            if (index != usable.length - 1) const SizedBox(width: 12),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _VisualDirectionCard extends StatelessWidget {
+  final Map<String, dynamic> direction;
+  final double width;
+
+  const _VisualDirectionCard({required this.direction, required this.width});
 
   @override
   Widget build(BuildContext context) {
     final t = context.themeTokens;
-    final usable = directions.where((item) => item.isNotEmpty).toList();
-    if (usable.isEmpty) return const SizedBox.shrink();
+    final title = _text(direction['title'], 'Style Direction');
+    final archetype = _text(direction['archetype'], '');
+    final primaryLabel = archetype.isNotEmpty ? archetype : title;
+    final secondaryLabel =
+        archetype.isNotEmpty && archetype.toLowerCase() != title.toLowerCase()
+            ? title
+            : _text(direction['subtitle'], '');
+    final description = _text(direction['description'], '');
+    final heroPiece = _text(direction['hero_piece'] ?? direction['heroPiece'], '');
+    final whyItWorks = _text(
+      direction['why_it_works'] ??
+          direction['whyThisWorks'] ??
+          direction['why_this_works'],
+      '',
+    );
+    final styleNote = _text(
+      direction['styling_tip'] ?? direction['style_note'] ?? direction['styleNote'],
+      '',
+    );
+    final imageUrl = _nullableText(direction['image_url'] ?? direction['imageUrl']);
+    final palette = (_stringList(direction['colors']).isNotEmpty
+            ? _stringList(direction['colors'])
+            : _stringList(direction['palette']))
+        .take(5)
+        .toList(growable: false);
+    final pieces = (_stringList(direction['items']).isNotEmpty
+            ? _stringList(direction['items'])
+            : _stringList(direction['pieces']))
+        .take(6)
+        .toList(growable: false);
+    final completeTheLook = _mapList(
+      direction['complete_the_look'] ?? direction['completeTheLook'],
+    ).take(4).toList(growable: false);
+    final dnaAlignment = _text(
+      direction['style_dna_alignment'] ??
+          direction['dna_alignment'] ??
+          direction['persona_fit_reason'],
+      '',
+    );
 
-    return SizedBox(
-      height: 430,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        physics: const BouncingScrollPhysics(),
-        itemCount: usable.length,
-        separatorBuilder: (_, _) => const SizedBox(width: 12),
-        itemBuilder: (context, index) {
-          final direction = usable[index];
-          final title = _text(direction['title'], 'Style Direction');
-          final archetype = _text(direction['archetype'], '');
-          final primaryLabel = archetype.isNotEmpty ? archetype : title;
-          final secondaryLabel =
-              archetype.isNotEmpty && archetype.toLowerCase() != title.toLowerCase()
-                  ? title
-                  : _text(direction['subtitle'], '');
-          final description = _text(direction['description'], '');
-          final heroPiece = _text(
-            direction['hero_piece'] ?? direction['heroPiece'],
-            '',
-          );
-          final whyItWorks = _text(
-            direction['why_it_works'] ??
-                direction['whyThisWorks'] ??
-                direction['why_this_works'],
-            '',
-          );
-          final styleNote = _text(
-            direction['styling_tip'] ??
-                direction['style_note'] ??
-                direction['styleNote'],
-            '',
-          );
-          final imageUrl = _nullableText(
-            direction['image_url'] ?? direction['imageUrl'],
-          );
-          final palette = (_stringList(direction['colors']).isNotEmpty
-                  ? _stringList(direction['colors'])
-                  : _stringList(direction['palette']))
-              .take(5)
-              .toList(growable: false);
-          final pieces = (_stringList(direction['items']).isNotEmpty
-                  ? _stringList(direction['items'])
-                  : _stringList(direction['pieces']))
-              .take(5)
-              .toList(growable: false);
-
-          return Container(
-            width: 310,
-            margin: const EdgeInsets.only(bottom: 16),
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: t.panel,
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: t.cardBorder),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
-                  blurRadius: 12,
-                  offset: const Offset(0, 5),
-                ),
-              ],
+    return Container(
+      width: width,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: t.panel,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: t.cardBorder),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 12,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (imageUrl != null) ...[
+            ClipRRect(
+              borderRadius: BorderRadius.circular(14),
+              child: Image.network(
+                imageUrl,
+                height: 104,
+                width: double.infinity,
+                fit: BoxFit.cover,
+                errorBuilder: (_, _, _) => const SizedBox.shrink(),
+              ),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (imageUrl != null) ...[
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(14),
-                    child: Image.network(
-                      imageUrl,
-                      height: 82,
-                      width: double.infinity,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, _, _) => const SizedBox.shrink(),
-                    ),
+            const SizedBox(height: 10),
+          ],
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(Icons.auto_awesome_rounded, size: 16, color: t.accent.primary),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  primaryLabel,
+                  style: TextStyle(
+                    color: t.textPrimary,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w900,
+                    height: 1.12,
                   ),
-                  const SizedBox(height: 10),
-                ],
-                Row(
-                  children: [
-                    Icon(
-                      Icons.auto_awesome_rounded,
-                      size: 16,
-                      color: t.accent.primary,
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        primaryLabel,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: t.textPrimary,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w900,
-                          height: 1.1,
-                        ),
-                      ),
-                    ),
-                  ],
                 ),
-                if (secondaryLabel.isNotEmpty) ...[
-                  const SizedBox(height: 4),
-                  Padding(
-                    padding: const EdgeInsets.only(left: 24),
-                    child: Text(
-                      secondaryLabel,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: t.mutedText,
-                        fontSize: 11.5,
-                        height: 1.2,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                ],
-                if (description.isNotEmpty) ...[
-                  const SizedBox(height: 8),
-                  Text(
-                    description,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: t.textPrimary.withValues(alpha: 0.82),
-                      fontSize: 12,
-                      height: 1.32,
-                    ),
-                  ),
-                ],
-                if (heroPiece.isNotEmpty) ...[
-                  const SizedBox(height: 10),
-                  _InfoSection(
-                    label: 'HERO PIECE',
-                    value: heroPiece,
-                    tokens: t,
-                    icon: Icons.star_border_rounded,
-                  ),
-                ],
-                if (whyItWorks.isNotEmpty) ...[
-                  const SizedBox(height: 10),
-                  _InfoSection(
-                    label: 'WHY IT WORKS',
-                    value: whyItWorks,
-                    tokens: t,
-                    maxLines: 4,
-                  ),
-                ],
-                if (palette.isNotEmpty) ...[
-                  const SizedBox(height: 10),
-                  _SectionLabel(text: 'COLOR STORY', tokens: t),
-                  const SizedBox(height: 6),
-                  Wrap(
-                    spacing: 6,
-                    runSpacing: 6,
-                    children: palette
-                        .map((color) => _PaletteChip(label: color, tokens: t))
-                        .toList(growable: false),
-                  ),
-                ],
-                if (pieces.isNotEmpty) ...[
-                  const SizedBox(height: 10),
-                  _SectionLabel(text: 'COMPONENTS', tokens: t),
-                  const SizedBox(height: 4),
-                  Text(
-                    pieces.join(' - '),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: t.mutedText,
-                      fontSize: 11.5,
-                      height: 1.3,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-                const Spacer(),
-                if (styleNote.isNotEmpty)
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 8,
-                    ),
-                    decoration: BoxDecoration(
-                      color: t.accent.primary.withValues(alpha: 0.06),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      styleNote,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: t.textPrimary,
-                        fontSize: 11.4,
-                        height: 1.3,
-                        fontStyle: FontStyle.italic,
-                      ),
-                    ),
-                  ),
-              ],
+              ),
+            ],
+          ),
+          if (secondaryLabel.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Padding(
+              padding: const EdgeInsets.only(left: 24),
+              child: Text(
+                secondaryLabel,
+                style: TextStyle(
+                  color: t.mutedText,
+                  fontSize: 11.5,
+                  height: 1.25,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
             ),
-          );
-        },
+          ],
+          if (description.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(
+              description,
+              style: TextStyle(
+                color: t.textPrimary.withValues(alpha: 0.82),
+                fontSize: 12,
+                height: 1.35,
+              ),
+            ),
+          ],
+          if (heroPiece.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            _InfoSection(
+              label: 'HERO PIECE',
+              value: heroPiece,
+              tokens: t,
+              icon: Icons.star_border_rounded,
+            ),
+          ],
+          if (whyItWorks.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            _InfoSection(label: 'WHY IT WORKS', value: whyItWorks, tokens: t),
+          ],
+          if (palette.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            _SectionLabel(text: 'COLOR STORY', tokens: t),
+            const SizedBox(height: 6),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: palette
+                  .map((color) => _PaletteChip(label: color, tokens: t))
+                  .toList(growable: false),
+            ),
+          ],
+          if (pieces.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            _SectionLabel(text: 'COMPONENTS', tokens: t),
+            const SizedBox(height: 4),
+            Text(
+              pieces.join(' - '),
+              style: TextStyle(
+                color: t.mutedText,
+                fontSize: 11.5,
+                height: 1.32,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+          if (completeTheLook.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            _SectionLabel(text: 'COMPLETE THE LOOK', tokens: t),
+            const SizedBox(height: 6),
+            ...completeTheLook.map((item) => _AccessoryRow(item: item, tokens: t)),
+          ],
+          if (dnaAlignment.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            _InfoSection(
+              label: 'WHY THIS FITS YOU',
+              value: dnaAlignment,
+              tokens: t,
+              icon: Icons.person_pin_rounded,
+            ),
+          ],
+          if (styleNote.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              decoration: BoxDecoration(
+                color: t.accent.primary.withValues(alpha: 0.06),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                styleNote,
+                style: TextStyle(
+                  color: t.textPrimary,
+                  fontSize: 11.4,
+                  height: 1.32,
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }
@@ -228,14 +244,12 @@ class _InfoSection extends StatelessWidget {
   final String value;
   final dynamic tokens;
   final IconData? icon;
-  final int maxLines;
 
   const _InfoSection({
     required this.label,
     required this.value,
     required this.tokens,
     this.icon,
-    this.maxLines = 2,
   });
 
   @override
@@ -272,13 +286,60 @@ class _InfoSection extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             value,
-            maxLines: maxLines,
-            overflow: TextOverflow.ellipsis,
             style: TextStyle(
               color: t.textPrimary,
               fontSize: 12,
               height: 1.32,
               fontWeight: label == 'HERO PIECE' ? FontWeight.w800 : FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AccessoryRow extends StatelessWidget {
+  final Map<String, dynamic> item;
+  final dynamic tokens;
+
+  const _AccessoryRow({required this.item, required this.tokens});
+
+  @override
+  Widget build(BuildContext context) {
+    final t = tokens;
+    final name = _text(item['name'] ?? item['title'] ?? item['label'], '');
+    final reason = _text(item['reason'], '');
+    final imageUrl = _nullableText(item['image_url'] ?? item['imageUrl']);
+    if (name.isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 7),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (imageUrl != null)
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: Image.network(
+                imageUrl,
+                width: 34,
+                height: 34,
+                fit: BoxFit.cover,
+                errorBuilder: (_, _, _) => const SizedBox(width: 34, height: 34),
+              ),
+            )
+          else
+            Icon(Icons.check_rounded, size: 16, color: t.accent.primary),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              reason.isNotEmpty ? '$name - $reason' : name,
+              style: TextStyle(
+                color: t.textPrimary,
+                fontSize: 11.6,
+                height: 1.3,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
         ],
@@ -351,5 +412,13 @@ List<String> _stringList(dynamic value) {
   return value
       .map((item) => item.toString().trim())
       .where((item) => item.isNotEmpty && item != 'null')
+      .toList(growable: false);
+}
+
+List<Map<String, dynamic>> _mapList(dynamic value) {
+  if (value is! List) return const [];
+  return value
+      .whereType<Map>()
+      .map((item) => Map<String, dynamic>.from(item))
       .toList(growable: false);
 }

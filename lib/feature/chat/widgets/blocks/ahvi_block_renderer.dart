@@ -638,6 +638,7 @@ class _MissingPieceCallout extends StatelessWidget {
     final name = _s(missing['name']);
     final category = _s(missing['category']);
     final reason = _s(missing['reason']);
+    final imageUrl = _s(missing['image_url'] ?? missing['imageUrl']);
     final unlocks = _strList(missing['unlocks']);
     if (name.isEmpty) return const SizedBox.shrink();
 
@@ -652,6 +653,19 @@ class _MissingPieceCallout extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          if (imageUrl.isNotEmpty) ...[
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Image.network(
+                imageUrl,
+                height: 116,
+                width: double.infinity,
+                fit: BoxFit.cover,
+                errorBuilder: (_, _, _) => const SizedBox.shrink(),
+              ),
+            ),
+            const SizedBox(height: 10),
+          ],
           Row(
             children: [
               Expanded(
