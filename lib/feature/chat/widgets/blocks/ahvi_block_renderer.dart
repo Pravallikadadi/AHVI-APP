@@ -35,6 +35,8 @@ class AhviBlockRenderer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     switch (block.type) {
+      case AhviBlockType.styleAdvice:
+        return StyleAdviceCard(data: block.data);
       case AhviBlockType.transitionPlan:
         return TransitionPlanCard(data: block.data);
       case AhviBlockType.stylistReasoning:
@@ -74,6 +76,112 @@ class AhviBlockRenderer extends StatelessWidget {
       case AhviBlockType.unknown:
         return const SizedBox.shrink();
     }
+  }
+}
+
+/// Style V2 — open-ended structured advice (body proportion / color / occasion).
+class StyleAdviceCard extends StatelessWidget {
+  final Map<String, dynamic> data;
+  const StyleAdviceCard({super.key, required this.data});
+
+  static const _titles = {
+    'body_proportion_advice': 'PROPORTION ADVICE',
+    'color_advice': 'COLOR ADVICE',
+    'occasion_advice': 'OCCASION ADVICE',
+  };
+
+  // Per-mode ordered (label, key, glyph, color-ish).
+  static const _sections = {
+    'body_proportion_advice': [
+      ['Principles', 'principles', '•'],
+      ['Do', 'do', '✓'],
+      ['Avoid', 'avoid', '✕'],
+      ['Outfit examples', 'outfit_examples', '◆'],
+    ],
+    'color_advice': [
+      ['Recommended', 'recommended_colors', '✓'],
+      ['Avoid', 'avoid_colors', '✕'],
+      ['Why', 'why', '•'],
+      ['Outfit palettes', 'outfit_palettes', '◆'],
+    ],
+    'occasion_advice': [
+      ['Do', 'do', '✓'],
+      ['Avoid', 'avoid', '✕'],
+      ['Better alternatives', 'better_alternatives', '→'],
+      ['Safe routes', 'styling_routes', '◆'],
+    ],
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.themeTokens;
+    final mode = _s(data['type']);
+    final sections = _sections[mode] ?? const [];
+    final summary = _s(data['summary']);
+    final hasAny = sections.any((s) => _strList(data[s[1]]).isNotEmpty);
+    if (!hasAny && summary.isEmpty) return const SizedBox.shrink();
+    debugPrint('AHVI_ADVICE_CARD_RENDERED mode=$mode');
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 16, right: 20, left: 4),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: t.panel,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: t.cardBorder),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            _titles[mode] ?? 'STYLE ADVICE',
+            style: TextStyle(
+              color: t.accent.primary,
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 1.0,
+            ),
+          ),
+          if (summary.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Text(summary, style: TextStyle(color: t.textPrimary, fontSize: 12.5, height: 1.4)),
+          ],
+          const SizedBox(height: 8),
+          ...sections.map((s) {
+            final items = _strList(data[s[1]]);
+            if (items.isEmpty) return const SizedBox.shrink();
+            final danger = s[2] == '✕';
+            final color = danger ? const Color(0xFFB0534A) : t.accent.primary;
+            return Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    s[0].toUpperCase(),
+                    style: TextStyle(color: t.mutedText, fontSize: 9.5, fontWeight: FontWeight.w700, letterSpacing: 0.6),
+                  ),
+                  const SizedBox(height: 3),
+                  ...items.map(
+                    (it) => Padding(
+                      padding: const EdgeInsets.only(top: 2),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(s[2], style: TextStyle(color: color, fontSize: 12.5, fontWeight: FontWeight.w700)),
+                          const SizedBox(width: 7),
+                          Expanded(child: Text(it, style: TextStyle(color: t.textPrimary, fontSize: 12.5, height: 1.3))),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }),
+        ],
+      ),
+    );
   }
 }
 

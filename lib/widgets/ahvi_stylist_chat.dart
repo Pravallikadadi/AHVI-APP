@@ -21,7 +21,8 @@ import 'package:myapp/feature/chat/widgets/blocks/ahvi_block_renderer.dart'
         VisualInspirationCard,
         MissingPieceIntelligenceCard,
         TransitionPlanCard,
-        StylistReasoningCard;
+        StylistReasoningCard,
+        StyleAdviceCard;
 import 'package:provider/provider.dart';
 
 // ════════════════════════════════════════════════════════════════════
@@ -853,6 +854,9 @@ class _AhviStylistChatSheetState extends State<_AhviStylistChatSheet>
       );
       final transitionPlan = _styleBlockFromResponse(response, 'transition_plan');
       final stylistReasoning = _styleBlockFromResponse(response, 'stylist_reasoning');
+      final adviceBlock = _styleBlockFromResponse(response, 'body_proportion_advice') ??
+          _styleBlockFromResponse(response, 'color_advice') ??
+          _styleBlockFromResponse(response, 'occasion_advice');
       final displayText = isClosestStyleAction && !boardPayload.hasBoards
           ? "I couldn't build even a closest option from the available wardrobe slots."
           : gapPayload.active && gapPayload.message.trim().isNotEmpty
@@ -873,6 +877,7 @@ class _AhviStylistChatSheetState extends State<_AhviStylistChatSheet>
             missingPiece: missingPiece,
             transitionPlan: transitionPlan,
             stylistReasoning: stylistReasoning,
+            adviceBlock: adviceBlock,
             boardPayload:
                 moduleCards.isEmpty &&
                     boardPayload.hasBoards &&
@@ -1366,6 +1371,7 @@ class _SheetMessage {
   final Map<String, dynamic>? missingPiece;
   final Map<String, dynamic>? transitionPlan;
   final Map<String, dynamic>? stylistReasoning;
+  final Map<String, dynamic>? adviceBlock;
   final List<Map<String, dynamic>> moduleCards;
 
   _SheetMessage({
@@ -1379,6 +1385,7 @@ class _SheetMessage {
     this.missingPiece,
     this.transitionPlan,
     this.stylistReasoning,
+    this.adviceBlock,
     this.moduleCards = const [],
   }) : assert(text != null || textKey != null);
 
@@ -1687,6 +1694,7 @@ class _Bubble extends StatelessWidget {
           ),
         if (msg.moduleCards.isNotEmpty)
           _SheetModuleCards(cards: msg.moduleCards, onPrompt: onPrompt),
+        if (msg.adviceBlock != null) StyleAdviceCard(data: msg.adviceBlock!),
         if (msg.transitionPlan != null)
           TransitionPlanCard(data: msg.transitionPlan!),
         if (msg.visualInspiration != null)

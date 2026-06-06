@@ -1,5 +1,6 @@
 enum AhviBlockType {
   text,
+  styleAdvice,
   transitionPlan,
   stylistReasoning,
   visualInspiration,

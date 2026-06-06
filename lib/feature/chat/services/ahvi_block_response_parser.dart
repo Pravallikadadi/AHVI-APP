@@ -18,6 +18,18 @@ AhviParsedResponse parseAhviResponse(Map<String, dynamic> response) {
           .toString();
   final blocks = <AhviResponseBlock>[];
 
+  // Style V2: open-ended structured advice (body proportion / color / occasion).
+  for (final advType in const [
+    'body_proportion_advice',
+    'color_advice',
+    'occasion_advice',
+  ]) {
+    final adv = _blockByType(response, advType);
+    if (adv.isNotEmpty) {
+      blocks.add(AhviResponseBlock(type: AhviBlockType.styleAdvice, data: adv));
+    }
+  }
+
   // Style V2: transition plan (keep/swap/add) renders first.
   final transitionPlan = _blockByType(response, 'transition_plan');
   if (transitionPlan.isNotEmpty) {
