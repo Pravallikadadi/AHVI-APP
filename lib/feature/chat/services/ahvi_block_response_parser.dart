@@ -143,7 +143,9 @@ AhviParsedResponse parseAhviResponse(Map<String, dynamic> response) {
 
   // Style V2: "why this fits you" stylist reasoning, after directions.
   final stylistReasoning = _blockByType(response, 'stylist_reasoning');
-  if (stylistReasoning.isNotEmpty &&
+  if (!hasVisualDirections &&
+      !_hasStyleBoardBlock(blocks) &&
+      stylistReasoning.isNotEmpty &&
       (stylistReasoning['archetype'] ?? '').toString().trim().isNotEmpty) {
     blocks.add(
       AhviResponseBlock(
@@ -170,6 +172,10 @@ AhviParsedResponse parseAhviResponse(Map<String, dynamic> response) {
     boardId: response['board_ids']?.toString(),
     packId: response['pack_ids']?.toString(),
   );
+}
+
+bool _hasStyleBoardBlock(List<AhviResponseBlock> blocks) {
+  return blocks.any((block) => block.type == AhviBlockType.styleBoards);
 }
 
 Map<String, dynamic> _dataMap(Map<String, dynamic> response) {
