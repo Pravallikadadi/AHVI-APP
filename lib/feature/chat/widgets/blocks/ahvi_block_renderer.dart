@@ -588,6 +588,7 @@ class VisualInspirationCard extends StatelessWidget {
             const SizedBox(height: 12),
             _MissingPieceCallout(
               missing: missing,
+              contextData: data,
               tokens: t,
               onSendMessage: onSendMessage,
             ),
@@ -649,6 +650,7 @@ class MissingPieceIntelligenceCard extends StatelessWidget {
           ...items.map(
             (m) => _MissingPieceCallout(
               missing: m,
+              contextData: data,
               tokens: t,
               onSendMessage: onSendMessage,
             ),
@@ -704,11 +706,13 @@ class MissingPieceIntelligenceCard extends StatelessWidget {
 
 class _MissingPieceCallout extends StatelessWidget {
   final Map<String, dynamic> missing;
+  final Map<String, dynamic> contextData;
   final dynamic tokens;
   final MessageSender? onSendMessage;
 
   const _MissingPieceCallout({
     required this.missing,
+    this.contextData = const <String, dynamic>{},
     required this.tokens,
     this.onSendMessage,
   });
@@ -798,7 +802,7 @@ class _MissingPieceCallout extends StatelessWidget {
           ],
           const SizedBox(height: 10),
           GestureDetector(
-            onTap: () => onSendMessage?.call('Find this: $name'),
+            onTap: () => onSendMessage?.call(_findThisMessage(missing, contextData)),
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               decoration: BoxDecoration(
@@ -826,6 +830,39 @@ class _MissingPieceCallout extends StatelessWidget {
       ),
     );
   }
+}
+
+String _findThisMessage(
+  Map<String, dynamic> missing,
+  Map<String, dynamic> contextData,
+) {
+  final name = _s(missing['name'] ?? missing['item_name'] ?? missing['label']);
+  final parts = <String>[];
+  void add(String key, dynamic value) {
+    final text = _s(value);
+    if (text.isEmpty) return;
+    parts.add('$key=$text');
+  }
+
+  add('category', missing['category']);
+  add('subcategory', missing['subcategory'] ?? missing['sub_category']);
+  add('color', missing['color']);
+  add(
+    'occasion',
+    missing['occasion'] ??
+        contextData['occasion'] ??
+        contextData['title'] ??
+        contextData['mood'],
+  );
+  add(
+    'archetype',
+    missing['archetype'] ??
+        missing['style_archetype'] ??
+        contextData['archetype'],
+  );
+
+  final suffix = parts.isEmpty ? '' : ' | ${parts.join(' | ')}';
+  return 'Find this: $name$suffix';
 }
 
 class _Pill extends StatelessWidget {
