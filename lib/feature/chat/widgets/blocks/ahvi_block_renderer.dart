@@ -4,7 +4,6 @@ import 'package:myapp/feature/chat/widgets/blocks/visual_directions/visual_direc
 import 'package:myapp/models/ahvi_visual_board_model.dart';
 import 'package:myapp/theme/theme_tokens.dart';
 import 'package:myapp/widgets/ahvi_module_card.dart';
-import 'package:myapp/services/style_asset_service.dart';
 
 typedef StyleBoardsBuilder = Widget Function(List<dynamic> boards);
 typedef VisualBoardBuilder = Widget Function(AhviVisualBoard board);
@@ -403,89 +402,73 @@ String _s(dynamic v) => (v ?? '').toString().trim();
 /// image_url wins where present; this is local fallback. Inspiration only,
 /// never owned wardrobe.
 class CompleteTheLookStrip extends StatelessWidget {
-  final String? archetype;
-  final String? occasion;
-  final String? gender;
-  const CompleteTheLookStrip({super.key, this.archetype, this.occasion, this.gender});
+  final List<Map<String, dynamic>> items;
+  const CompleteTheLookStrip({super.key, required this.items});
 
   @override
   Widget build(BuildContext context) {
     final t = context.themeTokens;
-    return FutureBuilder<List<Map<String, dynamic>>>(
-      future: StyleAssetService.instance.getCompleteTheLookAssets(
-        archetype: archetype,
-        occasion: occasion,
-        gender: gender,
-        limit: 3,
-      ),
-      builder: (ctx, snap) {
-        final assets = snap.data ?? const [];
-        if (assets.isEmpty) return const SizedBox.shrink();
-        return Padding(
-          padding: const EdgeInsets.only(top: 14),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'COMPLETE THE LOOK',
-                style: TextStyle(
-                  color: t.accent.primary,
-                  fontSize: 10,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 1.0,
-                ),
-              ),
-              const SizedBox(height: 8),
-              SizedBox(
-                height: 116,
-                child: ListView.separated(
-                  scrollDirection: Axis.horizontal,
-                  physics: const BouncingScrollPhysics(),
-                  itemCount: assets.length,
-                  separatorBuilder: (_, __) => const SizedBox(width: 10),
-                  itemBuilder: (_, i) {
-                    final a = assets[i];
-                    final path = _s(a['asset_path']);
-                    final name = _s(a['name']);
-                    return SizedBox(
-                      width: 86,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(12),
-                            child: path.isEmpty
-                                ? const SizedBox(width: 86, height: 86)
-                                : Image.asset(
-                                    path,
-                                    width: 86,
-                                    height: 86,
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (_, __, ___) => Container(
-                                      width: 86,
-                                      height: 86,
-                                      color: t.panel,
-                                      child: Icon(Icons.diamond_outlined, color: t.mutedText, size: 22),
-                                    ),
-                                  ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            name,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(color: t.mutedText, fontSize: 10),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ],
+    final assets = items
+        .where((item) => _s(item['image_url'] ?? item['imageUrl']).isNotEmpty)
+        .toList(growable: false);
+    if (assets.isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(top: 14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'COMPLETE THE LOOK',
+            style: TextStyle(
+              color: t.accent.primary,
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 1.0,
+            ),
           ),
-        );
-      },
+          const SizedBox(height: 8),
+          SizedBox(
+            height: 116,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              physics: const BouncingScrollPhysics(),
+              itemCount: assets.length,
+              separatorBuilder: (context, index) => const SizedBox(width: 10),
+              itemBuilder: (_, i) {
+                final a = assets[i];
+                final imageUrl = _s(a['image_url'] ?? a['imageUrl']);
+                final name = _s(a['name'] ?? a['title'] ?? a['label']);
+                return SizedBox(
+                  width: 86,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: Image.network(
+                          imageUrl,
+                          width: 86,
+                          height: 86,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) =>
+                              const SizedBox.shrink(),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(color: t.mutedText, fontSize: 10),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -609,7 +592,9 @@ class VisualInspirationCard extends StatelessWidget {
               onSendMessage: onSendMessage,
             ),
           ],
-          CompleteTheLookStrip(archetype: aesthetic, occasion: mood),
+          CompleteTheLookStrip(
+            items: _mapList(data['complete_the_look'] ?? data['completeTheLook']),
+          ),
         ],
       ),
     );
@@ -669,7 +654,9 @@ class MissingPieceIntelligenceCard extends StatelessWidget {
             ),
           ),
           _wardrobeReality(t),
-          const CompleteTheLookStrip(),
+          CompleteTheLookStrip(
+            items: _mapList(data['complete_the_look'] ?? data['completeTheLook']),
+          ),
         ],
       ),
     );
