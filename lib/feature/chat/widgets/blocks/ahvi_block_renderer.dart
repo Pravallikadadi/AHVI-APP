@@ -60,6 +60,7 @@ class AhviBlockRenderer extends StatelessWidget {
         return VisualDirectionCarousel(
           directions: directions,
           editorialCover: coverMap,
+          onSendMessage: onSendMessage,
         );
       case AhviBlockType.styleBoards:
         final boards = block.data['boards'];
