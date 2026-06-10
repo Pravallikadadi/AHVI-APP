@@ -55,12 +55,14 @@ AhviParsedResponse parseAhviResponse(Map<String, dynamic> response) {
   final visualDirections = _extractVisualDirections(response, data);
   final hasVisualDirections = visualDirections.isNotEmpty;
   if (hasVisualDirections) {
+    final editorialCover = _extractEditorialCover(response, data);
     blocks.add(
       AhviResponseBlock(
         type: AhviBlockType.visualDirections,
         data: {
           'directions': visualDirections,
           'visual_directions': visualDirections,
+          if (editorialCover.isNotEmpty) 'editorial_cover': editorialCover,
         },
       ),
     );
@@ -248,6 +250,26 @@ List<Map<String, dynamic>> _extractVisualDirections(
         data['visual_directions'] ??
         data['visualDirections'],
   );
+}
+
+/// Magazine-cover header surfaced above the direction cards. Backend ships
+/// this on the style-reasoning response (additive); falls back to {} when
+/// the payload is older.
+Map<String, dynamic> _extractEditorialCover(
+  Map<String, dynamic> response,
+  Map<String, dynamic> data,
+) {
+  for (final value in [
+    response['editorial_cover'],
+    response['editorialCover'],
+    data['editorial_cover'],
+    data['editorialCover'],
+  ]) {
+    if (value is Map && value.isNotEmpty) {
+      return Map<String, dynamic>.from(value);
+    }
+  }
+  return const {};
 }
 
 List<Map<String, dynamic>> _extractStyleBoards(

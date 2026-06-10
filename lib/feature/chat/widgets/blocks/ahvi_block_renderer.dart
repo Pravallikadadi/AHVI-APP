@@ -53,7 +53,14 @@ class AhviBlockRenderer extends StatelessWidget {
         );
       case AhviBlockType.visualDirections:
         final directions = _mapList(block.data['directions']);
-        return VisualDirectionCarousel(directions: directions);
+        final cover = block.data['editorial_cover'];
+        final coverMap = cover is Map
+            ? Map<String, dynamic>.from(cover)
+            : const <String, dynamic>{};
+        return VisualDirectionCarousel(
+          directions: directions,
+          editorialCover: coverMap,
+        );
       case AhviBlockType.styleBoards:
         final boards = block.data['boards'];
         return styleBoardsBuilder(boards is List ? boards : const []);

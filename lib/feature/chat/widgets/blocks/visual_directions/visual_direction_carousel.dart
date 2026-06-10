@@ -4,11 +4,13 @@ import 'package:myapp/theme/theme_tokens.dart';
 class VisualDirectionCarousel extends StatelessWidget {
   final List<Map<String, dynamic>> directions;
   final double? cardWidth;
+  final Map<String, dynamic> editorialCover;
 
   const VisualDirectionCarousel({
     super.key,
     required this.directions,
     this.cardWidth,
+    this.editorialCover = const {},
   });
 
   @override
@@ -17,16 +19,157 @@ class VisualDirectionCarousel extends StatelessWidget {
     if (usable.isEmpty) return const SizedBox.shrink();
 
     final width = cardWidth ?? 310.0;
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      physics: const BouncingScrollPhysics(),
-      padding: const EdgeInsets.only(bottom: 16),
-      child: Row(
+    final hasCover = editorialCover.isNotEmpty &&
+        _text(editorialCover['direction_name'], '').isNotEmpty;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (hasCover) ...[
+          EditorialCoverCard(cover: editorialCover),
+          const SizedBox(height: 14),
+        ],
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          physics: const BouncingScrollPhysics(),
+          padding: const EdgeInsets.only(bottom: 16),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              for (var index = 0; index < usable.length; index++) ...[
+                _VisualDirectionCard(direction: usable[index], width: width),
+                if (index != usable.length - 1) const SizedBox(width: 12),
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Magazine-style cover header that frames the curated looks below.
+/// Renders the occasion label, lead direction name, wardrobe-match badge
+/// and the curated-for benefit triad.
+class EditorialCoverCard extends StatelessWidget {
+  final Map<String, dynamic> cover;
+  const EditorialCoverCard({super.key, required this.cover});
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.themeTokens;
+    final occasion = _text(cover['occasion_label'], 'CURATED LOOK');
+    final direction = _text(cover['direction_name'], 'Curated Direction');
+    final pct = cover['wardrobe_match_pct'];
+    final curatedFor = _stringList(cover['curated_for']).take(3).toList();
+    final badge = cover['badge'];
+    final occasionFit = badge is Map
+        ? _text((badge)['occasion_fit'], '')
+        : '';
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
+      decoration: BoxDecoration(
+        color: t.panel,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: t.cardBorder),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          for (var index = 0; index < usable.length; index++) ...[
-            _VisualDirectionCard(direction: usable[index], width: width),
-            if (index != usable.length - 1) const SizedBox(width: 12),
+          Text(
+            occasion,
+            style: TextStyle(
+              color: t.mutedText,
+              fontSize: 11.5,
+              letterSpacing: 2.4,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            direction,
+            style: TextStyle(
+              color: t.textPrimary,
+              fontSize: 26,
+              fontWeight: FontWeight.w900,
+              height: 1.05,
+            ),
+          ),
+          const SizedBox(height: 12),
+          if (pct is int) ...[
+            Row(
+              children: [
+                Icon(Icons.star_rounded, size: 16, color: t.accent.primary),
+                const SizedBox(width: 5),
+                Text(
+                  'You Own $pct% Of This Look',
+                  style: TextStyle(
+                    color: t.textPrimary,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                if (occasionFit.isNotEmpty) ...[
+                  const SizedBox(width: 10),
+                  Text(
+                    '· $occasionFit Fit',
+                    style: TextStyle(
+                      color: t.mutedText,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+            const SizedBox(height: 12),
+          ],
+          if (curatedFor.isNotEmpty) ...[
+            Text(
+              'CURATED FOR',
+              style: TextStyle(
+                color: t.mutedText,
+                fontSize: 9.5,
+                letterSpacing: 0.7,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: curatedFor
+                  .map(
+                    (label) => Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 5,
+                      ),
+                      decoration: BoxDecoration(
+                        color: t.accent.primary.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: Text(
+                        label,
+                        style: TextStyle(
+                          color: t.textPrimary,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  )
+                  .toList(growable: false),
+            ),
           ],
         ],
       ),
@@ -45,17 +188,41 @@ class _VisualDirectionCard extends StatelessWidget {
     final t = context.themeTokens;
     final title = _text(direction['title'], 'Style Direction');
     final archetype = _text(direction['archetype'], '');
-    final primaryLabel = archetype.isNotEmpty ? archetype : title;
+    // Backend's editorial polish surfaces a curated direction_name which
+    // should win over the looser archetype/title fallbacks.
+    final directionName = _text(
+      direction['direction_name'] ?? direction['directionName'],
+      '',
+    );
+    final primaryLabel = directionName.isNotEmpty
+        ? directionName
+        : (archetype.isNotEmpty ? archetype : title);
     final secondaryLabel =
         archetype.isNotEmpty && archetype.toLowerCase() != title.toLowerCase()
             ? title
             : _text(direction['subtitle'], '');
     final description = _text(direction['description'], '');
     final heroPiece = _text(direction['hero_piece'] ?? direction['heroPiece'], '');
+    // Prefer the server-capped short_note (≤2 sentences) so the card never
+    // shows a wall of LLM prose. Falls back to existing fields.
     final whyItWorks = _text(
-      direction['why_it_works'] ??
+      direction['short_note'] ??
+          direction['shortNote'] ??
+          direction['why_it_works'] ??
           direction['whyThisWorks'] ??
           direction['why_this_works'],
+      '',
+    );
+    final adjectives =
+        _stringList(direction['adjectives']).take(3).toList(growable: false);
+    final wardrobeMatchPct = direction['wardrobe_match_pct'] ??
+        direction['wardrobeMatchPct'];
+    final badge = direction['badge'];
+    final badgeMap = badge is Map ? Map<String, dynamic>.from(badge) : const {};
+    final occasionFit = _text(badgeMap['occasion_fit'], '');
+    final completeTheLookCopy = _text(
+      direction['complete_the_look_copy'] ??
+          direction['completeTheLookCopy'],
       '',
     );
     final styleNote = _text(
@@ -133,6 +300,29 @@ class _VisualDirectionCard extends StatelessWidget {
               ),
             ],
           ),
+          if (adjectives.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Padding(
+              padding: const EdgeInsets.only(left: 24),
+              child: Text(
+                adjectives.join(' · '),
+                style: TextStyle(
+                  color: t.accent.primary,
+                  fontSize: 11,
+                  letterSpacing: 1.2,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ],
+          if (wardrobeMatchPct is int || occasionFit.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            _RecommendationBadge(
+              matchPct: wardrobeMatchPct is int ? wardrobeMatchPct : null,
+              occasionFit: occasionFit,
+              tokens: t,
+            ),
+          ],
           if (secondaryLabel.isNotEmpty) ...[
             const SizedBox(height: 4),
             Padding(
@@ -203,6 +393,29 @@ class _VisualDirectionCard extends StatelessWidget {
             _SectionLabel(text: 'COMPLETE THE LOOK', tokens: t),
             const SizedBox(height: 6),
             ...completeTheLook.map((item) => _AccessoryRow(item: item, tokens: t)),
+          ],
+          if (completeTheLookCopy.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              decoration: BoxDecoration(
+                color: t.accent.primary.withValues(alpha: 0.05),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: t.accent.primary.withValues(alpha: 0.18),
+                ),
+              ),
+              child: Text(
+                completeTheLookCopy,
+                style: TextStyle(
+                  color: t.textPrimary,
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w600,
+                  height: 1.32,
+                ),
+              ),
+            ),
           ],
           if (dnaAlignment.isNotEmpty) ...[
             const SizedBox(height: 10),
@@ -342,6 +555,71 @@ class _AccessoryRow extends StatelessWidget {
               ),
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RecommendationBadge extends StatelessWidget {
+  final int? matchPct;
+  final String occasionFit;
+  final dynamic tokens;
+
+  const _RecommendationBadge({
+    required this.matchPct,
+    required this.occasionFit,
+    required this.tokens,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final t = tokens;
+    final pieces = <Widget>[];
+    for (var i = 0; i < 5; i++) {
+      pieces.add(Icon(Icons.star_rounded, size: 13, color: t.accent.primary));
+    }
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      decoration: BoxDecoration(
+        color: t.accent.primary.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: t.accent.primary.withValues(alpha: 0.18)),
+      ),
+      child: Row(
+        children: [
+          ...pieces,
+          const SizedBox(width: 8),
+          Text(
+            'Recommended',
+            style: TextStyle(
+              color: t.textPrimary,
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const Spacer(),
+          if (matchPct != null)
+            Text(
+              '$matchPct% Match',
+              style: TextStyle(
+                color: t.textPrimary,
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          if (matchPct != null && occasionFit.isNotEmpty)
+            const SizedBox(width: 6),
+          if (occasionFit.isNotEmpty)
+            Text(
+              '· $occasionFit',
+              style: TextStyle(
+                color: t.mutedText,
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
         ],
       ),
     );
