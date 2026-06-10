@@ -13,6 +13,7 @@ import 'package:myapp/theme/theme_tokens.dart';
 class CurationReveal extends StatefulWidget {
   final String occasionLabel;
   final String venueLabel;
+  final int directionCount;
   final Widget child;
   final Duration duration;
   final bool enabled;
@@ -22,7 +23,8 @@ class CurationReveal extends StatefulWidget {
     required this.child,
     this.occasionLabel = '',
     this.venueLabel = '',
-    this.duration = const Duration(milliseconds: 1700),
+    this.directionCount = 0,
+    this.duration = const Duration(milliseconds: 1800),
     this.enabled = true,
   });
 
@@ -34,7 +36,10 @@ class _CurationRevealState extends State<CurationReveal>
     with SingleTickerProviderStateMixin {
   late final List<bool> _ticks = [false, false, false, false];
   bool _revealed = false;
+  // Brief "3 Looks Curated" beat between final tick and the board reveal.
+  bool _showCount = false;
   Timer? _revealTimer;
+  Timer? _countTimer;
   final List<Timer> _tickTimers = [];
 
   static const _labels = <String>[
@@ -52,10 +57,10 @@ class _CurationRevealState extends State<CurationReveal>
       return;
     }
     final ms = widget.duration.inMilliseconds;
-    // Stagger ticks across ~80% of the loader window so the final tick
-    // lands just before the reveal.
+    // Stagger ticks across ~75% of the loader window so the final tick
+    // lands ~450ms before the reveal — enough for the count beat.
     for (var i = 0; i < _ticks.length; i++) {
-      final delay = ((ms * 0.18) + (i * ms * 0.18)).round();
+      final delay = ((ms * 0.18) + (i * ms * 0.16)).round();
       _tickTimers.add(
         Timer(Duration(milliseconds: delay), () {
           if (!mounted) return;
@@ -63,6 +68,14 @@ class _CurationRevealState extends State<CurationReveal>
         }),
       );
     }
+    // Anticipation beat: flip to the "N Looks Curated" panel.
+    _countTimer = Timer(
+      Duration(milliseconds: (ms * 0.82).round()),
+      () {
+        if (!mounted) return;
+        setState(() => _showCount = true);
+      },
+    );
     _revealTimer = Timer(widget.duration, () {
       if (!mounted) return;
       setState(() => _revealed = true);
@@ -72,6 +85,7 @@ class _CurationRevealState extends State<CurationReveal>
   @override
   void dispose() {
     _revealTimer?.cancel();
+    _countTimer?.cancel();
     for (final timer in _tickTimers) {
       timer.cancel();
     }
@@ -96,13 +110,19 @@ class _CurationRevealState extends State<CurationReveal>
       },
       child: _revealed
           ? KeyedSubtree(key: const ValueKey('revealed'), child: widget.child)
-          : _LoaderCard(
-              key: const ValueKey('loader'),
-              occasionLabel: widget.occasionLabel,
-              venueLabel: widget.venueLabel,
-              ticks: _ticks,
-              labels: _labels,
-            ),
+          : (_showCount
+              ? _CountCard(
+                  key: const ValueKey('count'),
+                  occasionLabel: widget.occasionLabel,
+                  directionCount: widget.directionCount,
+                )
+              : _LoaderCard(
+                  key: const ValueKey('loader'),
+                  occasionLabel: widget.occasionLabel,
+                  venueLabel: widget.venueLabel,
+                  ticks: _ticks,
+                  labels: _labels,
+                )),
     );
   }
 }
@@ -189,6 +209,79 @@ class _LoaderCard extends StatelessWidget {
             _CheckRow(label: labels[i], on: ticks[i], tokens: t),
             if (i != labels.length - 1) const SizedBox(height: 6),
           ],
+        ],
+      ),
+    );
+  }
+}
+
+class _CountCard extends StatelessWidget {
+  final String occasionLabel;
+  final int directionCount;
+  const _CountCard({
+    super.key,
+    required this.occasionLabel,
+    required this.directionCount,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.themeTokens;
+    final word = directionCount == 1 ? 'Look Curated' : 'Looks Curated';
+    final count = directionCount > 0 ? directionCount : 3;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(20, 26, 20, 26),
+      decoration: BoxDecoration(
+        color: t.panel,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: t.cardBorder),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.check_circle_rounded,
+                  size: 18, color: t.accent.primary),
+              const SizedBox(width: 8),
+              Text(
+                'Curated for $occasionLabel',
+                style: TextStyle(
+                  color: t.mutedText,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.6,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.baseline,
+            textBaseline: TextBaseline.alphabetic,
+            children: [
+              Text(
+                '$count',
+                style: TextStyle(
+                  color: t.textPrimary,
+                  fontSize: 38,
+                  fontWeight: FontWeight.w700,
+                  height: 1.0,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                word,
+                style: TextStyle(
+                  color: t.textPrimary,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
         ],
       ),
     );

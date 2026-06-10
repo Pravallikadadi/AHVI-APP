@@ -35,7 +35,10 @@ class VisualDirectionCarousel extends StatelessWidget {
     final usable = directions.where((item) => item.isNotEmpty).toList();
     if (usable.isEmpty) return const SizedBox.shrink();
 
-    final width = cardWidth ?? 310.0;
+    // Wider hero — premium boards command the viewport instead of feeling
+    // like nested chat cards. ~360 keeps two boards peeking in on a 6"
+    // device while letting the hero collage breathe.
+    final width = cardWidth ?? 360.0;
     final hasCover = editorialCover.isNotEmpty &&
         _text(editorialCover['direction_name'], '').isNotEmpty;
 
@@ -75,6 +78,7 @@ class VisualDirectionCarousel extends StatelessWidget {
     return CurationReveal(
       occasionLabel: occasionLabel,
       venueLabel: venueLabel,
+      directionCount: usable.length,
       child: body,
     );
   }
@@ -99,18 +103,19 @@ class EditorialCoverCard extends StatelessWidget {
         ? _text((badge)['occasion_fit'], '')
         : '';
 
+    // Drop the visible border so the cover reads as part of the page,
+    // not a nested chip. AHVI house weights only — w700 max.
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
+      padding: const EdgeInsets.fromLTRB(22, 22, 22, 22),
       decoration: BoxDecoration(
         color: t.panel,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: t.cardBorder),
+        borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.06),
-            blurRadius: 18,
-            offset: const Offset(0, 8),
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 22,
+            offset: const Offset(0, 10),
           ),
         ],
       ),
@@ -126,43 +131,56 @@ class EditorialCoverCard extends StatelessWidget {
               fontWeight: FontWeight.w700,
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 10),
           Text(
             direction,
             style: TextStyle(
               color: t.textPrimary,
-              fontSize: 26,
-              fontWeight: FontWeight.w900,
-              height: 1.05,
+              fontSize: 28,
+              fontWeight: FontWeight.w700,
+              height: 1.08,
             ),
           ),
-          const SizedBox(height: 12),
           if (pct is int) ...[
+            const SizedBox(height: 18),
+            Text(
+              'WARDROBE MATCH',
+              style: TextStyle(
+                color: t.mutedText,
+                fontSize: 10.5,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 1.6,
+              ),
+            ),
+            const SizedBox(height: 4),
             Row(
+              crossAxisAlignment: CrossAxisAlignment.baseline,
+              textBaseline: TextBaseline.alphabetic,
               children: [
-                Icon(Icons.star_rounded, size: 16, color: t.accent.primary),
-                const SizedBox(width: 5),
                 Text(
-                  'You Own $pct% Of This Look',
+                  '$pct%',
                   style: TextStyle(
                     color: t.textPrimary,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w800,
+                    fontSize: 30,
+                    fontWeight: FontWeight.w700,
+                    height: 1.0,
                   ),
                 ),
                 if (occasionFit.isNotEmpty) ...[
-                  const SizedBox(width: 10),
+                  const SizedBox(width: 12),
                   Text(
-                    '· $occasionFit Fit',
+                    '$occasionFit Fit',
                     style: TextStyle(
                       color: t.mutedText,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                 ],
               ],
             ),
+            const SizedBox(height: 16),
+          ] else ...[
             const SizedBox(height: 12),
           ],
           if (curatedFor.isNotEmpty) ...[
@@ -236,11 +254,6 @@ class _VisualDirectionCard extends StatelessWidget {
     final primaryLabel = directionName.isNotEmpty
         ? directionName
         : (archetype.isNotEmpty ? archetype : title);
-    final secondaryLabel =
-        archetype.isNotEmpty && archetype.toLowerCase() != title.toLowerCase()
-            ? title
-            : _text(direction['subtitle'], '');
-    final description = _text(direction['description'], '');
     final heroPiece = _text(direction['hero_piece'] ?? direction['heroPiece'], '');
     // Prefer the server-capped short_note (≤2 sentences) so the card never
     // shows a wall of LLM prose. Falls back to existing fields.
@@ -269,11 +282,6 @@ class _VisualDirectionCard extends StatelessWidget {
       '',
     );
     final imageUrl = _nullableText(direction['image_url'] ?? direction['imageUrl']);
-    final palette = (_stringList(direction['colors']).isNotEmpty
-            ? _stringList(direction['colors'])
-            : _stringList(direction['palette']))
-        .take(5)
-        .toList(growable: false);
     final pieces = (_stringList(direction['items']).isNotEmpty
             ? _stringList(direction['items'])
             : _stringList(direction['pieces']))
@@ -282,25 +290,25 @@ class _VisualDirectionCard extends StatelessWidget {
     final completeTheLook = _mapList(
       direction['complete_the_look'] ?? direction['completeTheLook'],
     ).take(4).toList(growable: false);
-    final dnaAlignment = _text(
-      direction['style_dna_alignment'] ??
-          direction['dna_alignment'] ??
-          direction['persona_fit_reason'],
-      '',
-    );
 
+    final missing = direction['missing_piece'];
+    final missingMap = missing is Map ? Map<String, dynamic>.from(missing) : const <String, dynamic>{};
+    final tiles = _collageTiles(heroPiece, imageUrl, pieces, completeTheLook);
+
+    // Discard the noisy legacy sections (description, palette, components
+    // list, DNA section) so the experience reads as a stylist board, not a
+    // metadata dump. Imagery + a single stylist line carry the card.
     return Container(
       width: width,
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
       decoration: BoxDecoration(
         color: t.panel,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: t.cardBorder),
+        borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 12,
-            offset: const Offset(0, 5),
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
@@ -308,189 +316,88 @@ class _VisualDirectionCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (_collageTiles(heroPiece, imageUrl, pieces, completeTheLook)
-              .isNotEmpty) ...[
-            EditorialCollage(
-              tiles:
-                  _collageTiles(heroPiece, imageUrl, pieces, completeTheLook),
-              maxHeight: 200,
-            ),
-            const SizedBox(height: 10),
+          if (tiles.isNotEmpty) ...[
+            EditorialCollage(tiles: tiles, maxHeight: 280),
+            const SizedBox(height: 18),
           ] else if (imageUrl != null) ...[
             ClipRRect(
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(16),
               child: Image.network(
                 imageUrl,
-                height: 104,
+                height: 220,
                 width: double.infinity,
                 fit: BoxFit.cover,
                 errorBuilder: (_, _, _) => const SizedBox.shrink(),
               ),
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 18),
           ],
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Icon(Icons.auto_awesome_rounded, size: 16, color: t.accent.primary),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  primaryLabel,
-                  style: TextStyle(
-                    color: t.textPrimary,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w900,
-                    height: 1.12,
-                  ),
-                ),
-              ),
-            ],
+          Text(
+            primaryLabel,
+            style: TextStyle(
+              color: t.textPrimary,
+              fontSize: 22,
+              fontWeight: FontWeight.w700,
+              height: 1.1,
+            ),
           ),
           if (adjectives.isNotEmpty) ...[
             const SizedBox(height: 6),
-            Padding(
-              padding: const EdgeInsets.only(left: 24),
-              child: Text(
-                adjectives.join(' · '),
-                style: TextStyle(
-                  color: t.accent.primary,
-                  fontSize: 11,
-                  letterSpacing: 1.2,
-                  fontWeight: FontWeight.w700,
-                ),
+            Text(
+              adjectives.map(_titleCaseWord).join('  •  '),
+              style: TextStyle(
+                color: t.mutedText,
+                fontSize: 12.5,
+                fontWeight: FontWeight.w500,
+                height: 1.3,
+              ),
+            ),
+          ],
+          if (whyItWorks.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Text(
+              whyItWorks,
+              style: TextStyle(
+                color: t.textPrimary,
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+                height: 1.42,
+              ),
+            ),
+          ],
+          if (styleNote.isNotEmpty && styleNote.toLowerCase() != whyItWorks.toLowerCase()) ...[
+            const SizedBox(height: 8),
+            Text(
+              styleNote,
+              style: TextStyle(
+                color: t.mutedText,
+                fontSize: 12.5,
+                fontWeight: FontWeight.w500,
+                height: 1.4,
+                fontStyle: FontStyle.italic,
               ),
             ),
           ],
           if (wardrobeMatchPct is int || occasionFit.isNotEmpty) ...[
-            const SizedBox(height: 10),
-            _RecommendationBadge(
+            const SizedBox(height: 16),
+            _LuxuryBadgeRow(
               matchPct: wardrobeMatchPct is int ? wardrobeMatchPct : null,
               occasionFit: occasionFit,
               tokens: t,
             ),
           ],
-          if (secondaryLabel.isNotEmpty) ...[
-            const SizedBox(height: 4),
-            Padding(
-              padding: const EdgeInsets.only(left: 24),
-              child: Text(
-                secondaryLabel,
-                style: TextStyle(
-                  color: t.mutedText,
-                  fontSize: 11.5,
-                  height: 1.25,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
-          ],
-          if (description.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            Text(
-              description,
-              style: TextStyle(
-                color: t.textPrimary.withValues(alpha: 0.82),
-                fontSize: 12,
-                height: 1.35,
-              ),
-            ),
-          ],
-          if (heroPiece.isNotEmpty) ...[
-            const SizedBox(height: 10),
-            _InfoSection(
-              label: 'HERO PIECE',
-              value: heroPiece,
+          if (_text(missingMap['name'], '').isNotEmpty ||
+              completeTheLookCopy.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            _MissingPieceCard(
+              missing: missingMap,
+              copy: completeTheLookCopy,
               tokens: t,
-              icon: Icons.star_border_rounded,
-            ),
-          ],
-          if (whyItWorks.isNotEmpty) ...[
-            const SizedBox(height: 10),
-            _InfoSection(label: 'WHY IT WORKS', value: whyItWorks, tokens: t),
-          ],
-          if (palette.isNotEmpty) ...[
-            const SizedBox(height: 10),
-            _SectionLabel(text: 'COLOR STORY', tokens: t),
-            const SizedBox(height: 6),
-            Wrap(
-              spacing: 6,
-              runSpacing: 6,
-              children: palette
-                  .map((color) => _PaletteChip(label: color, tokens: t))
-                  .toList(growable: false),
-            ),
-          ],
-          if (pieces.isNotEmpty) ...[
-            const SizedBox(height: 10),
-            _SectionLabel(text: 'COMPONENTS', tokens: t),
-            const SizedBox(height: 4),
-            Text(
-              pieces.join(' - '),
-              style: TextStyle(
-                color: t.mutedText,
-                fontSize: 11.5,
-                height: 1.32,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-          if (completeTheLook.isNotEmpty) ...[
-            const SizedBox(height: 10),
-            _SectionLabel(text: 'COMPLETE THE LOOK', tokens: t),
-            const SizedBox(height: 6),
-            ...completeTheLook.map((item) => _AccessoryRow(item: item, tokens: t)),
-          ],
-          if (completeTheLookCopy.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-              decoration: BoxDecoration(
-                color: t.accent.primary.withValues(alpha: 0.05),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(
-                  color: t.accent.primary.withValues(alpha: 0.18),
-                ),
-              ),
-              child: Text(
-                completeTheLookCopy,
-                style: TextStyle(
-                  color: t.textPrimary,
-                  fontSize: 11.5,
-                  fontWeight: FontWeight.w600,
-                  height: 1.32,
-                ),
-              ),
-            ),
-          ],
-          if (dnaAlignment.isNotEmpty) ...[
-            const SizedBox(height: 10),
-            _InfoSection(
-              label: 'WHY THIS FITS YOU',
-              value: dnaAlignment,
-              tokens: t,
-              icon: Icons.person_pin_rounded,
-            ),
-          ],
-          if (styleNote.isNotEmpty) ...[
-            const SizedBox(height: 12),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-              decoration: BoxDecoration(
-                color: t.accent.primary.withValues(alpha: 0.06),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                styleNote,
-                style: TextStyle(
-                  color: t.textPrimary,
-                  fontSize: 11.4,
-                  height: 1.32,
-                  fontStyle: FontStyle.italic,
-                ),
-              ),
+              onFindSimilar: onSendMessage == null
+                  ? null
+                  : () => onSendMessage!.call(
+                        'Show shopping ideas for: ${_text(missingMap['name'], primaryLabel)}',
+                      ),
             ),
           ],
           _OwnershipBlock(
@@ -585,47 +492,43 @@ class _OwnershipBlock extends StatelessWidget {
       return const SizedBox.shrink();
     }
     return Padding(
-      padding: const EdgeInsets.only(top: 12),
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
-        decoration: BoxDecoration(
-          color: t.accent.primary.withValues(alpha: 0.04),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.check_rounded, size: 13, color: t.accent.primary),
-                const SizedBox(width: 6),
-                Text(
-                  matchPct != null
-                      ? 'YOU OWN $matchPct% OF THIS LOOK'
-                      : 'ALREADY IN YOUR WARDROBE',
-                  style: TextStyle(
-                    color: t.mutedText,
-                    fontSize: 9.5,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 0.7,
-                  ),
-                ),
-              ],
+      padding: const EdgeInsets.only(top: 18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'WARDROBE MATCH',
+            style: TextStyle(
+              color: t.mutedText,
+              fontSize: 10.5,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 1.6,
             ),
-            if (ownedItems.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 6,
-                runSpacing: 6,
-                children: ownedItems
-                    .take(8)
-                    .map((item) => _OwnedChip(item: item, tokens: t))
-                    .toList(growable: false),
+          ),
+          if (matchPct != null) ...[
+            const SizedBox(height: 4),
+            Text(
+              '$matchPct%',
+              style: TextStyle(
+                color: t.textPrimary,
+                fontSize: 24,
+                fontWeight: FontWeight.w700,
+                height: 1.0,
               ),
-            ],
+            ),
           ],
-        ),
+          if (ownedItems.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: ownedItems
+                  .take(8)
+                  .map((item) => _OwnedChip(item: item, tokens: t))
+                  .toList(growable: false),
+            ),
+          ],
+        ],
       ),
     );
   }
@@ -644,34 +547,33 @@ class _OwnedChip extends StatelessWidget {
     final url = (item['image_url'] ?? item['imageUrl'])?.toString().trim();
     final thumb = (url != null && url.isNotEmpty)
         ? ClipRRect(
-            borderRadius: BorderRadius.circular(6),
+            borderRadius: BorderRadius.circular(8),
             child: Image.network(
               url,
-              width: 22,
-              height: 22,
+              width: 30,
+              height: 30,
               fit: BoxFit.cover,
               errorBuilder: (_, _, _) => _iconBox(t),
             ),
           )
         : _iconBox(t);
     return Container(
-      padding: const EdgeInsets.fromLTRB(5, 4, 9, 4),
+      padding: const EdgeInsets.fromLTRB(7, 5, 12, 5),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: t.accent.primary.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: t.accent.primary.withValues(alpha: 0.22)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           thumb,
-          const SizedBox(width: 6),
+          const SizedBox(width: 8),
           Text(
             name,
             style: TextStyle(
               color: t.textPrimary,
-              fontSize: 10.5,
-              fontWeight: FontWeight.w700,
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
             ),
           ),
         ],
@@ -889,121 +791,14 @@ class _ActionButton extends StatelessWidget {
   }
 }
 
-class _InfoSection extends StatelessWidget {
-  final String label;
-  final String value;
-  final dynamic tokens;
-  final IconData? icon;
-
-  const _InfoSection({
-    required this.label,
-    required this.value,
-    required this.tokens,
-    this.icon,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final t = tokens;
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: t.accent.primary.withValues(alpha: 0.04),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: t.cardBorder.withValues(alpha: 0.8)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              if (icon != null) ...[
-                Icon(icon, size: 13, color: t.accent.primary),
-                const SizedBox(width: 5),
-              ],
-              Text(
-                label,
-                style: TextStyle(
-                  color: t.mutedText,
-                  fontSize: 9.5,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 0.7,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Text(
-            value,
-            style: TextStyle(
-              color: t.textPrimary,
-              fontSize: 12,
-              height: 1.32,
-              fontWeight: label == 'HERO PIECE' ? FontWeight.w800 : FontWeight.w500,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _AccessoryRow extends StatelessWidget {
-  final Map<String, dynamic> item;
-  final dynamic tokens;
-
-  const _AccessoryRow({required this.item, required this.tokens});
-
-  @override
-  Widget build(BuildContext context) {
-    final t = tokens;
-    final name = _text(item['name'] ?? item['title'] ?? item['label'], '');
-    final reason = _text(item['reason'], '');
-    final imageUrl = _nullableText(item['image_url'] ?? item['imageUrl']);
-    if (name.isEmpty) return const SizedBox.shrink();
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 7),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (imageUrl != null)
-            ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: Image.network(
-                imageUrl,
-                width: 34,
-                height: 34,
-                fit: BoxFit.cover,
-                errorBuilder: (_, _, _) => const SizedBox(width: 34, height: 34),
-              ),
-            )
-          else
-            Icon(Icons.check_rounded, size: 16, color: t.accent.primary),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              reason.isNotEmpty ? '$name - $reason' : name,
-              style: TextStyle(
-                color: t.textPrimary,
-                fontSize: 11.6,
-                height: 1.3,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _RecommendationBadge extends StatelessWidget {
+/// Luxury badge row: three discrete pills (stars + Recommended, wardrobe
+/// match %, occasion fit). Reuses AHVI house weights / sizes; spacing
+/// does the premium lift.
+class _LuxuryBadgeRow extends StatelessWidget {
   final int? matchPct;
   final String occasionFit;
   final dynamic tokens;
-
-  const _RecommendationBadge({
+  const _LuxuryBadgeRow({
     required this.matchPct,
     required this.occasionFit,
     required this.tokens,
@@ -1012,104 +807,233 @@ class _RecommendationBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = tokens;
-    final pieces = <Widget>[];
-    for (var i = 0; i < 5; i++) {
-      pieces.add(Icon(Icons.star_rounded, size: 13, color: t.accent.primary));
+    final pct = matchPct;
+    String matchLabel;
+    if (pct == null) {
+      matchLabel = '';
+    } else if (pct >= 95) {
+      matchLabel = 'Perfect Wardrobe Match';
+    } else if (pct >= 70) {
+      matchLabel = '$pct% Wardrobe Match';
+    } else {
+      matchLabel = '$pct% Wardrobe Match';
     }
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        _BadgePill(
+          tokens: t,
+          icon: Icons.star_rounded,
+          label: 'Recommended',
+          showStars: true,
+        ),
+        if (matchLabel.isNotEmpty)
+          _BadgePill(
+            tokens: t,
+            icon: Icons.emoji_events_outlined,
+            label: matchLabel,
+          ),
+        if (occasionFit.isNotEmpty)
+          _BadgePill(
+            tokens: t,
+            icon: Icons.bolt_rounded,
+            label: 'Occasion Fit: $occasionFit',
+          ),
+      ],
+    );
+  }
+}
+
+class _BadgePill extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final dynamic tokens;
+  final bool showStars;
+  const _BadgePill({
+    required this.tokens,
+    required this.icon,
+    required this.label,
+    this.showStars = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final t = tokens;
     return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: t.accent.primary.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: t.accent.primary.withValues(alpha: 0.18)),
+        color: t.accent.primary.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(999),
       ),
       child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          ...pieces,
-          const SizedBox(width: 8),
+          if (showStars)
+            for (var i = 0; i < 5; i++)
+              Icon(Icons.star_rounded, size: 12, color: t.accent.primary)
+          else
+            Icon(icon, size: 13, color: t.accent.primary),
+          const SizedBox(width: 7),
           Text(
-            'Recommended',
+            label,
             style: TextStyle(
               color: t.textPrimary,
-              fontSize: 11,
-              fontWeight: FontWeight.w800,
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
             ),
           ),
-          const Spacer(),
-          if (matchPct != null)
-            Text(
-              '$matchPct% Match',
-              style: TextStyle(
-                color: t.textPrimary,
-                fontSize: 11,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-          if (matchPct != null && occasionFit.isNotEmpty)
-            const SizedBox(width: 6),
-          if (occasionFit.isNotEmpty)
-            Text(
-              '· $occasionFit',
-              style: TextStyle(
-                color: t.mutedText,
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
         ],
       ),
     );
   }
 }
 
-class _SectionLabel extends StatelessWidget {
-  final String text;
+/// Premium "Complete The Look" card. Stylist-led opportunity, never a
+/// warning. Larger image, breathing room, optional Find Similar action.
+class _MissingPieceCard extends StatelessWidget {
+  final Map<String, dynamic> missing;
+  final String copy;
+  final VoidCallback? onFindSimilar;
   final dynamic tokens;
-
-  const _SectionLabel({required this.text, required this.tokens});
+  const _MissingPieceCard({
+    required this.missing,
+    required this.copy,
+    required this.tokens,
+    this.onFindSimilar,
+  });
 
   @override
   Widget build(BuildContext context) {
     final t = tokens;
-    return Text(
-      text,
-      style: TextStyle(
-        color: t.mutedText,
-        fontSize: 9.5,
-        fontWeight: FontWeight.w800,
-        letterSpacing: 0.7,
+    final name = _text(missing['name'], '');
+    final imageUrl =
+        _nullableText(missing['image_url'] ?? missing['imageUrl']);
+    if (name.isEmpty && copy.isEmpty) return const SizedBox.shrink();
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+      decoration: BoxDecoration(
+        color: t.accent.primary.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Complete the Look',
+            style: TextStyle(
+              color: t.mutedText,
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.6,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: imageUrl != null
+                    ? Image.network(
+                        imageUrl,
+                        width: 64,
+                        height: 64,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, _, _) => _missingPieceIcon(t),
+                      )
+                    : _missingPieceIcon(t),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (name.isNotEmpty)
+                      Text(
+                        name,
+                        style: TextStyle(
+                          color: t.textPrimary,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          height: 1.2,
+                        ),
+                      ),
+                    if (copy.isNotEmpty) ...[
+                      if (name.isNotEmpty) const SizedBox(height: 4),
+                      Text(
+                        copy,
+                        style: TextStyle(
+                          color: t.mutedText,
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w500,
+                          height: 1.35,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ),
+          if (onFindSimilar != null) ...[
+            const SizedBox(height: 12),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(999),
+                onTap: onFindSimilar,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: t.accent.primary,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.search_rounded, size: 14, color: Colors.white),
+                      SizedBox(width: 6),
+                      Text(
+                        'Find Similar',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }
+
+  Widget _missingPieceIcon(dynamic t) => Container(
+        width: 64,
+        height: 64,
+        color: t.accent.primary.withValues(alpha: 0.08),
+        alignment: Alignment.center,
+        child: Icon(Icons.checkroom_rounded,
+            size: 28, color: t.accent.primary),
+      );
 }
 
-class _PaletteChip extends StatelessWidget {
-  final String label;
-  final dynamic tokens;
-
-  const _PaletteChip({required this.label, required this.tokens});
-
-  @override
-  Widget build(BuildContext context) {
-    final t = tokens;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-      decoration: BoxDecoration(
-        color: t.accent.secondary.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: t.accent.secondary.withValues(alpha: 0.22)),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          color: t.textPrimary,
-          fontSize: 10.5,
-          fontWeight: FontWeight.w700,
-        ),
-      ),
-    );
-  }
+/// Title-case a single word so adjectives render as "Refined" / "Sharp"
+/// regardless of backend capitalization. Sentence-case only — does not
+/// touch surrounding words or introduce upper-case-only treatment.
+String _titleCaseWord(String value) {
+  final trimmed = value.trim();
+  if (trimmed.isEmpty) return trimmed;
+  return trimmed[0].toUpperCase() + trimmed.substring(1).toLowerCase();
 }
 
 String _text(dynamic value, String fallback) {
