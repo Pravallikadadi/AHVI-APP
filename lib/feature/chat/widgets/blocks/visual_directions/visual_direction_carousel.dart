@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:myapp/feature/chat/services/saved_boards_store.dart';
 import 'package:myapp/feature/chat/widgets/blocks/visual_directions/curation_reveal.dart';
 import 'package:myapp/feature/chat/widgets/blocks/visual_directions/editorial_collage.dart';
 import 'package:myapp/theme/theme_tokens.dart';
@@ -57,6 +58,7 @@ class VisualDirectionCarousel extends StatelessWidget {
                   direction: usable[index],
                   width: width,
                   onSendMessage: onSendMessage,
+                  editorialCover: editorialCover,
                 ),
                 if (index != usable.length - 1) const SizedBox(width: 12),
               ],
@@ -211,11 +213,13 @@ class _VisualDirectionCard extends StatelessWidget {
   final Map<String, dynamic> direction;
   final double width;
   final DirectionMessageSender? onSendMessage;
+  final Map<String, dynamic> editorialCover;
 
   const _VisualDirectionCard({
     required this.direction,
     required this.width,
     this.onSendMessage,
+    this.editorialCover = const {},
   });
 
   @override
@@ -489,19 +493,17 @@ class _VisualDirectionCard extends StatelessWidget {
               ),
             ),
           ],
-          if (_ownedFromPieces(pieces).isNotEmpty) ...[
-            const SizedBox(height: 12),
-            _WardrobeOwnershipStrip(
-              ownedNames: _ownedFromPieces(pieces),
-              matchPct: wardrobeMatchPct is int ? wardrobeMatchPct : null,
-              tokens: t,
-            ),
-          ],
+          _OwnershipBlock(
+            ownedItems: _mapList(direction['owned_items']),
+            matchPct: wardrobeMatchPct is int ? wardrobeMatchPct : null,
+            tokens: t,
+          ),
           const SizedBox(height: 12),
           _StickyActionBar(
             direction: direction,
             primaryLabel: primaryLabel,
             onSendMessage: onSendMessage,
+            editorialCover: editorialCover,
             tokens: t,
           ),
         ],
@@ -510,32 +512,8 @@ class _VisualDirectionCard extends StatelessWidget {
   }
 }
 
-/// Items that pass the fashion-category filter for ownership chips.
-/// Backend doesn't currently expose a per-item ownership flag, so we
-/// only label items whose names map to a wardrobe-eligible family.
-List<String> _ownedFromPieces(List<String> pieces) {
-  const eligible = <String>{
-    'top', 'shirt', 't-shirt', 'tshirt', 'polo', 'hoodie', 'sweatshirt',
-    'sweater', 'knit',
-    'bottom', 'trouser', 'pant', 'chino', 'jean', 'jeans', 'short', 'shorts',
-    'dress', 'gown', 'jumpsuit',
-    'footwear', 'shoe', 'loafer', 'sneaker', 'boot', 'sandal', 'heel',
-    'outerwear', 'blazer', 'jacket', 'coat', 'overshirt',
-    'ethnicwear', 'kurta', 'sherwani', 'lehenga', 'saree',
-    'accessory', 'belt', 'tie', 'scarf', 'sunglass',
-    'bag', 'tote', 'sling', 'backpack',
-    'watch',
-    'jewellery', 'jewelry', 'necklace', 'bracelet', 'ring', 'earring',
-  };
-  final out = <String>[];
-  for (final piece in pieces) {
-    final lower = piece.toLowerCase();
-    if (eligible.any((token) => lower.contains(token))) {
-      out.add(piece);
-    }
-  }
-  return out.take(6).toList(growable: false);
-}
+// Family-inference fallback removed in favour of backend-provided
+// owned_items. Trust > completeness — see _OwnershipBlock.
 
 /// Collage tile assembly. Hero comes from heroPiece + the direction's own
 /// image_url; supporting tiles come from complete_the_look entries with
@@ -583,12 +561,19 @@ List<CollageTile> _collageTiles(
   return tiles;
 }
 
-class _WardrobeOwnershipStrip extends StatelessWidget {
-  final List<String> ownedNames;
+/// Renders true-ownership signals:
+///
+/// * Backend-provided ``owned_items`` become real thumbnail / name chips.
+/// * If ``owned_items`` is absent but ``wardrobe_match_pct`` is known we
+///   show the percentage banner alone — never fabricate chips.
+/// * Without any signal we render nothing.
+class _OwnershipBlock extends StatelessWidget {
+  final List<Map<String, dynamic>> ownedItems;
   final int? matchPct;
   final dynamic tokens;
-  const _WardrobeOwnershipStrip({
-    required this.ownedNames,
+
+  const _OwnershipBlock({
+    required this.ownedItems,
     required this.matchPct,
     required this.tokens,
   });
@@ -596,123 +581,232 @@ class _WardrobeOwnershipStrip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = tokens;
-    if (ownedNames.isEmpty) return const SizedBox.shrink();
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-      decoration: BoxDecoration(
-        color: t.accent.primary.withValues(alpha: 0.04),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.check_rounded, size: 13, color: t.accent.primary),
-              const SizedBox(width: 6),
-              Text(
-                matchPct == null
-                    ? 'ALREADY IN YOUR WARDROBE'
-                    : 'YOU OWN $matchPct% OF THIS LOOK',
-                style: TextStyle(
-                  color: t.mutedText,
-                  fontSize: 9.5,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 0.7,
+    if (ownedItems.isEmpty && matchPct == null) {
+      return const SizedBox.shrink();
+    }
+    return Padding(
+      padding: const EdgeInsets.only(top: 12),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
+        decoration: BoxDecoration(
+          color: t.accent.primary.withValues(alpha: 0.04),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.check_rounded, size: 13, color: t.accent.primary),
+                const SizedBox(width: 6),
+                Text(
+                  matchPct != null
+                      ? 'YOU OWN $matchPct% OF THIS LOOK'
+                      : 'ALREADY IN YOUR WARDROBE',
+                  style: TextStyle(
+                    color: t.mutedText,
+                    fontSize: 9.5,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.7,
+                  ),
                 ),
+              ],
+            ),
+            if (ownedItems.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: ownedItems
+                    .take(8)
+                    .map((item) => _OwnedChip(item: item, tokens: t))
+                    .toList(growable: false),
               ),
             ],
-          ),
-          const SizedBox(height: 6),
-          Wrap(
-            spacing: 6,
-            runSpacing: 6,
-            children: ownedNames
-                .map(
-                  (label) => Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 9,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(999),
-                      border: Border.all(
-                        color: t.accent.primary.withValues(alpha: 0.18),
-                      ),
-                    ),
-                    child: Text(
-                      label,
-                      style: TextStyle(
-                        color: t.textPrimary,
-                        fontSize: 10.5,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                )
-                .toList(growable: false),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 }
 
-class _StickyActionBar extends StatelessWidget {
+class _OwnedChip extends StatelessWidget {
+  final Map<String, dynamic> item;
+  final dynamic tokens;
+  const _OwnedChip({required this.item, required this.tokens});
+
+  @override
+  Widget build(BuildContext context) {
+    final t = tokens;
+    final name = (item['name'] ?? '').toString();
+    if (name.isEmpty) return const SizedBox.shrink();
+    final url = (item['image_url'] ?? item['imageUrl'])?.toString().trim();
+    final thumb = (url != null && url.isNotEmpty)
+        ? ClipRRect(
+            borderRadius: BorderRadius.circular(6),
+            child: Image.network(
+              url,
+              width: 22,
+              height: 22,
+              fit: BoxFit.cover,
+              errorBuilder: (_, _, _) => _iconBox(t),
+            ),
+          )
+        : _iconBox(t);
+    return Container(
+      padding: const EdgeInsets.fromLTRB(5, 4, 9, 4),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: t.accent.primary.withValues(alpha: 0.22)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          thumb,
+          const SizedBox(width: 6),
+          Text(
+            name,
+            style: TextStyle(
+              color: t.textPrimary,
+              fontSize: 10.5,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _iconBox(dynamic t) => Container(
+        width: 22,
+        height: 22,
+        decoration: BoxDecoration(
+          color: t.accent.primary.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(6),
+        ),
+        alignment: Alignment.center,
+        child: Icon(Icons.checkroom_rounded, size: 14, color: t.accent.primary),
+      );
+}
+
+class _StickyActionBar extends StatefulWidget {
   final Map<String, dynamic> direction;
   final String primaryLabel;
   final DirectionMessageSender? onSendMessage;
+  final Map<String, dynamic> editorialCover;
   final dynamic tokens;
   const _StickyActionBar({
     required this.direction,
     required this.primaryLabel,
     required this.onSendMessage,
+    required this.editorialCover,
     required this.tokens,
   });
 
   @override
-  Widget build(BuildContext context) {
-    final t = tokens;
-    final missingName = _text(
-      (direction['missing_piece'] is Map
-              ? (direction['missing_piece'] as Map)['name']
-              : null) ??
-          (direction['missing_piece_name']),
-      '',
-    );
-    final canSend = onSendMessage != null;
+  State<_StickyActionBar> createState() => _StickyActionBarState();
+}
 
-    Future<void> emit(String message) async {
-      if (!canSend) {
-        ScaffoldMessenger.maybeOf(context)?.showSnackBar(
-          const SnackBar(
-            content: Text('Saved to your boards (coming soon)'),
-            duration: Duration(seconds: 2),
-          ),
-        );
+class _StickyActionBarState extends State<_StickyActionBar> {
+  bool _saved = false;
+  bool _saving = false;
+
+  String get _occasion {
+    final coverOccasion = (widget.editorialCover['occasion_label'] ?? '')
+        .toString()
+        .trim();
+    if (coverOccasion.isNotEmpty) return coverOccasion;
+    final direct = (widget.direction['occasion'] ?? '').toString().trim();
+    return direct.isNotEmpty ? direct : 'Curated Look';
+  }
+
+  String get _id => SavedBoardsStore.idFor(
+        occasion: _occasion,
+        directionName: widget.primaryLabel,
+      );
+
+  @override
+  void initState() {
+    super.initState();
+    () async {
+      final saved = await SavedBoardsStore.isSaved(_id);
+      if (!mounted) return;
+      setState(() => _saved = saved);
+    }();
+  }
+
+  Future<void> _toggleSave() async {
+    if (_saving) return;
+    setState(() => _saving = true);
+    try {
+      if (_saved) {
+        await SavedBoardsStore.remove(_id);
+        if (!mounted) return;
+        setState(() {
+          _saved = false;
+          _saving = false;
+        });
         return;
       }
-      onSendMessage!.call(message);
+      await SavedBoardsStore.saveBoard(
+        occasion: _occasion,
+        directionName: widget.primaryLabel,
+        direction: widget.direction,
+        editorialCover: widget.editorialCover,
+      );
+      if (!mounted) return;
+      setState(() {
+        _saved = true;
+        _saving = false;
+      });
+      ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+        const SnackBar(
+          content: Text('Saved to Style Boards'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _saving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final t = widget.tokens;
+    final missingName = _text(
+      (widget.direction['missing_piece'] is Map
+              ? (widget.direction['missing_piece'] as Map)['name']
+              : null) ??
+          (widget.direction['missing_piece_name']),
+      '',
+    );
+    final canSend = widget.onSendMessage != null;
+
+    Future<void> emit(String message) async {
+      if (!canSend) return;
+      widget.onSendMessage!.call(message);
     }
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         _ActionButton(
-          icon: Icons.favorite_border_rounded,
-          label: 'Save',
+          icon: _saved ? Icons.check_circle_rounded : Icons.favorite_border_rounded,
+          label: _saved ? 'Saved' : 'Save',
           tokens: t,
-          enabled: true,
-          onTap: () => emit('Save this look: $primaryLabel'),
+          enabled: !_saving,
+          accentColor: _saved ? const Color(0xFF2E7D5B) : null,
+          onTap: _toggleSave,
         ),
         _ActionButton(
           icon: Icons.refresh_rounded,
           label: 'More',
           tokens: t,
           enabled: canSend,
-          onTap: () => emit('Show more looks like $primaryLabel'),
+          onTap: () => emit('Show more looks like ${widget.primaryLabel}'),
         ),
         _ActionButton(
           icon: Icons.shopping_bag_outlined,
@@ -722,7 +816,7 @@ class _StickyActionBar extends StatelessWidget {
           onTap: () => emit(
             missingName.isNotEmpty
                 ? 'Show shopping ideas for: $missingName'
-                : 'Show shopping ideas for: $primaryLabel',
+                : 'Show shopping ideas for: ${widget.primaryLabel}',
           ),
         ),
         _ActionButton(
@@ -743,20 +837,21 @@ class _ActionButton extends StatelessWidget {
   final bool enabled;
   final VoidCallback onTap;
   final dynamic tokens;
+  final Color? accentColor;
   const _ActionButton({
     required this.icon,
     required this.label,
     required this.enabled,
     required this.onTap,
     required this.tokens,
+    this.accentColor,
   });
 
   @override
   Widget build(BuildContext context) {
     final t = tokens;
-    final color = enabled
-        ? t.textPrimary
-        : t.mutedText.withValues(alpha: 0.55);
+    final base = enabled ? t.textPrimary : t.mutedText.withValues(alpha: 0.55);
+    final color = accentColor ?? base;
     return InkWell(
       onTap: enabled ? onTap : null,
       borderRadius: BorderRadius.circular(10),
@@ -765,16 +860,27 @@ class _ActionButton extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 18, color: color),
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 240),
+              transitionBuilder: (child, anim) =>
+                  ScaleTransition(scale: anim, child: child),
+              child: Icon(
+                icon,
+                key: ValueKey('$icon-${color.toARGB32()}'),
+                size: 18,
+                color: color,
+              ),
+            ),
             const SizedBox(height: 3),
-            Text(
-              label,
+            AnimatedDefaultTextStyle(
+              duration: const Duration(milliseconds: 220),
               style: TextStyle(
                 color: color,
                 fontSize: 10.5,
                 fontWeight: FontWeight.w800,
                 letterSpacing: 0.4,
               ),
+              child: Text(label),
             ),
           ],
         ),
