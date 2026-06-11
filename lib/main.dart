@@ -1075,6 +1075,9 @@ class AuthWrapper extends StatefulWidget {
 }
 
 class _AuthWrapperState extends State<AuthWrapper> {
+  static const Duration _startupAuthTimeout = Duration(seconds: 8);
+  static const Duration _startupProfileTimeout = Duration(seconds: 10);
+
   bool _splashDone = false;
   bool _authDone = false;
   bool _authCheckStarted = false;
@@ -1115,7 +1118,9 @@ class _AuthWrapperState extends State<AuthWrapper> {
         context,
         listen: false,
       );
-      final user = await appwrite.getCurrentUser();
+      final user = await appwrite.getCurrentUser().timeout(
+        _startupAuthTimeout,
+      );
       Map<String, dynamic>? profile;
       if (user != null) {
         // AHVI auth persistence fix:
@@ -1132,11 +1137,14 @@ class _AuthWrapperState extends State<AuthWrapper> {
         );
 
         try {
-          await appwrite.cacheCurrentUser();
-          await appwrite.ensureCurrentUserProfile();
-          profile = await appwrite.refreshCurrentUserProfile();
+          profile = await (() async {
+            await appwrite.cacheCurrentUser();
+            await appwrite.ensureCurrentUserProfile();
+            return appwrite.refreshCurrentUserProfile();
+          })().timeout(_startupProfileTimeout);
         } catch (e) {
           debugPrint('Cold-start profile hydration failed: $e');
+          profile = appwrite.cachedUserProfileData;
         }
       }
 
