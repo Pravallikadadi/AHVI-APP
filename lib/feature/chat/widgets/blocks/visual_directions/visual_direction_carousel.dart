@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:myapp/feature/chat/services/fashion_item_filter.dart';
 import 'package:myapp/feature/chat/services/saved_boards_store.dart';
 import 'package:myapp/feature/chat/widgets/blocks/visual_directions/curation_reveal.dart';
 import 'package:myapp/feature/chat/widgets/blocks/visual_directions/editorial_collage.dart';
@@ -287,12 +288,20 @@ class _VisualDirectionCard extends StatelessWidget {
             : _stringList(direction['pieces']))
         .take(6)
         .toList(growable: false);
-    final completeTheLook = _mapList(
-      direction['complete_the_look'] ?? direction['completeTheLook'],
+    final completeTheLook = filterFashionItems(
+      _mapList(direction['complete_the_look'] ?? direction['completeTheLook']),
     ).take(4).toList(growable: false);
 
     final missing = direction['missing_piece'];
-    final missingMap = missing is Map ? Map<String, dynamic>.from(missing) : const <String, dynamic>{};
+    final rawMissing = missing is Map
+        ? Map<String, dynamic>.from(missing)
+        : const <String, dynamic>{};
+    // Missing piece must be a fashion item — never recommend buying a
+    // charger to "complete the look".
+    final missingMap =
+        rawMissing.isNotEmpty && isFashionItem(rawMissing)
+            ? rawMissing
+            : const <String, dynamic>{};
     final tiles = _collageTiles(heroPiece, imageUrl, pieces, completeTheLook);
 
     // Discard the noisy legacy sections (description, palette, components
@@ -401,7 +410,9 @@ class _VisualDirectionCard extends StatelessWidget {
             ),
           ],
           _OwnershipBlock(
-            ownedItems: _mapList(direction['owned_items']),
+            // Safety net: backend already sanitizes, but older payloads may
+            // still carry non-fashion rows. Never render a charger chip.
+            ownedItems: filterFashionItems(_mapList(direction['owned_items'])),
             matchPct: wardrobeMatchPct is int ? wardrobeMatchPct : null,
             tokens: t,
           ),
