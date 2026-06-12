@@ -1396,14 +1396,14 @@ class _ItemDetailPanelState extends State<_ItemDetailPanel>
                                             image: NetworkImage(
                                               item.displayUrl!,
                                             ),
-                                            fit: BoxFit.cover,
+                                            fit: BoxFit.contain,
                                           )
                                         : (item.imageBytes != null
                                               ? DecorationImage(
                                                   image: MemoryImage(
                                                     item.imageBytes!,
                                                   ),
-                                                  fit: BoxFit.cover,
+                                                  fit: BoxFit.contain,
                                                 )
                                               : null),
                                   ),
@@ -1713,6 +1713,29 @@ class _DetectedItem {
     } catch (_) {
       return null;
     }
+  }
+
+  /// Best inline preview: masked b64 crop, else raw b64 crop from the
+  /// backend payload (Gemini multi fast path sends both).
+  Uint8List? get previewBytes {
+    final masked = maskedImageBytes;
+    if (masked != null) return masked;
+    final encodedRaw = raw['raw_image_base64']?.toString();
+    if (encodedRaw == null || encodedRaw.isEmpty) return null;
+    try {
+      return base64Decode(encodedRaw.split(',').last);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Masked URL first, raw URL as fallback.
+  String? get displayUrl {
+    final masked = maskedUrl;
+    if (masked != null && masked.isNotEmpty) return masked;
+    final rawU = rawUrl;
+    if (rawU != null && rawU.isNotEmpty) return rawU;
+    return null;
   }
 
   Map<String, dynamic> toBackendPayload() {
@@ -3039,8 +3062,8 @@ class _AddItemModalState extends State<_AddItemModal>
               const SizedBox(height: 8),
               Text(
                 isMulti
-                    ? 'AI is detecting items from all images in parallel'
-                    : 'AI is detecting your items',
+                    ? 'AHVI is understanding all images in parallel'
+                    : 'AHVI is understanding your pieces',
                 style: TextStyle(
                   fontFamily: GoogleFonts.inter().fontFamily,
                   fontSize: 13,
@@ -3048,6 +3071,8 @@ class _AddItemModalState extends State<_AddItemModal>
                   fontWeight: FontWeight.w400,
                 ),
               ),
+              const SizedBox(height: 28),
+              _DetectChecklist(accent: t.accent.primary),
             ],
           ),
         ),
@@ -3384,22 +3409,52 @@ class _AddItemModalState extends State<_AddItemModal>
                     ),
                     child: Row(
                       children: [
-                        // Emoji icon box
+                        // Item crop preview: masked/raw crop first (always
+                        // BoxFit.contain so garments are never cut off),
+                        // category emoji as final fallback.
                         Container(
-                          width: 42,
-                          height: 42,
+                          width: 52,
+                          height: 52,
                           decoration: BoxDecoration(
                             color: item.selected
                                 ? t.accent.primary.withValues(alpha: 0.14)
                                 : t.backgroundSecondary,
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          child: Center(
-                            child: Text(
-                              _DetectedItem.catEmoji(item.category),
-                              style: const TextStyle(fontSize: 20),
-                            ),
-                          ),
+                          clipBehavior: Clip.antiAlias,
+                          child: item.previewBytes != null
+                              ? Image.memory(
+                                  item.previewBytes!,
+                                  fit: BoxFit.contain,
+                                  gaplessPlayback: true,
+                                  errorBuilder: (_, _, _) => Center(
+                                    child: Text(
+                                      _DetectedItem.catEmoji(item.category),
+                                      style: const TextStyle(fontSize: 20),
+                                    ),
+                                  ),
+                                )
+                              : (item.displayUrl != null
+                                    ? Image.network(
+                                        item.displayUrl!,
+                                        fit: BoxFit.contain,
+                                        errorBuilder: (_, _, _) => Center(
+                                          child: Text(
+                                            _DetectedItem.catEmoji(
+                                              item.category,
+                                            ),
+                                            style: const TextStyle(
+                                              fontSize: 20,
+                                            ),
+                                          ),
+                                        ),
+                                      )
+                                    : Center(
+                                        child: Text(
+                                          _DetectedItem.catEmoji(item.category),
+                                          style: const TextStyle(fontSize: 20),
+                                        ),
+                                      )),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
@@ -3429,12 +3484,12 @@ class _AddItemModalState extends State<_AddItemModal>
                                       item.pattern!.isNotEmpty &&
                                       item.pattern != 'null')
                                     _SmallPill(item.pattern!, t.accent.primary),
-                                  if (item.labelSource != null &&
-                                      item.labelSource!.isNotEmpty)
+                                  // labelSource is an internal pipeline value
+                                  // (vision:gemini_multi, heuristic, ...) —
+                                  // never show it as a user-facing chip.
+                                  if (item.requiresManualEntry)
                                     _SmallPill(
-                                      item.requiresManualEntry
-                                          ? 'review labels'
-                                          : item.labelSource!,
+                                      'review labels',
                                       t.accent.secondary,
                                     ),
                                 ],
@@ -4103,6 +4158,84 @@ class _CamControlBtn extends StatelessWidget {
 }
 
 // ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ SCAN PULSE WIDGET ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬
+// Staggered "AHVI is understanding" checklist shown during detection.
+// Pure presentation — completes on timers; detection finishing dismisses
+// the whole step regardless of checklist progress.
+class _DetectChecklist extends StatefulWidget {
+  final Color accent;
+  const _DetectChecklist({required this.accent});
+
+  @override
+  State<_DetectChecklist> createState() => _DetectChecklistState();
+}
+
+class _DetectChecklistState extends State<_DetectChecklist> {
+  static const List<String> _checks = [
+    'Item type detected',
+    'Color identified',
+    'Style profile analyzed',
+    'Occasion suitability assessed',
+  ];
+  late final List<bool> _done = List.filled(_checks.length, false);
+
+  @override
+  void initState() {
+    super.initState();
+    for (int i = 0; i < _checks.length; i++) {
+      Future.delayed(Duration(milliseconds: 500 + (i * 650)), () {
+        if (mounted) setState(() => _done[i] = true);
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: List.generate(_checks.length, (i) {
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 5),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              AnimatedOpacity(
+                opacity: _done[i] ? 1.0 : 0.25,
+                duration: const Duration(milliseconds: 300),
+                child: Container(
+                  width: 18,
+                  height: 18,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: _done[i]
+                        ? widget.accent
+                        : Colors.white.withValues(alpha: 0.15),
+                  ),
+                  child: const Icon(
+                    Icons.check_rounded,
+                    size: 11,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              AnimatedDefaultTextStyle(
+                duration: const Duration(milliseconds: 300),
+                style: TextStyle(
+                  fontFamily: GoogleFonts.inter().fontFamily,
+                  fontSize: 12.5,
+                  color: _done[i] ? Colors.white : Colors.white38,
+                  fontWeight: FontWeight.w500,
+                ),
+                child: Text(_checks[i]),
+              ),
+            ],
+          ),
+        );
+      }),
+    );
+  }
+}
+
 class _ScanPulse extends StatefulWidget {
   final Color color;
   const _ScanPulse({required this.color});
@@ -5339,12 +5472,12 @@ class _ItemCardState extends State<_ItemCard>
                         image: item.displayUrl != null
                             ? DecorationImage(
                                 image: NetworkImage(item.displayUrl!),
-                                fit: BoxFit.cover,
+                                fit: BoxFit.contain,
                               )
                             : (item.imageBytes != null
                                   ? DecorationImage(
                                       image: MemoryImage(item.imageBytes!),
-                                      fit: BoxFit.cover,
+                                      fit: BoxFit.contain,
                                     )
                                   : null),
                       ),
