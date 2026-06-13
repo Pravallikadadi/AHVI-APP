@@ -5053,7 +5053,10 @@ class _OutfitBoardSwiperState extends State<_OutfitBoardSwiper> {
                               width: bottomIsShorts ? w * 0.345 : w * 0.390,
                               height: bottomIsShorts ? h * 0.455 : h * 0.760,
                               t: t,
-                              scale: bottomIsShorts ? 1.08 : 1.18,
+                              // Tamed scale: boxes already size the contain
+                              // image; >1.0 only pushed garments past the
+                              // Clip.antiAlias edge and clipped them.
+                              scale: bottomIsShorts ? 1.02 : 1.06,
                             ),
 
                           // Dress path uses the main canvas area.
@@ -5065,7 +5068,7 @@ class _OutfitBoardSwiperState extends State<_OutfitBoardSwiper> {
                               width: w * 0.620,
                               height: h * 0.850,
                               t: t,
-                              scale: 1.34,
+                              scale: 1.06,
                             ),
 
                           // Foreground layer: top/shirt.
@@ -5077,10 +5080,11 @@ class _OutfitBoardSwiperState extends State<_OutfitBoardSwiper> {
                               width: w * 0.585,
                               height: h * 0.700,
                               t: t,
-                              scale: 1.34,
+                              scale: 1.08,
                             ),
 
-                          // Footwear: bottom-left anchor.
+                          // Footwear: bottom-left anchor. No upscaling — it sat
+                          // at the canvas edge and was the worst-clipped item.
                           positionedItem(
                             item: footwear,
                             left: -w * 0.025,
@@ -5089,7 +5093,7 @@ class _OutfitBoardSwiperState extends State<_OutfitBoardSwiper> {
                             height: h * 0.300,
                             t: t,
                             alignment: Alignment.bottomLeft,
-                            scale: 1.34,
+                            scale: 1.0,
                           ),
 
                           // Controlled right accessory rail.
@@ -5102,7 +5106,7 @@ class _OutfitBoardSwiperState extends State<_OutfitBoardSwiper> {
                                   ? railItemH * 1.20
                                   : railItemH,
                               child: Transform.scale(
-                                scale: i == 2 ? 1.30 : 1.22,
+                                scale: 1.0,
                                 child: _editorialImageOrPlaceholder(
                                   visibleAccessories[i],
                                   t,

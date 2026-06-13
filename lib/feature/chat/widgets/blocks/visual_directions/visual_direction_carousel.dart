@@ -413,7 +413,11 @@ class _VisualDirectionCard extends StatelessWidget {
             // Safety net: backend already sanitizes, but older payloads may
             // still carry non-fashion rows. Never render a charger chip.
             ownedItems: filterFashionItems(_mapList(direction['owned_items'])),
-            matchPct: wardrobeMatchPct is int ? wardrobeMatchPct : null,
+            // Single source of truth: the match % is shown by _LuxuryBadgeRow
+            // above. Passing null here stops the duplicate "67% / WARDROBE
+            // MATCH 67%" double-render — this block now shows only the owned
+            // wardrobe chips.
+            matchPct: null,
             tokens: t,
           ),
           const SizedBox(height: 12),
@@ -508,7 +512,9 @@ class _OwnershipBlock extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'WARDROBE MATCH',
+            // Header now sits above the owned-item chips only; the match %
+            // lives solely in the badge row to avoid a duplicate label.
+            matchPct != null ? 'WARDROBE MATCH' : 'IN YOUR WARDROBE',
             style: TextStyle(
               color: t.mutedText,
               fontSize: 10.5,
