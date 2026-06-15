@@ -1,9 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:myapp/feature/chat/services/fashion_item_filter.dart';
 import 'package:myapp/feature/chat/services/saved_boards_store.dart';
+import 'package:myapp/feature/chat/widgets/blocks/visual_directions/ahvi_outfit_board_card.dart';
 import 'package:myapp/feature/chat/widgets/blocks/visual_directions/curation_reveal.dart';
 import 'package:myapp/feature/chat/widgets/blocks/visual_directions/editorial_collage.dart';
 import 'package:myapp/theme/theme_tokens.dart';
+
+const bool _enableVisualBoard85Layout = bool.fromEnvironment(
+  'ENABLE_VISUAL_BOARD_85_LAYOUT',
+  defaultValue: false,
+);
 
 /// Signature for sticky-action-bar invocations on a direction card.
 typedef DirectionMessageSender = void Function(String message);
@@ -21,6 +27,7 @@ class VisualDirectionCarousel extends StatelessWidget {
   /// Toggle for the premium one-shot reveal animation. Defaults to on; the
   /// loader self-disables when there are no directions to gate.
   final bool curationReveal;
+  final bool? use85Layout;
 
   const VisualDirectionCarousel({
     super.key,
@@ -29,6 +36,7 @@ class VisualDirectionCarousel extends StatelessWidget {
     this.editorialCover = const {},
     this.onSendMessage,
     this.curationReveal = true,
+    this.use85Layout,
   });
 
   @override
@@ -40,7 +48,10 @@ class VisualDirectionCarousel extends StatelessWidget {
     // like nested chat cards. ~360 keeps two boards peeking in on a 6"
     // device while letting the hero collage breathe.
     final width = cardWidth ?? 360.0;
-    final hasCover = editorialCover.isNotEmpty &&
+    final useBoard85 = use85Layout ?? _enableVisualBoard85Layout;
+    final hasCover =
+        !useBoard85 &&
+        editorialCover.isNotEmpty &&
         _text(editorialCover['direction_name'], '').isNotEmpty;
 
     final body = Column(
@@ -58,12 +69,20 @@ class VisualDirectionCarousel extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               for (var index = 0; index < usable.length; index++) ...[
-                _VisualDirectionCard(
-                  direction: usable[index],
-                  width: width,
-                  onSendMessage: onSendMessage,
-                  editorialCover: editorialCover,
-                ),
+                if (useBoard85)
+                  AhviOutfitBoardCard(
+                    direction: usable[index],
+                    width: width,
+                    onSendMessage: onSendMessage,
+                    editorialCover: editorialCover,
+                  )
+                else
+                  _VisualDirectionCard(
+                    direction: usable[index],
+                    width: width,
+                    onSendMessage: onSendMessage,
+                    editorialCover: editorialCover,
+                  ),
                 if (index != usable.length - 1) const SizedBox(width: 12),
               ],
             ],
@@ -73,8 +92,10 @@ class VisualDirectionCarousel extends StatelessWidget {
     );
 
     if (!curationReveal) return body;
-    final occasionLabel =
-        _text(editorialCover['occasion_label'], '').toUpperCase();
+    final occasionLabel = _text(
+      editorialCover['occasion_label'],
+      '',
+    ).toUpperCase();
     final venueLabel = _text(editorialCover['venue'], '');
     return CurationReveal(
       occasionLabel: occasionLabel,
@@ -100,9 +121,7 @@ class EditorialCoverCard extends StatelessWidget {
     final pct = cover['wardrobe_match_pct'];
     final curatedFor = _stringList(cover['curated_for']).take(3).toList();
     final badge = cover['badge'];
-    final occasionFit = badge is Map
-        ? _text((badge)['occasion_fit'], '')
-        : '';
+    final occasionFit = badge is Map ? _text((badge)['occasion_fit'], '') : '';
 
     // Drop the visible border so the cover reads as part of the page,
     // not a nested chip. AHVI house weights only — w700 max.
@@ -255,7 +274,10 @@ class _VisualDirectionCard extends StatelessWidget {
     final primaryLabel = directionName.isNotEmpty
         ? directionName
         : (archetype.isNotEmpty ? archetype : title);
-    final heroPiece = _text(direction['hero_piece'] ?? direction['heroPiece'], '');
+    final heroPiece = _text(
+      direction['hero_piece'] ?? direction['heroPiece'],
+      '',
+    );
     // Prefer the server-capped short_note (≤2 sentences) so the card never
     // shows a wall of LLM prose. Falls back to existing fields.
     final whyItWorks = _text(
@@ -266,28 +288,33 @@ class _VisualDirectionCard extends StatelessWidget {
           direction['why_this_works'],
       '',
     );
-    final adjectives =
-        _stringList(direction['adjectives']).take(3).toList(growable: false);
-    final wardrobeMatchPct = direction['wardrobe_match_pct'] ??
-        direction['wardrobeMatchPct'];
+    final adjectives = _stringList(
+      direction['adjectives'],
+    ).take(3).toList(growable: false);
+    final wardrobeMatchPct =
+        direction['wardrobe_match_pct'] ?? direction['wardrobeMatchPct'];
     final badge = direction['badge'];
     final badgeMap = badge is Map ? Map<String, dynamic>.from(badge) : const {};
     final occasionFit = _text(badgeMap['occasion_fit'], '');
     final completeTheLookCopy = _text(
-      direction['complete_the_look_copy'] ??
-          direction['completeTheLookCopy'],
+      direction['complete_the_look_copy'] ?? direction['completeTheLookCopy'],
       '',
     );
     final styleNote = _text(
-      direction['styling_tip'] ?? direction['style_note'] ?? direction['styleNote'],
+      direction['styling_tip'] ??
+          direction['style_note'] ??
+          direction['styleNote'],
       '',
     );
-    final imageUrl = _nullableText(direction['image_url'] ?? direction['imageUrl']);
-    final pieces = (_stringList(direction['items']).isNotEmpty
-            ? _stringList(direction['items'])
-            : _stringList(direction['pieces']))
-        .take(6)
-        .toList(growable: false);
+    final imageUrl = _nullableText(
+      direction['image_url'] ?? direction['imageUrl'],
+    );
+    final pieces =
+        (_stringList(direction['items']).isNotEmpty
+                ? _stringList(direction['items'])
+                : _stringList(direction['pieces']))
+            .take(6)
+            .toList(growable: false);
     final completeTheLook = filterFashionItems(
       _mapList(direction['complete_the_look'] ?? direction['completeTheLook']),
     ).take(4).toList(growable: false);
@@ -298,10 +325,9 @@ class _VisualDirectionCard extends StatelessWidget {
         : const <String, dynamic>{};
     // Missing piece must be a fashion item — never recommend buying a
     // charger to "complete the look".
-    final missingMap =
-        rawMissing.isNotEmpty && isFashionItem(rawMissing)
-            ? rawMissing
-            : const <String, dynamic>{};
+    final missingMap = rawMissing.isNotEmpty && isFashionItem(rawMissing)
+        ? rawMissing
+        : const <String, dynamic>{};
     final tiles = _collageTiles(heroPiece, imageUrl, pieces, completeTheLook);
 
     // Discard the noisy legacy sections (description, palette, components
@@ -374,7 +400,8 @@ class _VisualDirectionCard extends StatelessWidget {
               ),
             ),
           ],
-          if (styleNote.isNotEmpty && styleNote.toLowerCase() != whyItWorks.toLowerCase()) ...[
+          if (styleNote.isNotEmpty &&
+              styleNote.toLowerCase() != whyItWorks.toLowerCase()) ...[
             const SizedBox(height: 8),
             Text(
               styleNote,
@@ -405,8 +432,8 @@ class _VisualDirectionCard extends StatelessWidget {
               onFindSimilar: onSendMessage == null
                   ? null
                   : () => onSendMessage!.call(
-                        'Show shopping ideas for: ${_text(missingMap['name'], primaryLabel)}',
-                      ),
+                      'Show shopping ideas for: ${_text(missingMap['name'], primaryLabel)}',
+                    ),
             ),
           ],
           _OwnershipBlock(
@@ -599,15 +626,15 @@ class _OwnedChip extends StatelessWidget {
   }
 
   Widget _iconBox(dynamic t) => Container(
-        width: 22,
-        height: 22,
-        decoration: BoxDecoration(
-          color: t.accent.primary.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(6),
-        ),
-        alignment: Alignment.center,
-        child: Icon(Icons.checkroom_rounded, size: 14, color: t.accent.primary),
-      );
+    width: 22,
+    height: 22,
+    decoration: BoxDecoration(
+      color: t.accent.primary.withValues(alpha: 0.08),
+      borderRadius: BorderRadius.circular(6),
+    ),
+    alignment: Alignment.center,
+    child: Icon(Icons.checkroom_rounded, size: 14, color: t.accent.primary),
+  );
 }
 
 class _StickyActionBar extends StatefulWidget {
@@ -642,9 +669,9 @@ class _StickyActionBarState extends State<_StickyActionBar> {
   }
 
   String get _id => SavedBoardsStore.idFor(
-        occasion: _occasion,
-        directionName: widget.primaryLabel,
-      );
+    occasion: _occasion,
+    directionName: widget.primaryLabel,
+  );
 
   @override
   void initState() {
@@ -713,7 +740,9 @@ class _StickyActionBarState extends State<_StickyActionBar> {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         _ActionButton(
-          icon: _saved ? Icons.check_circle_rounded : Icons.favorite_border_rounded,
+          icon: _saved
+              ? Icons.check_circle_rounded
+              : Icons.favorite_border_rounded,
           label: _saved ? 'Saved' : 'Save',
           tokens: t,
           enabled: !_saving,
@@ -721,8 +750,8 @@ class _StickyActionBarState extends State<_StickyActionBar> {
           onTap: _toggleSave,
         ),
         _ActionButton(
-          icon: Icons.refresh_rounded,
-          label: 'More',
+          icon: Icons.shuffle_rounded,
+          label: 'Shuffle',
           tokens: t,
           enabled: canSend,
           onTap: () => emit('Show more looks like ${widget.primaryLabel}'),
@@ -924,8 +953,7 @@ class _MissingPieceCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = tokens;
     final name = _text(missing['name'], '');
-    final imageUrl =
-        _nullableText(missing['image_url'] ?? missing['imageUrl']);
+    final imageUrl = _nullableText(missing['image_url'] ?? missing['imageUrl']);
     if (name.isEmpty && copy.isEmpty) return const SizedBox.shrink();
     return Container(
       width: double.infinity,
@@ -1035,13 +1063,12 @@ class _MissingPieceCard extends StatelessWidget {
   }
 
   Widget _missingPieceIcon(dynamic t) => Container(
-        width: 64,
-        height: 64,
-        color: t.accent.primary.withValues(alpha: 0.08),
-        alignment: Alignment.center,
-        child: Icon(Icons.checkroom_rounded,
-            size: 28, color: t.accent.primary),
-      );
+    width: 64,
+    height: 64,
+    color: t.accent.primary.withValues(alpha: 0.08),
+    alignment: Alignment.center,
+    child: Icon(Icons.checkroom_rounded, size: 28, color: t.accent.primary),
+  );
 }
 
 /// Title-case a single word so adjectives render as "Refined" / "Sharp"

@@ -1922,6 +1922,7 @@ class _VisualDirectionCards extends StatelessWidget {
       child: VisualDirectionCarousel(
         directions: payload.directions,
         cardWidth: width,
+        onSendMessage: onPrompt,
       ),
     );
   }
