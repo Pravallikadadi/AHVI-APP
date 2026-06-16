@@ -6,6 +6,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:camera/camera.dart';
 import 'package:myapp/services/backend_service.dart';
+import 'package:myapp/util/catalog_url.dart';
 import 'package:myapp/services/appwrite_service.dart';
 import 'package:myapp/services/connectivity_watcher.dart';
 import 'package:myapp/services/offline_cache.dart';
@@ -20,6 +21,8 @@ import 'package:myapp/app_localizations.dart';
 import 'package:myapp/theme/theme_tokens.dart';
 import 'package:myapp/widgets/ahvi_header.dart';
 import 'package:myapp/widgets/ahvi_stylist_chat.dart';
+import 'package:myapp/widgets/ahvi_item_detail_modal.dart';
+import 'package:myapp/widgets/ahvi_3step_upload_flow.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 // ÃƒÆ’Ã‚Â°Ãƒâ€¦Ã‚Â¸Ãƒâ€¦Ã‚Â¡ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ Backend & Providers
@@ -93,6 +96,8 @@ class WardrobeItem {
   // Dual URLs to match your Database
   String? imageUrl; // Raw image URL
   String? maskedUrl; // Processed PNG URL
+  String? normalizedUrl; // Centered transparent PNG (style boards)
+  String? catalogStatus; // 'catalog_ready' when a catalog image exists in R2
 
   WardrobeItem({
     required this.id,
@@ -105,10 +110,23 @@ class WardrobeItem {
     this.imageBytes,
     this.imageUrl,
     this.maskedUrl,
+    this.normalizedUrl,
+    this.catalogStatus,
   });
 
-  // Helper to always show the processed image first, falling back to raw
-  String? get displayUrl => maskedUrl ?? imageUrl;
+  // Deterministic catalog URL (only when catalog_status == catalog_ready).
+  String? get catalogUrl {
+    if (catalogStatus != 'catalog_ready') return null;
+    final url = buildCatalogUrl(
+      itemId: id,
+      sampleUrl: normalizedUrl ?? maskedUrl ?? imageUrl,
+    );
+    return url.isEmpty ? null : url;
+  }
+
+  // Show catalog first, then normalized, masked, raw.
+  String? get displayUrl =>
+      catalogUrl ?? normalizedUrl ?? maskedUrl ?? imageUrl;
 }
 
 String _cleanUiText(Object? value, {String fallback = ''}) {
@@ -380,6 +398,8 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
     'liked': item.liked,
     'imageUrl': item.imageUrl,
     'maskedUrl': item.maskedUrl,
+    'normalizedUrl': item.normalizedUrl,
+    'catalogStatus': item.catalogStatus,
   };
 
   WardrobeItem? _itemFromCacheJson(Map<String, dynamic> data) {
@@ -398,6 +418,10 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
       imageUrl: data['imageUrl']?.toString() ?? data['image_url']?.toString(),
       maskedUrl:
           data['maskedUrl']?.toString() ?? data['masked_url']?.toString(),
+      normalizedUrl:
+          data['normalizedUrl']?.toString() ?? data['normalized_url']?.toString(),
+      catalogStatus:
+          data['catalogStatus']?.toString() ?? data['catalog_status']?.toString(),
     );
   }
 
@@ -525,6 +549,8 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
           liked: doc.data['liked'] ?? false,
           imageUrl: doc.data['image_url'],
           maskedUrl: doc.data['masked_url'],
+          normalizedUrl: doc.data['normalized_url']?.toString(),
+          catalogStatus: doc.data['catalog_status']?.toString(),
         );
       }).toList();
 
@@ -732,41 +758,30 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
   }
 
   void _openItemDetail(String id) {
-    final t = context.themeTokens;
     final item = _wardrobe.firstWhere((i) => i.id == id);
-    showDialog(
-      context: context,
-      barrierColor: t.backgroundPrimary.withValues(alpha: 0.55),
-      builder: (_) => _ItemDetailPanel(
-        item: item,
-        onWore: () async {
-          await _markWoreToday(item);
-          if (!context.mounted) return;
-          Navigator.of(context).pop();
-          _openItemDetail(id);
-        },
-        onToggleLike: () {
-          setState(() => item.liked = !item.liked);
-          _saveWardrobeCache();
-          _updateOutfitDocument(item.id, {
-            'liked': item.liked,
-          }).catchError((_) {});
-          _showToast(
-            item.liked
-                ? 'Added "${item.name}" to favourites'
-                : 'Removed from favourites',
-          );
-        },
-        onDelete: () {
-          Navigator.of(context).pop();
-          _showDeleteConfirm(id);
-        },
-        onEdit: () {
-          Navigator.of(context).pop();
-          _showEditSavedItem(item);
-        },
-        onShare: () => _shareItem(item),
-      ),
+    // V2 premium detail modal (Works Well With / Best For / Style This).
+    // Callbacks reuse the existing wardrobe handlers; _ItemDetailPanel is kept
+    // (unused) as a fallback and is not deleted.
+    showItemDetailModal(
+      context,
+      item: item,
+      allItems: _wardrobe,
+      onWore: () => _markWoreToday(item),
+      onLike: () {
+        setState(() => item.liked = !item.liked);
+        _saveWardrobeCache();
+        _updateOutfitDocument(item.id, {
+          'liked': item.liked,
+        }).catchError((_) {});
+        _showToast(
+          item.liked
+              ? 'Added "${item.name}" to favourites'
+              : 'Removed from favourites',
+        );
+      },
+      onEdit: () => _showEditSavedItem(item),
+      onShare: () => _shareItem(item),
+      onRemove: () => _showDeleteConfirm(id),
     );
   }
 
@@ -2060,6 +2075,8 @@ class _AddItemModalState extends State<_AddItemModal>
   String? _detectError;
   bool _isSavingWardrobe = false;
   bool _saveComplete = false;
+  // Guards the one-shot launch of the 3-step review modal per detection cycle.
+  bool _threeStepShown = false;
 
   // ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ Edit form ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬
   final _nameCtrl = TextEditingController();
@@ -2474,8 +2491,12 @@ class _AddItemModalState extends State<_AddItemModal>
       );
       setState(() {
         _detected[_editingIndex!].name = _nameCtrl.text.trim();
-        _detected[_editingIndex!].category = privateWear ? 'Innerwear' : _selectedCat;
-        _detected[_editingIndex!].subCategory = privateWear ? 'Private Wear' : _subCategoryCtrl.text.trim();
+        _detected[_editingIndex!].category = privateWear
+            ? 'Innerwear'
+            : _selectedCat;
+        _detected[_editingIndex!].subCategory = privateWear
+            ? 'Private Wear'
+            : _subCategoryCtrl.text.trim();
         _detected[_editingIndex!].color = _colorCtrl.text.trim();
         _detected[_editingIndex!].pattern = _patternCtrl.text.trim();
         _detected[_editingIndex!].occasions = privateWear
@@ -2485,6 +2506,51 @@ class _AddItemModalState extends State<_AddItemModal>
         _step = _ModalStep.results;
       });
     }
+  }
+
+  // ============================================================
+  // 3-STEP REVIEW GRAFT
+  // Maps the private _DetectedItem list into UI-only UploadPreviewItem DTOs
+  // (boundary only — no public DetectedItem, no WardrobeItem move), shows the
+  // premium 3-step modal, and on confirm reuses the existing _confirmAndSave().
+  // ============================================================
+  void _launchThreeStepReview() {
+    final previews = _detected
+        .map(
+          (d) => UploadPreviewItem(
+            id: d.id,
+            name: d.name,
+            color: d.color ?? '',
+            style: d.subCategory,
+            category: d.category,
+            occasions: List<String>.from(d.occasions),
+            imageUrl: d.displayUrl,
+            previewBytes: d.previewBytes,
+          ),
+        )
+        .toList();
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => Ahvi3StepUploadModal(
+        items: previews,
+        originalImageUrl: null,
+        // Modal closes itself on confirm via onClose; this only handles the
+        // user dismissing it (X / back) — pop once, leave inline UI underneath.
+        onClose: () => Navigator.of(context).pop(),
+        onConfirm: (selected) {
+          final ids = selected.map((s) => s.id).toSet();
+          for (final d in _detected) {
+            d.selected = ids.contains(d.id);
+          }
+          // Reuse existing save path (saveWardrobeLabels + widget.onSave).
+          // The modal pops itself via onClose; _confirmAndSave pops the
+          // capture sheet when the save completes — no double pop.
+          _confirmAndSave();
+        },
+      ),
+    );
   }
 
   Future<void> _confirmAndSave() async {
@@ -2518,7 +2584,8 @@ class _AddItemModalState extends State<_AddItemModal>
       Uint8List? displayBytes = item.maskedImageBytes;
       if (displayBytes == null && (remoteUrl == null || remoteUrl.isEmpty)) {
         final index = item.sourceImageIndex;
-        displayBytes = _isGalleryPick &&
+        displayBytes =
+            _isGalleryPick &&
                 index != null &&
                 index >= 0 &&
                 index < _galleryImages.length
@@ -3030,6 +3097,9 @@ class _AddItemModalState extends State<_AddItemModal>
   }
 
   Widget _buildDetectingBody() {
+    // New detection cycle in progress -> allow the 3-step modal to show again
+    // once results are ready. Plain assignment (no setState) — safe in build.
+    _threeStepShown = false;
     final isMulti = _isGalleryPick && _galleryImages.length > 1;
     return Stack(
       key: const ValueKey('detecting'),
@@ -3082,6 +3152,15 @@ class _AddItemModalState extends State<_AddItemModal>
 
   // ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ STEP 3: Results ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â Essemble style ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬
   Widget _buildResultsBody() {
+    // One-shot: launch the premium 3-step review over the inline results UI.
+    // Guarded so it shows once per detection cycle; the inline UI stays
+    // underneath as a fallback if the user closes the modal.
+    if (!_threeStepShown && _detected.isNotEmpty) {
+      _threeStepShown = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _step == _ModalStep.results) _launchThreeStepReview();
+      });
+    }
     return Column(
       key: const ValueKey('results'),
       mainAxisSize: MainAxisSize.min,
@@ -3889,10 +3968,10 @@ class _AddItemModalState extends State<_AddItemModal>
                         onTap: disabled
                             ? null
                             : () => setState(
-                          () => active
-                              ? _selectedOccs.remove(occ)
-                              : _selectedOccs.add(occ),
-                        ),
+                                () => active
+                                    ? _selectedOccs.remove(occ)
+                                    : _selectedOccs.add(occ),
+                              ),
                         child: AnimatedContainer(
                           duration: const Duration(milliseconds: 180),
                           padding: const EdgeInsets.symmetric(
@@ -3908,7 +3987,11 @@ class _AddItemModalState extends State<_AddItemModal>
                                     ],
                                   )
                                 : null,
-                            color: active ? null : t.panel.withValues(alpha: disabled ? 0.45 : 1),
+                            color: active
+                                ? null
+                                : t.panel.withValues(
+                                    alpha: disabled ? 0.45 : 1,
+                                  ),
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(
                               color: active ? t.accent.primary : t.cardBorder,
@@ -5004,26 +5087,37 @@ class _WardrobePanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Single lazy CustomScrollView (was SingleChildScrollView + Column +
+    // shrinkWrap GridView, which thrashed layout during pull-to-refresh).
+    // AlwaysScrollable so the RefreshIndicator can pull-trigger even when
+    // content is shorter than the viewport (e.g. empty wardrobe state).
     return RefreshIndicator(
       onRefresh: onRefresh,
-      child: SingleChildScrollView(
-        // AlwaysScrollable required so RefreshIndicator can pull-trigger
-        // even when the content is shorter than the viewport (e.g. empty
-        // wardrobe state).
+      child: CustomScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(24, 0, 24, 100),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 14),
-            _InlineInsightCard(wardrobe: wardrobe),
-            const SizedBox(height: 20),
-            if (allEmpty)
-              _EmptyState(onAddTap: onAddTap)
-            else if (items.isEmpty)
-              const _EmptySearch()
-            else
-              _ItemGrid(
+        slivers: [
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(24, 14, 24, 0),
+            sliver: SliverToBoxAdapter(
+              child: _InlineInsightCard(wardrobe: wardrobe),
+            ),
+          ),
+          if (allEmpty)
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(24, 20, 24, 100),
+              sliver: SliverToBoxAdapter(
+                child: _EmptyState(onAddTap: onAddTap),
+              ),
+            )
+          else if (items.isEmpty)
+            const SliverPadding(
+              padding: EdgeInsets.fromLTRB(24, 20, 24, 100),
+              sliver: SliverToBoxAdapter(child: _EmptySearch()),
+            )
+          else
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(24, 20, 24, 100),
+              sliver: _ItemGrid(
                 items: items,
                 onDelete: onDelete,
                 onToggleLike: onToggleLike,
@@ -5031,8 +5125,8 @@ class _WardrobePanel extends StatelessWidget {
                 onShare: onShare,
                 onTapCard: onTapCard,
               ),
-          ],
-        ),
+            ),
+        ],
       ),
     );
   }
@@ -5240,9 +5334,11 @@ class _ItemGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
+    // Lazy SliverGrid (was a shrinkWrap GridView nested in a
+    // SingleChildScrollView — that re-laid-out every item on each
+    // pull-to-refresh overscroll frame and pegged the main thread → ANR).
+    // Only visible cells build now.
+    return SliverGrid.builder(
       gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
         maxCrossAxisExtent: 200,
         mainAxisSpacing: 14,
