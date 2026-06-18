@@ -92,6 +92,8 @@ class BoardStory {
 @immutable
 class StyleBoardData {
   final String title;
+  final String? styleArchetype;
+  final String? boardRole;
   final String? occasion;
   final String? whyItWorks;
   final List<StyleBoardItem> items;
@@ -100,6 +102,8 @@ class StyleBoardData {
 
   const StyleBoardData({
     required this.title,
+    this.styleArchetype,
+    this.boardRole,
     this.occasion,
     this.whyItWorks,
     required this.items,
@@ -118,7 +122,7 @@ class StyleBoardData {
   String? get tipText => story?.tip ?? stylingTip;
 
   /// Preferred role badge (e.g. "Safest polished option").
-  String? get roleLabel => story?.role ?? occasion;
+  String? get roleLabel => boardRole ?? story?.role ?? occasion;
 }
 
 /// Existing/legacy section layout modes. Keep while older board renderers migrate.

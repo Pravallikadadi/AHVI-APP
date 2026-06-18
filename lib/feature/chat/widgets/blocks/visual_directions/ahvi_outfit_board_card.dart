@@ -572,7 +572,14 @@ class OutfitBoardModel {
       direction['hero_piece'] ?? direction['heroPiece'],
       fallback: itemNames.isEmpty ? 'Hero piece' : itemNames.first,
     );
-    final heroUrl = _url(direction['image_url'] ?? direction['imageUrl']);
+    final heroUrl = _url(
+      direction['normalized_url'] ??
+          direction['normalizedUrl'] ??
+          direction['masked_url'] ??
+          direction['maskedUrl'] ??
+          direction['image_url'] ??
+          direction['imageUrl'],
+    );
     final items = <OutfitBoardItem>[
       OutfitBoardItem(
         id: _text(direction['asset_id'], fallback: 'hero::$heroName::$heroUrl'),
@@ -592,10 +599,18 @@ class OutfitBoardModel {
         OutfitBoardItem(
           id: _text(
             item['asset_id'] ?? item['id'],
-            fallback: '$name::${_url(item['image_url'] ?? item['imageUrl'])}',
+            fallback:
+                '$name::${_url(item['normalized_url'] ?? item['normalizedUrl'] ?? item['masked_url'] ?? item['maskedUrl'] ?? item['image_url'] ?? item['imageUrl'])}',
           ),
           name: name,
-          imageUrl: _url(item['image_url'] ?? item['imageUrl']),
+          imageUrl: _url(
+            item['normalized_url'] ??
+                item['normalizedUrl'] ??
+                item['masked_url'] ??
+                item['maskedUrl'] ??
+                item['image_url'] ??
+                item['imageUrl'],
+          ),
           role: _roleFor(item, name),
         ),
       );

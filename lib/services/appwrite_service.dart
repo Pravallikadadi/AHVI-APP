@@ -694,10 +694,12 @@ class AppwriteService extends ChangeNotifier {
           "pattern": doc.data['pattern'],
           "occasions": doc.data['occasions'],
           "image_url":
-              doc.data['image_url'] ??
+              doc.data['normalized_url'] ??
               doc.data['masked_url'] ??
+              doc.data['image_url'] ??
               doc.data['raw_url'],
           "masked_url": doc.data['masked_url'],
+          "normalized_url": doc.data['normalized_url'],
           "raw_url": doc.data['raw_url'],
         };
       }).toList();

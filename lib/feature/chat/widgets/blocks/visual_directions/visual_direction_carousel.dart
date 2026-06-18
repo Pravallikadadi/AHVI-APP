@@ -307,7 +307,12 @@ class _VisualDirectionCard extends StatelessWidget {
       '',
     );
     final imageUrl = _nullableText(
-      direction['image_url'] ?? direction['imageUrl'],
+      direction['normalized_url'] ??
+          direction['normalizedUrl'] ??
+          direction['masked_url'] ??
+          direction['maskedUrl'] ??
+          direction['image_url'] ??
+          direction['imageUrl'],
     );
     final pieces =
         (_stringList(direction['items']).isNotEmpty
@@ -491,7 +496,14 @@ List<CollageTile> _collageTiles(
         ?.toString()
         .trim();
     if (name == null || name.isEmpty) continue;
-    final url = (item['image_url'] ?? item['imageUrl'])?.toString().trim();
+    final url = (item['normalized_url'] ??
+            item['normalizedUrl'] ??
+            item['masked_url'] ??
+            item['maskedUrl'] ??
+            item['image_url'] ??
+            item['imageUrl'])
+        ?.toString()
+        .trim();
     if (tiles.any((t) => t.name.toLowerCase() == name.toLowerCase())) continue;
     tiles.add(
       CollageTile(
@@ -588,7 +600,14 @@ class _OwnedChip extends StatelessWidget {
     final t = tokens;
     final name = (item['name'] ?? '').toString();
     if (name.isEmpty) return const SizedBox.shrink();
-    final url = (item['image_url'] ?? item['imageUrl'])?.toString().trim();
+    final url = (item['normalized_url'] ??
+            item['normalizedUrl'] ??
+            item['masked_url'] ??
+            item['maskedUrl'] ??
+            item['image_url'] ??
+            item['imageUrl'])
+        ?.toString()
+        .trim();
     final thumb = (url != null && url.isNotEmpty)
         ? ClipRRect(
             borderRadius: BorderRadius.circular(8),
@@ -953,7 +972,14 @@ class _MissingPieceCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = tokens;
     final name = _text(missing['name'], '');
-    final imageUrl = _nullableText(missing['image_url'] ?? missing['imageUrl']);
+    final imageUrl = _nullableText(
+      missing['normalized_url'] ??
+          missing['normalizedUrl'] ??
+          missing['masked_url'] ??
+          missing['maskedUrl'] ??
+          missing['image_url'] ??
+          missing['imageUrl'],
+    );
     if (name.isEmpty && copy.isEmpty) return const SizedBox.shrink();
     return Container(
       width: double.infinity,

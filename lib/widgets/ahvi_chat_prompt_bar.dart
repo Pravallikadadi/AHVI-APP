@@ -143,7 +143,24 @@ class _AhviChatPromptBarState extends State<AhviChatPromptBar> {
         child: LayoutBuilder(
           builder: (context, constraints) {
             final compact = constraints.maxWidth < 260;
+            // Responsive expand cap: ~104 px (≈5 lines) on normal phones,
+            // clamped lower on short screens / when the keyboard is open so
+            // the bar never eats the visible chat area.
+            final mq = MediaQuery.of(context);
+            final screenH = mq.size.height;
+            final keyboardOpen = mq.viewInsets.bottom > 0;
+            double maxFieldHeight = 104;
+            if (screenH < 640) {
+              maxFieldHeight = 88;
+            }
+            if (keyboardOpen && screenH < 720) {
+              maxFieldHeight = 84;
+            }
+            maxFieldHeight = maxFieldHeight.clamp(72, 104);
             return Row(
+              // Bottom-align plus/mic/send so they stay pinned while the
+              // text field grows upward.
+              crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 // ── Plus button ───────────────────────────────────
                 if (!compact) ...[
@@ -181,33 +198,22 @@ class _AhviChatPromptBarState extends State<AhviChatPromptBar> {
                   ),
                   const SizedBox(width: 8),
                 ],
-                // ── Text field ────────────────────────────────────
+                // ── Text field (expands 1 → ~5 lines, then scrolls) ─
                 Expanded(
-                  child: TextField(
-                    controller: widget.controller,
-                    focusNode: widget.focusNode,
-                    style: TextStyle(
-                      color: widget.textHeading,
-                      fontSize: 14.5,
-                      fontWeight: FontWeight.w400,
-                      height: 1.3,
-                    ),
-                    decoration: InputDecoration(
-                      isDense: true,
-                      contentPadding: EdgeInsets.zero,
-                      border: InputBorder.none,
+                  child: AnimatedSize(
+                    duration: const Duration(milliseconds: 160),
+                    curve: Curves.easeOutCubic,
+                    alignment: Alignment.bottomCenter,
+                    child: _ExpandableTextField(
+                      controller: widget.controller,
+                      focusNode: widget.focusNode,
                       hintText: widget.hintText,
-                      hintStyle: TextStyle(
-                        color: widget.textMuted,
-                        fontSize: 14.5,
-                        fontWeight: FontWeight.w300,
-                      ),
+                      textColor: widget.textHeading,
+                      hintColor: widget.textMuted,
+                      cursorColor: widget.accent,
+                      maxHeight: maxFieldHeight,
+                      onSubmitted: (_) => _trySend(),
                     ),
-                    textInputAction: TextInputAction.send,
-                    cursorColor: widget.accent,
-                    cursorWidth: 1.5,
-                    cursorRadius: const Radius.circular(1),
-                    onSubmitted: (_) => _trySend(),
                   ),
                 ),
                 const SizedBox(width: 6),
@@ -314,6 +320,74 @@ class _AhviChatPromptBarState extends State<AhviChatPromptBar> {
               ],
             );
           },
+        ),
+      ),
+    );
+  }
+}
+
+// ── Expandable multiline text field ────────────────────────────────────────
+// Starts at 1 line, grows to maxHeight (~5 lines) via minLines/maxLines:null,
+// then scrolls internally. AnimatedSize on the parent smooths the growth.
+class _ExpandableTextField extends StatelessWidget {
+  final TextEditingController controller;
+  final FocusNode focusNode;
+  final String hintText;
+  final Color textColor;
+  final Color hintColor;
+  final Color cursorColor;
+  final double maxHeight;
+  final ValueChanged<String> onSubmitted;
+
+  const _ExpandableTextField({
+    required this.controller,
+    required this.focusNode,
+    required this.hintText,
+    required this.textColor,
+    required this.hintColor,
+    required this.cursorColor,
+    required this.maxHeight,
+    required this.onSubmitted,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ConstrainedBox(
+      constraints: BoxConstraints(maxHeight: maxHeight),
+      child: ScrollConfiguration(
+        // Allow internal scroll past maxHeight, but hide the scrollbar thumb.
+        behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
+        child: TextField(
+          controller: controller,
+          focusNode: focusNode,
+          minLines: 1,
+          maxLines: null,
+          keyboardType: TextInputType.multiline,
+          textInputAction: TextInputAction.newline,
+          style: TextStyle(
+            color: textColor,
+            fontSize: 14.5,
+            fontWeight: FontWeight.w400,
+            height: 1.4,
+          ),
+          decoration: InputDecoration(
+            isDense: true,
+            contentPadding: const EdgeInsets.symmetric(vertical: 4),
+            border: InputBorder.none,
+            enabledBorder: InputBorder.none,
+            focusedBorder: InputBorder.none,
+            hintText: hintText,
+            hintStyle: TextStyle(
+              color: hintColor,
+              fontSize: 14.5,
+              fontWeight: FontWeight.w300,
+              height: 1.4,
+            ),
+          ),
+          cursorColor: cursorColor,
+          cursorWidth: 1.5,
+          cursorRadius: const Radius.circular(1),
+          onSubmitted: onSubmitted,
         ),
       ),
     );

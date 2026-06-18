@@ -367,7 +367,9 @@ StyleBoardData boardDataFromMap(Map<String, dynamic> board) {
     if (r is! Map) continue;
     final m = Map<String, dynamic>.from(r);
     final imageUrl =
-        (m['masked_url'] ??
+        (m['normalized_url'] ??
+                m['normalizedUrl'] ??
+                m['masked_url'] ??
                 m['maskedUrl'] ??
                 m['image_url'] ??
                 m['imageUrl'] ??
@@ -403,10 +405,17 @@ StyleBoardData boardDataFromMap(Map<String, dynamic> board) {
   final story = rawStory is Map
       ? BoardStory.fromJson(Map<String, dynamic>.from(rawStory))
       : const BoardStory();
+  final styleMetadata = board['style_metadata'] is Map
+      ? Map<String, dynamic>.from(board['style_metadata'] as Map)
+      : const <String, dynamic>{};
   return StyleBoardData(
     title:
         (board['title'] ?? board['look_name'] ?? board['name'] ?? 'Styled Look')
             .toString(),
+    styleArchetype:
+        (board['style_archetype'] ?? styleMetadata['style_archetype'])
+            ?.toString(),
+    boardRole: (board['board_role'] ?? styleMetadata['board_role'])?.toString(),
     occasion: (board['occasion'] ?? board['intent'] ?? '').toString(),
     whyItWorks:
         (board['why_it_works'] ??

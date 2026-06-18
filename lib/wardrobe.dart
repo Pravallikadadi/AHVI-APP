@@ -6,7 +6,6 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:camera/camera.dart';
 import 'package:myapp/services/backend_service.dart';
-import 'package:myapp/util/catalog_url.dart';
 import 'package:myapp/services/appwrite_service.dart';
 import 'package:myapp/services/connectivity_watcher.dart';
 import 'package:myapp/services/offline_cache.dart';
@@ -96,8 +95,7 @@ class WardrobeItem {
   // Dual URLs to match your Database
   String? imageUrl; // Raw image URL
   String? maskedUrl; // Processed PNG URL
-  String? normalizedUrl; // Centered transparent PNG (style boards)
-  String? catalogStatus; // 'catalog_ready' when a catalog image exists in R2
+  String? normalizedUrl; // Premium catalog PNG / centered transparent PNG
 
   WardrobeItem({
     required this.id,
@@ -111,22 +109,10 @@ class WardrobeItem {
     this.imageUrl,
     this.maskedUrl,
     this.normalizedUrl,
-    this.catalogStatus,
   });
 
-  // Deterministic catalog URL (only when catalog_status == catalog_ready).
-  String? get catalogUrl {
-    if (catalogStatus != 'catalog_ready') return null;
-    final url = buildCatalogUrl(
-      itemId: id,
-      sampleUrl: normalizedUrl ?? maskedUrl ?? imageUrl,
-    );
-    return url.isEmpty ? null : url;
-  }
-
-  // Show catalog first, then normalized, masked, raw.
-  String? get displayUrl =>
-      catalogUrl ?? normalizedUrl ?? maskedUrl ?? imageUrl;
+  // Show final catalog PNG first, then RMBG cutout, then original.
+  String? get displayUrl => normalizedUrl ?? maskedUrl ?? imageUrl;
 }
 
 String _cleanUiText(Object? value, {String fallback = ''}) {
@@ -399,7 +385,6 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
     'imageUrl': item.imageUrl,
     'maskedUrl': item.maskedUrl,
     'normalizedUrl': item.normalizedUrl,
-    'catalogStatus': item.catalogStatus,
   };
 
   WardrobeItem? _itemFromCacheJson(Map<String, dynamic> data) {
@@ -420,8 +405,6 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
           data['maskedUrl']?.toString() ?? data['masked_url']?.toString(),
       normalizedUrl:
           data['normalizedUrl']?.toString() ?? data['normalized_url']?.toString(),
-      catalogStatus:
-          data['catalogStatus']?.toString() ?? data['catalog_status']?.toString(),
     );
   }
 
@@ -550,7 +533,6 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
           imageUrl: doc.data['image_url'],
           maskedUrl: doc.data['masked_url'],
           normalizedUrl: doc.data['normalized_url']?.toString(),
-          catalogStatus: doc.data['catalog_status']?.toString(),
         );
       }).toList();
 
@@ -694,6 +676,7 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
                 imageBytes: localItem.imageBytes,
                 imageUrl: doc.data['image_url']?.toString(),
                 maskedUrl: doc.data['masked_url']?.toString(),
+                normalizedUrl: doc.data['normalized_url']?.toString(),
                 worn: doc.data['worn'] ?? 0,
                 liked: doc.data['liked'] == true,
               );
@@ -2540,9 +2523,17 @@ class _AddItemModalState extends State<_AddItemModal>
         // user dismissing it (X / back) — pop once, leave inline UI underneath.
         onClose: () => Navigator.of(context).pop(),
         onConfirm: (selected) {
-          final ids = selected.map((s) => s.id).toSet();
+          final selectedById = {for (final s in selected) s.id: s};
+          final ids = selectedById.keys.toSet();
           for (final d in _detected) {
             d.selected = ids.contains(d.id);
+            final edited = selectedById[d.id];
+            if (edited != null) {
+              d.name = _cleanUiText(edited.name, fallback: d.name);
+              d.category = _cleanCategory(edited.category);
+              d.subCategory = _cleanUiText(edited.style);
+              d.occasions = _cleanStringList(edited.occasions);
+            }
           }
           // Reuse existing save path (saveWardrobeLabels + widget.onSave).
           // The modal pops itself via onClose; _confirmAndSave pops the

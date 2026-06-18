@@ -63,9 +63,18 @@ class AhviStyleBoardRenderer extends StatelessWidget {
   Widget build(BuildContext context) {
     final story = board.story;
     final occasionLabel = board.roleLabel?.trim();
-    final title = (story?.headline?.trim().isNotEmpty == true)
+    final generatedTitle = (story?.headline?.trim().isNotEmpty == true)
         ? story!.headline!.trim()
         : board.title;
+    final title = (board.styleArchetype?.trim().isNotEmpty == true)
+        ? board.styleArchetype!.trim()
+        : generatedTitle;
+    final secondaryTitle = [
+      if (board.boardRole?.trim().isNotEmpty == true) board.boardRole!.trim(),
+      if (generatedTitle.trim().isNotEmpty &&
+          generatedTitle.trim().toLowerCase() != title.toLowerCase())
+        generatedTitle.trim(),
+    ].join(' · ');
     final summary = board.summaryText?.trim();
     final why = board.whyText?.trim();
     final tip = board.tipText?.trim();
@@ -114,6 +123,20 @@ class AhviStyleBoardRenderer extends StatelessWidget {
                 height: 1.15,
               ),
             ),
+            if (secondaryTitle.isNotEmpty) ...[
+              const SizedBox(height: 4),
+              Text(
+                secondaryTitle,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: Color(0xFF6E6968),
+                  fontWeight: FontWeight.w600,
+                  height: 1.25,
+                ),
+              ),
+            ],
             if (summary != null && summary.isNotEmpty) ...[
               const SizedBox(height: 4),
               Text(
@@ -313,8 +336,9 @@ class _AccessoryStrip extends StatelessWidget {
               border: Border.all(color: const Color(0xFFE6E1D8)),
             ),
             clipBehavior: Clip.antiAlias,
+            padding: const EdgeInsets.all(4),
             child: acc.imageUrl.isNotEmpty
-                ? Image.network(acc.imageUrl, fit: BoxFit.cover)
+                ? Image.network(acc.imageUrl, fit: BoxFit.contain)
                 : const Center(
                     child: Icon(Icons.check_box_outline_blank,
                         size: 16, color: Color(0xFF8A6A78)),

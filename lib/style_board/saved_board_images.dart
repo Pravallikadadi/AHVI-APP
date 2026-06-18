@@ -15,10 +15,12 @@ List<String> extractSavedBoardImages(Map<String, dynamic> data) {
     if (raw is! Map) return;
     final item = Map<String, dynamic>.from(raw);
     for (final key in const [
-      'imageUrl',
-      'image_url',
+      'normalized_url',
+      'normalizedUrl',
       'masked_url',
       'maskedUrl',
+      'imageUrl',
+      'image_url',
       'url',
       'thumbnailUrl',
     ]) {
