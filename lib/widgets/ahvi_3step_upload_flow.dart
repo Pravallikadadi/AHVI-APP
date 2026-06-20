@@ -28,6 +28,13 @@ class UploadPreviewItem {
   final List<String> pairsWith;
   final String? imageUrl;
   final Uint8List? previewBytes;
+  final String validationStatus;
+  final String? rejectionReason;
+  final bool selectedByDefault;
+  final double? cropQualityScore;
+  final String? detectionMode;
+  final String? regenProvider;
+  final String? inputType;
   bool isSelected;
 
   UploadPreviewItem({
@@ -40,8 +47,32 @@ class UploadPreviewItem {
     this.pairsWith = const [],
     this.imageUrl,
     this.previewBytes,
-    this.isSelected = true,
-  });
+    String validationStatus = 'ok',
+    this.rejectionReason,
+    bool? selectedByDefault,
+    this.cropQualityScore,
+    this.detectionMode,
+    this.regenProvider,
+    this.inputType,
+    bool? isSelected,
+  }) : validationStatus = validationStatus.trim().toLowerCase().isEmpty
+           ? 'ok'
+           : validationStatus.trim().toLowerCase(),
+       selectedByDefault =
+           selectedByDefault ?? validationStatus.trim().toLowerCase() == 'ok',
+       isSelected =
+           isSelected ??
+           (selectedByDefault ?? validationStatus.trim().toLowerCase() == 'ok');
+
+  bool get isApproved => validationStatus == 'ok';
+  bool get isNeedsReview => validationStatus == 'needs_review';
+  bool get isRejected => validationStatus == 'rejected';
+  bool get isSaveable => isApproved;
+  String? get statusLabel {
+    if (isNeedsReview) return 'Needs review';
+    if (isRejected) return 'Rejected';
+    return null;
+  }
 }
 
 // ============================================================
@@ -116,11 +147,12 @@ class _Ahvi3StepUploadModalState extends State<Ahvi3StepUploadModal> {
   }
 
   void _onItemSelected(int index) {
+    if (!_items[index].isSaveable) return;
     setState(() => _items[index].isSelected = !_items[index].isSelected);
   }
 
   void _submitSelection() {
-    final selected = _items.where((i) => i.isSelected).toList();
+    final selected = _items.where((i) => i.isSelected && i.isSaveable).toList();
     if (selected.isEmpty) return;
     widget.onConfirm(selected);
     widget.onClose();
@@ -201,7 +233,9 @@ class _Ahvi3StepUploadModalState extends State<Ahvi3StepUploadModal> {
       item.name = nextName.isNotEmpty ? nextName : item.name;
       item.category = nextCategory.isNotEmpty ? nextCategory : item.category;
       item.style = nextStyle.isNotEmpty ? nextStyle : item.style;
-      item.occasions = List<String>.from(result['occasions'] as List? ?? const []);
+      item.occasions = List<String>.from(
+        result['occasions'] as List? ?? const [],
+      );
     });
   }
 
@@ -588,6 +622,24 @@ class _Ahvi3StepUploadModalState extends State<Ahvi3StepUploadModal> {
                   icon: const Icon(Icons.edit_rounded, size: 16),
                   label: const Text('Edit label / tags'),
                 ),
+                if (item.statusLabel != null) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    [
+                      item.statusLabel!,
+                      if ((item.rejectionReason ?? '').trim().isNotEmpty)
+                        item.rejectionReason!.trim(),
+                    ].join(' · '),
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.inter(
+                      fontSize: 11,
+                      color: Colors.black54,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 4),
                 Text(
                   [
@@ -610,7 +662,9 @@ class _Ahvi3StepUploadModalState extends State<Ahvi3StepUploadModal> {
   Widget _buildStep3Insight(bool isSingleItem) {
     final t = Theme.of(context).extension<AppThemeTokens>()!;
     final item = _items[_currentItemIndex];
-    final selectedCount = _items.where((i) => i.isSelected).length;
+    final selectedCount = _items
+        .where((i) => i.isSelected && i.isSaveable)
+        .length;
     final bestFor = _bestForOccasions(item);
 
     return Container(
@@ -795,10 +849,13 @@ class _Ahvi3StepUploadModalState extends State<Ahvi3StepUploadModal> {
                         const SizedBox(height: 12),
                         ...List.generate(_items.length, (index) {
                           final it = _items[index];
+                          final saveable = it.isSaveable;
                           return Padding(
                             padding: const EdgeInsets.symmetric(vertical: 6),
                             child: GestureDetector(
-                              onTap: () => _onItemSelected(index),
+                              onTap: saveable
+                                  ? () => _onItemSelected(index)
+                                  : null,
                               child: Container(
                                 padding: const EdgeInsets.all(10),
                                 decoration: BoxDecoration(
@@ -813,24 +870,52 @@ class _Ahvi3StepUploadModalState extends State<Ahvi3StepUploadModal> {
                                 child: Row(
                                   children: [
                                     Icon(
-                                      it.isSelected
+                                      it.isSelected && saveable
                                           ? Icons.check_box_rounded
-                                          : Icons.check_box_outline_blank,
+                                          : saveable
+                                          ? Icons.check_box_outline_blank
+                                          : Icons.block_rounded,
                                       size: 20,
-                                      color: it.isSelected
+                                      color: it.isSelected && saveable
                                           ? t.accent.primary
                                           : Colors.white38,
                                     ),
                                     const SizedBox(width: 10),
                                     Expanded(
-                                      child: Text(
-                                        it.name,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: GoogleFonts.inter(
-                                          fontSize: 13,
-                                          color: Colors.white,
-                                        ),
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            it.name,
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: GoogleFonts.inter(
+                                              fontSize: 13,
+                                              color: saveable
+                                                  ? Colors.white
+                                                  : Colors.white60,
+                                            ),
+                                          ),
+                                          if (it.statusLabel != null) ...[
+                                            const SizedBox(height: 3),
+                                            Text(
+                                              [
+                                                it.statusLabel!,
+                                                if ((it.rejectionReason ?? '')
+                                                    .trim()
+                                                    .isNotEmpty)
+                                                  it.rejectionReason!.trim(),
+                                              ].join(' · '),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: GoogleFonts.inter(
+                                                fontSize: 10,
+                                                color: Colors.white54,
+                                              ),
+                                            ),
+                                          ],
+                                        ],
                                       ),
                                     ),
                                   ],
@@ -861,8 +946,12 @@ class _Ahvi3StepUploadModalState extends State<Ahvi3StepUploadModal> {
                           disabledElevation: 0,
                           child: Text(
                             isSingleItem
-                                ? 'Add to Wardrobe'
-                                : 'Add $selectedCount/${_items.length} items to Wardrobe',
+                                ? (selectedCount > 0
+                                      ? 'Add 1 approved item'
+                                      : 'No approved items to add')
+                                : selectedCount == 0
+                                ? 'No approved items to add'
+                                : 'Add $selectedCount approved item${selectedCount != 1 ? 's' : ''}',
                             style: GoogleFonts.inter(
                               fontSize: 16,
                               fontWeight: FontWeight.w600,

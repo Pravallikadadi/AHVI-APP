@@ -330,7 +330,9 @@ class BackendService {
 
       if (response.statusCode == 200) {
         debugPrint('style_chat.status_code=${response.statusCode}');
-        debugPrint('style_chat.response_body=${_styleChatSnippet(response.body)}');
+        debugPrint(
+          'style_chat.response_body=${_styleChatSnippet(response.body)}',
+        );
         Map<String, dynamic> data;
         try {
           data = await compute(_parseJsonMap, response.body);
@@ -400,7 +402,9 @@ class BackendService {
         'AHVI_BACKEND_FAIL endpoint=/api/text status=${response.statusCode} body=${response.body}',
       );
       debugPrint('style_chat.status_code=${response.statusCode}');
-      debugPrint('style_chat.response_body=${_styleChatSnippet(response.body)}');
+      debugPrint(
+        'style_chat.response_body=${_styleChatSnippet(response.body)}',
+      );
       try {
         final data = await compute(_parseJsonMap, response.body);
         if (data['error'] != null || data['message'] != null) {
@@ -414,8 +418,11 @@ class BackendService {
       final failedAfter =
           DateTime.now().difference(startedAt).inMilliseconds / 1000;
       debugPrint('AHVI_BACKEND_EXCEPTION endpoint=/api/text error=$e');
-      debugPrint('style_chat.exception_type=${e.runtimeType} endpoint=/api/text error=$e');
-      if (e is TimeoutException || e.toString().toLowerCase().contains('timeout')) {
+      debugPrint(
+        'style_chat.exception_type=${e.runtimeType} endpoint=/api/text error=$e',
+      );
+      if (e is TimeoutException ||
+          e.toString().toLowerCase().contains('timeout')) {
         debugPrint('style_chat.timeout endpoint=/api/text seconds=120');
       }
       debugPrint('AHVI_BACKEND_EXCEPTION stack=$st');
@@ -530,7 +537,9 @@ class BackendService {
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
         debugPrint('style_chat.status_code=${response.statusCode}');
-        debugPrint('style_chat.response_body=${_styleChatSnippet(response.body)}');
+        debugPrint(
+          'style_chat.response_body=${_styleChatSnippet(response.body)}',
+        );
         final data = await compute(_parseJsonMap, response.body);
         final text = _messageText(data);
         debugPrint(
@@ -552,14 +561,19 @@ class BackendService {
         'body=${response.body}',
       );
       debugPrint('style_chat.status_code=${response.statusCode}');
-      debugPrint('style_chat.response_body=${_styleChatSnippet(response.body)}');
+      debugPrint(
+        'style_chat.response_body=${_styleChatSnippet(response.body)}',
+      );
       throw Exception(
         'Failed module chat: ${response.statusCode} ${response.body}',
       );
     } catch (e, st) {
       debugPrint('AHVI_BACKEND_EXCEPTION endpoint=/api/module-chat error=$e');
-      debugPrint('style_chat.exception_type=${e.runtimeType} endpoint=/api/module-chat error=$e');
-      if (e is TimeoutException || e.toString().toLowerCase().contains('timeout')) {
+      debugPrint(
+        'style_chat.exception_type=${e.runtimeType} endpoint=/api/module-chat error=$e',
+      );
+      if (e is TimeoutException ||
+          e.toString().toLowerCase().contains('timeout')) {
         debugPrint('style_chat.timeout endpoint=/api/module-chat seconds=75');
       }
       debugPrint('AHVI_BACKEND_EXCEPTION stack=$st');
@@ -689,24 +703,29 @@ class BackendService {
     try {
       final headers = await _authHeaders();
       headers.remove('Content-Type');
-      final request = http.MultipartRequest(
-        'POST',
-        Uri.parse('$baseUrl/api/lens/find-similar'),
-      )
-        ..headers.addAll(headers)
-        ..files.add(
-          http.MultipartFile.fromBytes(
-            'file',
-            imageBytes,
-            filename: filename,
-          ),
-        );
-      final streamed = await request.send().timeout(const Duration(seconds: 45));
+      final request =
+          http.MultipartRequest(
+              'POST',
+              Uri.parse('$baseUrl/api/lens/find-similar'),
+            )
+            ..headers.addAll(headers)
+            ..files.add(
+              http.MultipartFile.fromBytes(
+                'file',
+                imageBytes,
+                filename: filename,
+              ),
+            );
+      final streamed = await request.send().timeout(
+        const Duration(seconds: 45),
+      );
       final response = await http.Response.fromStream(streamed);
       if (response.statusCode == 200) {
         return await compute(_parseJsonMap, response.body);
       }
-      debugPrint('Find similar failed: ${response.statusCode} ${response.body}');
+      debugPrint(
+        'Find similar failed: ${response.statusCode} ${response.body}',
+      );
       return {
         'success': false,
         'message': 'Could not find similar products yet.',
@@ -770,17 +789,27 @@ class BackendService {
     List<Map<String, dynamic>> detectedItems,
   ) async {
     try {
+      final approvedItems = detectedItems
+          .where((item) {
+            final status =
+                (item['validation_status'] ?? item['validationStatus'] ?? 'ok')
+                    .toString()
+                    .trim()
+                    .toLowerCase();
+            return status.isEmpty || status == 'ok';
+          })
+          .toList(growable: false);
       final response = await http
           .post(
             Uri.parse('$baseUrl/api/wardrobe/capture/save-selected'),
             headers: await _authHeaders(),
             body: jsonEncode({
               'user_id': await _currentUserId(),
-              'selected_item_ids': detectedItems
+              'selected_item_ids': approvedItems
                   .map((item) => item['item_id']?.toString() ?? '')
                   .where((id) => id.isNotEmpty)
                   .toList(),
-              'detected_items': detectedItems,
+              'detected_items': approvedItems,
             }),
           )
           .timeout(const Duration(seconds: 120));

@@ -404,7 +404,8 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
       maskedUrl:
           data['maskedUrl']?.toString() ?? data['masked_url']?.toString(),
       normalizedUrl:
-          data['normalizedUrl']?.toString() ?? data['normalized_url']?.toString(),
+          data['normalizedUrl']?.toString() ??
+          data['normalized_url']?.toString(),
     );
   }
 
@@ -1681,6 +1682,13 @@ class _DetectedItem {
   final String? maskedImageBase64;
   final int? sourceImageIndex;
   final Map<String, dynamic> raw;
+  final String validationStatus;
+  final String? rejectionReason;
+  final bool selectedByDefault;
+  final double? cropQualityScore;
+  final String? detectionMode;
+  final String? regenProvider;
+  final String? inputType;
   bool selected;
 
   _DetectedItem({
@@ -1700,8 +1708,32 @@ class _DetectedItem {
     this.maskedImageBase64,
     this.sourceImageIndex,
     this.raw = const {},
-    this.selected = true,
-  });
+    String validationStatus = 'ok',
+    this.rejectionReason,
+    bool? selectedByDefault,
+    this.cropQualityScore,
+    this.detectionMode,
+    this.regenProvider,
+    this.inputType,
+    bool? selected,
+  }) : validationStatus = validationStatus.trim().toLowerCase().isEmpty
+           ? 'ok'
+           : validationStatus.trim().toLowerCase(),
+       selectedByDefault =
+           selectedByDefault ?? validationStatus.trim().toLowerCase() == 'ok',
+       selected =
+           selected ??
+           (selectedByDefault ?? validationStatus.trim().toLowerCase() == 'ok');
+
+  bool get isApproved => validationStatus == 'ok';
+  bool get isNeedsReview => validationStatus == 'needs_review';
+  bool get isRejected => validationStatus == 'rejected';
+  bool get isSaveable => isApproved;
+  String? get statusLabel {
+    if (isNeedsReview) return 'Needs review';
+    if (isRejected) return 'Rejected';
+    return null;
+  }
 
   Uint8List? get maskedImageBytes {
     final encoded = maskedImageBase64;
@@ -1753,6 +1785,13 @@ class _DetectedItem {
       'raw_url': rawUrl,
       'masked_url': maskedUrl,
       'masked_image_base64': maskedImageBase64,
+      'validation_status': validationStatus,
+      'rejection_reason': rejectionReason,
+      'selected_by_default': selectedByDefault,
+      'crop_quality_score': cropQualityScore,
+      'detection_mode': detectionMode,
+      'regen_provider': regenProvider,
+      'input_type': inputType,
       if (sourceImageIndex != null) 'source_image_index': sourceImageIndex,
     });
     return payload;
@@ -2252,9 +2291,20 @@ class _AddItemModalState extends State<_AddItemModal>
     final raw = data['items'];
     if (raw is! List) throw Exception('No detected items');
 
-    return raw.whereType<Map>().map((r) {
+    final items = raw.whereType<Map>().map((r) {
       final data = Map<String, dynamic>.from(r);
       final taxonomy = _normalizeDetectedTaxonomy(data);
+      final validationStatus = _captureString(
+        data,
+        'validation_status',
+        'validationStatus',
+      );
+      final safeValidationStatus = validationStatus.isEmpty
+          ? 'ok'
+          : validationStatus.toLowerCase();
+      final selectedByDefault =
+          _captureBool(data, 'selected_by_default', 'selectedByDefault') ??
+          safeValidationStatus == 'ok';
       final occasions = data['occasions'] is List
           ? List<String>.from(
               (data['occasions'] as List).map((v) => v.toString()),
@@ -2286,9 +2336,51 @@ class _AddItemModalState extends State<_AddItemModal>
                   ? (data['batch_index'] as num).toInt()
                   : null),
         raw: data,
-        selected: true,
+        validationStatus: safeValidationStatus,
+        rejectionReason:
+            _captureString(
+              data,
+              'rejection_reason',
+              'rejectionReason',
+            ).isNotEmpty
+            ? _captureString(data, 'rejection_reason', 'rejectionReason')
+            : null,
+        selectedByDefault: selectedByDefault,
+        cropQualityScore: _captureDouble(
+          data,
+          'crop_quality_score',
+          'cropQualityScore',
+        ),
+        detectionMode:
+            _captureString(data, 'detection_mode', 'detectionMode').isNotEmpty
+            ? _captureString(data, 'detection_mode', 'detectionMode')
+            : null,
+        regenProvider:
+            _captureString(data, 'regen_provider', 'regenProvider').isNotEmpty
+            ? _captureString(data, 'regen_provider', 'regenProvider')
+            : null,
+        inputType: _captureString(data, 'input_type', 'inputType').isNotEmpty
+            ? _captureString(data, 'input_type', 'inputType')
+            : null,
+        selected: selectedByDefault && safeValidationStatus == 'ok',
       );
     }).toList();
+    final okCount = items.where((i) => i.validationStatus == 'ok').length;
+    final reviewCount = items
+        .where((i) => i.validationStatus == 'needs_review')
+        .length;
+    final rejectedCount = items
+        .where((i) => i.validationStatus == 'rejected')
+        .length;
+    final selectedApprovedCount = items
+        .where((i) => i.selected && i.isSaveable)
+        .length;
+    debugPrint(
+      'wardrobe_capture.validation total=${items.length} ok=$okCount '
+      'needs_review=$reviewCount rejected=$rejectedCount '
+      'selected_approved=$selectedApprovedCount',
+    );
+    return items;
   }
 
   // Single image flow (camera / single gallery pick)
@@ -2317,6 +2409,9 @@ class _AddItemModalState extends State<_AddItemModal>
             labelSource: 'manual_review',
             requiresManualEntry: true,
             confidence: 0.0,
+            validationStatus: 'needs_review',
+            rejectionReason: 'manual_review',
+            selectedByDefault: false,
             raw: {
               'item_id': fallbackId,
               'id': fallbackId,
@@ -2324,9 +2419,12 @@ class _AddItemModalState extends State<_AddItemModal>
               'category': 'Uncategorized',
               'sub_category': '',
               'requires_manual_entry': true,
+              'validation_status': 'needs_review',
+              'rejection_reason': 'manual_review',
+              'selected_by_default': false,
               'confidence': 0.0,
             },
-            selected: true,
+            selected: false,
           ),
         ];
         _detectError =
@@ -2509,6 +2607,14 @@ class _AddItemModalState extends State<_AddItemModal>
             occasions: List<String>.from(d.occasions),
             imageUrl: d.displayUrl,
             previewBytes: d.previewBytes,
+            validationStatus: d.validationStatus,
+            rejectionReason: d.rejectionReason,
+            selectedByDefault: d.selectedByDefault,
+            cropQualityScore: d.cropQualityScore,
+            detectionMode: d.detectionMode,
+            regenProvider: d.regenProvider,
+            inputType: d.inputType,
+            isSelected: d.selected && d.isSaveable,
           ),
         )
         .toList();
@@ -2523,10 +2629,12 @@ class _AddItemModalState extends State<_AddItemModal>
         // user dismissing it (X / back) — pop once, leave inline UI underneath.
         onClose: () => Navigator.of(context).pop(),
         onConfirm: (selected) {
-          final selectedById = {for (final s in selected) s.id: s};
+          final selectedById = {
+            for (final s in selected.where((s) => s.isSaveable)) s.id: s,
+          };
           final ids = selectedById.keys.toSet();
           for (final d in _detected) {
-            d.selected = ids.contains(d.id);
+            d.selected = d.isSaveable && ids.contains(d.id);
             final edited = selectedById[d.id];
             if (edited != null) {
               d.name = _cleanUiText(edited.name, fallback: d.name);
@@ -2546,9 +2654,11 @@ class _AddItemModalState extends State<_AddItemModal>
 
   Future<void> _confirmAndSave() async {
     if (_isSavingWardrobe) return;
-    final selected = _detected.where((i) => i.selected).toList();
+    final selected = _detected
+        .where((i) => i.selected && i.isSaveable)
+        .toList();
     if (selected.isEmpty) {
-      _toast('Select at least one item');
+      _toast('No approved items to add');
       return;
     }
     if (selected.length > 6) {
@@ -3398,11 +3508,20 @@ class _AddItemModalState extends State<_AddItemModal>
                 GestureDetector(
                   onTap: () {
                     if (_isSavingWardrobe) return;
-                    final all = _detected.every((i) => i.selected);
+                    final saveable = _detected
+                        .where((i) => i.isSaveable)
+                        .toList();
+                    if (saveable.isEmpty) {
+                      _toast('No approved items to add');
+                      return;
+                    }
+                    final all =
+                        saveable.isNotEmpty &&
+                        saveable.every((i) => i.selected);
                     if (all) {
                       // deselect all
                       setState(() {
-                        for (final i in _detected) {
+                        for (final i in saveable) {
                           i.selected = false;
                         }
                       });
@@ -3411,7 +3530,7 @@ class _AddItemModalState extends State<_AddItemModal>
                       int count = 0;
                       setState(() {
                         for (final i in _detected) {
-                          if (count < 6) {
+                          if (i.isSaveable && count < 6) {
                             i.selected = true;
                             count++;
                           } else {
@@ -3425,7 +3544,10 @@ class _AddItemModalState extends State<_AddItemModal>
                     }
                   },
                   child: Text(
-                    _detected.every((i) => i.selected)
+                    _detected.where((i) => i.isSaveable).isNotEmpty &&
+                            _detected
+                                .where((i) => i.isSaveable)
+                                .every((i) => i.selected)
                         ? AppLocalizations.t(context, 'wardrobe_deselect_all')
                         : AppLocalizations.t(context, 'wardrobe_select_all'),
                     style: TextStyle(
@@ -3451,7 +3573,13 @@ class _AddItemModalState extends State<_AddItemModal>
                 return GestureDetector(
                   onTap: () {
                     if (_isSavingWardrobe) return;
-                    final selCount = _detected.where((d) => d.selected).length;
+                    if (!item.isSaveable) {
+                      _toast(item.statusLabel ?? 'Item is not approved');
+                      return;
+                    }
+                    final selCount = _detected
+                        .where((d) => d.selected && d.isSaveable)
+                        .length;
                     if (!item.selected && selCount >= 6) {
                       _toast('Maximum 6 items per outfit');
                       return;
@@ -3562,8 +3690,28 @@ class _AddItemModalState extends State<_AddItemModal>
                                       'review labels',
                                       t.accent.secondary,
                                     ),
+                                  if (item.statusLabel != null)
+                                    _SmallPill(
+                                      item.statusLabel!,
+                                      item.isRejected
+                                          ? t.accent.tertiary
+                                          : t.accent.secondary,
+                                    ),
                                 ],
                               ),
+                              if ((item.rejectionReason ?? '').isNotEmpty) ...[
+                                const SizedBox(height: 4),
+                                Text(
+                                  item.rejectionReason!,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontFamily: GoogleFonts.inter().fontFamily,
+                                    fontSize: 10.5,
+                                    color: t.mutedText,
+                                  ),
+                                ),
+                              ],
                             ],
                           ),
                         ),
@@ -4025,7 +4173,9 @@ class _AddItemModalState extends State<_AddItemModal>
   Widget _buildFooter() {
     if (_saveComplete) return const SizedBox.shrink();
 
-    final int selCount = _detected.where((i) => i.selected).length;
+    final int selCount = _detected
+        .where((i) => i.selected && i.isSaveable)
+        .length;
 
     // Camera step ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â only Cancel, no manual option
     if (_step == _ModalStep.camera) {
@@ -4063,7 +4213,7 @@ class _AddItemModalState extends State<_AddItemModal>
 
     // No items selected OR error state ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â hide primary button, show only Cancel
     if (_step == _ModalStep.results &&
-        (_detected.where((i) => i.selected).isEmpty)) {
+        (_detected.where((i) => i.selected && i.isSaveable).isEmpty)) {
       return Container(
         padding: const EdgeInsets.fromLTRB(18, 12, 18, 20),
         decoration: BoxDecoration(
@@ -4103,8 +4253,8 @@ class _AddItemModalState extends State<_AddItemModal>
             _ModalStep.detecting => 'Detecting...',
             _ModalStep.results =>
               selCount == 0
-                  ? AppLocalizations.t(context, 'wardrobe_select_items')
-                  : 'Add $selCount/6 item${selCount != 1 ? 's' : ''} to Wardrobe',
+                  ? 'No approved items to add'
+                  : 'Add $selCount approved item${selCount != 1 ? 's' : ''}',
             _ModalStep.editing =>
               _editingIndex != null ? 'Save changes' : 'Save to wardrobe',
           };
@@ -4208,6 +4358,27 @@ class _AddItemModalState extends State<_AddItemModal>
       ),
     );
   }
+}
+
+String _captureString(Map<String, dynamic> data, String snake, String camel) {
+  return (data[snake] ?? data[camel] ?? '').toString().trim();
+}
+
+bool? _captureBool(Map<String, dynamic> data, String snake, String camel) {
+  final value = data.containsKey(snake) ? data[snake] : data[camel];
+  if (value is bool) return value;
+  if (value is num) return value != 0;
+  final text = value?.toString().trim().toLowerCase();
+  if (text == null || text.isEmpty) return null;
+  if (text == 'true' || text == '1' || text == 'yes') return true;
+  if (text == 'false' || text == '0' || text == 'no') return false;
+  return null;
+}
+
+double? _captureDouble(Map<String, dynamic> data, String snake, String camel) {
+  final value = data.containsKey(snake) ? data[snake] : data[camel];
+  if (value is num) return value.toDouble();
+  return double.tryParse(value?.toString() ?? '');
 }
 
 // ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ CAMERA CONTROL BUTTON ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬

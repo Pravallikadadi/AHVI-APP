@@ -19,6 +19,11 @@ import 'package:myapp/services/ahvi_response_parser.dart';
 import 'package:myapp/services/backend_service.dart';
 import 'package:myapp/chat.dart'; // 🚀 Added Chat Screen Integration
 import 'package:myapp/app_localizations.dart'; // 🆕 Localization
+import 'package:myapp/daily_wear.dart';
+import 'package:myapp/diet_fitness.dart';
+import 'package:myapp/diet_page.dart' as diet_page;
+import 'package:myapp/skincare.dart';
+import 'package:myapp/home_card_summary_provider.dart';
 
 // ─── Colors ──────────────────────────────────────────────
 
@@ -190,6 +195,7 @@ class _Screen4State extends State<Screen4>
   final TextEditingController _chatController = TextEditingController();
   final FocusNode _chatFocusNode = FocusNode();
   final ValueNotifier<double> _keyboardHeight = ValueNotifier<double>(0.0);
+  bool _homeSummariesRefreshStarted = false;
 
   // ── Voice ──────────────────────────────────────────────────────────────────
   bool _isListening = false;
@@ -360,6 +366,7 @@ class _Screen4State extends State<Screen4>
           1.0,
           curve: const Cubic(0.34, 1.56, 0.64, 1.0),
         );
+        _refreshHomeCardSummaries();
       }
     });
   }
@@ -392,11 +399,17 @@ class _Screen4State extends State<Screen4>
 
       if (mounted) {
         setState(() {
-          _userName = firstName;
+          _userName = _titleCaseFirstName(firstName);
           _avatarBytes = avatarBytes;
         });
       }
     }
+  }
+
+  String _titleCaseFirstName(String value) {
+    final trimmed = value.trim();
+    if (trimmed.isEmpty) return trimmed;
+    return trimmed[0].toUpperCase() + trimmed.substring(1).toLowerCase();
   }
 
   void _updateClock() {
@@ -432,6 +445,156 @@ class _Screen4State extends State<Screen4>
       greeting: greetingKey,
       date: '${days[now.weekday % 7]}, ${now.day} ${months[now.month - 1]}',
     );
+  }
+
+  Future<void> _refreshHomeCardSummaries() async {
+    if (_homeSummariesRefreshStarted) return;
+    _homeSummariesRefreshStarted = true;
+
+    final summary = Provider.of<HomeCardSummaryProvider>(
+      context,
+      listen: false,
+    );
+    final backend = Provider.of<BackendService>(context, listen: false);
+    final appwrite = Provider.of<AppwriteService>(context, listen: false);
+
+    try {
+      final response = await backend.getTodayWorkout();
+      final moveSummary = _moveSummaryFromWorkoutResponse(response);
+      if (!mounted) return;
+      if (moveSummary != null) {
+        summary.setMove(moveSummary);
+        debugPrint(
+          'home_summary.move source=getTodayWorkout value=$moveSummary',
+        );
+      } else {
+        debugPrint('home_summary.move fallback_kept');
+      }
+    } catch (e) {
+      debugPrint('home_summary.move fallback_kept error=$e');
+    }
+
+    try {
+      final profileDoc = await appwrite.getSkincareProfile();
+      final careSummary = _careSummaryFromSkincareProfile(profileDoc?.data);
+      if (!mounted) return;
+      if (careSummary != null) {
+        summary.setCare(careSummary);
+        debugPrint(
+          'home_summary.care source=skincareProfile value=$careSummary',
+        );
+      } else {
+        debugPrint('home_summary.care fallback_kept');
+      }
+    } catch (e) {
+      debugPrint('home_summary.care fallback_kept error=$e');
+    }
+  }
+
+  String? _moveSummaryFromWorkoutResponse(Map<String, dynamic> response) {
+    final raw = response['today_workout'] is Map
+        ? Map<String, dynamic>.from(response['today_workout'] as Map)
+        : _firstMap(response['recommendations']);
+    if (raw == null) return null;
+
+    final title = _cleanHomeSummaryText(
+      (raw['title'] ?? raw['name'] ?? raw['workout_name'] ?? '').toString(),
+    );
+    final subtitle = _cleanHomeSummaryText((raw['subtitle'] ?? '').toString());
+    final duration = _intFromAny(
+      raw['duration_minutes'] ?? raw['duration_min'] ?? raw['duration'],
+    );
+
+    var label = title;
+    final normalized = (label ?? '').toLowerCase().replaceAll('’', "'");
+    if (label == null ||
+        normalized == "today's workout" ||
+        normalized == 'todays workout') {
+      label = subtitle;
+    }
+    if (label == null) return null;
+
+    label = _stripDurationPrefix(label);
+    final hasDuration = RegExp(
+      r'\b\d+\s*-?\s*min',
+      caseSensitive: false,
+    ).hasMatch(label);
+    final summary = duration != null && duration > 0 && !hasDuration
+        ? '$duration-min ${_lowercaseFirst(label)}'
+        : label;
+    return _cleanHomeSummaryText(summary, maxLength: 32);
+  }
+
+  String? _careSummaryFromSkincareProfile(Map<String, dynamic>? data) {
+    if (data == null || data.isEmpty) return null;
+    final skinType = (data['skinType'] ?? '').toString().trim();
+    final concerns = data['concerns'] is List
+        ? (data['concerns'] as List)
+              .where((item) => item.toString().trim().isNotEmpty)
+              .toList(growable: false)
+        : const [];
+    final dayDone = _listLength(data['daySteps']);
+    final nightDone = _listLength(data['nightSteps']);
+    if (skinType.isEmpty &&
+        concerns.isEmpty &&
+        dayDone == 0 &&
+        nightDone == 0) {
+      return null;
+    }
+
+    final hour = DateTime.now().hour;
+    final isNight = hour >= 18 || hour < 5;
+    final completed = isNight ? nightDone : dayDone;
+    if (completed > 0) {
+      return '$completed/5 skincare done';
+    }
+    return isNight ? 'Night repair routine' : 'AM glow routine';
+  }
+
+  Map<String, dynamic>? _firstMap(Object? value) {
+    if (value is! List) return null;
+    for (final item in value) {
+      if (item is Map) return Map<String, dynamic>.from(item);
+    }
+    return null;
+  }
+
+  int? _intFromAny(Object? value) {
+    if (value is int) return value;
+    if (value is num) return value.round();
+    final text = value?.toString() ?? '';
+    final direct = int.tryParse(text);
+    if (direct != null) return direct;
+    final match = RegExp(r'\d+').firstMatch(text);
+    return match == null ? null : int.tryParse(match.group(0)!);
+  }
+
+  int _listLength(Object? value) => value is List ? value.length : 0;
+
+  String? _cleanHomeSummaryText(String value, {int maxLength = 36}) {
+    final cleaned = value
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .replaceAll(RegExp(r'[^\w\s&+/.-]'), '')
+        .trim();
+    if (cleaned.isEmpty) return null;
+    if (cleaned.length <= maxLength) return cleaned;
+    final clipped = cleaned.substring(0, maxLength).trimRight();
+    final lastSpace = clipped.lastIndexOf(' ');
+    return lastSpace > 10 ? clipped.substring(0, lastSpace) : clipped;
+  }
+
+  String _stripDurationPrefix(String value) {
+    return value
+        .replaceFirst(
+          RegExp(r'^\s*\d+\s*-?\s*min(?:ute)?s?\s+', caseSensitive: false),
+          '',
+        )
+        .trim();
+  }
+
+  String _lowercaseFirst(String value) {
+    if (value.isEmpty) return value;
+    return value[0].toLowerCase() + value.substring(1);
   }
 
   void _rotateSuggestion() {
@@ -1038,6 +1201,7 @@ class _Screen4State extends State<Screen4>
 
   bool get _hasTransientUi =>
       _seeAllOpen || _overlayState != _OverlayState.idle;
+  bool get _showStandaloneHomeNav => false;
 
   void _handleBackNavigation() {
     if (_seeAllOpen) {
@@ -1105,11 +1269,6 @@ class _Screen4State extends State<Screen4>
                 builder: (context, constraints) {
                   final screenH = constraints.maxHeight;
 
-                  const navBarH =
-                      86.0; // nav bar total height (pillH + maxBulge + safeBottom)
-                  const topSectionH = 170.0;
-                  const spacing = 18.0;
-
                   // Placeholder height — _buildFixedLogoBar తో exact match:
                   // SafeArea.top (statusBarH) + topPad + logoFontSize + botPad
                   // Chat _ChatLogoHeader కూడా same values use చేస్తోంది
@@ -1120,16 +1279,6 @@ class _Screen4State extends State<Screen4>
                   final double topBarPlaceholderH =
                       statusBarH + topPad + logoFontSizeH + botPad;
 
-                  // Available height after fixed sections
-                  const chatBarH = 64.0;
-                  const navBarH2 = 86.0;
-                  const bottomReserve = 10 + chatBarH + navBarH2;
-                  final availableH =
-                      screenH -
-                      topBarPlaceholderH -
-                      topSectionH -
-                      bottomReserve -
-                      spacing;
                   // Hero gets 62%, secondary gets 38% of available space
                   final heroFlex = 62;
                   final secFlex = 38;
@@ -1160,8 +1309,15 @@ class _Screen4State extends State<Screen4>
                               child: _buildSecondaryRow(),
                             ),
                           ),
-                          // Space reserved for floating prompt bar + nav bar (Positioned in Stack)
-                          const SizedBox(height: 10 + 64 + navBarH),
+                          // Space reserved for floating prompt bar + shell nav.
+                          SizedBox(
+                            height:
+                                (widget.onShellNavTap != null ||
+                                    (_showStandaloneHomeNav &&
+                                        widget.onShellNavTap == null))
+                                ? 168.0
+                                : 88.0,
+                          ),
                         ],
                       ),
                     ),
@@ -1210,8 +1366,13 @@ class _Screen4State extends State<Screen4>
               // didChangeMetrics triggers a rebuild via setState anyway.
               final kbH = MediaQuery.of(ctx).viewInsets.bottom;
               final safeB = MediaQuery.paddingOf(ctx).bottom;
-              final navBarTotalH = safeB + 86.0 + 8.0;
-              final promptBottom = kbH > 0 ? kbH + 8.0 : navBarTotalH;
+              final hasBottomNav =
+                  widget.onShellNavTap != null ||
+                  (_showStandaloneHomeNav && widget.onShellNavTap == null);
+              final navClearance = hasBottomNav ? 96.0 : 0.0;
+              final promptBottom = kbH > 0
+                  ? kbH + 8.0
+                  : safeB + navClearance + 12.0;
               return Positioned(
                 left: 20,
                 right: 20,
@@ -1231,7 +1392,7 @@ class _Screen4State extends State<Screen4>
 
           // Only show nav bar when NOT inside a Shell (Shell has its own nav bar)
           // 🔧 FIX: Keyboard open అయినా nav bar same position లో ఉండాలి — hide చేయకూడదు
-          if (widget.onShellNavTap == null)
+          if (_showStandaloneHomeNav && widget.onShellNavTap == null)
             Builder(
               builder: (ctx) {
                 final safeB = MediaQuery.paddingOf(ctx).bottom;
@@ -1453,8 +1614,8 @@ class _Screen4State extends State<Screen4>
           final profileName =
               context.watch<profile.ProfileController>().state.name ?? '';
           final displayName = profileName.isNotEmpty
-              ? profileName.split(' ').first
-              : _userName;
+              ? _titleCaseFirstName(profileName.split(' ').first)
+              : _titleCaseFirstName(_userName);
 
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1696,325 +1857,189 @@ class _Screen4State extends State<Screen4>
   }
 
   Widget _buildHeroCard() {
-    return RepaintBoundary(
-      child: AnimatedBuilder(
-        animation: Listenable.merge([_shimmerCtrl, _breatheCtrl]),
-        builder: (context, _) {
-          final breatheOpacity = 0.14 + 0.12 * _breatheCtrl.value;
+    final summary = context.watch<HomeCardSummaryProvider>();
+    final rows = <_HeroRowData>[
+      _HeroRowData(
+        icon: Icons.checkroom_outlined,
+        color: _accent,
+        label: 'Wear',
+        value: summary.wear,
+        page: const DailyWearScreen(),
+      ),
+      _HeroRowData(
+        icon: Icons.directions_run_rounded,
+        color: _accentSecondary,
+        label: 'Move',
+        value: summary.move,
+        page: const DietAndFitnessScreen(),
+      ),
+      _HeroRowData(
+        icon: Icons.restaurant_outlined,
+        color: _accentTertiary,
+        label: 'Eat',
+        value: summary.eat,
+        page: const diet_page.MainScreen(),
+      ),
+      _HeroRowData(
+        icon: Icons.spa_outlined,
+        color: _textMuted,
+        label: 'Care',
+        value: summary.care,
+        page: const SkincareScreen(),
+      ),
+    ];
 
-          return _CardPressable(
-            onTap: () => _openModuleChat('style'),
-            builder: (_) => Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(26),
-                color: _surface,
-                border: Border.all(
-                  color: _accent.withValues(alpha: 0.20),
-                  width: 1,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: _shadowStrong,
-                    blurRadius: 56,
-                    offset: Offset(0, 16),
-                  ),
-                  BoxShadow(
-                    color: _shadowMedium,
-                    blurRadius: 16,
-                    offset: Offset(0, 4),
-                  ),
-                  BoxShadow(
-                    color: _accent.withValues(alpha: 0.12),
-                    blurRadius: 30,
-                  ),
-                ],
-              ),
-              clipBehavior: Clip.antiAlias,
+    return RepaintBoundary(
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(28),
+          color: _surface,
+          border: Border.all(color: _border.withValues(alpha: 0.45), width: 1),
+          boxShadow: [
+            BoxShadow(
+              color: _shadowStrong,
+              blurRadius: 32,
+              spreadRadius: -4,
+              offset: const Offset(0, 10),
+            ),
+            BoxShadow(
+              color: _shadowLight,
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Stack(
+          children: [
+            Positioned(
+              right: 0,
+              top: 0,
+              bottom: 0,
+              width: 160,
               child: Stack(
                 children: [
                   Positioned.fill(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        gradient: RadialGradient(
-                          center: const Alignment(0.8, 0.1),
-                          radius: 1.2,
-                          colors: [
-                            _accentSecondary.withValues(alpha: 0.20),
-                            _transparent,
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                  Positioned.fill(
-                    child: IgnorePointer(
-                      child: Container(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(26),
-                          border: Border.all(
-                            color: _accent.withValues(alpha: breatheOpacity),
-                            width: 1,
-                          ),
-                        ),
-                      ),
+                    child: Image.asset(
+                      'assets/images/outfit_linen_air.jpg',
+                      fit: BoxFit.cover,
+                      alignment: Alignment.center,
+                      filterQuality: FilterQuality.low,
+                      errorBuilder: (_, __, ___) => const SizedBox.shrink(),
                     ),
                   ),
                   Positioned(
-                    top: 0,
                     left: 0,
-                    right: 0,
-                    child: Container(
-                      height: 1,
+                    top: 0,
+                    bottom: 0,
+                    width: 68,
+                    child: DecoratedBox(
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
-                          colors: [
-                            _transparent,
-                            _accent.withValues(
-                              alpha:
-                                  0.6 *
-                                  (0.5 +
-                                      0.5 *
-                                          math.sin(
-                                            _shimmerCtrl.value * math.pi * 2,
-                                          )),
-                            ),
-                            _accentTertiary.withValues(alpha: 0.55),
-                            _transparent,
-                          ],
-                          stops: const [0.0, 0.28, 0.60, 1.0],
+                          begin: Alignment.centerLeft,
+                          end: Alignment.centerRight,
+                          colors: [_surface, _surface.withValues(alpha: 0.0)],
+                          stops: const [0.50, 1.0],
                         ),
                       ),
                     ),
                   ),
                   Positioned(
-                    right: 0,
-                    top: 0,
-                    bottom: 0,
-                    width: 188,
-                    child: Stack(
-                      children: [
-                        Positioned.fill(
-                          child: Image.network(
-                            'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=420&h=450&fit=crop&crop=top&auto=format',
-                            fit: BoxFit.cover,
-                            alignment: Alignment.topCenter,
-                            cacheWidth:
-                                (224 * MediaQuery.of(context).devicePixelRatio)
-                                    .round(),
-                            filterQuality: FilterQuality.low,
-                            errorBuilder: (_ctx, _err, _st) => Container(
-                              color: _accent.withValues(alpha: 0.1),
-                              child: Icon(Icons.image, color: _textMuted),
-                            ),
-                          ),
-                        ),
-                        Positioned(
-                          left: 0,
-                          top: 0,
-                          bottom: 0,
-                          width: 56,
-                          child: Container(
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                begin: Alignment.centerLeft,
-                                end: Alignment.centerRight,
-                                colors: [_surface, _transparent],
-                                stops: const [0.75, 1.0],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  Positioned(
                     left: 0,
-                    top: 0,
+                    right: 0,
                     bottom: 0,
-                    width: 220,
-                    child: LayoutBuilder(
-                      builder: (context, heroConstraints) {
-                        final heroH = heroConstraints.maxHeight;
-                        // All values scale proportionally to available height
-                        // heroH is typically 113–160px depending on device
-                        final pad = (heroH * 0.11).clamp(8.0, 20.0);
-                        final titleFontSize = (heroH * 0.21).clamp(18.0, 40.0);
-                        final subtitleFontSize = (heroH * 0.065).clamp(
-                          8.0,
-                          12.0,
-                        );
-                        final gap1 = (heroH * 0.014).clamp(1.0, 4.0);
-                        final gap2 = (heroH * 0.022).clamp(2.0, 7.0);
-                        final btnPadH = (heroH * 0.088).clamp(8.0, 17.0);
-                        final btnPadV = (heroH * 0.030).clamp(3.0, 9.0);
-                        return ClipRect(
-                          child: Padding(
-                            padding: EdgeInsets.fromLTRB(
-                              pad,
-                              pad,
-                              pad * 0.7,
-                              pad * 0.7,
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              mainAxisSize: MainAxisSize.max,
-                              children: [
-                                Expanded(
-                                  child: OverflowBox(
-                                    alignment: Alignment.topLeft,
-                                    maxHeight: double.infinity,
-                                    child: ClipRect(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Text(
-                                            AppLocalizations.t(
-                                              context,
-                                              'hero_ai_stylist_label',
-                                            ), // 🆕
-                                            style: TextStyle(
-                                              color: _accent.withValues(
-                                                alpha: 0.85,
-                                              ),
-                                              fontSize: 10,
-                                              fontWeight: FontWeight.w600,
-                                              letterSpacing: 1.4,
-                                            ),
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                          SizedBox(height: gap1),
-                                          ShaderMask(
-                                            shaderCallback: (b) =>
-                                                _accentGradient.createShader(b),
-                                            child: Text(
-                                              AppLocalizations.t(
-                                                context,
-                                                'hero_style_title',
-                                              ), // 🆕
-                                              style: TextStyle(
-                                                color: _textHeading,
-                                                fontSize: titleFontSize,
-                                                fontWeight: FontWeight.w300,
-                                                letterSpacing: -1.05,
-                                                height: 0.93,
-                                              ),
-                                              maxLines: 2,
-                                              overflow: TextOverflow.ellipsis,
-                                            ),
-                                          ),
-                                          SizedBox(height: gap2),
-                                          Text(
-                                            AppLocalizations.t(
-                                              context,
-                                              'hero_style_subtitle',
-                                            ), // 🆕
-                                            style: TextStyle(
-                                              color: _textSub.withValues(
-                                                alpha: 0.80,
-                                              ),
-                                              fontSize: subtitleFontSize,
-                                              fontWeight: FontWeight.w300,
-                                              height: 1.4,
-                                            ),
-                                            maxLines: 2,
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                _AnimatedPressable(
-                                  liftY: -2.0,
-                                  scalePressed: 0.95,
-                                  onTap: () => _openModuleChat('style'),
-                                  child: Container(
-                                    decoration: BoxDecoration(
-                                      gradient: LinearGradient(
-                                        begin: Alignment.topLeft,
-                                        end: Alignment.bottomRight,
-                                        colors: [_accent, _accentTertiary],
-                                      ),
-                                      borderRadius: BorderRadius.circular(100),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: _accent.withValues(
-                                            alpha: 0.40,
-                                          ),
-                                          blurRadius: 20,
-                                          offset: const Offset(0, 6),
-                                        ),
-                                        BoxShadow(
-                                          color: _accentTertiary.withValues(
-                                            alpha: 0.25,
-                                          ),
-                                          blurRadius: 8,
-                                          offset: const Offset(0, 2),
-                                        ),
-                                      ],
-                                    ),
-                                    padding: EdgeInsets.symmetric(
-                                      horizontal: btnPadH,
-                                      vertical: btnPadV,
-                                    ),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Text(
-                                          AppLocalizations.t(
-                                            context,
-                                            'hero_start_styling',
-                                          ), // 🆕
-                                          style: TextStyle(
-                                            color: _onAccent,
-                                            fontSize: 11,
-                                            fontWeight: FontWeight.w600,
-                                            letterSpacing: 0.36,
-                                          ),
-                                        ),
-                                        SizedBox(width: 5),
-                                        Icon(
-                                          Icons.arrow_forward_rounded,
-                                          color: _onAccent,
-                                          size: 11,
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        );
-                      },
+                    height: 38,
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            _surface.withValues(alpha: 0.0),
+                            _surface.withValues(alpha: 0.78),
+                          ],
+                        ),
+                      ),
                     ),
                   ),
                 ],
               ),
             ),
-          );
-        },
+            Padding(
+              padding: const EdgeInsets.fromLTRB(18, 14, 18, 12),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final compact = constraints.maxHeight < 260;
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        'Your day',
+                        style: TextStyle(
+                          color: _textHeading,
+                          fontSize: compact ? 20 : 24,
+                          fontWeight: FontWeight.w800,
+                          height: 1.05,
+                          letterSpacing: -0.5,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Put-together effortlessly',
+                        style: TextStyle(
+                          color: _textSub.withValues(alpha: 0.85),
+                          fontSize: compact ? 12 : 13,
+                          fontWeight: FontWeight.w500,
+                          height: 1.25,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      SizedBox(height: compact ? 7 : 10),
+                      ...List.generate(rows.length, (i) {
+                        final row = rows[i];
+                        return Padding(
+                          padding: EdgeInsets.only(
+                            bottom: i == rows.length - 1 ? 0 : 2,
+                          ),
+                          child: _RoutineItem(
+                            icon: row.icon,
+                            color: row.color,
+                            label: row.label,
+                            value: row.value,
+                            textHeading: _textHeading,
+                            textMuted: _textSub,
+                            onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (_) => row.page),
+                            ),
+                          ),
+                        );
+                      }),
+                    ],
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildSecondaryRow() {
-    final screenH = MediaQuery.of(context).size.height;
-    final screenW = MediaQuery.of(context).size.width;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Expanded(
           child: _buildSecCard(
             icon: Icons.grid_view_rounded,
-            title: AppLocalizations.t(context, 'sec_plan_title'),
-            subtitle: AppLocalizations.t(context, 'sec_plan_subtitle'),
-            ctaKey: 'sec_plan_cta',
+            title: 'Plan',
+            subtitle: 'Your life, organised',
+            ctaText: 'Start Planning',
             intent: 'organize',
             assetImage: 'assets/images/plan_card.jpg',
           ),
@@ -2023,9 +2048,9 @@ class _Screen4State extends State<Screen4>
         Expanded(
           child: _buildSecCard(
             icon: Icons.calendar_month_outlined,
-            title: AppLocalizations.t(context, 'sec_prep_title'),
-            subtitle: AppLocalizations.t(context, 'sec_prep_subtitle'),
-            ctaKey: 'sec_prep_cta',
+            title: 'Prep',
+            subtitle: 'Plan, pack & get ready',
+            ctaText: 'Start Prepping',
             intent: 'plan',
             assetImage: 'assets/images/prep_card.jpg',
           ),
@@ -2038,14 +2063,12 @@ class _Screen4State extends State<Screen4>
     required IconData icon,
     required String title,
     required String subtitle,
-    required String ctaKey,
+    required String ctaText,
     required String intent,
     String? imageUrl,
     String? assetImage,
   }) {
-    final screenH = MediaQuery.of(context).size.height;
-    // CTA label from localization key
-    final ctaLabel = AppLocalizations.t(context, ctaKey);
+    final ctaLabel = ctaText;
 
     return RepaintBoundary(
       child: AnimatedBuilder(
@@ -5175,6 +5198,141 @@ class _PrepareQuickChipState extends State<_PrepareQuickChip> {
                   : hovered
                   ? widget.accent
                   : widget.textMuted,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _HeroRowData {
+  const _HeroRowData({
+    required this.icon,
+    required this.color,
+    required this.label,
+    required this.value,
+    required this.page,
+  });
+
+  final IconData icon;
+  final Color color;
+  final String label;
+  final String value;
+  final Widget page;
+}
+
+class _RoutineItem extends StatefulWidget {
+  const _RoutineItem({
+    required this.icon,
+    required this.color,
+    required this.label,
+    required this.value,
+    required this.textHeading,
+    required this.textMuted,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final Color color;
+  final String label;
+  final String value;
+  final Color textHeading;
+  final Color textMuted;
+  final VoidCallback onTap;
+
+  @override
+  State<_RoutineItem> createState() => _RoutineItemState();
+}
+
+class _RoutineItemState extends State<_RoutineItem> {
+  bool _pressed = false;
+  bool _hovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final active = _pressed || _hovered;
+    return Semantics(
+      button: true,
+      label: '${widget.label}: ${widget.value}',
+      child: MouseRegion(
+        onEnter: (_) => setState(() => _hovered = true),
+        onExit: (_) => setState(() {
+          _hovered = false;
+          _pressed = false;
+        }),
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTapDown: (_) => setState(() => _pressed = true),
+          onTapUp: (_) {
+            setState(() => _pressed = false);
+            widget.onTap();
+          },
+          onTapCancel: () => setState(() => _pressed = false),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 130),
+            curve: Curves.easeOut,
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+            decoration: BoxDecoration(
+              color: active
+                  ? widget.color.withValues(alpha: 0.08)
+                  : Colors.transparent,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Row(
+              children: [
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 150),
+                  width: 28,
+                  height: 28,
+                  decoration: BoxDecoration(
+                    color: active
+                        ? widget.color.withValues(alpha: 0.22)
+                        : widget.color.withValues(alpha: 0.13),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(widget.icon, size: 13, color: widget.color),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        widget.label,
+                        style: TextStyle(
+                          color: widget.textHeading,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          height: 1.2,
+                        ),
+                      ),
+                      Text(
+                        widget.value,
+                        style: TextStyle(
+                          color: widget.textMuted,
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.w400,
+                          height: 1.25,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+                AnimatedSlide(
+                  offset: active ? const Offset(0.12, 0) : Offset.zero,
+                  duration: const Duration(milliseconds: 150),
+                  curve: Curves.easeOut,
+                  child: Icon(
+                    Icons.chevron_right_rounded,
+                    size: 14,
+                    color: widget.color.withValues(alpha: active ? 0.9 : 0.5),
+                  ),
+                ),
+              ],
             ),
           ),
         ),

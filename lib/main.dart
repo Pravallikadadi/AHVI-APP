@@ -14,6 +14,7 @@ import 'package:myapp/app_routes.dart';
 import 'package:myapp/splash_screen.dart';
 import 'package:myapp/wardrobe.dart';
 import 'package:myapp/config/env.dart';
+import 'package:myapp/home_card_summary_provider.dart';
 
 // ─── NEW FEATURE IMPORTS ───
 import 'package:myapp/skincare.dart';
@@ -120,6 +121,7 @@ class _MyAppState extends State<MyApp> {
           create: (_) => ConnectivityWatcher()..init(),
         ),
         ChangeNotifierProvider<OfflineCache>(create: (_) => OfflineCache()),
+        ChangeNotifierProvider(create: (_) => HomeCardSummaryProvider()),
       ],
       child: Consumer<ThemeController>(
         builder: (context, controller, child) {
@@ -1118,9 +1120,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
         context,
         listen: false,
       );
-      final user = await appwrite.getCurrentUser().timeout(
-        _startupAuthTimeout,
-      );
+      final user = await appwrite.getCurrentUser().timeout(_startupAuthTimeout);
       Map<String, dynamic>? profile;
       if (user != null) {
         // AHVI auth persistence fix:
