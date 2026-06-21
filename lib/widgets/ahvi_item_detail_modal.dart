@@ -18,7 +18,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:myapp/theme/theme_tokens.dart';
 import 'package:myapp/wardrobe.dart'; // WardrobeItem lives here
-import 'package:myapp/widgets/ahvi_stylist_chat.dart'; // showAhviStylistChatSheet
+import 'package:myapp/services/backend_service.dart'; // styleWardrobeItem
 import 'pairing_engine.dart';
 
 // ============================================================
@@ -369,46 +369,149 @@ class _ItemDetailModal extends StatelessWidget {
   }
 
   // ============================================================
-  // STYLE THIS -> open AHVI stylist chat sheet seeded with this item.
-  // Uses the existing showAhviStylistChatSheet API (no AhviStylistChat ctor).
+  // STYLE THIS -> 3 styling directions from the backend stylist pipeline.
+  // BUILD OUTFIT -> 1 practical outfit anchored on this item.
+  // Both show a loading spinner, then a result sheet, and never dead-end.
   // ============================================================
   void _onStyleThis(BuildContext context, WardrobeItem item) {
-    Navigator.of(context).pop(); // close modal first
-    showAhviStylistChatSheet(
-      context,
-      moduleContext: 'wardrobe',
-      contextData: {
-        'seed_prompt': 'Style this item: ${item.name}',
-        'item_id': item.id,
-        'item_name': item.name,
-        'item_category': item.cat,
-        'item_image_url': item.displayUrl,
-        'intent': 'style_this',
-      },
-    );
+    _runStyleCta(context, item, mode: 'style_this');
   }
 
-  // ============================================================
-  // BUILD OUTFIT -> seed the chat sheet for outfit building, or fall back
-  // to the onBuildOutfit callback if the host supplied one.
-  // ============================================================
   void _onBuildOutfit(BuildContext context, WardrobeItem item) {
-    Navigator.of(context).pop(); // close modal first
     if (onBuildOutfit != null) {
+      Navigator.of(context).pop();
       onBuildOutfit!.call();
       return;
     }
-    showAhviStylistChatSheet(
-      context,
-      moduleContext: 'wardrobe',
-      contextData: {
-        'seed_prompt': 'Build an outfit around: ${item.name}',
-        'item_id': item.id,
-        'item_name': item.name,
-        'item_category': item.cat,
-        'item_image_url': item.displayUrl,
-        'intent': 'build_outfit',
-      },
+    _runStyleCta(context, item, mode: 'build_outfit');
+  }
+
+  Future<void> _runStyleCta(
+    BuildContext context,
+    WardrobeItem item, {
+    required String mode,
+  }) async {
+    final rootNav = Navigator.of(context, rootNavigator: true);
+    final BuildContext appContext = rootNav.context;
+    rootNav.pop(); // close the item-detail dialog
+
+    // Loading state.
+    showDialog<void>(
+      context: appContext,
+      barrierDismissible: false,
+      builder: (_) => const Center(
+        child: CircularProgressIndicator(color: Colors.white),
+      ),
+    );
+
+    Map<String, dynamic>? result;
+    try {
+      result = await BackendService().styleWardrobeItem(
+        itemId: item.id,
+        mode: mode,
+        anchorItem: {
+          'item_id': item.id,
+          'name': item.name,
+          'category': item.cat,
+          if (item.displayUrl != null) 'image_url': item.displayUrl,
+        },
+      );
+    } catch (_) {
+      result = null;
+    }
+
+    if (rootNav.canPop()) rootNav.pop(); // dismiss the spinner
+    if (!appContext.mounted) return;
+    _showStyleResultSheet(appContext, mode: mode, item: item, result: result);
+  }
+
+  static const String _friendlyFail =
+      'AHVI could not build a complete outfit yet. '
+      'Try adding shoes or accessories.';
+
+  List<Map<String, dynamic>> _asMapList(dynamic value) {
+    if (value is List) {
+      return value
+          .whereType<Map>()
+          .map((e) => Map<String, dynamic>.from(e))
+          .toList();
+    }
+    return <Map<String, dynamic>>[];
+  }
+
+  void _showStyleResultSheet(
+    BuildContext context, {
+    required String mode,
+    required WardrobeItem item,
+    required Map<String, dynamic>? result,
+  }) {
+    final bool ok = result != null && result['success'] == true;
+    final String? message = result?['message']?.toString();
+    final List<Map<String, dynamic>> directions = mode == 'style_this'
+        ? _asMapList(result?['style_directions'])
+        : <Map<String, dynamic>>[];
+    final Map<String, dynamic>? outfit =
+        (mode == 'build_outfit' && result?['outfit'] is Map)
+            ? Map<String, dynamic>.from(result!['outfit'] as Map)
+            : null;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => DraggableScrollableSheet(
+        initialChildSize: 0.7,
+        minChildSize: 0.4,
+        maxChildSize: 0.95,
+        expand: false,
+        builder: (ctx, scrollCtrl) => Container(
+          decoration: const BoxDecoration(
+            color: Color(0xFF14110F),
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          padding: const EdgeInsets.fromLTRB(20, 14, 20, 24),
+          child: ListView(
+            controller: scrollCtrl,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.white24,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                mode == 'style_this' ? 'Style Directions' : 'Build Outfit',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 22,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                item.name,
+                style: const TextStyle(color: Colors.white60, fontSize: 13),
+              ),
+              const SizedBox(height: 16),
+              if (!ok || (message != null && message.isNotEmpty))
+                _StyleNotice(
+                  text: (message != null && message.isNotEmpty)
+                      ? message
+                      : _friendlyFail,
+                ),
+              if (mode == 'style_this')
+                ...directions.map((d) => _StyleDirectionCard(direction: d)),
+              if (mode == 'build_outfit' && outfit != null)
+                _StyleDirectionCard(direction: outfit, reasonKey: 'reason'),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -1304,6 +1407,173 @@ class _AllPairingsSheet extends StatelessWidget {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+// ============================================================
+// STYLE RESULT SHEET WIDGETS (Style This / Build Outfit)
+// ============================================================
+class _StyleNotice extends StatelessWidget {
+  final String text;
+  const _StyleNotice({required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0x33A32D2D),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Text(
+        text,
+        style: const TextStyle(color: Colors.white70, fontSize: 13, height: 1.35),
+      ),
+    );
+  }
+}
+
+class _StyleDirectionCard extends StatelessWidget {
+  final Map<String, dynamic> direction;
+  final String reasonKey;
+  const _StyleDirectionCard({
+    required this.direction,
+    this.reasonKey = 'styling_note',
+  });
+
+  static List<String> _names(dynamic value) {
+    if (value is! List) return <String>[];
+    final out = <String>[];
+    for (final e in value) {
+      if (e is Map) {
+        final n = (e['name'] ?? e['label'] ?? '').toString().trim();
+        if (n.isNotEmpty) out.add(n);
+      }
+    }
+    return out;
+  }
+
+  static List<String> _missing(dynamic value) {
+    if (value is! List) return <String>[];
+    final out = <String>[];
+    for (final e in value) {
+      if (e is Map) {
+        final n = (e['label'] ?? e['name'] ?? '').toString().trim();
+        if (n.isNotEmpty) out.add(n);
+      }
+    }
+    return out;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final title = (direction['title'] ?? 'Your Look').toString();
+    final items = _names(direction['items']);
+    final missing = _missing(direction['missing_items']);
+    final note = (direction[reasonKey] ??
+            direction['styling_note'] ??
+            direction['reason'] ??
+            '')
+        .toString();
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          if (note.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Text(
+              note,
+              style: const TextStyle(
+                color: Colors.white60,
+                fontSize: 13,
+                height: 1.35,
+              ),
+            ),
+          ],
+          if (items.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            const Text(
+              'WEAR',
+              style: TextStyle(
+                color: Colors.white38,
+                fontSize: 11,
+                letterSpacing: 0.6,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children:
+                  items.map((n) => _StyleChip(label: n, accent: false)).toList(),
+            ),
+          ],
+          if (missing.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            const Text(
+              'MISSING - SHOP THESE',
+              style: TextStyle(
+                color: Colors.white38,
+                fontSize: 11,
+                letterSpacing: 0.6,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children:
+                  missing.map((n) => _StyleChip(label: n, accent: true)).toList(),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _StyleChip extends StatelessWidget {
+  final String label;
+  final bool accent;
+  const _StyleChip({required this.label, required this.accent});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+      decoration: BoxDecoration(
+        color:
+            accent ? const Color(0x332E7D5B) : Colors.white.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: accent ? const Color(0x662E7D5B) : Colors.white12,
+        ),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: accent ? const Color(0xFF8FE3BE) : Colors.white,
+          fontSize: 13,
         ),
       ),
     );

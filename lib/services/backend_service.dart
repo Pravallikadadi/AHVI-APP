@@ -834,6 +834,49 @@ class BackendService {
     _appwriteService.invalidateWardrobeCache();
   }
 
+  /// Power the item-detail CTAs (Style This / Build Outfit).
+  ///
+  /// mode = 'style_this'   -> response.style_directions: 3 directions
+  /// mode = 'build_outfit' -> response.outfit: 1 outfit + missing_items
+  ///
+  /// Returns null only on transport failure; the backend itself never 500s
+  /// (it returns success:false + a friendly message), so callers should also
+  /// handle a non-null map with success == false.
+  Future<Map<String, dynamic>?> styleWardrobeItem({
+    required String itemId,
+    required String mode,
+    Map<String, dynamic>? anchorItem,
+    String? occasion,
+  }) async {
+    try {
+      final response = await http
+          .post(
+            Uri.parse(
+              '$baseUrl/api/stylist/items/${Uri.encodeComponent(itemId)}/style',
+            ),
+            headers: await _authHeaders(),
+            body: jsonEncode({
+              'user_id': await _currentUserId(),
+              'mode': mode,
+              if (occasion != null && occasion.isNotEmpty) 'occasion': occasion,
+              if (anchorItem != null) 'anchor_item': anchorItem,
+            }),
+          )
+          .timeout(const Duration(seconds: 60));
+
+      if (response.statusCode == 200) {
+        return await compute(_parseJsonMap, response.body);
+      }
+      debugPrint(
+        'styleWardrobeItem failed: ${response.statusCode} - ${response.body}',
+      );
+      return null;
+    } catch (e) {
+      debugPrint('styleWardrobeItem error: $e');
+      return null;
+    }
+  }
+
   Future<Map<String, dynamic>?> updateWardrobeLabels({
     required String itemId,
     String? name,
