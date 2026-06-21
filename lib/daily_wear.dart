@@ -656,6 +656,9 @@ class _DailyWearScreenState extends State<DailyWearScreen>
         : AppLocalizations.t(context, 'feels_cold');
 
     final w = wm[code] ?? wm[2]!;
+    final weatherDetail = temp >= 30
+        ? 'Keep it breathable - light fabrics and relaxed fits are best today.'
+        : w[2];
     if (!mounted) return;
 
     // Merge weather data + outfit reorder into ONE deferred setState
@@ -664,7 +667,7 @@ class _DailyWearScreenState extends State<DailyWearScreen>
       temp: temp,
       icon: w[0],
       label: '${w[1]} · $feelsLike',
-      detail: w[2],
+      detail: weatherDetail,
       weatherCtx: '${w[1]}, $feelsLike, $temp°C',
     );
   }
@@ -2125,7 +2128,7 @@ class _DailyWearScreenState extends State<DailyWearScreen>
                   ),
                   child: Center(
                     child: Text(
-                      AppLocalizations.t(context, 'daily_wear_virtual_tryon'),
+                      'Build Outfit',
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
@@ -2743,7 +2746,7 @@ class _DailyWearScreenState extends State<DailyWearScreen>
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      AppLocalizations.t(context, 'daily_wear_virtual_tryon'),
+                      'Build Outfit',
                       style: TextStyle(
                         fontSize: 28,
                         fontWeight: FontWeight.w600,

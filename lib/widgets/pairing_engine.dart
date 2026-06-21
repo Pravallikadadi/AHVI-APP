@@ -147,6 +147,56 @@ class PairingEngine {
     'Accessories': ['Tops', 'Bottoms', 'Dresses', 'Outerwear'],
   };
 
+  static String _blob(WardrobeItem item) => [
+    item.name,
+    item.cat,
+    item.notes,
+    ...item.occasions,
+  ].join(' ').toLowerCase();
+
+  static bool _isEthnic(WardrobeItem item) {
+    final blob = _blob(item);
+    return blob.contains('saree') ||
+        blob.contains('sari') ||
+        blob.contains('lehenga') ||
+        blob.contains('kurta') ||
+        blob.contains('kurti') ||
+        blob.contains('anarkali') ||
+        blob.contains('ethnic') ||
+        blob.contains('traditional') ||
+        blob.contains('saree blouse') ||
+        blob.contains('ethnic blouse');
+  }
+
+  static bool _isJewelry(WardrobeItem item) {
+    final blob = _blob(item);
+    return blob.contains('jewelry') ||
+        blob.contains('jewellery') ||
+        blob.contains('necklace') ||
+        blob.contains('earring') ||
+        blob.contains('bangle') ||
+        blob.contains('bracelet') ||
+        blob.contains('ring');
+  }
+
+  static bool _badEthnicPair(WardrobeItem item) {
+    final blob = _blob(item);
+    return blob.contains('loafer') ||
+        blob.contains('leather shoe') ||
+        blob.contains('formal shoe') ||
+        blob.contains('oxford') ||
+        blob.contains('derby') ||
+        blob.contains('boot') ||
+        blob.contains('sneaker') ||
+        blob.contains('trainer') ||
+        blob.contains('running shoe') ||
+        blob.contains('sports shoe') ||
+        blob.contains('cap') ||
+        blob.contains('jeans') ||
+        blob.contains('trouser') ||
+        blob.contains('pants');
+  }
+
   // ============================================================
   // COLOR HARMONY
   // ============================================================
@@ -186,7 +236,13 @@ class PairingEngine {
     final scored = <_ScoredItem>[];
 
     final itemCat = normalizeCategory(item.cat);
-    final compatibleCats = _compatibleCategories[itemCat] ?? const [];
+    final itemIsEthnic = _isEthnic(item);
+    final itemIsJewelry = _isJewelry(item);
+    final compatibleCats = itemIsEthnic
+        ? const ['Tops', 'Dresses', 'Accessories', 'Footwear', 'Outerwear']
+        : itemIsJewelry
+        ? const ['Tops', 'Dresses', 'Outerwear']
+        : (_compatibleCategories[itemCat] ?? const []);
     final itemColor = _extractColor(item.name);
 
     for (final other in candidates) {
@@ -194,10 +250,33 @@ class PairingEngine {
 
       // 1. Category compatibility (primary signal) — normalize both sides.
       final otherCat = normalizeCategory(other.cat);
+      if (itemIsJewelry && otherCat == 'Bottoms') {
+        continue;
+      }
+      if (itemIsEthnic && _badEthnicPair(other)) {
+        continue;
+      }
+      if (itemIsEthnic && otherCat == 'Tops' && !_isEthnic(other)) {
+        continue;
+      }
       if (compatibleCats.contains(otherCat)) {
         score += 3;
       } else {
         continue; // skip incompatible / same-bucket items
+      }
+
+      if (itemIsEthnic) {
+        if (_isJewelry(other)) score += 3;
+        final otherBlob = _blob(other);
+        if (otherBlob.contains('blouse') ||
+            otherBlob.contains('potli') ||
+            otherBlob.contains('clutch') ||
+            otherBlob.contains('jutti') ||
+            otherBlob.contains('mojari') ||
+            otherBlob.contains('kolhapuri') ||
+            otherBlob.contains('dressy sandal')) {
+          score += 2.5;
+        }
       }
 
       // 2. Occasion overlap

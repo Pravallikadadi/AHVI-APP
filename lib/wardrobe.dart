@@ -602,6 +602,7 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
             imageBytes: item['imageBytes'] as Uint8List?,
             imageUrl: item['imageUrl'] as String?,
             maskedUrl: item['maskedUrl'] as String?,
+            normalizedUrl: item['normalizedUrl'] as String?,
             worn: item['worn'] as int? ?? 0,
             liked: item['liked'] as bool? ?? false,
           );
@@ -2674,47 +2675,98 @@ class _AddItemModalState extends State<_AddItemModal>
     });
     final saveResult = await backendService.saveWardrobeLabels(payloads);
     if (!mounted) return;
-    if (saveResult == null || saveResult['success'] != true) {
+    final savedCount = saveResult == null
+        ? 0
+        : (saveResult['saved_count'] is int
+              ? saveResult['saved_count'] as int
+              : int.tryParse(saveResult['saved_count']?.toString() ?? '') ?? 0);
+    if (saveResult == null || savedCount <= 0) {
       setState(() => _isSavingWardrobe = false);
-      _toast('Could not save wardrobe items. Please try again.');
+      _toast(
+        "Couldn't save clean wardrobe items from this photo. Try a single garment photo or retake.",
+      );
       return;
     }
 
-    for (final item in selected) {
-      final remoteUrl = item.maskedUrl ?? item.rawUrl;
-      Uint8List? displayBytes = item.maskedImageBytes;
-      if (displayBytes == null && (remoteUrl == null || remoteUrl.isEmpty)) {
-        final index = item.sourceImageIndex;
-        displayBytes =
-            _isGalleryPick &&
-                index != null &&
-                index >= 0 &&
-                index < _galleryImages.length
-            ? _galleryImages[index]
-            : _capturedBytes;
+    final savedRows = (saveResult['items'] is List)
+        ? (saveResult['items'] as List).whereType<Map>().toList()
+        : <Map>[];
+
+    if (savedRows.isEmpty) {
+      for (final item in selected.take(savedCount)) {
+        final remoteUrl = item.maskedUrl ?? item.rawUrl;
+        Uint8List? displayBytes = item.maskedImageBytes;
+        if (displayBytes == null && (remoteUrl == null || remoteUrl.isEmpty)) {
+          final index = item.sourceImageIndex;
+          displayBytes =
+              _isGalleryPick &&
+                  index != null &&
+                  index >= 0 &&
+                  index < _galleryImages.length
+              ? _galleryImages[index]
+              : _capturedBytes;
+        }
+        widget.onSave({
+          'id': item.id,
+          'name': _cleanUiText(item.name, fallback: 'Item'),
+          'cat': item.category,
+          'occasions': List<String>.from(item.occasions),
+          'notes': [
+            item.color,
+            item.pattern,
+          ].where((v) => v != null && v.isNotEmpty && v != 'null').join(', '),
+          'imageBytes': displayBytes,
+          'imageUrl': remoteUrl,
+          'maskedUrl': remoteUrl,
+          'normalizedUrl': null,
+          'worn': 0,
+          'liked': false,
+          'remoteSaved': true,
+        });
       }
-      widget.onSave({
-        'id': item.id,
-        'name': _cleanUiText(item.name, fallback: 'Item'),
-        'cat': item.category,
-        'occasions': List<String>.from(item.occasions),
-        'notes': [
-          item.color,
-          item.pattern,
-        ].where((v) => v != null && v.isNotEmpty && v != 'null').join(', '),
-        'imageBytes': displayBytes,
-        'imageUrl': remoteUrl,
-        'maskedUrl': remoteUrl,
-        'worn': 0,
-        'liked': false,
-        'remoteSaved': true,
-      });
+    } else {
+      for (final raw in savedRows) {
+        final row = Map<String, dynamic>.from(raw);
+        final displayUrl =
+            row['display_image_url']?.toString() ??
+            row['displayImageUrl']?.toString();
+        final normalizedUrl =
+            displayUrl ??
+            row['normalized_url']?.toString() ??
+            row['normalizedUrl']?.toString();
+        final maskedUrl =
+            row['masked_url']?.toString() ?? row['maskedUrl']?.toString();
+        final imageUrl =
+            row['image_url']?.toString() ?? row['imageUrl']?.toString();
+        widget.onSave({
+          'id': row[r'$id']?.toString() ?? row['id']?.toString() ?? row['item_id']?.toString() ?? UniqueKey().toString(),
+          'name': _cleanUiText(row['name'], fallback: 'Item'),
+          'cat': _cleanCategory(row['category']),
+          'occasions': _cleanStringList(row['occasions']),
+          'notes': _cleanUiText(row['notes']),
+          'imageBytes': null,
+          'imageUrl': imageUrl,
+          'maskedUrl': maskedUrl ?? imageUrl,
+          'normalizedUrl': normalizedUrl,
+          'worn': row['worn'] is int ? row['worn'] as int : 0,
+          'liked': row['liked'] == true,
+          'remoteSaved': true,
+        });
+      }
     }
     HapticFeedback.mediumImpact();
     setState(() {
       _isSavingWardrobe = false;
       _saveComplete = true;
     });
+    final requestedCount = selected.length;
+    if (savedCount < requestedCount) {
+      _toast(
+        'Saved $savedCount of $requestedCount items. Some were skipped because AHVI could not create clean wardrobe images.',
+      );
+    } else {
+      _toast('Saved $savedCount item${savedCount == 1 ? '' : 's'} to wardrobe.');
+    }
     await Future.delayed(const Duration(milliseconds: 650));
     if (!mounted) return;
     Navigator.of(context).pop();
