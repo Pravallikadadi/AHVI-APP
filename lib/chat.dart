@@ -2797,6 +2797,10 @@ class _ChatScreenState extends State<ChatScreen>
   }
 
   Widget _genericModuleCard(Map<String, dynamic> card, AppThemeTokens t) {
+    if ((card['type'] ?? '').toString() == 'visual_packing_checklist' ||
+        card['visual_sections'] is List) {
+      return _visualPackingChecklistCard(card, t);
+    }
     final title =
         (card['title'] ??
                 card['name'] ??
@@ -2963,6 +2967,489 @@ class _ChatScreenState extends State<ChatScreen>
     );
   }
 
+  Widget _visualPackingChecklistCard(
+    Map<String, dynamic> card,
+    AppThemeTokens t,
+  ) {
+    final sections = _packingVisualSections(card);
+    if (sections.isEmpty) return const SizedBox.shrink();
+    final title = (card['title'] ?? 'Carry-on Packing Checklist')
+        .toString()
+        .trim();
+    final subtitle = (card['subtitle'] ?? 'Short trip').toString().trim();
+    final actions = card['actions'] is List ? card['actions'] as List : const [];
+
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(left: 4, right: 20, bottom: 92),
+      padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
+      decoration: BoxDecoration(
+        color: t.panel,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: t.cardBorder),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 12,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 34,
+                height: 34,
+                decoration: BoxDecoration(
+                  color: t.accent.primary.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  Icons.luggage_rounded,
+                  size: 18,
+                  color: t.accent.primary,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title.isEmpty ? 'Carry-on Packing Checklist' : title,
+                      style: TextStyle(
+                        color: t.textPrimary,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    if (subtitle.isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        subtitle,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: t.mutedText,
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          ...sections.map((section) => _packingSectionPreview(section, t)),
+          const SizedBox(height: 8),
+          ...sections.map((section) => _packingSectionCard(section, t)),
+          if (actions.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: actions.take(3).map((raw) {
+                final action = raw is Map
+                    ? Map<String, dynamic>.from(raw)
+                    : {'label': raw.toString()};
+                final label = (action['label'] ?? action['title'] ?? '')
+                    .toString()
+                    .trim();
+                if (label.isEmpty) return const SizedBox.shrink();
+                return GestureDetector(
+                  onTap: () => _sendMessage(label),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 11,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: t.accent.primary.withValues(alpha: 0.10),
+                      borderRadius: BorderRadius.circular(999),
+                      border: Border.all(
+                        color: t.accent.primary.withValues(alpha: 0.18),
+                      ),
+                    ),
+                    child: Text(
+                      label,
+                      style: TextStyle(
+                        color: t.accent.primary,
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  List<Map<String, dynamic>> _packingVisualSections(Map<String, dynamic> card) {
+    final raw = card['visual_sections'] ?? card['visualSections'];
+    if (raw is! List) return const [];
+    return raw
+        .whereType<Map>()
+        .map((item) => Map<String, dynamic>.from(item))
+        .where((item) => (item['items'] is List))
+        .toList(growable: false);
+  }
+
+  Widget _packingSectionPreview(Map<String, dynamic> section, AppThemeTokens t) {
+    final title = (section['title'] ?? section['label'] ?? 'Section')
+        .toString()
+        .trim();
+    final id = (section['id'] ?? title).toString().toLowerCase();
+    final items = _packingSectionItems(section);
+    final count = section['item_count'] ?? items.length;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: t.card.withValues(alpha: 0.82),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: t.cardBorder.withValues(alpha: 0.82)),
+      ),
+      child: Row(
+        children: [
+          Icon(_packingSectionIcon(id), size: 17, color: t.accent.primary),
+          const SizedBox(width: 9),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title.isEmpty ? 'Section' : title,
+                  style: TextStyle(
+                    color: t.textPrimary,
+                    fontSize: 12.8,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                Text(
+                  '$count items',
+                  style: TextStyle(
+                    color: t.mutedText,
+                    fontSize: 10.8,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          _packingImageStack(items.take(4).toList(), t, compact: true),
+          const SizedBox(width: 6),
+          Icon(Icons.chevron_right_rounded, color: t.mutedText, size: 19),
+        ],
+      ),
+    );
+  }
+
+  Widget _packingSectionCard(Map<String, dynamic> section, AppThemeTokens t) {
+    final title = (section['title'] ?? section['label'] ?? 'Section')
+        .toString()
+        .trim();
+    final id = (section['id'] ?? title).toString().toLowerCase();
+    final items = _packingSectionItems(section);
+    if (items.isEmpty) return const SizedBox.shrink();
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.fromLTRB(10, 10, 10, 4),
+      decoration: BoxDecoration(
+        color: t.backgroundSecondary.withValues(alpha: 0.62),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: t.cardBorder.withValues(alpha: 0.72)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(_packingSectionIcon(id), size: 16, color: t.accent.primary),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  title.isEmpty ? 'Section' : title,
+                  style: TextStyle(
+                    color: t.textPrimary,
+                    fontSize: 12.4,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          ...items.map((item) => _packingItemTile(item, t)),
+        ],
+      ),
+    );
+  }
+
+  List<Map<String, dynamic>> _packingSectionItems(Map<String, dynamic> section) {
+    final raw = section['items'];
+    if (raw is! List) return const [];
+    return raw
+        .whereType<Map>()
+        .map((item) => Map<String, dynamic>.from(item))
+        .toList(growable: false);
+  }
+
+  Widget _packingItemTile(Map<String, dynamic> item, AppThemeTokens t) {
+    final label =
+        (item['display_label'] ?? item['label'] ?? item['name'] ?? 'Item')
+            .toString()
+            .trim();
+    final source = (item['source'] ?? '').toString().trim();
+    final stateKey = (item['id'] ?? label).toString();
+
+    return StatefulBuilder(
+      builder: (context, setRowState) {
+        final saved = _checklistChecksByTitle[stateKey];
+        final done = saved != null && saved.isNotEmpty && saved.first.isNotEmpty
+            ? saved.first.first
+            : item['packed'] == true;
+        return InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: () {
+            setRowState(() {
+              _checklistChecksByTitle[stateKey] = [
+                [!done],
+              ];
+            });
+          },
+          child: Container(
+            margin: const EdgeInsets.only(bottom: 7),
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: t.panel.withValues(alpha: 0.82),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: t.cardBorder.withValues(alpha: 0.72)),
+            ),
+            child: Row(
+              children: [
+                _packingThumb(item, t, size: 42),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        label.isEmpty ? 'Item' : label,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: t.textPrimary,
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w800,
+                          decoration: done ? TextDecoration.lineThrough : null,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        _packingSourceLabel(source),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: t.mutedText,
+                          fontSize: 10.7,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(
+                  done
+                      ? Icons.check_circle_rounded
+                      : Icons.radio_button_unchecked_rounded,
+                  color: done ? t.accent.primary : t.mutedText,
+                  size: 20,
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _packingImageStack(
+    List<Map<String, dynamic>> items,
+    AppThemeTokens t, {
+    bool compact = false,
+  }) {
+    if (items.isEmpty) return const SizedBox.shrink();
+    final size = compact ? 26.0 : 34.0;
+    final width = size + (items.length - 1) * (size * 0.58);
+    return SizedBox(
+      width: width,
+      height: size,
+      child: Stack(
+        children: [
+          for (var i = 0; i < items.length; i++)
+            Positioned(
+              left: i * size * 0.58,
+              child: Container(
+                width: size,
+                height: size,
+                decoration: BoxDecoration(
+                  color: t.panel,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: t.cardBorder, width: 1.2),
+                ),
+                clipBehavior: Clip.antiAlias,
+                child: _packingThumb(items[i], t, size: size, round: true),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _packingThumb(
+    Map<String, dynamic> item,
+    AppThemeTokens t, {
+    double size = 40,
+    bool round = false,
+  }) {
+    final imageUrls = item['image_urls'] ?? item['imageUrls'];
+    final imageUrl = imageUrls is List && imageUrls.isNotEmpty
+        ? imageUrls.first.toString().trim()
+        : (item['image_url'] ?? item['imageUrl'] ?? '').toString().trim();
+    final label = (item['label'] ?? item['display_label'] ?? '').toString();
+    final iconKey = (item['iconKey'] ?? item['icon_key'] ?? '').toString().trim();
+    final assetKey = (item['asset_key'] ?? item['assetIcon'] ?? '')
+        .toString()
+        .trim();
+    final icon = _packingIconForKey(iconKey) ??
+        _packingSectionIcon(
+          (item['section'] ?? item['category'] ?? label)
+              .toString()
+              .toLowerCase(),
+        );
+    Widget child;
+    if (imageUrl.isNotEmpty) {
+      child = Image.network(
+        imageUrl,
+        fit: BoxFit.contain,
+        errorBuilder: (context, error, stackTrace) =>
+            Icon(icon, size: size * 0.46, color: t.accent.primary),
+      );
+    } else if (assetKey.startsWith('assets/')) {
+      child = Image.asset(
+        assetKey,
+        fit: BoxFit.contain,
+        errorBuilder: (context, error, stackTrace) =>
+            Icon(icon, size: size * 0.46, color: t.accent.primary),
+      );
+    } else {
+      child = Icon(icon, size: size * 0.46, color: t.accent.primary);
+    }
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: t.accent.primary.withValues(alpha: 0.09),
+        borderRadius: BorderRadius.circular(round ? 999 : 12),
+        border: round ? null : Border.all(color: t.cardBorder),
+      ),
+      clipBehavior: Clip.antiAlias,
+      alignment: Alignment.center,
+      child: Padding(padding: const EdgeInsets.all(4), child: child),
+    );
+  }
+
+  IconData _packingSectionIcon(String key) {
+    final text = key.toLowerCase();
+    final icon = _packingIconForKey(text);
+    if (icon != null) return icon;
+    if (text.contains('cloth') || text.contains('top') || text.contains('wear')) {
+      return Icons.checkroom_rounded;
+    }
+    if (text.contains('tech') ||
+        text.contains('charger') ||
+        text.contains('phone')) {
+      return Icons.power_rounded;
+    }
+    if (text.contains('document') ||
+        text.contains('passport') ||
+        text.contains('ticket')) {
+      return Icons.description_rounded;
+    }
+    if (text.contains('weather') ||
+        text.contains('rain') ||
+        text.contains('sun')) {
+      return Icons.wb_sunny_outlined;
+    }
+    if (text.contains('essential') ||
+        text.contains('toiletr') ||
+        text.contains('medicine')) {
+      return Icons.spa_rounded;
+    }
+    return Icons.inventory_2_rounded;
+  }
+
+  IconData? _packingIconForKey(String key) {
+    switch (key.toLowerCase()) {
+      case 'sunscreen':
+        return Icons.wb_sunny_outlined;
+      case 'sunglasses':
+        return Icons.remove_red_eye_outlined;
+      case 'charger':
+      case 'tech':
+        return Icons.power_outlined;
+      case 'power_bank':
+        return Icons.battery_charging_full_outlined;
+      case 'toiletries':
+      case 'essentials':
+        return Icons.inventory_2_outlined;
+      case 'water_bottle':
+        return Icons.local_drink_outlined;
+      case 'shoes':
+      case 'clothes':
+      case 'jacket':
+        return Icons.checkroom_outlined;
+      case 'towel':
+        return Icons.dry_cleaning_outlined;
+      case 'medicine':
+        return Icons.medical_services_outlined;
+      case 'first_aid':
+        return Icons.health_and_safety_outlined;
+      case 'documents':
+        return Icons.description_outlined;
+      case 'camera':
+        return Icons.camera_alt_outlined;
+      case 'weather':
+        return Icons.cloud_outlined;
+      case 'bag':
+        return Icons.shopping_bag_outlined;
+    }
+    return null;
+  }
+
+  String _packingSourceLabel(String source) {
+    switch (source) {
+      case 'wardrobe':
+        return 'From wardrobe';
+      case 'missing':
+        return 'Missing';
+      case 'asset':
+      case 'icon':
+        return 'Suggested';
+      default:
+        return 'Suggested';
+    }
+  }
+
   List<String> _genericCardItems(Map<String, dynamic> card) {
     final raw = card['items'] ?? card['steps'] ?? card['checklist'];
     if (raw is List) {
@@ -3038,6 +3525,8 @@ class _ChatScreenState extends State<ChatScreen>
 
   IconData _fallbackIconFor(String label) {
     final text = label.toLowerCase();
+    final icon = _packingIconForKey(text);
+    if (icon != null) return icon;
     if (text.contains('sunscreen') || text.contains('moistur')) {
       return Icons.spa_rounded;
     }
@@ -3069,8 +3558,11 @@ class _ChatScreenState extends State<ChatScreen>
     final imageUrl = (item['imageUrl'] ?? item['image_url'] ?? '')
         .toString()
         .trim();
+    final iconKey = (item['iconKey'] ?? item['icon_key'] ?? '')
+        .toString()
+        .trim();
     final source = (item['source'] ?? '').toString().trim();
-    final stateKey = '${item['wardrobeItemId'] ?? item['assetIcon'] ?? label}';
+    final stateKey = '${item['wardrobeItemId'] ?? item['iconKey'] ?? label}';
 
     return StatefulBuilder(
       builder: (context, setRowState) {
@@ -3105,13 +3597,13 @@ class _ChatScreenState extends State<ChatScreen>
                           imageUrl,
                           fit: BoxFit.cover,
                           errorBuilder: (_, __, ___) => Icon(
-                            _fallbackIconFor(label),
+                            _fallbackIconFor(iconKey.isNotEmpty ? iconKey : label),
                             size: 18,
                             color: t.accent.primary,
                           ),
                         )
                       : Icon(
-                          _fallbackIconFor(label),
+                          _fallbackIconFor(iconKey.isNotEmpty ? iconKey : label),
                           size: 18,
                           color: t.accent.primary,
                         ),
