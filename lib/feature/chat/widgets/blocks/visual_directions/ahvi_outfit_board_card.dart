@@ -12,17 +12,22 @@ class AhviOutfitBoardCard extends StatelessWidget {
   final OutfitBoardMessageSender? onSendMessage;
   final Map<String, dynamic> editorialCover;
 
+  /// Tap on the flat-lay visual opens the legacy stylist-reasoning detail
+  /// sheet. The action bar keeps its own handlers and is excluded from this
+  /// gesture so Save / Shuffle / Style This / Missing never trigger the sheet.
+  final VoidCallback? onTapBoard;
+
   const AhviOutfitBoardCard({
     super.key,
     required this.direction,
     required this.width,
     this.onSendMessage,
     this.editorialCover = const {},
+    this.onTapBoard,
   });
 
   @override
   Widget build(BuildContext context) {
-    final t = context.themeTokens;
     final model = OutfitBoardModel.fromPayload(
       direction,
       editorialCover: editorialCover,
@@ -33,7 +38,9 @@ class AhviOutfitBoardCard extends StatelessWidget {
       height: width / 0.62,
       child: DecoratedBox(
         decoration: BoxDecoration(
-          color: t.panel,
+          // Soft off-white canvas so the board reads as one flat-lay surface,
+          // not a stack of product tiles.
+          color: const Color(0xFFFAF9F6),
           borderRadius: BorderRadius.circular(18),
           boxShadow: [
             BoxShadow(
@@ -48,12 +55,20 @@ class AhviOutfitBoardCard extends StatelessWidget {
           child: Column(
             children: [
               Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
-                  child: OutfitCollageGrid(items: model.items),
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: onTapBoard,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(10, 10, 10, 2),
+                    child: OutfitCollageGrid(items: model.items),
+                  ),
                 ),
               ),
-              OutfitContextStrip(model: model),
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: onTapBoard,
+                child: OutfitContextStrip(model: model),
+              ),
               OutfitActionBar(
                 direction: direction,
                 editorialCover: editorialCover,
@@ -94,7 +109,15 @@ class OutfitCollageGrid extends StatelessWidget {
     }
 
     final hero = items.first;
-    final support = items.skip(1).take(5).toList(growable: false);
+    final rest = items.skip(1).toList(growable: false);
+    // Prefer real imagery on the visual board. Drop placeholder-only pieces
+    // when we still have at least two image-bearing supports — but never strip
+    // down to an empty/sparse board, so fall back to all supports otherwise.
+    final withImages =
+        rest.where((item) => item.imageUrl != null).toList(growable: false);
+    final chosen = withImages.length >= 2 ? withImages : rest;
+    // Cap visible items to 5 total (hero + 4) for a clean flat-lay.
+    final support = chosen.take(4).toList(growable: false);
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -211,51 +234,16 @@ class _OutfitTile extends StatelessWidget {
                 progress == null ? child : _placeholder(t),
           );
 
+    // Flat-lay treatment: garment floats on a soft off-white card with no dark
+    // gradient overlay and no label printed over the image. Item names live in
+    // the tap-detail sheet instead. Hero gets more breathing room.
     return ClipRRect(
       borderRadius: BorderRadius.circular(12),
       child: ColoredBox(
-        color: t.accent.primary.withValues(alpha: 0.045),
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            Padding(padding: EdgeInsets.all(hero ? 10 : 6), child: image),
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      Colors.transparent,
-                      Colors.black.withValues(alpha: 0.66),
-                    ],
-                  ),
-                ),
-                child: Padding(
-                  padding: EdgeInsets.fromLTRB(
-                    hero ? 10 : 7,
-                    hero ? 16 : 12,
-                    hero ? 10 : 7,
-                    hero ? 9 : 6,
-                  ),
-                  child: Text(
-                    item.name,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: hero ? 13 : 10.5,
-                      fontWeight: FontWeight.w700,
-                      height: 1.1,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
+        color: const Color(0xFFF4F2EC),
+        child: Padding(
+          padding: EdgeInsets.all(hero ? 12 : 8),
+          child: image,
         ),
       ),
     );
@@ -265,7 +253,7 @@ class _OutfitTile extends StatelessWidget {
     return Center(
       child: Icon(
         collageIconForPiece(item.name),
-        color: t.accent.primary.withValues(alpha: 0.58),
+        color: t.accent.primary.withValues(alpha: 0.5),
         size: hero ? 44 : 28,
       ),
     );

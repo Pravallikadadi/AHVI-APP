@@ -6,10 +6,15 @@ import 'package:myapp/feature/chat/widgets/blocks/visual_directions/curation_rev
 import 'package:myapp/feature/chat/widgets/blocks/visual_directions/editorial_collage.dart';
 import 'package:myapp/theme/theme_tokens.dart';
 
-const bool _enableVisualBoard85Layout = bool.fromEnvironment(
+/// Public so the chat stream (ahvi_stylist_chat / block renderer) can suppress
+/// the legacy text-heavy "Visual Inspiration" card when the flat-lay 85 board
+/// is the active renderer. Default on — the modern board is canonical.
+const bool kVisualBoard85Enabled = bool.fromEnvironment(
   'ENABLE_VISUAL_BOARD_85_LAYOUT',
   defaultValue: true,
 );
+
+const bool _enableVisualBoard85Layout = kVisualBoard85Enabled;
 
 /// Signature for sticky-action-bar invocations on a direction card.
 typedef DirectionMessageSender = void Function(String message);
@@ -75,6 +80,11 @@ class VisualDirectionCarousel extends StatelessWidget {
                     width: width,
                     onSendMessage: onSendMessage,
                     editorialCover: editorialCover,
+                    onTapBoard: () => _openBoardDetail(
+                      context,
+                      direction: usable[index],
+                      editorialCover: editorialCover,
+                    ),
                   )
                 else
                   _VisualDirectionCard(
@@ -102,6 +112,89 @@ class VisualDirectionCarousel extends StatelessWidget {
       venueLabel: venueLabel,
       directionCount: usable.length,
       child: body,
+    );
+  }
+
+  /// Opens the legacy stylist-reasoning content (why_it_works, hero_piece,
+  /// palette/adjectives, style_note, wardrobe match, occasion fit, missing
+  /// piece, complete-the-look) in a tap-only detail sheet. The flat-lay board
+  /// stays visual-first in the chat stream; the reasoning lives here on tap so
+  /// it is never duplicated above the board.
+  void _openBoardDetail(
+    BuildContext context, {
+    required Map<String, dynamic> direction,
+    required Map<String, dynamic> editorialCover,
+  }) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) => AhviOutfitBoardDetailSheet(
+        direction: direction,
+        editorialCover: editorialCover,
+        onSendMessage: (message) {
+          Navigator.of(sheetContext).pop();
+          onSendMessage?.call(message);
+        },
+      ),
+    );
+  }
+}
+
+/// Tap-detail sheet for a flat-lay board. Reuses the legacy [_VisualDirectionCard]
+/// content verbatim inside a draggable scroll sheet so the stylist reasoning is
+/// accessible on tap without cluttering the chat stream.
+class AhviOutfitBoardDetailSheet extends StatelessWidget {
+  final Map<String, dynamic> direction;
+  final Map<String, dynamic> editorialCover;
+  final DirectionMessageSender? onSendMessage;
+
+  const AhviOutfitBoardDetailSheet({
+    super.key,
+    required this.direction,
+    this.editorialCover = const {},
+    this.onSendMessage,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.themeTokens;
+    return DraggableScrollableSheet(
+      initialChildSize: 0.72,
+      minChildSize: 0.4,
+      maxChildSize: 0.95,
+      expand: false,
+      builder: (context, scrollController) {
+        return DecoratedBox(
+          decoration: BoxDecoration(
+            color: t.panel,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+          ),
+          child: ListView(
+            controller: scrollController,
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: t.mutedText.withValues(alpha: 0.3),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              _VisualDirectionCard(
+                direction: direction,
+                width: double.infinity,
+                onSendMessage: onSendMessage,
+                editorialCover: editorialCover,
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

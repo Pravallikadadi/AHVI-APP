@@ -1693,7 +1693,13 @@ class _Bubble extends StatelessWidget {
         if (msg.adviceBlock != null) StyleAdviceCard(data: msg.adviceBlock!),
         if (msg.transitionPlan != null)
           TransitionPlanCard(data: msg.transitionPlan!),
-        if (msg.visualInspiration != null)
+        // Flat-lay 85 board is visual-first: when it is the active renderer and
+        // a visual-directions board is present, suppress the legacy text-heavy
+        // "Visual Inspiration" card in the chat stream. Its reasoning is still
+        // reachable by tapping the board (AhviOutfitBoardDetailSheet). When no
+        // board is present we keep the card so the content is never lost.
+        if (msg.visualInspiration != null &&
+            !(kVisualBoard85Enabled && msg.visualDirectionPayload != null))
           VisualInspirationCard(
             data: msg.visualInspiration!,
             onSendMessage: onPrompt,
