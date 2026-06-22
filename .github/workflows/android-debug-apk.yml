@@ -23,7 +23,15 @@ jobs:
         with:
           channel: stable
           cache: true
-
+      - name: Create .env
+        env:
+          AHVI_ENV_FILE: ${{ secrets.AHVI_ENV_FILE }}
+        run: |
+          if [ -z "$AHVI_ENV_FILE" ]; then
+            touch .env
+          else
+            printf "%s" "$AHVI_ENV_FILE" > .env
+          fi
       - name: Pub get
         run: flutter pub get
 
