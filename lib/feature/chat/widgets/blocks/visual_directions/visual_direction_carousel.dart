@@ -374,10 +374,6 @@ class _VisualDirectionCard extends StatelessWidget {
     final primaryLabel = directionName.isNotEmpty
         ? directionName
         : (archetype.isNotEmpty ? archetype : title);
-    final heroPiece = _text(
-      direction['hero_piece'] ?? direction['heroPiece'],
-      '',
-    );
     // Prefer the server-capped short_note (≤2 sentences) so the card never
     // shows a wall of LLM prose. Falls back to existing fields.
     final whyItWorks = _text(
@@ -414,16 +410,6 @@ class _VisualDirectionCard extends StatelessWidget {
           direction['image_url'] ??
           direction['imageUrl'],
     );
-    final pieces =
-        (_stringList(direction['items']).isNotEmpty
-                ? _stringList(direction['items'])
-                : _stringList(direction['pieces']))
-            .take(6)
-            .toList(growable: false);
-    final completeTheLook = filterFashionItems(
-      _mapList(direction['complete_the_look'] ?? direction['completeTheLook']),
-    ).take(4).toList(growable: false);
-
     final missing = direction['missing_piece'];
     final rawMissing = missing is Map
         ? Map<String, dynamic>.from(missing)
@@ -433,7 +419,6 @@ class _VisualDirectionCard extends StatelessWidget {
     final missingMap = rawMissing.isNotEmpty && isFashionItem(rawMissing)
         ? rawMissing
         : const <String, dynamic>{};
-    final tiles = _collageTiles(heroPiece, imageUrl, pieces, completeTheLook);
 
     // Discard the noisy legacy sections (description, palette, components
     // list, DNA section) so the experience reads as a stylist board, not a
@@ -565,59 +550,6 @@ class _VisualDirectionCard extends StatelessWidget {
 
 // Family-inference fallback removed in favour of backend-provided
 // owned_items. Trust > completeness — see _OwnershipBlock.
-
-/// Collage tile assembly. Hero comes from heroPiece + the direction's own
-/// image_url; supporting tiles come from complete_the_look entries with
-/// image URLs, then from piece-name strings.
-List<CollageTile> _collageTiles(
-  String heroPiece,
-  String? heroImageUrl,
-  List<String> pieces,
-  List<Map<String, dynamic>> completeTheLook,
-) {
-  final tiles = <CollageTile>[];
-  final heroName = heroPiece.isNotEmpty
-      ? heroPiece
-      : (pieces.isNotEmpty ? pieces.first : '');
-  if (heroName.isNotEmpty) {
-    tiles.add(
-      CollageTile(
-        name: heroName,
-        imageUrl: heroImageUrl,
-        icon: collageIconForPiece(heroName),
-      ),
-    );
-  }
-  for (final item in completeTheLook) {
-    final name = (item['name'] ?? item['title'] ?? item['label'])
-        ?.toString()
-        .trim();
-    if (name == null || name.isEmpty) continue;
-    final url = (item['normalized_url'] ??
-            item['normalizedUrl'] ??
-            item['masked_url'] ??
-            item['maskedUrl'] ??
-            item['image_url'] ??
-            item['imageUrl'])
-        ?.toString()
-        .trim();
-    if (tiles.any((t) => t.name.toLowerCase() == name.toLowerCase())) continue;
-    tiles.add(
-      CollageTile(
-        name: name,
-        imageUrl: (url != null && url.isNotEmpty) ? url : null,
-        icon: collageIconForPiece(name),
-      ),
-    );
-    if (tiles.length >= 6) return tiles;
-  }
-  for (final piece in pieces) {
-    if (tiles.any((t) => t.name.toLowerCase() == piece.toLowerCase())) continue;
-    tiles.add(CollageTile(name: piece, icon: collageIconForPiece(piece)));
-    if (tiles.length >= 6) break;
-  }
-  return tiles;
-}
 
 /// Renders true-ownership signals:
 ///
