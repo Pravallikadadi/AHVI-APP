@@ -304,6 +304,22 @@ List<Map<String, dynamic>> _extractModuleCards(
   add(response['moduleCard']);
   add(data['card']);
   add(data['moduleCard']);
+  final visualSections = _mapList(
+    response['visual_sections'] ??
+        response['visualSections'] ??
+        data['visual_sections'] ??
+        data['visualSections'],
+  );
+  if (visualSections.isNotEmpty) {
+    out.add({
+      'type': 'visual_packing_checklist',
+      'title': response['title'] ?? data['title'] ?? 'Carry-on Packing Checklist',
+      'subtitle': data['duration_label'] ?? response['subtitle'] ?? data['subtitle'] ?? '',
+      'visual_sections': visualSections,
+      'actions': response['quick_actions'] ?? response['chips'] ?? data['quick_actions'],
+    });
+    return out;
+  }
   out.addAll(_mapList(response['cards']));
   out.addAll(_mapList(response['module_cards']));
   out.addAll(_mapList(response['moduleCards']));
