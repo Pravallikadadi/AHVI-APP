@@ -172,12 +172,12 @@ class _SplashScreenState extends State<SplashScreen>
   late final Animation<double> _glowOpacity;
   late final List<_Particle> _particles;
 
-  static const _entranceDuration = Duration(milliseconds: 1800);
-  static const _glowDuration = Duration(milliseconds: 3200);
-  static const _shimmerDuration = Duration(milliseconds: 2600);
-  static const _particleDuration = Duration(milliseconds: 8000);
-  static const _ringDuration = Duration(milliseconds: 2800);
-  static const _autoNavDelay = Duration(milliseconds: 5500);
+  static const _entranceDuration = Duration(milliseconds: 700);
+  static const _glowDuration = Duration(milliseconds: 1600);
+  static const _shimmerDuration = Duration(milliseconds: 1400);
+  static const _particleDuration = Duration(milliseconds: 2000);
+  static const _ringDuration = Duration(milliseconds: 900);
+  static const _autoNavDelay = Duration(milliseconds: 2000);
 
   @override
   void initState() {
