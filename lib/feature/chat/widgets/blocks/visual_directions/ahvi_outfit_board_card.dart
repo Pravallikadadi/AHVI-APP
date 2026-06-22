@@ -3,6 +3,8 @@ import 'package:myapp/feature/chat/services/fashion_item_filter.dart';
 import 'package:myapp/feature/chat/services/saved_boards_store.dart';
 import 'package:myapp/feature/chat/widgets/blocks/visual_directions/editorial_collage.dart';
 import 'package:myapp/theme/theme_tokens.dart';
+import 'package:myapp/style_board/board_models.dart';
+import 'package:myapp/style_board/editorial_board_renderer.dart';
 
 typedef OutfitBoardMessageSender = void Function(String message);
 
@@ -60,7 +62,9 @@ class AhviOutfitBoardCard extends StatelessWidget {
                   onTap: onTapBoard,
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(10, 10, 10, 2),
-                    child: OutfitCollageGrid(items: model.imageItems),
+                    child: EditorialBoardCanvas(
+                      board: _toStyleBoardData(model, direction),
+                    ),
                   ),
                 ),
               ),
@@ -429,7 +433,7 @@ class _OutfitActionBarState extends State<OutfitActionBar> {
         label: 'Style This',
         enabled: canSend,
         onTap: () => widget.onSendMessage?.call(
-          'Use my wardrobe for: ${widget.primaryLabel}',
+          'Match this look with my wardrobe and suggest missing pieces if needed.',
         ),
       ),
       if (widget.missingName.isNotEmpty)
@@ -655,6 +659,46 @@ int outfitBoardImageCount(
   ).imageItems.length;
 }
 
+StyleBoardData _toStyleBoardData(OutfitBoardModel model, Map<String, dynamic> direction) {
+  final items = <StyleBoardItem>[];
+  for (final item in model.imageItems) {
+    var role = _mapItemRole(item.role);
+    if (role == BoardItemRole.top &&
+        RegExp(r'\b(dress|gown|saree|sari|lehenga|jumpsuit)\b', caseSensitive: false)
+            .hasMatch(item.name.toLowerCase())) {
+      role = BoardItemRole.dress;
+    }
+    items.add(
+      StyleBoardItem(
+        id: item.id,
+        name: item.name,
+        imageUrl: item.imageUrl ?? '',
+        category: item.role.name,
+        role: role,
+      ),
+    );
+  }
+  return StyleBoardData(
+    title: model.title,
+    styleArchetype: direction['style_archetype'] ?? direction['styleArchetype'],
+    boardRole: direction['board_role'] ?? direction['boardRole'],
+    occasion: direction['occasion'],
+    whyItWorks: direction['why_it_works'] ?? direction['whyThisWorks'] ?? direction['why_this_works'] ?? '',
+    items: items,
+  );
+}
+
+BoardItemRole _mapItemRole(OutfitRole role) {
+  return switch (role) {
+    OutfitRole.hero => BoardItemRole.top,
+    OutfitRole.bottom => BoardItemRole.bottom,
+    OutfitRole.footwear => BoardItemRole.footwear,
+    OutfitRole.bag => BoardItemRole.accessory,
+    OutfitRole.accessory => BoardItemRole.accessory,
+    OutfitRole.other => BoardItemRole.unknown,
+  };
+}
+
 OutfitRole _roleFor(Map<String, dynamic> item, String name) {
   final blob = [
     name,
@@ -664,7 +708,7 @@ OutfitRole _roleFor(Map<String, dynamic> item, String name) {
     item['type'],
   ].whereType<Object>().join(' ').toLowerCase();
   if (RegExp(
-    r'\b(trouser|pant|chino|jean|denim|skirt|short)\b',
+    r'\b(trouser|trousers|pant|pants|chino|chinos|jean|jeans|denim|skirt|skirts|short|shorts|bottom|bottoms|bottomwear|churidar|pajama|pyjama|dhoti)\b',
   ).hasMatch(blob)) {
     return OutfitRole.bottom;
   }

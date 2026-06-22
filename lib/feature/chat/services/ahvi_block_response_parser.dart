@@ -41,9 +41,17 @@ AhviParsedResponse parseAhviResponse(Map<String, dynamic> response) {
     );
   }
 
+  // PATCH 1: Suppress duplicate text card if the new board is present.
+  const bool kVisualBoard85Enabled = bool.fromEnvironment(
+    'ENABLE_VISUAL_BOARD_85_LAYOUT',
+    defaultValue: true,
+  );
+  final visualDirections = _extractVisualDirections(response, data);
+  final hasVisualDirections = visualDirections.isNotEmpty;
+
   // Visual inspiration board.
   final visualInspiration = _extractVisualInspiration(response, data);
-  if (visualInspiration.isNotEmpty) {
+  if (visualInspiration.isNotEmpty && !(kVisualBoard85Enabled && hasVisualDirections)) {
     blocks.add(
       AhviResponseBlock(
         type: AhviBlockType.visualInspiration,
@@ -52,8 +60,6 @@ AhviParsedResponse parseAhviResponse(Map<String, dynamic> response) {
     );
   }
 
-  final visualDirections = _extractVisualDirections(response, data);
-  final hasVisualDirections = visualDirections.isNotEmpty;
   if (hasVisualDirections) {
     final editorialCover = _extractEditorialCover(response, data);
     blocks.add(

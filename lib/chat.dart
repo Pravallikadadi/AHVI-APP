@@ -1445,9 +1445,23 @@ class _ChatScreenState extends State<ChatScreen>
               queryText,
         };
       }
-      final aiText = parsedResponse.text.trim().isNotEmpty
+      var aiText = parsedResponse.text.trim().isNotEmpty
           ? parsedResponse.text
           : AppLocalizations.t(context, 'chat_connection_error');
+      var customChips = parsedResponse.chips;
+
+      // PATCH 5: STYLE THIS CHIP SAFETY - Replace hard failure message and add actions
+      if (aiText.contains("couldn't build a complete style board") ||
+          aiText.contains("couldn't build a reliable style board") ||
+          aiText.contains("I couldn't build a reliable style board")) {
+        aiText = "I can match this look with your wardrobe where possible and suggest the missing pieces.";
+        customChips = [
+          {'label': 'Show inspiration anyway', 'value': 'Show visual inspiration'},
+          {'label': 'Find missing pieces', 'value': 'Find missing pieces'},
+          {'label': 'Add wardrobe item', 'value': 'Add wardrobe item'},
+        ];
+      }
+
       final closestEmptyFallback = isClosestAction && responseBoards.isEmpty
           ? "I couldn't build even a closest option from the available wardrobe slots."
           : aiText;
@@ -1463,7 +1477,7 @@ class _ChatScreenState extends State<ChatScreen>
           _ChatMessage(
             text: closestEmptyFallback,
             isMe: false,
-            chips: parsedResponse.chips,
+            chips: customChips,
             blocks: parsedResponse.blocks,
             boardId: parsedResponse.boardId,
             packId: parsedResponse.packId,

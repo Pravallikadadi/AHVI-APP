@@ -74,15 +74,15 @@ class VisualDirectionCarousel extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               for (var index = 0; index < usable.length; index++) ...[
-                // Only render the flat-lay board when there are >=3 real images
-                // for it; otherwise fall back to the legacy card so the chat
-                // never shows a board of blank placeholder slots.
+                // Only render the flat-lay board when the layout is fully viable
+                // (top, bottom, and footwear all have images, and there are >=3 total);
+                // otherwise fall back to the legacy card so the chat never shows
+                // a broken or incomplete board of blank/missing pieces.
                 if (useBoard85 &&
-                    outfitBoardImageCount(
-                          usable[index],
-                          editorialCover: editorialCover,
-                        ) >=
-                        3)
+                    _isBoardViable(
+                      usable[index],
+                      editorialCover,
+                    ))
                   AhviOutfitBoardCard(
                     direction: usable[index],
                     width: width,
@@ -1196,6 +1196,15 @@ class _MissingPieceCard extends StatelessWidget {
     alignment: Alignment.center,
     child: Icon(Icons.checkroom_rounded, size: 28, color: t.accent.primary),
   );
+}
+
+bool _isBoardViable(Map<String, dynamic> direction, Map<String, dynamic> editorialCover) {
+  final model = OutfitBoardModel.fromPayload(direction, editorialCover: editorialCover);
+  final hasHero = model.items.any((item) => item.role == OutfitRole.hero && item.imageUrl != null);
+  final hasBottom = model.items.any((item) => item.role == OutfitRole.bottom && item.imageUrl != null);
+  final hasFootwear = model.items.any((item) => item.role == OutfitRole.footwear && item.imageUrl != null);
+  final imageCount = model.imageItems.length;
+  return hasHero && hasBottom && hasFootwear && imageCount >= 3;
 }
 
 /// Title-case a single word so adjectives render as "Refined" / "Sharp"
