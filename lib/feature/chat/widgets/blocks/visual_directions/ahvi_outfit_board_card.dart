@@ -608,6 +608,39 @@ class OutfitBoardModel {
       );
     }
 
+    // Itemized board data — backend may send pieces under several keys. These
+    // carry real images and are what make the 85 board viable (vs one hero).
+    final itemized = <Map<String, dynamic>>[
+      ..._maps(direction['board_items'] ?? direction['boardItems']),
+      ..._maps(direction['owned_items'] ?? direction['ownedItems']),
+    ];
+    for (final item in itemized) {
+      final name = _text(item['name'] ?? item['title'] ?? item['label']);
+      if (name.isEmpty) continue;
+      final url = _url(
+        item['normalized_url'] ??
+            item['normalizedUrl'] ??
+            item['masked_url'] ??
+            item['maskedUrl'] ??
+            item['image_url'] ??
+            item['imageUrl'],
+      );
+      items.add(
+        OutfitBoardItem(
+          id: _text(
+            item['asset_id'] ??
+                item['id'] ??
+                item['wardrobeItemId'] ??
+                item['wardrobe_item_id'],
+            fallback: '$name::$url',
+          ),
+          name: name,
+          imageUrl: url,
+          role: _roleFor(item, name),
+        ),
+      );
+    }
+
     for (final name in itemNames) {
       if (name.toLowerCase() == heroName.toLowerCase()) continue;
       items.add(
@@ -659,6 +692,65 @@ int outfitBoardImageCount(
   ).imageItems.length;
 }
 
+/// Garment slot inferred from an item name — drives board viability so the 85
+/// board only renders when it has the pieces to read as a real outfit.
+BoardItemRole _boardSlotForName(String name) {
+  final n = name.toLowerCase();
+  if (RegExp(r'\b(dress|gown|saree|sari|lehenga|jumpsuit|frock)\b').hasMatch(n)) {
+    return BoardItemRole.dress;
+  }
+  if (RegExp(
+    r'\b(shoe|shoes|sneaker|sneakers|loafer|loafers|boot|boots|sandal|sandals|heel|heels|jutti|mojari|slipper|slipers|slide|slides|espadrille|espadrilles|footwear)\b',
+  ).hasMatch(n)) {
+    return BoardItemRole.footwear;
+  }
+  if (RegExp(r'\b(jacket|blazer|overshirt|coat|cardigan|outerwear)\b').hasMatch(n)) {
+    return BoardItemRole.outerwear;
+  }
+  if (RegExp(
+    r'\b(jean|jeans|trouser|trousers|pant|pants|chino|chinos|skirt|skirts|short|shorts|denim|bottom|bottoms|churidar|dhoti|pajama|pyjama)\b',
+  ).hasMatch(n)) {
+    return BoardItemRole.bottom;
+  }
+  if (RegExp(
+    r'\b(watch|belt|bag|tote|clutch|backpack|sling|sunglass|sunglasses|necklace|bracelet|earring|earrings|ring|scarf|tie|jewelry|jewellery|cap|hat)\b',
+  ).hasMatch(n)) {
+    return BoardItemRole.accessory;
+  }
+  if (RegExp(
+    r'\b(shirt|tee|tees|t-shirt|tshirt|polo|blouse|top|tops|kurta|sweater|knit|hoodie|sweatshirt|turtleneck|tank)\b',
+  ).hasMatch(n)) {
+    return BoardItemRole.top;
+  }
+  return BoardItemRole.unknown;
+}
+
+/// The 85 flat-lay board only renders when it can read as a real outfit:
+///   classic  = top + bottom + footwear
+///   dress    = dress + footwear
+///   fallback = >=3 real-image pieces with known roles
+/// Text-only placeholders (no image) never count.
+bool outfitBoardViable(
+  Map<String, dynamic> direction, {
+  Map<String, dynamic> editorialCover = const {},
+}) {
+  final model = OutfitBoardModel.fromPayload(
+    direction,
+    editorialCover: editorialCover,
+  );
+  final slots =
+      model.imageItems.map((item) => _boardSlotForName(item.name)).toList();
+  final hasTop = slots.contains(BoardItemRole.top);
+  final hasBottom = slots.contains(BoardItemRole.bottom);
+  final hasFootwear = slots.contains(BoardItemRole.footwear);
+  final hasDress = slots.contains(BoardItemRole.dress);
+  final classicViable = hasTop && hasBottom && hasFootwear;
+  final dressViable = hasDress && hasFootwear;
+  final knownRoleImages =
+      slots.where((slot) => slot != BoardItemRole.unknown).length;
+  return classicViable || dressViable || knownRoleImages >= 3;
+}
+
 StyleBoardData _toStyleBoardData(OutfitBoardModel model, Map<String, dynamic> direction) {
   final items = <StyleBoardItem>[];
   for (final item in model.imageItems) {
@@ -702,6 +794,7 @@ BoardItemRole _mapItemRole(OutfitRole role) {
 OutfitRole _roleFor(Map<String, dynamic> item, String name) {
   final blob = [
     name,
+    item['role'],
     item['category'],
     item['subcategory'],
     item['sub_category'],

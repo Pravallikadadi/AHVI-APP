@@ -73,10 +73,11 @@ class VisualDirectionCarousel extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               for (var index = 0; index < usable.length; index++) ...[
-                // Only render the flat-lay board when the layout is fully viable
-                // (top, bottom, and footwear all have images, and there are >=3 total);
-                // otherwise fall back to the legacy card so the chat never shows
-                // a broken or incomplete board of blank/missing pieces.
+                // Board layout is the default surface. Render the flat-lay 85
+                // board only when it is viable (real outfit pieces). When it is
+                // not, show a compact honest fallback — NEVER the old massive
+                // VisualDirectionCard, which is now reserved for the tap-detail
+                // sheet only.
                 if (useBoard85 &&
                     _isBoardViable(
                       usable[index],
@@ -92,6 +93,11 @@ class VisualDirectionCarousel extends StatelessWidget {
                       direction: usable[index],
                       editorialCover: editorialCover,
                     ),
+                  )
+                else if (useBoard85)
+                  _BoardDirectionFallbackCard(
+                    direction: usable[index],
+                    width: width,
                   )
                 else
                   _VisualDirectionCard(
@@ -341,6 +347,100 @@ class EditorialCoverCard extends StatelessWidget {
                   .toList(growable: false),
             ),
           ],
+        ],
+      ),
+    );
+  }
+}
+
+/// Compact, honest fallback shown when the 85 board is the active layout but a
+/// direction lacks the pieces to render a real board. Deliberately minimal —
+/// no hero image, no wardrobe-match, no Recommended badge, no ownership block,
+/// no action bar — so the old premium card never leaks back into the stream.
+class _BoardDirectionFallbackCard extends StatelessWidget {
+  final Map<String, dynamic> direction;
+  final double width;
+
+  const _BoardDirectionFallbackCard({
+    required this.direction,
+    required this.width,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.themeTokens;
+    final title = _text(
+      direction['direction_name'] ??
+          direction['directionName'] ??
+          direction['archetype'] ??
+          direction['title'],
+      'Style Direction',
+    );
+    final note = _text(
+      direction['short_note'] ??
+          direction['shortNote'] ??
+          direction['why_it_works'] ??
+          direction['why_this_works'],
+      '',
+    );
+    return Container(
+      width: width,
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+      decoration: BoxDecoration(
+        color: t.panel,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: t.cardBorder),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            title,
+            style: TextStyle(
+              color: t.textPrimary,
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              height: 1.15,
+            ),
+          ),
+          if (note.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Text(
+              note,
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: t.textPrimary,
+                fontSize: 12.5,
+                fontWeight: FontWeight.w500,
+                height: 1.4,
+              ),
+            ),
+          ],
+          const SizedBox(height: 10),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(
+                Icons.dashboard_customize_outlined,
+                size: 14,
+                color: t.mutedText,
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  'Board view needs complete pieces — a top, bottom, and footwear image. '
+                  'Showing this as a direction for now.',
+                  style: TextStyle(
+                    color: t.mutedText,
+                    fontSize: 11,
+                    height: 1.35,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ],
       ),
     );
@@ -1127,12 +1227,9 @@ class _MissingPieceCard extends StatelessWidget {
 }
 
 bool _isBoardViable(Map<String, dynamic> direction, Map<String, dynamic> editorialCover) {
-  final model = OutfitBoardModel.fromPayload(direction, editorialCover: editorialCover);
-  final hasHero = model.items.any((item) => item.role == OutfitRole.hero && item.imageUrl != null);
-  final hasBottom = model.items.any((item) => item.role == OutfitRole.bottom && item.imageUrl != null);
-  final hasFootwear = model.items.any((item) => item.role == OutfitRole.footwear && item.imageUrl != null);
-  final imageCount = model.imageItems.length;
-  return hasHero && hasBottom && hasFootwear && imageCount >= 3;
+  // Garment-aware: classic (top+bottom+footwear) OR dress (dress+footwear) OR
+  // >=3 real-image pieces with known roles. No positional "hero" requirement.
+  return outfitBoardViable(direction, editorialCover: editorialCover);
 }
 
 /// Title-case a single word so adjectives render as "Refined" / "Sharp"
