@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:myapp/contacts/contact_detail_page.dart';
 import 'package:myapp/contacts/contact_form_page.dart';
 import 'package:myapp/models/ahvi_contact.dart';
@@ -73,6 +74,77 @@ class _ContactsScreenState extends State<ContactsScreen> {
       },
     );
     return filtered;
+  }
+
+  String _normalizePhone(String value) =>
+      value.replaceAll(RegExp(r'[^\d]'), '');
+
+  Future<void> _importFromPhone() async {
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final granted = await FlutterContacts.requestPermission(readonly: true);
+      if (!granted) {
+        messenger.showSnackBar(
+          const SnackBar(content: Text('Contacts permission denied')),
+        );
+        return;
+      }
+      final picked = await FlutterContacts.openExternalPick();
+      if (picked == null) return;
+      final phoneContact = await FlutterContacts.getContact(picked.id);
+      if (phoneContact == null) return;
+
+      final rawPhone = phoneContact.phones.isNotEmpty
+          ? phoneContact.phones.first.number.trim()
+          : '';
+      if (rawPhone.isEmpty) {
+        messenger.showSnackBar(
+          const SnackBar(
+            content: Text('Selected contact has no phone number'),
+          ),
+        );
+        return;
+      }
+
+      final normalizedNew = _normalizePhone(rawPhone);
+      final duplicate = normalizedNew.isNotEmpty &&
+          _contacts.any(
+            (c) => _normalizePhone(c.phoneNumber) == normalizedNew,
+          );
+      if (duplicate) {
+        messenger.showSnackBar(
+          const SnackBar(content: Text('Contact already exists')),
+        );
+        return;
+      }
+
+      final displayName = phoneContact.displayName.trim();
+      final firstName = phoneContact.name.first.trim().isNotEmpty
+          ? phoneContact.name.first.trim()
+          : (displayName.isNotEmpty ? displayName : rawPhone);
+
+      await _service.createContact(
+        AhviContactInput(
+          firstName: firstName,
+          lastName: phoneContact.name.last.trim(),
+          phoneNumber: rawPhone,
+          displayName: displayName,
+          tags: [
+            'source:phonebook',
+            'sourceId:${phoneContact.id}',
+          ],
+        ),
+      );
+      if (!mounted) return;
+      await _loadContacts();
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Contact imported')),
+      );
+    } catch (e) {
+      messenger.showSnackBar(
+        SnackBar(content: Text('Could not import contact: $e')),
+      );
+    }
   }
 
   Future<void> _openAdd() async {
@@ -157,6 +229,11 @@ class _ContactsScreenState extends State<ContactsScreen> {
                       ),
                     ),
                   ),
+                  IconButton(
+                    onPressed: _importFromPhone,
+                    icon: const Icon(Icons.contact_phone_rounded),
+                    tooltip: 'Import from phone',
+                  ),
                 ],
               ),
             ),
@@ -188,7 +265,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
                     : _error != null
                         ? _ErrorState(message: _error!, onRetry: _loadContacts)
                         : contacts.isEmpty
-                            ? const _EmptyState()
+                            ? _EmptyState(onImport: _importFromPhone)
                             : ListView.separated(
                                 padding:
                                     const EdgeInsets.fromLTRB(24, 4, 24, 110),
@@ -254,7 +331,7 @@ class _ContactTile extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text(
                       [
-                        contact.phoneNumber,
+                        contact.maskedPhoneNumber,
                         if (contact.relationship.trim().isNotEmpty)
                           contact.relationship,
                       ].join(' · '),
@@ -313,25 +390,35 @@ class _ContactAvatar extends StatelessWidget {
 }
 
 class _EmptyState extends StatelessWidget {
-  const _EmptyState();
+  const _EmptyState({required this.onImport});
+
+  final VoidCallback onImport;
 
   @override
   Widget build(BuildContext context) {
     return ListView(
       padding: const EdgeInsets.fromLTRB(32, 80, 32, 120),
-      children: const [
-        Icon(Icons.contacts_rounded, size: 52, color: Color(0xFF7F8CFF)),
-        SizedBox(height: 18),
-        Text(
+      children: [
+        const Icon(Icons.contacts_rounded, size: 52, color: Color(0xFF7F8CFF)),
+        const SizedBox(height: 18),
+        const Text(
           'No contacts yet',
           textAlign: TextAlign.center,
           style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800),
         ),
-        SizedBox(height: 8),
-        Text(
+        const SizedBox(height: 8),
+        const Text(
           'Add people you plan with, travel with, or need AHVI to remember.',
           textAlign: TextAlign.center,
           style: TextStyle(color: Color(0xFF697386), fontSize: 16),
+        ),
+        const SizedBox(height: 20),
+        Center(
+          child: FilledButton.icon(
+            onPressed: onImport,
+            icon: const Icon(Icons.contact_phone_rounded),
+            label: const Text('Import from phone'),
+          ),
         ),
       ],
     );

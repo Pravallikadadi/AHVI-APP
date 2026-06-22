@@ -77,6 +77,8 @@
 	<key>NSCameraUsageDescription</key>
     <string>Used to scan bill photos</string>
     <key>NSPhotoLibraryUsageDescription</key>
-    <string>Used to upload bill images</string>    
+    <string>Used to upload bill images</string>
+	<key>NSContactsUsageDescription</key>
+    <string>AHVI uses contacts access only when you choose to import someone into your AHVI contacts.</string>
 </dict>
 </plist>

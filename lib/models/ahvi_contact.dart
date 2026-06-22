@@ -34,6 +34,13 @@ class AhviContact {
     return name.isEmpty ? phoneNumber : name;
   }
 
+  String get maskedPhoneNumber {
+    final digits = phoneNumber.replaceAll(RegExp(r'[^\d+]'), '');
+    if (digits.length <= 4) return '***';
+    final last4 = digits.substring(digits.length - 4);
+    return '********$last4';
+  }
+
   String get initials {
     final parts = fullName
         .split(RegExp(r'\s+'))
