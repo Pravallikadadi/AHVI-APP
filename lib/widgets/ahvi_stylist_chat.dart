@@ -1584,15 +1584,34 @@ class _WardrobeGapPayload {
 
     if (type == 'missing_core_wardrobe_slots' && backendMessage.isEmpty) {
       backendMessage =
-          "I couldn't build a complete style board from your wardrobe yet. Please add at least one top, bottom, and footwear item.";
+          "I can start with inspiration first, then suggest missing pieces from your wardrobe.";
     }
+
+    // Soften the hard-fail copy even when the backend sends it verbatim — a
+    // dead "couldn't build a complete style board" message reads as broken in
+    // the demo. Offer an inspiration-first path instead.
+    final lowerMsg = backendMessage.toLowerCase();
+    if (lowerMsg.contains("build a complete style board") ||
+        lowerMsg.contains("couldn't build a complete")) {
+      backendMessage =
+          "I can start with inspiration first, then suggest missing pieces from your wardrobe.";
+    }
+
+    final backendChips = _mapList(response['chips']);
+    final chips = (isBackendGap && backendChips.isEmpty)
+        ? const <Map<String, dynamic>>[
+            {'label': 'Show visual inspiration', 'value': 'Show visual inspiration'},
+            {'label': 'Find missing pieces', 'value': 'Find missing pieces'},
+            {'label': 'Add wardrobe item', 'value': 'Add wardrobe item'},
+          ]
+        : backendChips;
 
     return _WardrobeGapPayload(
       active: isBackendGap,
       type: type,
       message: isBackendGap ? backendMessage : '',
       missingItems: isBackendGap ? missing : const [],
-      chips: _mapList(response['chips']),
+      chips: chips,
       closestSafeBrief: (data['closest_safe_brief'] ?? '').toString(),
     );
   }

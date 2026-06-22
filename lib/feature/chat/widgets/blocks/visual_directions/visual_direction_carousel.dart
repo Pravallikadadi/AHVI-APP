@@ -74,7 +74,15 @@ class VisualDirectionCarousel extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               for (var index = 0; index < usable.length; index++) ...[
-                if (useBoard85)
+                // Only render the flat-lay board when there are >=3 real images
+                // for it; otherwise fall back to the legacy card so the chat
+                // never shows a board of blank placeholder slots.
+                if (useBoard85 &&
+                    outfitBoardImageCount(
+                          usable[index],
+                          editorialCover: editorialCover,
+                        ) >=
+                        3)
                   AhviOutfitBoardCard(
                     direction: usable[index],
                     width: width,

@@ -60,7 +60,7 @@ class AhviOutfitBoardCard extends StatelessWidget {
                   onTap: onTapBoard,
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(10, 10, 10, 2),
-                    child: OutfitCollageGrid(items: model.items),
+                    child: OutfitCollageGrid(items: model.imageItems),
                   ),
                 ),
               ),
@@ -108,16 +108,11 @@ class OutfitCollageGrid extends StatelessWidget {
       );
     }
 
+    // Callers pass image-bearing items only (see OutfitBoardModel.imageItems +
+    // the >=3 gate in the carousel), so no placeholder slots are ever drawn.
     final hero = items.first;
-    final rest = items.skip(1).toList(growable: false);
-    // Prefer real imagery on the visual board. Drop placeholder-only pieces
-    // when we still have at least two image-bearing supports — but never strip
-    // down to an empty/sparse board, so fall back to all supports otherwise.
-    final withImages =
-        rest.where((item) => item.imageUrl != null).toList(growable: false);
-    final chosen = withImages.length >= 2 ? withImages : rest;
     // Cap visible items to 5 total (hero + 4) for a clean flat-lay.
-    final support = chosen.take(4).toList(growable: false);
+    final support = items.skip(1).take(4).toList(growable: false);
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -526,6 +521,11 @@ class OutfitBoardModel {
   final List<OutfitBoardItem> items;
   final String missingName;
 
+  /// Items that carry a real image. Placeholders are never shown on the
+  /// flat-lay board — the board only renders when there are enough of these.
+  List<OutfitBoardItem> get imageItems =>
+      items.where((item) => item.imageUrl != null).toList(growable: false);
+
   const OutfitBoardModel({
     required this.title,
     required this.chips,
@@ -640,6 +640,19 @@ class OutfitBoardModel {
       missingName: missingName,
     );
   }
+}
+
+/// Number of image-bearing items a direction would put on the flat-lay board.
+/// The carousel uses this to decide between the flat-lay board (>=3 real
+/// images) and the legacy fallback card (fewer) — never a board of blanks.
+int outfitBoardImageCount(
+  Map<String, dynamic> direction, {
+  Map<String, dynamic> editorialCover = const {},
+}) {
+  return OutfitBoardModel.fromPayload(
+    direction,
+    editorialCover: editorialCover,
+  ).imageItems.length;
 }
 
 OutfitRole _roleFor(Map<String, dynamic> item, String name) {
