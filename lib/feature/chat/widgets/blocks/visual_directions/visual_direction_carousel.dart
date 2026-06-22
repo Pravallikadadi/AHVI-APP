@@ -8,7 +8,7 @@ import 'package:myapp/theme/theme_tokens.dart';
 
 const bool _enableVisualBoard85Layout = bool.fromEnvironment(
   'ENABLE_VISUAL_BOARD_85_LAYOUT',
-  defaultValue: false,
+  defaultValue: true,
 );
 
 /// Signature for sticky-action-bar invocations on a direction card.
