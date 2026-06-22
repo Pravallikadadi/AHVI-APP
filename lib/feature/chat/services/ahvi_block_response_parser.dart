@@ -48,10 +48,11 @@ AhviParsedResponse parseAhviResponse(Map<String, dynamic> response) {
   );
   final visualDirections = _extractVisualDirections(response, data);
   final hasVisualDirections = visualDirections.isNotEmpty;
+  final hasVisualBoard = AhviVisualBoard.isVisualBoard(response) || response['visual_board'] != null || response['visualBoard'] != null || data['visual_board'] != null || data['visualBoard'] != null;
 
   // Visual inspiration board.
   final visualInspiration = _extractVisualInspiration(response, data);
-  if (visualInspiration.isNotEmpty && !(kVisualBoard85Enabled && hasVisualDirections)) {
+  if (visualInspiration.isNotEmpty && !(kVisualBoard85Enabled && (hasVisualDirections || hasVisualBoard))) {
     blocks.add(
       AhviResponseBlock(
         type: AhviBlockType.visualInspiration,

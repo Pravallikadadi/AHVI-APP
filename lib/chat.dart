@@ -917,7 +917,8 @@ class _ChatScreenState extends State<ChatScreen>
   // Persisted style-pairing session — kept across follow-ups so anchor/route/
   // persona survive "use my wardrobe" / "show visual inspiration" / etc.
   Map<String, dynamic>? _lastStyleContext;
-  bool _isTyping = false;
+  bool _isTyping = false;
+  bool _lastRequestWasWardrobe = false;
   String _userName = 'User';
   final Map<String, List<List<bool>>> _checklistChecksByTitle = {};
   final Map<String, List<List<String>>> _checklistItemsByTitle = {};
@@ -5593,14 +5594,25 @@ class _OutfitBoardSwiperState extends State<_OutfitBoardSwiper> {
 
     final bottom = _editorialFindItem(slotted, items, const [
       'bottom',
+      'bottoms',
+      'bottomwear',
       'pant',
       'pants',
       'trouser',
       'trousers',
+      'jean',
       'jeans',
+      'chino',
       'chinos',
+      'short',
       'shorts',
+      'skirt',
+      'skirts',
       'joggers',
+      'churidar',
+      'pajama',
+      'pyjama',
+      'dhoti',
     ]);
 
     final dress = _editorialFindItem(slotted, items, const [

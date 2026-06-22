@@ -3,7 +3,6 @@ import 'package:myapp/feature/chat/services/fashion_item_filter.dart';
 import 'package:myapp/feature/chat/services/saved_boards_store.dart';
 import 'package:myapp/feature/chat/widgets/blocks/visual_directions/ahvi_outfit_board_card.dart';
 import 'package:myapp/feature/chat/widgets/blocks/visual_directions/curation_reveal.dart';
-import 'package:myapp/feature/chat/widgets/blocks/visual_directions/editorial_collage.dart';
 import 'package:myapp/theme/theme_tokens.dart';
 
 /// Public so the chat stream (ahvi_stylist_chat / block renderer) can suppress
@@ -457,10 +456,7 @@ class _VisualDirectionCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (tiles.isNotEmpty) ...[
-            EditorialCollage(tiles: tiles, maxHeight: 280),
-            const SizedBox(height: 18),
-          ] else if (imageUrl != null) ...[
+          if (imageUrl != null) ...[
             ClipRRect(
               borderRadius: BorderRadius.circular(16),
               child: Image.network(

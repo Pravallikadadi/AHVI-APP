@@ -250,6 +250,10 @@ class BackendService {
     bool showClosestOption = false,
     bool allowClosestOption = false,
     bool closest = false,
+    bool useWardrobe = false,
+    bool wardrobeFirst = false,
+    String? assetPolicy,
+    bool allowGenericAssetsInMainBoard = true,
   }) async {
     final startedAt = DateTime.now();
     try {
@@ -307,6 +311,10 @@ class BackendService {
         if (showClosestOption) 'show_closest_option': true,
         if (allowClosestOption) 'allow_closest_option': true,
         if (closest) 'closest': true,
+        if (useWardrobe) 'use_wardrobe': true,
+        if (wardrobeFirst) 'wardrobe_first': true,
+        if (assetPolicy != null) 'asset_policy': assetPolicy,
+        if (!allowGenericAssetsInMainBoard) 'allow_generic_assets_in_main_board': false,
         if (excludeStyleSignatures.isNotEmpty)
           'exclude_style_signatures': excludeStyleSignatures,
         if (requestedBoardCount != null)
@@ -375,19 +383,23 @@ class BackendService {
 
         if (data['requires_wardrobe'] == true && !isRetry) {
           final items = await _appwriteService.getWardrobeItems();
-          return sendChatQuery(
-            query,
-            authedUserId,
-            chatHistory,
-            currentMemory,
-            isRetry: true,
-            fetchedWardrobe: items,
-            moduleContext: moduleContext,
-            userProfile: userProfile,
-            styleAction: styleAction,
-            excludeStyleSignatures: excludeStyleSignatures,
-            requestedBoardCount: requestedBoardCount,
-          );
+            return sendChatQuery(
+              query,
+              authedUserId,
+              chatHistory,
+              currentMemory,
+              isRetry: true,
+              fetchedWardrobe: items,
+              moduleContext: moduleContext,
+              userProfile: userProfile,
+              styleAction: styleAction,
+              excludeStyleSignatures: excludeStyleSignatures,
+              requestedBoardCount: requestedBoardCount,
+              useWardrobe: useWardrobe,
+              wardrobeFirst: wardrobeFirst,
+              assetPolicy: assetPolicy,
+              allowGenericAssetsInMainBoard: allowGenericAssetsInMainBoard,
+            );
         }
 
         try {
