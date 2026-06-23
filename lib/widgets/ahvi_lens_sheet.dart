@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:myapp/app_localizations.dart';
 import 'package:image_picker/image_picker.dart';
@@ -65,21 +67,38 @@ Future<void> _runFindSimilarFlow(BuildContext context, AppThemeTokens t) async {
     barrierDismissible: false,
     builder: (_) => const Center(child: CircularProgressIndicator()),
   );
+  debugPrint('AHVI_MODAL_GUARD start flow=findSimilar');
   Map<String, dynamic>? result;
+  var timedOut = false;
   try {
     final bytes = await image.readAsBytes();
-    result = await BackendService().findSimilarByImage(
-      bytes,
-      filename: image.name,
-    );
+    // Timeout so a slow/unreachable backend can never strand the user behind
+    // the barrierDismissible:false spinner (ANR / frozen-screen class).
+    result = await BackendService()
+        .findSimilarByImage(bytes, filename: image.name)
+        .timeout(const Duration(seconds: 12));
+  } on TimeoutException {
+    timedOut = true;
+    debugPrint('AHVI_MODAL_GUARD timeout flow=findSimilar');
+    result = null;
   } catch (_) {
     result = null;
   } finally {
+    // Always dismiss the loading dialog (it is the topmost root route).
     if (context.mounted) {
       Navigator.of(context, rootNavigator: true).pop();
     }
+    debugPrint('AHVI_MODAL_GUARD close flow=findSimilar');
   }
   if (!context.mounted) return;
+  if (timedOut) {
+    ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+      const SnackBar(
+        content: Text('Visual search took too long. Please try again.'),
+      ),
+    );
+    return;
+  }
   final matches = List<Map<String, dynamic>>.from(
     (result?['matches'] as List? ?? const []).whereType<Map>().map(
       (m) => Map<String, dynamic>.from(m),

@@ -14,6 +14,8 @@
 // only public entry point the chat widget exposes.
 // ============================================================
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:myapp/theme/theme_tokens.dart';
@@ -404,24 +406,44 @@ class _ItemDetailModal extends StatelessWidget {
       ),
     );
 
+    debugPrint('AHVI_MODAL_GUARD start flow=styleCta');
     Map<String, dynamic>? result;
+    var timedOut = false;
     try {
-      result = await BackendService().styleWardrobeItem(
-        itemId: item.id,
-        mode: mode,
-        anchorItem: {
-          'item_id': item.id,
-          'name': item.name,
-          'category': item.cat,
-          if (item.displayUrl != null) 'image_url': item.displayUrl,
-        },
-      );
+      // Timeout so a slow backend can never strand the user behind the
+      // barrierDismissible:false spinner (ANR / frozen-screen class).
+      result = await BackendService()
+          .styleWardrobeItem(
+            itemId: item.id,
+            mode: mode,
+            anchorItem: {
+              'item_id': item.id,
+              'name': item.name,
+              'category': item.cat,
+              if (item.displayUrl != null) 'image_url': item.displayUrl,
+            },
+          )
+          .timeout(const Duration(seconds: 15));
+    } on TimeoutException {
+      timedOut = true;
+      debugPrint('AHVI_MODAL_GUARD timeout flow=styleCta');
+      result = null;
     } catch (_) {
       result = null;
+    } finally {
+      if (rootNav.canPop()) rootNav.pop(); // always dismiss the spinner
+      debugPrint('AHVI_MODAL_GUARD close flow=styleCta');
     }
 
-    if (rootNav.canPop()) rootNav.pop(); // dismiss the spinner
     if (!appContext.mounted) return;
+    if (timedOut) {
+      ScaffoldMessenger.maybeOf(appContext)?.showSnackBar(
+        const SnackBar(
+          content: Text('This took too long. Please try again.'),
+        ),
+      );
+      return;
+    }
     _showStyleResultSheet(appContext, mode: mode, item: item, result: result);
   }
 

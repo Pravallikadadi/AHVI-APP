@@ -529,6 +529,7 @@ class _DailyWearScreenState extends State<DailyWearScreen>
   }
 
   Future<void> _fetchWeather() async {
+    debugPrint('AHVI_HEAVY_SCREEN_LOAD start screen=DailyWear');
     const fallbackLat = 16.5062;
     const fallbackLon = 80.648;
     try {
@@ -548,6 +549,7 @@ class _DailyWearScreenState extends State<DailyWearScreen>
         _applyWeather(temp, feel, code, context);
       }
     } catch (_) {
+      debugPrint('AHVI_HEAVY_SCREEN_LOAD timeout screen=DailyWear');
       final hour = DateTime.now().hour;
       const baseTemps = [
         22,
