@@ -1205,7 +1205,7 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
     final t = context.themeTokens;
     return KeyboardListener(
       focusNode: _keyboardFocusNode,
-      autofocus: true,
+      autofocus: false, // Prevents stealing focus globally in IndexedStack, which breaks back swipes
       onKeyEvent: (KeyEvent event) {
         if (event is KeyDownEvent &&
             event.logicalKey == LogicalKeyboardKey.escape) {
