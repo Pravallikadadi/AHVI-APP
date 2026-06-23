@@ -994,7 +994,6 @@ OutfitRole _roleFor(Map<String, dynamic> item, String name) {
     case 'tops':
     case 'topwear':
     case 'hero':
-    case 'outerwear':
     case 'dress':
       // Maps to the top slot via _mapItemRole; a dress is re-detected by name
       // downstream in _toStyleBoardData and promoted to BoardItemRole.dress.
