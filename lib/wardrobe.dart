@@ -97,6 +97,11 @@ class WardrobeItem {
   String? maskedUrl; // Processed PNG URL
   String? normalizedUrl; // Premium catalog PNG / centered transparent PNG
 
+  /// Raw backend document/data map so the image resolver can read every
+  /// canonical URL field (catalog/board/cutout/rmbg/...) without new typed
+  /// fields per variant.
+  Map<String, dynamic> raw;
+
   WardrobeItem({
     required this.id,
     required this.name,
@@ -109,10 +114,72 @@ class WardrobeItem {
     this.imageUrl,
     this.maskedUrl,
     this.normalizedUrl,
+    this.raw = const <String, dynamic>{},
   });
 
-  // Show final catalog PNG first, then RMBG cutout, then original.
-  String? get displayUrl => normalizedUrl ?? maskedUrl ?? imageUrl;
+  // Central resolver: canonical catalog/cutout URL wins; masked is last.
+  String? get displayUrl => resolveWardrobeImage(
+        raw,
+        normalizedUrl: normalizedUrl,
+        imageUrl: imageUrl,
+        maskedUrl: maskedUrl,
+      ).url;
+}
+
+/// Resolved wardrobe image: the URL, the field it came from, and whether it
+/// fell back to a masked/temporary URL (used to trigger a silent refresh).
+class ResolvedWardrobeImage {
+  final String? url;
+  final String field;
+  final bool usedMasked;
+  const ResolvedWardrobeImage(this.url, this.field, this.usedMasked);
+}
+
+/// Wardrobe grid image priority. Canonical catalog/cutout URLs win; the
+/// masked/temporary URL is only used when nothing canonical exists.
+ResolvedWardrobeImage resolveWardrobeImage(
+  Map<String, dynamic> raw, {
+  String? normalizedUrl,
+  String? imageUrl,
+  String? maskedUrl,
+}) {
+  String? clean(Object? v) {
+    final t = v?.toString().trim() ?? '';
+    return t.isEmpty || t == 'null' ? null : t;
+  }
+
+  final canonical = <List<dynamic>>[
+    ['display_image_url', clean(raw['display_image_url'])],
+    ['displayImageUrl', clean(raw['displayImageUrl'])],
+    ['normalized_image_url', clean(raw['normalized_image_url'])],
+    ['normalizedImageUrl', clean(raw['normalizedImageUrl'])],
+    ['normalizedUrl', clean(normalizedUrl ?? raw['normalized_url'] ?? raw['normalizedUrl'])],
+    ['catalog_image_url', clean(raw['catalog_image_url'])],
+    ['catalogImageUrl', clean(raw['catalogImageUrl'])],
+    ['board_image_url', clean(raw['board_image_url'])],
+    ['boardImageUrl', clean(raw['boardImageUrl'])],
+    ['transparent_image_url', clean(raw['transparent_image_url'])],
+    ['transparentImageUrl', clean(raw['transparentImageUrl'])],
+    ['cutout_url', clean(raw['cutout_url'])],
+    ['cutoutUrl', clean(raw['cutoutUrl'])],
+    ['rmbg_url', clean(raw['rmbg_url'])],
+    ['rmbgUrl', clean(raw['rmbgUrl'])],
+    ['image_url', clean(raw['image_url'])],
+    ['imageUrl', clean(imageUrl ?? raw['imageUrl'])],
+    ['preview_url', clean(raw['preview_url'])],
+    ['previewUrl', clean(raw['previewUrl'])],
+  ];
+  for (final c in canonical) {
+    if (c[1] != null) return ResolvedWardrobeImage(c[1] as String, c[0] as String, false);
+  }
+  final masked = <List<dynamic>>[
+    ['masked_url', clean(maskedUrl ?? raw['masked_url'])],
+    ['maskedUrl', clean(raw['maskedUrl'])],
+  ];
+  for (final c in masked) {
+    if (c[1] != null) return ResolvedWardrobeImage(c[1] as String, c[0] as String, true);
+  }
+  return const ResolvedWardrobeImage(null, 'none', false);
 }
 
 String _cleanUiText(Object? value, {String fallback = ''}) {
@@ -324,6 +391,8 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
 
   String? _currentUserId;
   bool _loadedCache = false;
+  // One-shot guard: avoids stacking silent refreshes after save.
+  bool _silentWardrobeRefreshScheduled = false;
 
   bool _isLoading =
       true; // ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ Loader state for initial fetch
@@ -534,6 +603,7 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
           imageUrl: doc.data['image_url'],
           maskedUrl: doc.data['masked_url'],
           normalizedUrl: doc.data['normalized_url']?.toString(),
+          raw: Map<String, dynamic>.from(doc.data),
         );
       }).toList();
 
@@ -605,6 +675,7 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
             normalizedUrl: item['normalizedUrl'] as String?,
             worn: item['worn'] as int? ?? 0,
             liked: item['liked'] as bool? ?? false,
+            raw: Map<String, dynamic>.from(item),
           );
           if (mounted) {
             setState(() => _wardrobe.insert(0, localItem));
@@ -681,6 +752,7 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
                 normalizedUrl: doc.data['normalized_url']?.toString(),
                 worn: doc.data['worn'] ?? 0,
                 liked: doc.data['liked'] == true,
+                raw: Map<String, dynamic>.from(doc.data),
               );
 
               setState(() {
@@ -689,6 +761,40 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
                   _wardrobe[index] = savedItem;
                 }
               });
+
+              // Resolve the saved item image. If only a masked/temporary URL
+              // is available (canonical catalog/cutout is generated async
+              // server-side), trigger ONE silent refresh so the grid swaps to
+              // the canonical image without a manual pull-to-refresh.
+              final resolved = resolveWardrobeImage(
+                savedItem.raw,
+                normalizedUrl: savedItem.normalizedUrl,
+                imageUrl: savedItem.imageUrl,
+                maskedUrl: savedItem.maskedUrl,
+              );
+              final willSilentRefresh = resolved.usedMasked && !_silentWardrobeRefreshScheduled;
+              debugPrint(
+                'AHVI_WARDROBE_SAVE_IMAGE_RESOLVE itemId=${savedItem.id} '
+                'resolvedField=${resolved.field} usedMaskedFallback=${resolved.usedMasked} '
+                'silentRefresh=$willSilentRefresh',
+              );
+              if (willSilentRefresh) {
+                _silentWardrobeRefreshScheduled = true;
+                Future.delayed(const Duration(seconds: 4), () async {
+                  if (!mounted) {
+                    _silentWardrobeRefreshScheduled = false;
+                    return;
+                  }
+                  try {
+                    await _fetchWardrobeItems()
+                        .timeout(const Duration(seconds: 8));
+                  } catch (_) {
+                    // Best-effort; grid keeps the masked image until next load.
+                  } finally {
+                    _silentWardrobeRefreshScheduled = false;
+                  }
+                });
+              }
 
               await _saveWardrobeCache(userId: user.$id);
               if (mounted) {
