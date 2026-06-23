@@ -20,6 +20,10 @@ void showAhviLensSheet(
       onAddToWardrobe ?? () => showAddToWardrobeModal(navigator.context);
   final effectiveOnFindSimilar =
       onFindSimilar ?? () => _runFindSimilarFlow(navigator.context, t);
+  // Visual AI Search shares the gallery-pick + backend search flow so callers
+  // (e.g. Home) that pass null get a working action instead of a no-op.
+  final effectiveOnVisualSearch =
+      onVisualSearch ?? () => _runFindSimilarFlow(navigator.context, t);
 
   final renderBox = context.findRenderObject() as RenderBox;
   final buttonPos = renderBox.localToGlobal(Offset.zero);
@@ -33,7 +37,7 @@ void showAhviLensSheet(
       buttonPos: buttonPos,
       buttonSize: buttonSize,
       t: t,
-      onVisualSearch: onVisualSearch,
+      onVisualSearch: effectiveOnVisualSearch,
       onFindSimilar: effectiveOnFindSimilar,
       onAddToWardrobe: effectiveOnAddToWardrobe,
       onDismiss: () => entry.remove(),

@@ -1665,11 +1665,14 @@ class _DailyWearScreenState extends State<DailyWearScreen>
             children: [
               Text(_weatherIcon, style: const TextStyle(fontSize: 30)),
               const SizedBox(width: 14),
-              Column(
+              Flexible(
+                child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     _weatherLabel,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
@@ -1679,6 +1682,8 @@ class _DailyWearScreenState extends State<DailyWearScreen>
                   const SizedBox(height: 3),
                   Text(
                     _weatherDetail,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w400,
@@ -1687,6 +1692,7 @@ class _DailyWearScreenState extends State<DailyWearScreen>
                     ),
                   ),
                 ],
+              )
               ),
             ],
           );
@@ -1714,7 +1720,7 @@ class _DailyWearScreenState extends State<DailyWearScreen>
           return Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              left,
+              Expanded(child: left),
               Flexible(child: temp),
             ],
           );

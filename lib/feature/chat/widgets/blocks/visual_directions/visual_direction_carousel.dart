@@ -84,6 +84,7 @@ class VisualDirectionCarousel extends StatelessWidget {
                       editorialCover,
                     ))
                   AhviOutfitBoardCard(
+                    key: ValueKey('vd-board85-$index'),
                     direction: usable[index],
                     width: width,
                     onSendMessage: onSendMessage,
@@ -96,11 +97,13 @@ class VisualDirectionCarousel extends StatelessWidget {
                   )
                 else if (useBoard85)
                   _BoardDirectionFallbackCard(
+                    key: ValueKey('vd-fallback-$index'),
                     direction: usable[index],
                     width: width,
                   )
                 else
                   _VisualDirectionCard(
+                    key: ValueKey('vd-legacy-$index'),
                     direction: usable[index],
                     width: width,
                     onSendMessage: onSendMessage,
@@ -154,9 +157,10 @@ class VisualDirectionCarousel extends StatelessWidget {
   }
 }
 
-/// Tap-detail sheet for a flat-lay board. Reuses the legacy [_VisualDirectionCard]
-/// content verbatim inside a draggable scroll sheet so the stylist reasoning is
-/// accessible on tap without cluttering the chat stream.
+/// Tap-detail sheet for a flat-lay board. TEXT-ONLY reasoning — the board
+/// itself is the visual, so the sheet carries no image, no badges, no wardrobe
+/// score and no action bar. Only the direction name, mood tags and "Why AHVI
+/// selected this".
 class AhviOutfitBoardDetailSheet extends StatelessWidget {
   final Map<String, dynamic> direction;
   final Map<String, dynamic> editorialCover;
@@ -169,13 +173,57 @@ class AhviOutfitBoardDetailSheet extends StatelessWidget {
     this.onSendMessage,
   });
 
+  String get _title => _text(
+    direction['direction_name'] ??
+        direction['directionName'] ??
+        direction['archetype'] ??
+        direction['style_direction'] ??
+        direction['styleDirection'] ??
+        direction['title'],
+    'Style Direction',
+  );
+
+  List<String> get _moodTags => _stringList(
+    direction['mood_words'] ?? direction['moodWords'] ?? direction['adjectives'],
+  ).take(4).toList(growable: false);
+
+  List<String> get _reasons {
+    final seen = <String>{};
+    final out = <String>[];
+    for (final value in [
+      direction['rationale'],
+      direction['reason'],
+      direction['why'],
+      direction['short_note'] ?? direction['shortNote'],
+      direction['why_it_works'] ??
+          direction['whyThisWorks'] ??
+          direction['why_this_works'],
+      direction['styling_tip'] ??
+          direction['style_note'] ??
+          direction['styleNote'],
+    ]) {
+      final text = _text(value, '');
+      if (text.isEmpty) continue;
+      final key = text.toLowerCase();
+      if (seen.add(key)) out.add(text);
+      if (out.length >= 3) break;
+    }
+    return out;
+  }
+
+  List<String> get _pieces => _stringList(
+    direction['items'] ?? direction['pieces'],
+  ).take(6).toList(growable: false);
+
   @override
   Widget build(BuildContext context) {
     final t = context.themeTokens;
+    final reasons = _reasons;
+    final pieces = _pieces;
     return DraggableScrollableSheet(
-      initialChildSize: 0.72,
-      minChildSize: 0.4,
-      maxChildSize: 0.95,
+      initialChildSize: 0.55,
+      minChildSize: 0.32,
+      maxChildSize: 0.9,
       expand: false,
       builder: (context, scrollController) {
         return DecoratedBox(
@@ -185,7 +233,7 @@ class AhviOutfitBoardDetailSheet extends StatelessWidget {
           ),
           child: ListView(
             controller: scrollController,
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
+            padding: const EdgeInsets.fromLTRB(22, 12, 22, 32),
             children: [
               Center(
                 child: Container(
@@ -197,13 +245,120 @@ class AhviOutfitBoardDetailSheet extends StatelessWidget {
                   ),
                 ),
               ),
-              const SizedBox(height: 16),
-              _VisualDirectionCard(
-                direction: direction,
-                width: double.infinity,
-                onSendMessage: onSendMessage,
-                editorialCover: editorialCover,
+              const SizedBox(height: 18),
+              Text(
+                _title,
+                style: TextStyle(
+                  color: t.textPrimary,
+                  fontSize: 24,
+                  fontWeight: FontWeight.w700,
+                  height: 1.12,
+                ),
               ),
+              if (_moodTags.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: _moodTags
+                      .map(
+                        (tag) => Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: t.accent.primary.withValues(alpha: 0.08),
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          child: Text(
+                            tag,
+                            style: TextStyle(
+                              color: t.textPrimary,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      )
+                      .toList(growable: false),
+                ),
+              ],
+              if (reasons.isNotEmpty) ...[
+                const SizedBox(height: 22),
+                Text(
+                  'WHY AHVI SELECTED THIS',
+                  style: TextStyle(
+                    color: t.mutedText,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 1.4,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                for (final reason in reasons)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.only(top: 6, right: 10),
+                          child: Container(
+                            width: 5,
+                            height: 5,
+                            decoration: BoxDecoration(
+                              color: t.accent.primary,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                        ),
+                        Expanded(
+                          child: Text(
+                            reason,
+                            style: TextStyle(
+                              color: t.textPrimary,
+                              fontSize: 14,
+                              height: 1.45,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+              ] else ...[
+                const SizedBox(height: 18),
+                Text(
+                  'A curated direction picked to fit the occasion and your style.',
+                  style: TextStyle(
+                    color: t.textPrimary,
+                    fontSize: 14,
+                    height: 1.45,
+                  ),
+                ),
+              ],
+              if (pieces.isNotEmpty) ...[
+                const SizedBox(height: 22),
+                Text(
+                  'PIECES',
+                  style: TextStyle(
+                    color: t.mutedText,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 1.4,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  pieces.join('  •  '),
+                  style: TextStyle(
+                    color: t.mutedText,
+                    fontSize: 13,
+                    height: 1.4,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
             ],
           ),
         );
@@ -362,6 +517,7 @@ class _BoardDirectionFallbackCard extends StatelessWidget {
   final double width;
 
   const _BoardDirectionFallbackCard({
+    super.key,
     required this.direction,
     required this.width,
   });
@@ -454,6 +610,7 @@ class _VisualDirectionCard extends StatelessWidget {
   final Map<String, dynamic> editorialCover;
 
   const _VisualDirectionCard({
+    super.key,
     required this.direction,
     required this.width,
     this.onSendMessage,

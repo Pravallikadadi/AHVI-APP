@@ -456,7 +456,12 @@ class _Screen4State extends State<Screen4>
       listen: false,
     );
     final backend = Provider.of<BackendService>(context, listen: false);
-    final appwrite = Provider.of<AppwriteService>(context, listen: false);
+    final appwrite = Provider.of<AppwriteService>(context, listen: false);
+    // Gender-aware neutral fallback for Wear — no-ops once a real backend
+    // summary arrives, so it never overrides dynamic data.
+    summary.applyGenderFallback(
+      Provider.of<profile.ProfileController>(context, listen: false).state.gender,
+    );
 
     try {
       final response = await backend.getTodayWorkout();
@@ -811,8 +816,8 @@ class _Screen4State extends State<Screen4>
     showAhviLensSheet(
       ctx,
       t: _t,
-      onVisualSearch: () => _showComingSoon(),
-      onFindSimilar: () => _showComingSoon(),
+      onVisualSearch: null, // sheet provides working visual-search default
+      onFindSimilar: null, // sheet provides working find-similar default
       onAddToWardrobe: () => showAddToWardrobeModal(navigator.context),
     );
   }
@@ -1920,12 +1925,12 @@ class _Screen4State extends State<Screen4>
               child: Stack(
                 children: [
                   Positioned.fill(
-                    child: Image.asset(
-                      'assets/images/outfit_linen_air.jpg',
-                      fit: BoxFit.cover,
-                      alignment: Alignment.center,
-                      filterQuality: FilterQuality.low,
-                      errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                    child: const Center(
+                      child: Icon(
+                        Icons.checkroom_rounded,
+                        size: 64,
+                        color: Color(0x33000000),
+                      ),
                     ),
                   ),
                   Positioned(
@@ -2665,8 +2670,8 @@ class _Screen4State extends State<Screen4>
         _openChatWithPrompt(text);
       },
       themeTokens: _t,
-      onVisualSearch: () => _showComingSoon(),
-      onFindSimilar: () => _showComingSoon(),
+      onVisualSearch: null, // sheet provides working visual-search default
+      onFindSimilar: null, // sheet provides working find-similar default
       onAddToWardrobe:
           null, // uses showAddToWardrobeModal default in lens sheet
     );

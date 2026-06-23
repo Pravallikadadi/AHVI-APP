@@ -1652,6 +1652,28 @@ Map<String, dynamic>? _styleBlockFromResponse(
   return null;
 }
 
+String _normForDup(String value) => value
+    .toLowerCase()
+    .replaceAll(RegExp(r'[^a-z0-9 ]'), ' ')
+    .replaceAll(RegExp(r'\s+'), ' ')
+    .trim();
+
+/// True when the assistant text bubble adds nothing beyond an accompanying
+/// module/action card. Not suppressed when the bubble carries extra detail.
+bool _suppressDuplicateBubble(BuildContext context, _SheetMessage msg) {
+  if (msg.isUser || msg.moduleCards.isEmpty) return false;
+  final a = _normForDup(msg.resolve(context));
+  if (a.length < 12) return false;
+  for (final card in msg.moduleCards) {
+    for (final key in const ['subtitle', 'summary', 'description', 'title', 'name']) {
+      final b = _normForDup((card[key] ?? '').toString());
+      if (b.length < 12) continue;
+      if (a == b || b.contains(a)) return true;
+    }
+  }
+  return false;
+}
+
 class _Bubble extends StatelessWidget {
   final _SheetMessage msg;
   final ValueChanged<String> onPrompt;
@@ -1701,7 +1723,7 @@ class _Bubble extends StatelessWidget {
     final aiContent = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        bubble,
+        if (!_suppressDuplicateBubble(context, msg)) bubble,
         if (msg.wardrobeGapPayload != null)
           _WardrobeGapCard(
             payload: msg.wardrobeGapPayload!,
