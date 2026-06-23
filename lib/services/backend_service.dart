@@ -519,6 +519,31 @@ class BackendService {
         historyForRequest.add({'role': 'user', 'content': query});
       }
 
+      // Resolve the user's gender so the backend can gender-filter style
+      // assets. /api/module-chat reads gender ONLY from the request
+      // user_profile; without it target_gender=unknown and only unisex assets
+      // pass, so the curated male/female catalog (and cutout boards) come back
+      // empty. Prefer the caller-supplied profile, then the cached profile,
+      // then a one-shot refresh.
+      String resolvedGender =
+          (userProfile?['gender'] ?? userProfile?['style_gender'] ?? '')
+              .toString()
+              .trim();
+      if (resolvedGender.isEmpty) {
+        resolvedGender =
+            (_appwriteService.cachedUserProfileData?['gender'] ?? '')
+                .toString()
+                .trim();
+      }
+      if (resolvedGender.isEmpty) {
+        try {
+          final refreshed = await _appwriteService.refreshCurrentUserProfile();
+          resolvedGender = (refreshed?['gender'] ?? '').toString().trim();
+        } catch (_) {
+          // Non-fatal: fall back to ungendered request.
+        }
+      }
+
       final moduleStarted = DateTime.now();
       final modulePayload = {
         'domain': module,
@@ -527,7 +552,12 @@ class BackendService {
         'history': historyForRequest,
         'context': context ?? const {},
         'context_data': context ?? const {},
-        'user_profile': {...?userProfile, 'user_id': authedUserId},
+        'user_profile': {
+          ...?userProfile,
+          if (resolvedGender.isNotEmpty) 'gender': resolvedGender,
+          if (resolvedGender.isNotEmpty) 'style_gender': resolvedGender,
+          'user_id': authedUserId,
+        },
       };
       debugPrint(
         'style_chat.endpoint=/api/module-chat payload=${_styleChatSnippet(modulePayload)}',
