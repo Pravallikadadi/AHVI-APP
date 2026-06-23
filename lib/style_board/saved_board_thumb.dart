@@ -6,6 +6,7 @@ import 'package:appwrite/models.dart' as appwrite_models;
 import 'package:myapp/widgets/offline_image.dart';
 import 'saved_board_images.dart';
 import 'board_renderer.dart';
+import 'editorial_board_renderer.dart';
 
 class SavedBoardThumb extends StatelessWidget {
   /// Either an Appwrite Document or a `{id, data}` raw map.
@@ -144,7 +145,7 @@ class SavedBoardThumb extends StatelessWidget {
         child: Container(
           color: const Color(0xFFFFFCF5),
           padding: const EdgeInsets.all(8),
-          child: StyleBoardBody(board: boardDataFromMap(boardMap)),
+          child: EditorialBoardCanvas(board: boardDataFromMap(boardMap)),
         ),
       );
     }
