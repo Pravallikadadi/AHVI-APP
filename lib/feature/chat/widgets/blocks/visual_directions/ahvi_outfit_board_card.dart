@@ -35,6 +35,9 @@ class AhviOutfitBoardCard extends StatelessWidget {
       editorialCover: editorialCover,
     );
 
+    final board = _toStyleBoardData(model, direction);
+    final renderable = _isRenderableOutfit(board.items);
+
     return SizedBox(
       width: width,
       height: width / 0.62,
@@ -62,9 +65,12 @@ class AhviOutfitBoardCard extends StatelessWidget {
                   onTap: onTapBoard,
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(10, 10, 10, 2),
-                    child: EditorialBoardCanvas(
-                      board: _toStyleBoardData(model, direction),
-                    ),
+                    child: renderable
+                        ? EditorialBoardCanvas(board: board)
+                        : _IncompleteBoardFallback(
+                            title: board.title,
+                            whyItWorks: board.whyItWorks,
+                          ),
                   ),
                 ),
               ),
@@ -612,7 +618,6 @@ class OutfitBoardModel {
     // carry real images and are what make the 85 board viable (vs one hero).
     final itemized = <Map<String, dynamic>>[
       ..._maps(direction['board_items'] ?? direction['boardItems']),
-      ..._maps(direction['owned_items'] ?? direction['ownedItems']),
     ];
     for (final item in itemized) {
       final name = _text(item['name'] ?? item['title'] ?? item['label']);
@@ -753,7 +758,16 @@ bool outfitBoardViable(
 
 StyleBoardData _toStyleBoardData(OutfitBoardModel model, Map<String, dynamic> direction) {
   final items = <StyleBoardItem>[];
+  // Render-adjacent safety net: even if the backend (now family-capped) or the
+  // upstream id-keyed dedup let a duplicate through, never paint the same image
+  // or the same normalized name twice on the collage.
+  final seenImages = <String>{};
+  final seenNames = <String>{};
   for (final item in model.imageItems) {
+    final image = (item.imageUrl ?? '').trim();
+    final normName = item.name.trim().toLowerCase();
+    if (image.isNotEmpty && !seenImages.add(image)) continue;
+    if (normName.isNotEmpty && !seenNames.add(normName)) continue;
     var role = _mapItemRole(item.role);
     if (role == BoardItemRole.top &&
         RegExp(r'\b(dress|gown|saree|sari|lehenga|jumpsuit)\b', caseSensitive: false)
@@ -764,7 +778,7 @@ StyleBoardData _toStyleBoardData(OutfitBoardModel model, Map<String, dynamic> di
       StyleBoardItem(
         id: item.id,
         name: item.name,
-        imageUrl: item.imageUrl ?? '',
+        imageUrl: image,
         category: item.role.name,
         role: role,
       ),
@@ -776,8 +790,105 @@ StyleBoardData _toStyleBoardData(OutfitBoardModel model, Map<String, dynamic> di
     boardRole: direction['board_role'] ?? direction['boardRole'],
     occasion: direction['occasion'],
     whyItWorks: direction['why_it_works'] ?? direction['whyThisWorks'] ?? direction['why_this_works'] ?? '',
-    items: items,
+    items: _enforceSlots(items),
   );
+}
+
+/// Per-role slot caps so a board never paints a random collage (e.g. three
+/// bottoms). Keeps the first item per role (hero-first order), drops extras.
+/// top/bottom/footwear/outerwear/dress max 1, accessory max 2.
+List<StyleBoardItem> _enforceSlots(List<StyleBoardItem> items) {
+  const caps = <BoardItemRole, int>{
+    BoardItemRole.top: 1,
+    BoardItemRole.bottom: 1,
+    BoardItemRole.footwear: 1,
+    BoardItemRole.outerwear: 1,
+    BoardItemRole.dress: 1,
+    BoardItemRole.accessory: 2,
+  };
+  final counts = <BoardItemRole, int>{};
+  final kept = <StyleBoardItem>[];
+  var dropped = 0;
+  for (final it in items) {
+    final cap = caps[it.role] ?? 0;
+    final n = counts[it.role] ?? 0;
+    if (cap == 0 || n >= cap) {
+      dropped++;
+      continue;
+    }
+    counts[it.role] = n + 1;
+    kept.add(it);
+  }
+  if (dropped > 0) {
+    debugPrint(
+      'AHVI_BOARD_SLOT_CAP dropped=$dropped kept=${kept.length} '
+      'roles=${counts.map((k, v) => MapEntry(k.name, v))}',
+    );
+  }
+  return kept;
+}
+
+/// A board is an outfit only when it carries top+bottom+footwear OR
+/// dress(fullBody)+footwear. Otherwise the caller shows the text direction
+/// instead of painting a broken board. Logs the missing slots.
+bool _isRenderableOutfit(List<StyleBoardItem> items) {
+  final roles = items.map((e) => e.role).toSet();
+  final classic = roles.containsAll(
+    {BoardItemRole.top, BoardItemRole.bottom, BoardItemRole.footwear},
+  );
+  final dressed =
+      roles.contains(BoardItemRole.dress) && roles.contains(BoardItemRole.footwear);
+  if (!classic && !dressed) {
+    final missing = <String>[];
+    if (!roles.contains(BoardItemRole.footwear)) missing.add('footwear');
+    if (!roles.contains(BoardItemRole.dress)) {
+      if (!roles.contains(BoardItemRole.top)) missing.add('top');
+      if (!roles.contains(BoardItemRole.bottom)) missing.add('bottom');
+    }
+    debugPrint(
+      'AHVI_BOARD_INCOMPLETE missing=${missing.join(",")} '
+      'roles=${roles.map((e) => e.name).join(",")}',
+    );
+  }
+  return classic || dressed;
+}
+
+/// Shown instead of a broken board when required slots are missing. Keeps the
+/// direction readable (title + why) rather than painting an incomplete collage.
+class _IncompleteBoardFallback extends StatelessWidget {
+  final String title;
+  final String? whyItWorks;
+  const _IncompleteBoardFallback({required this.title, this.whyItWorks});
+
+  @override
+  Widget build(BuildContext context) {
+    final note = (whyItWorks ?? '').trim();
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+            ),
+            if (note.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text(
+                note,
+                textAlign: TextAlign.center,
+                maxLines: 4,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontSize: 12, color: Colors.black54),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 BoardItemRole _mapItemRole(OutfitRole role) {
