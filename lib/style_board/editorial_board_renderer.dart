@@ -262,39 +262,8 @@ class _EditorialBackgroundDecor extends StatelessWidget {
 class _EditorialBackgroundPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    final softPink = Paint()
-      ..color = const Color(0xFFFFE8EE).withValues(alpha: 0.62);
-    final softLilac = Paint()
-      ..color = const Color(0xFFEFE5FA).withValues(alpha: 0.72);
-    final softCream = Paint()
-      ..color = const Color(0xFFFFF3D9).withValues(alpha: 0.58);
-
-    canvas.drawOval(
-      Rect.fromCenter(
-        center: Offset(size.width * 0.28, size.height * 0.30),
-        width: size.width * 0.52,
-        height: size.height * 0.38,
-      ),
-      softPink,
-    );
-
-    canvas.drawOval(
-      Rect.fromCenter(
-        center: Offset(size.width * 0.72, size.height * 0.45),
-        width: size.width * 0.46,
-        height: size.height * 0.50,
-      ),
-      softLilac,
-    );
-
-    canvas.drawOval(
-      Rect.fromCenter(
-        center: Offset(size.width * 0.36, size.height * 0.82),
-        width: size.width * 0.58,
-        height: size.height * 0.30,
-      ),
-      softCream,
-    );
+    // Clean flat off-white canvas. The card's 0xFFFAF9F6 backing shows
+    // through without decorative ovals competing with the garment cutouts.
   }
 
   @override

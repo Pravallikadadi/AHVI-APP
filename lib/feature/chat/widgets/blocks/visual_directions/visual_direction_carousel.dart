@@ -211,9 +211,26 @@ class AhviOutfitBoardDetailSheet extends StatelessWidget {
     return out;
   }
 
-  List<String> get _pieces => _stringList(
-    direction['items'] ?? direction['pieces'],
-  ).take(6).toList(growable: false);
+  // Pieces text must describe what is ACTUALLY on the board. Derive names from
+  // the rendered board_items (the matched assets), not direction.items/pieces
+  // (the LLM's ideal piece names) — otherwise the sheet says "Tailored Khaki
+  // Trouser / White Sneakers" while the card shows cream shorts + formal shoes.
+  List<String> get _pieces {
+    final boardItems = _mapList(direction['board_items'] ?? direction['boardItems']);
+    if (boardItems.isNotEmpty) {
+      final names = <String>[];
+      final seen = <String>{};
+      for (final it in boardItems) {
+        final name = _text(it['name'] ?? it['title'] ?? it['label'], '');
+        if (name.isEmpty) continue;
+        if (seen.add(name.toLowerCase())) names.add(name);
+      }
+      if (names.isNotEmpty) return names.take(6).toList(growable: false);
+    }
+    return _stringList(direction['items'] ?? direction['pieces'])
+        .take(6)
+        .toList(growable: false);
+  }
 
   @override
   Widget build(BuildContext context) {

@@ -83,52 +83,82 @@ class EditorialBoardLayoutEngine {
     required double width,
     required double height,
   }) {
-    final placements = <BoardItemPlacement>[
-      BoardItemPlacement(
-        item: top,
-        x: width * 0.01,
-        y: height * 0.05,
-        width: width * 0.53,
-        height: height * 0.45,
-        rotation: -0.035,
-        zIndex: 2,
-      ),
-      BoardItemPlacement(
-        item: bottom,
-        x: width * 0.45,
-        y: height * 0.02,
-        width: width * 0.55,
-        height: height * 0.68,
-        rotation: 0.015,
-        zIndex: 1,
-      ),
-      BoardItemPlacement(
-        item: footwear,
-        x: width * 0.02,
-        y: height * 0.58,
-        width: width * 0.58,
-        height: height * 0.37,
-        rotation: -0.03,
-        zIndex: 3,
-      ),
-    ];
+    final hasOuter = outerwear != null;
+    final placements = <BoardItemPlacement>[];
 
-    if (outerwear != null) {
-      // Layer behind the hero (zIndex 0) but larger and tilted the opposite
-      // way so its shoulders/edges read clearly around the top instead of
-      // hiding directly behind it.
+    if (hasOuter) {
+      // Outerwear gets its own left column (behind, zIndex 0) and the hero is
+      // shifted right to sit over its right half — so the jacket clearly reads
+      // as a layer instead of hiding fully behind the top.
       placements.add(
         BoardItemPlacement(
           item: outerwear,
-          x: -width * 0.06,
-          y: -height * 0.02,
-          width: width * 0.56,
-          height: height * 0.60,
-          rotation: -0.10,
+          x: width * 0.00,
+          y: height * 0.05,
+          width: width * 0.44,
+          height: height * 0.52,
+          rotation: -0.05,
           zIndex: 0,
         ),
       );
+      placements.add(
+        BoardItemPlacement(
+          item: top,
+          x: width * 0.22,
+          y: height * 0.13,
+          width: width * 0.40,
+          height: height * 0.40,
+          rotation: -0.02,
+          zIndex: 2,
+        ),
+      );
+      placements.add(
+        BoardItemPlacement(
+          item: bottom,
+          x: width * 0.56,
+          y: height * 0.04,
+          width: width * 0.44,
+          height: height * 0.62,
+          rotation: 0.02,
+          zIndex: 1,
+        ),
+      );
+    } else {
+      placements.add(
+        BoardItemPlacement(
+          item: top,
+          x: width * 0.01,
+          y: height * 0.05,
+          width: width * 0.53,
+          height: height * 0.45,
+          rotation: -0.035,
+          zIndex: 2,
+        ),
+      );
+      placements.add(
+        BoardItemPlacement(
+          item: bottom,
+          x: width * 0.45,
+          y: height * 0.02,
+          width: width * 0.55,
+          height: height * 0.68,
+          rotation: 0.015,
+          zIndex: 1,
+        ),
+      );
     }
+
+    placements.add(
+      BoardItemPlacement(
+        item: footwear,
+        x: width * 0.03,
+        y: height * 0.60,
+        width: width * 0.55,
+        height: height * 0.35,
+        rotation: -0.03,
+        zIndex: 3,
+      ),
+    );
 
     for (var i = 0; i < math.min(accessories.length, 2); i++) {
       placements.add(

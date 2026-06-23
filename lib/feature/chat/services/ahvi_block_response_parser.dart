@@ -46,7 +46,19 @@ AhviParsedResponse parseAhviResponse(Map<String, dynamic> response) {
     'ENABLE_VISUAL_BOARD_85_LAYOUT',
     defaultValue: true,
   );
-  final visualDirections = _extractVisualDirections(response, data);
+  var visualDirections = _extractVisualDirections(response, data);
+  // Render wardrobe boards (style_boards/rendered_boards/outfits) through the
+  // SAME editorial flat-lay as catalog directions. When the backend ships only
+  // style_boards (e.g. "use my wardrobe" / weak_occasion_match), convert them
+  // to the visual_directions shape so the look is consistent everywhere.
+  var convertedWardrobeBoards = false;
+  if (visualDirections.isEmpty) {
+    final wardrobeBoards = _extractStyleBoards(response, data);
+    if (wardrobeBoards.isNotEmpty) {
+      visualDirections = wardrobeBoards.map(_styleBoardToDirection).toList();
+      convertedWardrobeBoards = true;
+    }
+  }
   final hasVisualDirections = visualDirections.isNotEmpty;
   final hasVisualBoard = AhviVisualBoard.isVisualBoard(response) || response['visual_board'] != null || response['visualBoard'] != null || data['visual_board'] != null || data['visualBoard'] != null;
 
@@ -138,7 +150,7 @@ AhviParsedResponse parseAhviResponse(Map<String, dynamic> response) {
     }
   }
 
-  if (!_looksLikeModuleResponse(response, data)) {
+  if (!_looksLikeModuleResponse(response, data) && !convertedWardrobeBoards) {
     final styleBoards = _extractStyleBoards(response, data);
     if (styleBoards.isNotEmpty) {
       blocks.add(
@@ -277,6 +289,42 @@ Map<String, dynamic> _extractEditorialCover(
     }
   }
   return const {};
+}
+
+/// Convert a wardrobe style_board (cards/outfits with role-tagged items) into
+/// the visual_directions shape so it renders through the editorial flat-lay
+/// board, matching catalog directions. Items already carry role/slot + image.
+Map<String, dynamic> _styleBoardToDirection(Map<String, dynamic> board) {
+  final items = _mapList(
+    board['items'] ?? board['board_items'] ?? board['composition_items'],
+  );
+  final boardItems = items
+      .map((it) {
+        final image = it['image_url'] ??
+            it['imageUrl'] ??
+            it['normalized_url'] ??
+            it['normalizedUrl'] ??
+            it['masked_url'] ??
+            it['maskedUrl'];
+        return <String, dynamic>{
+          'name': it['name'] ?? it['title'] ?? it['label'],
+          'role': it['role'] ?? it['slot'] ?? it['category'],
+          'image_url': image,
+          if (it['board_image_url'] != null)
+            'board_image_url': it['board_image_url'],
+        };
+      })
+      .where((it) => (it['image_url']?.toString().trim().isNotEmpty ?? false))
+      .toList();
+  return <String, dynamic>{
+    'direction_name': board['title'] ?? board['name'],
+    'title': board['title'] ?? board['name'],
+    'why_it_works':
+        board['explanation'] ?? board['why_it_works'] ?? board['style_reason'],
+    'occasion': board['occasion'],
+    'board_items': boardItems,
+    'hero_piece': boardItems.isNotEmpty ? boardItems.first['name'] : null,
+  };
 }
 
 List<Map<String, dynamic>> _extractStyleBoards(
