@@ -407,11 +407,17 @@ class AppwriteService extends ChangeNotifier {
       'name',
       'username',
       'email',
+      'phone',
+      'dob',
       'gender',
+      'skinTone',
+      'bodyShape',
+      'avatar_url',
+      'stylePreferences',
+      'shopPrefs',
       'onboarding1',
       'onboarding2',
       'onboarding3',
-      'stylePreferences',
     };
     final out = <String, dynamic>{};
     for (final entry in data.entries) {
@@ -666,6 +672,11 @@ class AppwriteService extends ChangeNotifier {
           queries: [
             Query.equal('userId', user.$id),
             Query.orderDesc('\$createdAt'),
+            // Appwrite defaults to 25 docs without an explicit limit, which
+            // silently truncated larger wardrobes and dropped whole categories
+            // (e.g. footwear), so the backend saw no shoes and refused to build
+            // a complete outfit board. Lift the cap to cover full wardrobes.
+            Query.limit(100),
           ],
         );
       } catch (_) {
@@ -679,6 +690,7 @@ class AppwriteService extends ChangeNotifier {
           queries: [
             Query.equal('user_id', user.$id),
             Query.orderDesc('\$createdAt'),
+            Query.limit(100),
           ],
         );
       }

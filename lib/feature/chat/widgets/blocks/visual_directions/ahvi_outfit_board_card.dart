@@ -903,6 +903,38 @@ BoardItemRole _mapItemRole(OutfitRole role) {
 }
 
 OutfitRole _roleFor(Map<String, dynamic> item, String name) {
+  // Honor the backend's explicit role/slot first. It is authoritative and
+  // avoids lossy name-regex misses — e.g. "White Shirt" carries no garment
+  // keyword, and the role word "footwear"/"top" itself never matched the
+  // name-based patterns below, so backend footwear/tops were silently dropped.
+  final declared = (item['role'] ?? item['slot'] ?? '')
+      .toString()
+      .trim()
+      .toLowerCase();
+  switch (declared) {
+    case 'footwear':
+    case 'shoe':
+    case 'shoes':
+      return OutfitRole.footwear;
+    case 'bottom':
+    case 'bottoms':
+    case 'bottomwear':
+      return OutfitRole.bottom;
+    case 'bag':
+      return OutfitRole.bag;
+    case 'accessory':
+    case 'accessories':
+      return OutfitRole.accessory;
+    case 'top':
+    case 'tops':
+    case 'topwear':
+    case 'hero':
+    case 'outerwear':
+    case 'dress':
+      // Maps to the top slot via _mapItemRole; a dress is re-detected by name
+      // downstream in _toStyleBoardData and promoted to BoardItemRole.dress.
+      return OutfitRole.hero;
+  }
   final blob = [
     name,
     item['role'],
