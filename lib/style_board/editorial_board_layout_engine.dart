@@ -86,19 +86,19 @@ class EditorialBoardLayoutEngine {
     final placements = <BoardItemPlacement>[
       BoardItemPlacement(
         item: top,
-        x: width * 0.02,
-        y: height * 0.11,
-        width: width * 0.45,
-        height: height * 0.44,
+        x: width * 0.01,
+        y: height * 0.05,
+        width: width * 0.53,
+        height: height * 0.45,
         rotation: -0.035,
         zIndex: 2,
       ),
       BoardItemPlacement(
         item: bottom,
         x: width * 0.45,
-        y: height * 0.03,
-        width: width * 0.51,
-        height: height * 0.70,
+        y: height * 0.02,
+        width: width * 0.55,
+        height: height * 0.68,
         rotation: 0.015,
         zIndex: 1,
       ),
@@ -106,22 +106,25 @@ class EditorialBoardLayoutEngine {
         item: footwear,
         x: width * 0.02,
         y: height * 0.58,
-        width: width * 0.52,
-        height: height * 0.32,
+        width: width * 0.58,
+        height: height * 0.37,
         rotation: -0.03,
         zIndex: 3,
       ),
     ];
 
     if (outerwear != null) {
+      // Layer behind the hero (zIndex 0) but larger and tilted the opposite
+      // way so its shoulders/edges read clearly around the top instead of
+      // hiding directly behind it.
       placements.add(
         BoardItemPlacement(
           item: outerwear,
-          x: width * 0.02,
-          y: height * 0.03,
-          width: width * 0.42,
-          height: height * 0.48,
-          rotation: 0.03,
+          x: -width * 0.06,
+          y: -height * 0.02,
+          width: width * 0.56,
+          height: height * 0.60,
+          rotation: -0.10,
           zIndex: 0,
         ),
       );
@@ -131,10 +134,10 @@ class EditorialBoardLayoutEngine {
       placements.add(
         BoardItemPlacement(
           item: accessories[i],
-          x: width * (i == 0 ? 0.68 : 0.55),
-          y: height * (i == 0 ? 0.68 : 0.80),
-          width: width * 0.23,
-          height: height * 0.18,
+          x: width * (i == 0 ? 0.62 : 0.66),
+          y: height * (i == 0 ? 0.72 : 0.50),
+          width: width * 0.31,
+          height: height * 0.23,
           rotation: i == 0 ? 0.06 : -0.04,
           zIndex: 4,
         ),
