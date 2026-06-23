@@ -882,12 +882,13 @@ class _AhviStylistChatSheetState extends State<_AhviStylistChatSheet>
             transitionPlan: transitionPlan,
             stylistReasoning: stylistReasoning,
             adviceBlock: adviceBlock,
-            boardPayload:
-                moduleCards.isEmpty &&
-                    boardPayload.hasBoards &&
-                    !gapPayload.hasContent
-                ? boardPayload
-                : null,
+            boardPayload:
+                moduleCards.isEmpty &&
+                    boardPayload.hasBoards &&
+                    !gapPayload.hasContent &&
+                    !visualPayload.hasDirections
+                ? boardPayload
+                : null,
             wardrobeGapPayload: moduleCards.isNotEmpty
                 ? null
                 : isClosestStyleAction && !boardPayload.hasBoards
@@ -1427,12 +1428,12 @@ class _StyleBoardPayload {
     final data = response['data'] is Map
         ? Map<String, dynamic>.from(response['data'] as Map)
         : <String, dynamic>{};
-    return _StyleBoardPayload(
-      cards: _mapList(response['style_boards']),
-      renderedBoards: _mapList(data['rendered_boards']),
-      outfits: _mapList(data['outfits']),
-      boardId: response['board_ids']?.toString(),
-    );
+    return _StyleBoardPayload(
+      cards: _mapList(response['cards']),
+      renderedBoards: _mapList(data['rendered_boards']),
+      outfits: _mapList(data['outfits']),
+      boardId: response['board_ids']?.toString(),
+    );
   }
 }
 
@@ -1443,20 +1444,24 @@ class _VisualDirectionPayload {
 
   bool get hasDirections => directions.isNotEmpty;
 
-  static _VisualDirectionPayload fromResponse(Map<String, dynamic> response) {
-    final data = response['data'] is Map
-        ? Map<String, dynamic>.from(response['data'] as Map)
-        : <String, dynamic>{};
-
-    final raw =
-        response['visual_directions'] ??
-        data['visual_directions'] ??
-        response['visualDirections'] ??
-        data['visualDirections'];
-
-    if (raw is! List) {
-      return const _VisualDirectionPayload(directions: []);
-    }
+  static _VisualDirectionPayload fromResponse(Map<String, dynamic> response) {
+    final data = response['data'] is Map
+        ? Map<String, dynamic>.from(response['data'] as Map)
+        : <String, dynamic>{};
+
+    var raw =
+        response['visual_directions'] ??
+        data['visual_directions'] ??
+        response['visualDirections'] ??
+        data['visualDirections'];
+
+    if ((raw == null || (raw is List && raw.isEmpty)) && !_isModuleResponse(response)) {
+      raw = response['cards'] ?? data['cards'];
+    }
+
+    if (raw is! List) {
+      return const _VisualDirectionPayload(directions: []);
+    }
 
     return _VisualDirectionPayload(
       directions: raw

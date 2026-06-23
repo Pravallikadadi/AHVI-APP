@@ -509,7 +509,7 @@ class _BoardAction extends StatelessWidget {
   }
 }
 
-enum OutfitRole { hero, bottom, footwear, bag, accessory, other }
+enum OutfitRole { hero, bottom, footwear, outerwear, bag, accessory, other }
 
 class OutfitBoardItem {
   final String id;
@@ -565,6 +565,58 @@ class OutfitBoardModel {
       if (adjectives.isNotEmpty) adjectives.first,
     ];
 
+    // Authoritative path: when the backend sends itemized board_items, render
+    // EXACTLY those. They already carry correct roles, images, completeness
+    // (top+bottom+footwear) and dedup from the backend. Re-mixing hero_piece /
+    // complete_the_look / pieces (the legacy path below) silently dropped real
+    // slots — footwear, then bottom — inconsistently across prompts/users.
+    // Fall back to legacy aggregation only when board_items is absent.
+    final backendItems = _maps(direction['board_items'] ?? direction['boardItems']);
+    if (backendItems.isNotEmpty) {
+      final built = <OutfitBoardItem>[];
+      final seenKeys = <String>{};
+      for (final item in backendItems) {
+        final name = _text(item['name'] ?? item['title'] ?? item['label']);
+        final url = _url(
+          item['normalized_url'] ??
+              item['normalizedUrl'] ??
+              item['masked_url'] ??
+              item['maskedUrl'] ??
+              item['image_url'] ??
+              item['imageUrl'],
+        );
+        if (name.isEmpty || url == null) continue;
+        final key = '${name.toLowerCase()}::$url';
+        if (!seenKeys.add(key)) continue;
+        built.add(
+          OutfitBoardItem(
+            id: _text(
+              item['asset_id'] ??
+                  item['id'] ??
+                  item['wardrobeItemId'] ??
+                  item['wardrobe_item_id'],
+              fallback: key,
+            ),
+            name: name,
+            imageUrl: url,
+            role: _roleFor(item, name),
+          ),
+        );
+      }
+      if (built.isNotEmpty) {
+        final rawMissingB = direction['missing_piece'];
+        final missingB = rawMissingB is Map
+            ? Map<String, dynamic>.from(rawMissingB)
+            : const <String, dynamic>{};
+        return OutfitBoardModel(
+          title: title,
+          chips: chips,
+          items: built,
+          missingName: isFashionItem(missingB) ? _text(missingB['name']) : '',
+        );
+      }
+    }
+
     final itemNames = _strings(direction['items'] ?? direction['pieces']);
     final heroName = _text(
       direction['hero_piece'] ?? direction['heroPiece'],
@@ -618,6 +670,8 @@ class OutfitBoardModel {
     // carry real images and are what make the 85 board viable (vs one hero).
     final itemized = <Map<String, dynamic>>[
       ..._maps(direction['board_items'] ?? direction['boardItems']),
+      ..._maps(direction['items'] ?? direction['pieces']),
+      ..._maps(direction['accessories']),
     ];
     for (final item in itemized) {
       final name = _text(item['name'] ?? item['title'] ?? item['label']);
@@ -735,26 +789,26 @@ BoardItemRole _boardSlotForName(String name) {
 ///   dress    = dress + footwear
 ///   fallback = >=3 real-image pieces with known roles
 /// Text-only placeholders (no image) never count.
-bool outfitBoardViable(
-  Map<String, dynamic> direction, {
-  Map<String, dynamic> editorialCover = const {},
-}) {
-  final model = OutfitBoardModel.fromPayload(
-    direction,
-    editorialCover: editorialCover,
-  );
-  final slots =
-      model.imageItems.map((item) => _boardSlotForName(item.name)).toList();
-  final hasTop = slots.contains(BoardItemRole.top);
-  final hasBottom = slots.contains(BoardItemRole.bottom);
-  final hasFootwear = slots.contains(BoardItemRole.footwear);
-  final hasDress = slots.contains(BoardItemRole.dress);
-  final classicViable = hasTop && hasBottom && hasFootwear;
-  final dressViable = hasDress && hasFootwear;
-  final knownRoleImages =
-      slots.where((slot) => slot != BoardItemRole.unknown).length;
-  return classicViable || dressViable || knownRoleImages >= 3;
-}
+  bool outfitBoardViable(
+    Map<String, dynamic> direction, {
+    Map<String, dynamic> editorialCover = const {},
+  }) {
+    final model = OutfitBoardModel.fromPayload(
+      direction,
+      editorialCover: editorialCover,
+    );
+    final slots =
+        model.imageItems.map((item) => _mapItemRole(item.role)).toList();
+    final hasTop = slots.contains(BoardItemRole.top);
+    final hasBottom = slots.contains(BoardItemRole.bottom);
+    final hasFootwear = slots.contains(BoardItemRole.footwear);
+    final hasDress = slots.contains(BoardItemRole.dress);
+    final classicViable = hasTop && hasBottom && hasFootwear;
+    final dressViable = hasDress && hasFootwear;
+    final knownRoleImages =
+        slots.where((slot) => slot != BoardItemRole.unknown).length;
+    return classicViable || dressViable || knownRoleImages >= 3;
+  }
 
 StyleBoardData _toStyleBoardData(OutfitBoardModel model, Map<String, dynamic> direction) {
   final items = <StyleBoardItem>[];
@@ -784,14 +838,14 @@ StyleBoardData _toStyleBoardData(OutfitBoardModel model, Map<String, dynamic> di
       ),
     );
   }
-  return StyleBoardData(
-    title: model.title,
-    styleArchetype: direction['style_archetype'] ?? direction['styleArchetype'],
-    boardRole: direction['board_role'] ?? direction['boardRole'],
-    occasion: direction['occasion'],
-    whyItWorks: direction['why_it_works'] ?? direction['whyThisWorks'] ?? direction['why_this_works'] ?? '',
-    items: _enforceSlots(items),
-  );
+    return StyleBoardData(
+      title: model.title,
+      styleArchetype: direction['style_archetype'] ?? direction['styleArchetype'],
+      boardRole: direction['board_role'] ?? direction['boardRole'],
+      occasion: direction['occasion'],
+      whyItWorks: direction['why_it_works'] ?? direction['whyThisWorks'] ?? direction['why_this_works'] ?? direction['explanation'] ?? '',
+      items: _enforceSlots(items),
+    );
 }
 
 /// Per-role slot caps so a board never paints a random collage (e.g. three
@@ -804,7 +858,7 @@ List<StyleBoardItem> _enforceSlots(List<StyleBoardItem> items) {
     BoardItemRole.footwear: 1,
     BoardItemRole.outerwear: 1,
     BoardItemRole.dress: 1,
-    BoardItemRole.accessory: 2,
+    BoardItemRole.accessory: 4,
   };
   final counts = <BoardItemRole, int>{};
   final kept = <StyleBoardItem>[];
@@ -838,7 +892,10 @@ bool _isRenderableOutfit(List<StyleBoardItem> items) {
   );
   final dressed =
       roles.contains(BoardItemRole.dress) && roles.contains(BoardItemRole.footwear);
-  if (!classic && !dressed) {
+  
+  final knownRoleImages = items.where((i) => i.role != BoardItemRole.unknown).length;
+
+  if (!classic && !dressed && knownRoleImages < 3) {
     final missing = <String>[];
     if (!roles.contains(BoardItemRole.footwear)) missing.add('footwear');
     if (!roles.contains(BoardItemRole.dress)) {
@@ -850,7 +907,7 @@ bool _isRenderableOutfit(List<StyleBoardItem> items) {
       'roles=${roles.map((e) => e.name).join(",")}',
     );
   }
-  return classic || dressed;
+  return classic || dressed || knownRoleImages >= 3;
 }
 
 /// Shown instead of a broken board when required slots are missing. Keeps the
@@ -896,6 +953,7 @@ BoardItemRole _mapItemRole(OutfitRole role) {
     OutfitRole.hero => BoardItemRole.top,
     OutfitRole.bottom => BoardItemRole.bottom,
     OutfitRole.footwear => BoardItemRole.footwear,
+    OutfitRole.outerwear => BoardItemRole.outerwear,
     OutfitRole.bag => BoardItemRole.accessory,
     OutfitRole.accessory => BoardItemRole.accessory,
     OutfitRole.other => BoardItemRole.unknown,
@@ -920,10 +978,17 @@ OutfitRole _roleFor(Map<String, dynamic> item, String name) {
     case 'bottoms':
     case 'bottomwear':
       return OutfitRole.bottom;
+    case 'outerwear':
+    case 'jacket':
+    case 'coat':
+    case 'blazer':
+      return OutfitRole.outerwear;
     case 'bag':
       return OutfitRole.bag;
     case 'accessory':
     case 'accessories':
+    case 'travel':
+    case 'grooming':
       return OutfitRole.accessory;
     case 'top':
     case 'tops':
@@ -953,27 +1018,33 @@ OutfitRole _roleFor(Map<String, dynamic> item, String name) {
   ).hasMatch(blob)) {
     return OutfitRole.footwear;
   }
-  if (RegExp(
-    r'\b(bag|tote|clutch|backpack|sling|duffle|briefcase)\b',
-  ).hasMatch(blob)) {
-    return OutfitRole.bag;
-  }
-  if (RegExp(
-    r'\b(watch|belt|ring|brooch|necklace|bracelet|earring|scarf|tie)\b',
-  ).hasMatch(blob)) {
-    return OutfitRole.accessory;
-  }
+    if (RegExp(
+      r'\b(bag|tote|clutch|backpack|sling|duffle|briefcase)\b',
+    ).hasMatch(blob)) {
+      return OutfitRole.bag;
+    }
+    if (RegExp(
+      r'\b(jacket|blazer|overshirt|coat|cardigan|outerwear)\b',
+    ).hasMatch(blob)) {
+      return OutfitRole.outerwear;
+    }
+    if (RegExp(
+      r'\b(watch|belt|ring|brooch|necklace|bracelet|earring|scarf|tie|cap|hat|sunglasses|eyewear|travel|grooming|skincare|accessory|accessories)\b',
+    ).hasMatch(blob)) {
+      return OutfitRole.accessory;
+    }
   return OutfitRole.other;
 }
 
 int _roleRank(OutfitRole role) {
   return switch (role) {
     OutfitRole.hero => 0,
-    OutfitRole.bottom => 1,
-    OutfitRole.footwear => 2,
-    OutfitRole.bag => 3,
-    OutfitRole.accessory => 4,
-    OutfitRole.other => 5,
+    OutfitRole.outerwear => 1,
+    OutfitRole.bottom => 2,
+    OutfitRole.footwear => 3,
+    OutfitRole.bag => 4,
+    OutfitRole.accessory => 5,
+    OutfitRole.other => 6,
   };
 }
 
@@ -990,7 +1061,10 @@ String? _url(dynamic value) {
 List<String> _strings(dynamic value) {
   if (value is! List) return const [];
   return value
-      .map((item) => _text(item))
+      .map((item) {
+        if (item is Map) return _text(item['name'] ?? item['title'] ?? item['label']);
+        return _text(item);
+      })
       .where((item) => item.isNotEmpty)
       .toList(growable: false);
 }
