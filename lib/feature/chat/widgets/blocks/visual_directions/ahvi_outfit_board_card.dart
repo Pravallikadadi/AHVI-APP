@@ -40,7 +40,8 @@ class AhviOutfitBoardCard extends StatelessWidget {
 
     return SizedBox(
       width: width,
-      height: width / 0.62,
+      // 4:5 portrait (Instagram-feed ratio): height = width * 5 / 4.
+      height: width * 5 / 4,
       child: DecoratedBox(
         decoration: BoxDecoration(
           // Soft off-white canvas so the board reads as one flat-lay surface,
@@ -59,12 +60,17 @@ class AhviOutfitBoardCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(18),
           child: Column(
             children: [
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: onTapBoard,
+                child: OutfitContextStrip(model: model),
+              ),
               Expanded(
                 child: GestureDetector(
                   behavior: HitTestBehavior.opaque,
                   onTap: onTapBoard,
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(10, 10, 10, 2),
+                    padding: const EdgeInsets.fromLTRB(4, 2, 4, 4),
                     child: renderable
                         ? EditorialBoardCanvas(board: board)
                         : _IncompleteBoardFallback(
@@ -73,11 +79,6 @@ class AhviOutfitBoardCard extends StatelessWidget {
                           ),
                   ),
                 ),
-              ),
-              GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: onTapBoard,
-                child: OutfitContextStrip(model: model),
               ),
               OutfitActionBar(
                 direction: direction,
@@ -274,13 +275,16 @@ class OutfitContextStrip extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = context.themeTokens;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 8, 12, 6),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Expanded(
-            child: Text(
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 6),
+      child: SizedBox(
+        width: double.infinity,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
               model.title,
+              textAlign: TextAlign.left,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
@@ -290,22 +294,35 @@ class OutfitContextStrip extends StatelessWidget {
                 height: 1.05,
               ),
             ),
-          ),
-          if (model.chips.isNotEmpty) ...[
-            const SizedBox(width: 8),
-            Flexible(
-              child: Wrap(
-                alignment: WrapAlignment.end,
-                spacing: 5,
-                runSpacing: 4,
+            if (model.chips.isNotEmpty) ...[
+              const SizedBox(height: 7),
+              Wrap(
+                spacing: 6,
+                runSpacing: 5,
                 children: model.chips
-                    .take(2)
+                    .take(3)
                     .map((chip) => _ContextChip(label: chip))
                     .toList(growable: false),
               ),
-            ),
+            ],
+            if (model.stylingTip.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text(
+                model.stylingTip,
+                textAlign: TextAlign.left,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: t.mutedText,
+                  fontSize: 13,
+                  fontStyle: FontStyle.italic,
+                  fontWeight: FontWeight.w500,
+                  height: 1.18,
+                ),
+              ),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }
@@ -321,10 +338,11 @@ class _ContextChip extends StatelessWidget {
     final t = context.themeTokens;
     return Container(
       constraints: const BoxConstraints(maxWidth: 98),
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
       decoration: BoxDecoration(
-        color: t.accent.primary.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(999),
+        color: Colors.white.withValues(alpha: 0.76),
+        border: Border.all(color: const Color(0xFFE7E0D8), width: 0.7),
+        borderRadius: BorderRadius.circular(6),
       ),
       child: Text(
         label,
@@ -436,10 +454,10 @@ class _OutfitActionBarState extends State<OutfitActionBar> {
       ),
       _BoardAction(
         icon: Icons.checkroom_rounded,
-        label: 'Style This',
+        label: 'Use Wardrobe',
         enabled: canSend,
         onTap: () => widget.onSendMessage?.call(
-          'Match this look with my wardrobe and suggest missing pieces if needed.',
+          'Use my wardrobe for ${widget.primaryLabel}',
         ),
       ),
       if (widget.missingName.isNotEmpty)
@@ -530,6 +548,8 @@ class OutfitBoardModel {
   final List<String> chips;
   final List<OutfitBoardItem> items;
   final String missingName;
+  final String intelligenceText;
+  final String stylingTip;
 
   /// Items that carry a real image. Placeholders are never shown on the
   /// flat-lay board — the board only renders when there are enough of these.
@@ -541,6 +561,8 @@ class OutfitBoardModel {
     required this.chips,
     required this.items,
     required this.missingName,
+    required this.intelligenceText,
+    required this.stylingTip,
   });
 
   factory OutfitBoardModel.fromPayload(
@@ -564,6 +586,21 @@ class OutfitBoardModel {
       if (occasion.isNotEmpty) occasion,
       if (adjectives.isNotEmpty) adjectives.first,
     ];
+    final intelligenceText = _text(
+      direction['short_note'] ??
+          direction['shortNote'] ??
+          direction['why_it_works'] ??
+          direction['whyItWorks'] ??
+          direction['why_this_works'] ??
+          direction['explanation'] ??
+          editorialCover['summary'],
+    );
+    final stylingTip = _text(
+      direction['styling_tip'] ??
+          direction['style_tip'] ??
+          direction['style_note'] ??
+          direction['styleNote'],
+    );
 
     // Authoritative path: when the backend sends itemized board_items, render
     // EXACTLY those. They already carry correct roles, images, completeness
@@ -577,16 +614,14 @@ class OutfitBoardModel {
       final seenKeys = <String>{};
       for (final item in backendItems) {
         final name = _text(item['name'] ?? item['title'] ?? item['label']);
-        final url = _url(
-          item['normalized_url'] ??
-              item['normalizedUrl'] ??
-              item['masked_url'] ??
-              item['maskedUrl'] ??
-              item['image_url'] ??
-              item['imageUrl'],
+        final url = _transparentUrlFor(
+          item,
+          itemId: _text(item['asset_id'] ?? item['id']),
+          itemName: name,
+          role: _text(item['role'] ?? item['slot']),
         );
-        if (name.isEmpty || url == null) continue;
-        final key = '${name.toLowerCase()}::$url';
+        if (name.isEmpty) continue;
+        final key = '${name.toLowerCase()}::${url ?? "no-img"}';
         if (!seenKeys.add(key)) continue;
         built.add(
           OutfitBoardItem(
@@ -613,6 +648,8 @@ class OutfitBoardModel {
           chips: chips,
           items: built,
           missingName: isFashionItem(missingB) ? _text(missingB['name']) : '',
+          intelligenceText: intelligenceText,
+          stylingTip: stylingTip,
         );
       }
     }
@@ -622,13 +659,10 @@ class OutfitBoardModel {
       direction['hero_piece'] ?? direction['heroPiece'],
       fallback: itemNames.isEmpty ? 'Hero piece' : itemNames.first,
     );
-    final heroUrl = _url(
-      direction['normalized_url'] ??
-          direction['normalizedUrl'] ??
-          direction['masked_url'] ??
-          direction['maskedUrl'] ??
-          direction['image_url'] ??
-          direction['imageUrl'],
+    final heroUrl = _transparentUrlFor(
+      direction,
+      itemName: heroName,
+      role: 'hero',
     );
     final items = <OutfitBoardItem>[
       OutfitBoardItem(
@@ -645,22 +679,12 @@ class OutfitBoardModel {
     for (final item in complete) {
       final name = _text(item['name'] ?? item['title'] ?? item['label']);
       if (name.isEmpty) continue;
+      final ctlUrl = _transparentUrlFor(item, itemName: name, role: 'complete_the_look');
       items.add(
         OutfitBoardItem(
-          id: _text(
-            item['asset_id'] ?? item['id'],
-            fallback:
-                '$name::${_url(item['normalized_url'] ?? item['normalizedUrl'] ?? item['masked_url'] ?? item['maskedUrl'] ?? item['image_url'] ?? item['imageUrl'])}',
-          ),
+          id: _text(item['asset_id'] ?? item['id'], fallback: '$name::$ctlUrl'),
           name: name,
-          imageUrl: _url(
-            item['normalized_url'] ??
-                item['normalizedUrl'] ??
-                item['masked_url'] ??
-                item['maskedUrl'] ??
-                item['image_url'] ??
-                item['imageUrl'],
-          ),
+          imageUrl: ctlUrl,
           role: _roleFor(item, name),
         ),
       );
@@ -676,13 +700,11 @@ class OutfitBoardModel {
     for (final item in itemized) {
       final name = _text(item['name'] ?? item['title'] ?? item['label']);
       if (name.isEmpty) continue;
-      final url = _url(
-        item['normalized_url'] ??
-            item['normalizedUrl'] ??
-            item['masked_url'] ??
-            item['maskedUrl'] ??
-            item['image_url'] ??
-            item['imageUrl'],
+      final url = _transparentUrlFor(
+        item,
+        itemId: _text(item['asset_id'] ?? item['id']),
+        itemName: name,
+        role: _text(item['role'] ?? item['slot']),
       );
       items.add(
         OutfitBoardItem(
@@ -734,6 +756,8 @@ class OutfitBoardModel {
       chips: chips,
       items: [hero, ...support.take(5)],
       missingName: missingName,
+      intelligenceText: intelligenceText,
+      stylingTip: stylingTip,
     );
   }
 }
@@ -789,6 +813,27 @@ BoardItemRole _boardSlotForName(String name) {
 ///   dress    = dress + footwear
 ///   fallback = >=3 real-image pieces with known roles
 /// Text-only placeholders (no image) never count.
+  bool outfitBoardHasRoles(
+    Map<String, dynamic> direction, {
+    Map<String, dynamic> editorialCover = const {},
+  }) {
+    final model = OutfitBoardModel.fromPayload(
+      direction,
+      editorialCover: editorialCover,
+    );
+    final slots =
+        model.items.map((item) => _mapItemRole(item.role)).toList();
+    final hasTop = slots.contains(BoardItemRole.top);
+    final hasBottom = slots.contains(BoardItemRole.bottom);
+    final hasFootwear = slots.contains(BoardItemRole.footwear);
+    final hasDress = slots.contains(BoardItemRole.dress);
+    final classicViable = hasTop && hasBottom && hasFootwear;
+    final dressViable = hasDress && hasFootwear;
+    final knownRoleImages =
+        slots.where((slot) => slot != BoardItemRole.unknown).length;
+    return classicViable || dressViable || knownRoleImages >= 3;
+  }
+
   bool outfitBoardViable(
     Map<String, dynamic> direction, {
     Map<String, dynamic> editorialCover = const {},
@@ -838,13 +883,24 @@ StyleBoardData _toStyleBoardData(OutfitBoardModel model, Map<String, dynamic> di
       ),
     );
   }
+    final rendered = _enforceSlots(items);
+    final totalInput = model.imageItems.length;
+    final totalRendered = rendered.length;
+    debugPrint(
+      'AHVI_BOARD_RENDER_ASSET_SELECTION '
+      'total_input=$totalInput '
+      'rendered_items=$totalRendered '
+      'skipped_items=${totalInput - totalRendered} '
+      'roles_rendered=${rendered.map((e) => e.role.name).join(",")} '
+      'roles_skipped=${items.where((e) => !rendered.contains(e)).map((e) => e.role.name).join(",")}',
+    );
     return StyleBoardData(
       title: model.title,
       styleArchetype: direction['style_archetype'] ?? direction['styleArchetype'],
       boardRole: direction['board_role'] ?? direction['boardRole'],
       occasion: direction['occasion'],
       whyItWorks: direction['why_it_works'] ?? direction['whyThisWorks'] ?? direction['why_this_works'] ?? direction['explanation'] ?? '',
-      items: _enforceSlots(items),
+      items: rendered,
     );
 }
 
@@ -1052,10 +1108,6 @@ String _text(dynamic value, {String fallback = ''}) {
   return text.isEmpty ? fallback : text;
 }
 
-String? _url(dynamic value) {
-  final text = _text(value);
-  return text.isEmpty ? null : text;
-}
 
 List<String> _strings(dynamic value) {
   if (value is! List) return const [];
@@ -1074,4 +1126,54 @@ List<Map<String, dynamic>> _maps(dynamic value) {
       .whereType<Map>()
       .map((item) => Map<String, dynamic>.from(item))
       .toList(growable: false);
+}
+
+/// Returns the first valid transparent-PNG URL for a board item, or null.
+///
+/// Priority:
+///   1. board_image_url / transparent_image_url (explicit transparent fields)
+///   2. cutout_url if cutout_status == ready
+///   3. image_url if board_status == cutout_ready (backend already resolved it)
+///
+/// Never falls back to normalized/catalog product tile URLs.
+String? _transparentUrlFor(
+  Map<String, dynamic> item, {
+  String? itemId,
+  String? itemName,
+  String? role,
+}) {
+  for (final key in const <String>[
+    'board_image_url',
+    'boardImageUrl',
+    'transparent_image_url',
+    'transparentImageUrl',
+  ]) {
+    final v = item[key]?.toString().trim() ?? '';
+    if (v.isNotEmpty) return v;
+  }
+  final cutoutStatus =
+      (item['cutout_status'] ?? item['cutoutStatus'] ?? '').toString().toLowerCase().trim();
+  final cutoutUrl = (item['cutout_url'] ?? item['cutoutUrl'] ?? '').toString().trim();
+  if (cutoutUrl.isNotEmpty && cutoutStatus == 'ready') return cutoutUrl;
+
+  // board_status == "cutout_ready" means the backend's resolver already picked
+  // a transparent PNG and placed it in image_url. Trust the backend signal.
+  final boardStatus =
+      (item['board_status'] ?? item['boardStatus'] ?? '').toString().toLowerCase().trim();
+  if (boardStatus == 'cutout_ready') {
+    final imageUrl = (item['image_url'] ?? item['imageUrl'] ?? '').toString().trim();
+    if (imageUrl.isNotEmpty) return imageUrl;
+  }
+
+  debugPrint(
+    'AHVI_BOARD_ASSET_SKIPPED_NON_TRANSPARENT '
+    'item_id=${itemId ?? ""} '
+    'role=${role ?? ""} '
+    'name=${itemName ?? ""} '
+    'attempted_url_fields=[board_image_url,transparent_image_url,cutout_url,image_url(board_status=cutout_ready)] '
+    'cutout_status=$cutoutStatus '
+    'board_status=$boardStatus '
+    'reason=no_transparent_png_available',
+  );
+  return null;
 }

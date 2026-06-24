@@ -397,9 +397,30 @@ class AppwriteService extends ChangeNotifier {
     return done;
   }
 
+  int? _sanitizeSkinToneForAppwrite(dynamic value) {
+    if (value == null) return null;
+    if (value is int) return value;
+    if (value is String) {
+      if (value.trim().isEmpty) return null;
+      final parsed = int.tryParse(value.trim());
+      if (parsed != null) return parsed;
+    }
+    return null;
+  }
+
   Map<String, dynamic> _cleanProfilePayload(Map<String, dynamic> data) {
-    return Map<String, dynamic>.from(data)
-      ..removeWhere((key, value) => value == null);
+    final Map<String, dynamic> cleaned = Map<String, dynamic>.from(data);
+    
+    if (cleaned.containsKey('skinTone')) {
+      final sanitizedSkinTone = _sanitizeSkinToneForAppwrite(cleaned['skinTone']);
+      if (sanitizedSkinTone != null) {
+        cleaned['skinTone'] = sanitizedSkinTone;
+      } else {
+        cleaned.remove('skinTone');
+      }
+    }
+
+    return cleaned..removeWhere((key, value) => value == null);
   }
 
   Map<String, dynamic> _coreProfilePayload(Map<String, dynamic> data) {
@@ -443,7 +464,15 @@ class AppwriteService extends ChangeNotifier {
       );
     } on AppwriteException catch (e) {
       final fallback = _coreProfilePayload(cleaned);
-      if (fallback.isEmpty || fallback.length == cleaned.length) rethrow;
+      
+      bool retryWithSkinToneZero = false;
+      if (e.message != null && e.message!.contains('skinTone')) {
+        fallback['skinTone'] = 0;
+        retryWithSkinToneZero = true;
+      }
+
+      if (!retryWithSkinToneZero && (fallback.isEmpty || fallback.length == cleaned.length)) rethrow;
+      
       debugPrint(
         'AHVI_PROFILE_UPDATE_SCHEMA_RETRY error=${e.message} keys=${fallback.keys.toList()}',
       );
@@ -476,7 +505,15 @@ class AppwriteService extends ChangeNotifier {
       );
     } on AppwriteException catch (e) {
       final fallback = _coreProfilePayload(cleaned);
-      if (fallback.isEmpty || fallback.length == cleaned.length) rethrow;
+      
+      bool retryWithSkinToneZero = false;
+      if (e.message != null && e.message!.contains('skinTone')) {
+        fallback['skinTone'] = 0;
+        retryWithSkinToneZero = true;
+      }
+
+      if (!retryWithSkinToneZero && (fallback.isEmpty || fallback.length == cleaned.length)) rethrow;
+      
       debugPrint(
         'AHVI_PROFILE_CREATE_SCHEMA_RETRY error=${e.message} keys=${fallback.keys.toList()}',
       );

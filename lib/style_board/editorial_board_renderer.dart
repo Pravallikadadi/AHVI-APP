@@ -16,8 +16,8 @@ class EditorialBoardCanvas extends StatelessWidget {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.78),
-        borderRadius: BorderRadius.circular(24),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
       ),
       clipBehavior: Clip.antiAlias,
       child: LayoutBuilder(
@@ -31,7 +31,7 @@ class EditorialBoardCanvas extends StatelessWidget {
           );
 
           return Stack(
-            clipBehavior: Clip.none,
+            clipBehavior: Clip.hardEdge,
             children: [
               const _EditorialBackgroundDecor(),
               ...layout.placements.map((p) {
@@ -43,34 +43,11 @@ class EditorialBoardCanvas extends StatelessWidget {
                   child: EditorialBoardItem(item: p.item, rotation: p.rotation),
                 );
               }),
-              Positioned(
-                left: w * 0.03,
-                bottom: h * 0.035,
-                width: w * 0.42,
-                child: Text(
-                  _resolveCornerLabel(board),
-                  style: const TextStyle(
-                    fontSize: 17,
-                    height: 1.05,
-                    fontStyle: FontStyle.italic,
-                    color: Color(0xFF8A6A78),
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
             ],
           );
         },
       ),
     );
-  }
-
-  static String _resolveCornerLabel(StyleBoardData board) {
-    final role = board.story?.role?.trim();
-    if (role != null && role.isNotEmpty) return role;
-    final occasion = board.occasion?.trim();
-    if (occasion != null && occasion.isNotEmpty) return occasion;
-    return 'Composed.';
   }
 }
 
@@ -262,39 +239,8 @@ class _EditorialBackgroundDecor extends StatelessWidget {
 class _EditorialBackgroundPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    final softPink = Paint()
-      ..color = const Color(0xFFFFE8EE).withValues(alpha: 0.62);
-    final softLilac = Paint()
-      ..color = const Color(0xFFEFE5FA).withValues(alpha: 0.72);
-    final softCream = Paint()
-      ..color = const Color(0xFFFFF3D9).withValues(alpha: 0.58);
-
-    canvas.drawOval(
-      Rect.fromCenter(
-        center: Offset(size.width * 0.28, size.height * 0.30),
-        width: size.width * 0.52,
-        height: size.height * 0.38,
-      ),
-      softPink,
-    );
-
-    canvas.drawOval(
-      Rect.fromCenter(
-        center: Offset(size.width * 0.72, size.height * 0.45),
-        width: size.width * 0.46,
-        height: size.height * 0.50,
-      ),
-      softLilac,
-    );
-
-    canvas.drawOval(
-      Rect.fromCenter(
-        center: Offset(size.width * 0.36, size.height * 0.82),
-        width: size.width * 0.58,
-        height: size.height * 0.30,
-      ),
-      softCream,
-    );
+    // Clean flat off-white canvas. The card's 0xFFFAF9F6 backing shows
+    // through without decorative ovals competing with the garment cutouts.
   }
 
   @override
