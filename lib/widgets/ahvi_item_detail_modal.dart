@@ -21,6 +21,9 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:myapp/theme/theme_tokens.dart';
 import 'package:myapp/wardrobe.dart'; // WardrobeItem lives here
 import 'package:myapp/services/backend_service.dart'; // styleWardrobeItem
+import 'package:myapp/style_board/board_models.dart';
+import 'package:myapp/style_board/board_renderer.dart';
+import 'package:myapp/style_board/board_layout_engine.dart';
 import 'pairing_engine.dart';
 
 // ============================================================
@@ -476,13 +479,15 @@ class _ItemDetailModal extends StatelessWidget {
         (mode == 'build_outfit' && result?['outfit'] is Map)
             ? Map<String, dynamic>.from(result!['outfit'] as Map)
             : null;
+    final bool isAnchorBoard =
+        outfit != null && outfit['payload_type'] == 'ANCHOR_OUTFIT_BOARD';
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) => DraggableScrollableSheet(
-        initialChildSize: 0.7,
+        initialChildSize: isAnchorBoard ? 0.9 : 0.7,
         minChildSize: 0.4,
         maxChildSize: 0.95,
         expand: false,
@@ -528,7 +533,9 @@ class _ItemDetailModal extends StatelessWidget {
                 ),
               if (mode == 'style_this')
                 ...directions.map((d) => _StyleDirectionCard(direction: d)),
-              if (mode == 'build_outfit' && outfit != null)
+              if (mode == 'build_outfit' && isAnchorBoard && outfit != null)
+                _AnchorOutfitBoardCard(outfit: outfit),
+              if (mode == 'build_outfit' && !isAnchorBoard && outfit != null)
                 _StyleDirectionCard(direction: outfit, reasonKey: 'reason'),
             ],
           ),
@@ -1597,6 +1604,213 @@ class _StyleChip extends StatelessWidget {
           color: accent ? const Color(0xFF8FE3BE) : Colors.white,
           fontSize: 13,
         ),
+      ),
+    );
+  }
+}
+
+// ============================================================
+// ANCHOR OUTFIT BOARD — visual 9:16 board with source badges
+// ============================================================
+
+BoardItemRole _anchorBoardRoleFromRaw(Map<String, dynamic> raw) {
+  final category = raw['category']?.toString() ?? '';
+  final name = raw['name']?.toString() ?? '';
+  var role = BoardLayoutEngine.resolveRole(category, name: name);
+  if (role == BoardItemRole.unknown) {
+    // fall back to explicit backend role field
+    switch ((raw['role']?.toString() ?? '').toLowerCase()) {
+      case 'top':
+        role = BoardItemRole.top;
+        break;
+      case 'bottom':
+        role = BoardItemRole.bottom;
+        break;
+      case 'footwear':
+        role = BoardItemRole.footwear;
+        break;
+      case 'outerwear':
+        role = BoardItemRole.outerwear;
+        break;
+      case 'dress':
+        role = BoardItemRole.dress;
+        break;
+      case 'accessory':
+        role = BoardItemRole.accessory;
+        break;
+    }
+  }
+  return role;
+}
+
+class _AnchorOutfitBoardCard extends StatelessWidget {
+  final Map<String, dynamic> outfit;
+  const _AnchorOutfitBoardCard({required this.outfit});
+
+  List<Map<String, dynamic>> _rawItems() {
+    final v = outfit['board_items'] ?? outfit['items'];
+    if (v is! List) return <Map<String, dynamic>>[];
+    return v
+        .whereType<Map>()
+        .map((e) => Map<String, dynamic>.from(e))
+        .toList();
+  }
+
+  List<Map<String, dynamic>> _missingItems() {
+    final v = outfit['missing_items'];
+    if (v is! List) return <Map<String, dynamic>>[];
+    return v
+        .whereType<Map>()
+        .map((e) => Map<String, dynamic>.from(e))
+        .toList();
+  }
+
+  StyleBoardData _buildBoardData(List<Map<String, dynamic>> rawItems) {
+    final boardItems = rawItems.map((raw) {
+      return StyleBoardItem(
+        id: raw['item_id']?.toString() ?? '',
+        name: raw['name']?.toString() ?? '',
+        imageUrl: raw['image_url']?.toString() ?? '',
+        category: raw['category']?.toString() ?? '',
+        role: _anchorBoardRoleFromRaw(raw),
+        raw: raw,
+      );
+    }).toList();
+
+    return StyleBoardData(
+      title: outfit['title']?.toString() ?? 'Your Outfit',
+      occasion: outfit['occasion']?.toString(),
+      whyItWorks: outfit['styling_notes']?.toString() ?? outfit['reason']?.toString(),
+      items: boardItems,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final rawItems = _rawItems();
+    final missing = _missingItems();
+    final boardData = _buildBoardData(rawItems);
+    final stylingNote =
+        outfit['styling_notes']?.toString() ?? outfit['reason']?.toString() ?? '';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // 9:16 visual board
+        AspectRatio(
+          aspectRatio: 9 / 16,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: Container(
+              color: const Color(0xFFF7F4EE),
+              child: StyleBoardBody(board: boardData),
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        // item list with source badges
+        ...rawItems.map((raw) => _AnchorItemRow(raw: raw)),
+        if (stylingNote.isNotEmpty) ...[
+          const SizedBox(height: 14),
+          Text(
+            stylingNote,
+            style: const TextStyle(
+              color: Colors.white70,
+              fontSize: 13,
+              height: 1.4,
+            ),
+          ),
+        ],
+        if (missing.isNotEmpty) ...[
+          const SizedBox(height: 14),
+          const Text(
+            'MISSING — SHOP THESE',
+            style: TextStyle(
+              color: Colors.white38,
+              fontSize: 11,
+              letterSpacing: 0.6,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: missing.map((m) {
+              final label =
+                  (m['label'] ?? m['name'] ?? '').toString().trim();
+              return _StyleChip(label: label, accent: true);
+            }).toList(),
+          ),
+        ],
+        const SizedBox(height: 8),
+      ],
+    );
+  }
+}
+
+class _AnchorItemRow extends StatelessWidget {
+  final Map<String, dynamic> raw;
+  const _AnchorItemRow({required this.raw});
+
+  @override
+  Widget build(BuildContext context) {
+    final name = raw['name']?.toString() ?? '';
+    final isAnchor = raw['is_anchor'] == true;
+    final source = raw['source']?.toString() ?? 'wardrobe';
+    final imageUrl = raw['image_url']?.toString() ?? '';
+
+    final sourceLabel = isAnchor ? 'Your piece' : (source == 'wardrobe' ? 'Wardrobe' : 'Suggested');
+    final sourceColor = isAnchor
+        ? const Color(0xFF7B61FF)
+        : (source == 'wardrobe' ? const Color(0xFF34C759) : const Color(0xFFFF9500));
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        children: [
+          // thumbnail
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: Container(
+              width: 44,
+              height: 44,
+              color: const Color(0xFFF7F4EE),
+              child: imageUrl.isNotEmpty
+                  ? Image.network(imageUrl, fit: BoxFit.contain)
+                  : const Icon(Icons.checkroom, size: 20, color: Color(0xFFBFBFD6)),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              name,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: sourceColor.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: sourceColor.withValues(alpha: 0.4)),
+            ),
+            child: Text(
+              sourceLabel,
+              style: TextStyle(
+                color: sourceColor,
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
