@@ -556,6 +556,12 @@ class _BoardDirectionFallbackCard extends StatelessWidget {
           direction['why_this_works'],
       '',
     );
+
+    final hasRoles = outfitBoardHasRoles(direction, editorialCover: const {});
+    final String fallbackMessage = hasRoles
+        ? 'Found outfit pieces, but board images are not ready yet.'
+        : 'Board view needs complete pieces — a top, bottom, and footwear image. '
+            'Showing this as a direction for now.';
     return Container(
       width: width,
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
@@ -603,8 +609,7 @@ class _BoardDirectionFallbackCard extends StatelessWidget {
               const SizedBox(width: 6),
               Expanded(
                 child: Text(
-                  'Board view needs complete pieces — a top, bottom, and footwear image. '
-                  'Showing this as a direction for now.',
+                  fallbackMessage,
                   style: TextStyle(
                     color: t.mutedText,
                     fontSize: 11,

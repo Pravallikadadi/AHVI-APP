@@ -619,8 +619,8 @@ class OutfitBoardModel {
           itemName: name,
           role: _text(item['role'] ?? item['slot']),
         );
-        if (name.isEmpty || url == null) continue;
-        final key = '${name.toLowerCase()}::$url';
+        if (name.isEmpty) continue;
+        final key = '${name.toLowerCase()}::${url ?? "no-img"}';
         if (!seenKeys.add(key)) continue;
         built.add(
           OutfitBoardItem(
@@ -812,6 +812,27 @@ BoardItemRole _boardSlotForName(String name) {
 ///   dress    = dress + footwear
 ///   fallback = >=3 real-image pieces with known roles
 /// Text-only placeholders (no image) never count.
+  bool outfitBoardHasRoles(
+    Map<String, dynamic> direction, {
+    Map<String, dynamic> editorialCover = const {},
+  }) {
+    final model = OutfitBoardModel.fromPayload(
+      direction,
+      editorialCover: editorialCover,
+    );
+    final slots =
+        model.items.map((item) => _mapItemRole(item.role)).toList();
+    final hasTop = slots.contains(BoardItemRole.top);
+    final hasBottom = slots.contains(BoardItemRole.bottom);
+    final hasFootwear = slots.contains(BoardItemRole.footwear);
+    final hasDress = slots.contains(BoardItemRole.dress);
+    final classicViable = hasTop && hasBottom && hasFootwear;
+    final dressViable = hasDress && hasFootwear;
+    final knownRoleImages =
+        slots.where((slot) => slot != BoardItemRole.unknown).length;
+    return classicViable || dressViable || knownRoleImages >= 3;
+  }
+
   bool outfitBoardViable(
     Map<String, dynamic> direction, {
     Map<String, dynamic> editorialCover = const {},

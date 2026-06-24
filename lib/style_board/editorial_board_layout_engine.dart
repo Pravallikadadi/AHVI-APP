@@ -140,13 +140,13 @@ class EditorialBoardLayoutEngine {
       // UP and to the centre-right so it overlaps the shirt's hem (kills the
       // dead vertical gap), shoes anchor lower-left. Aspect-derived heights so
       // garments are not distorted.
-      final topW = width * 0.56;
-      final botW = width * 0.40;
+      final topW = width * 0.58;
+      final botW = width * 0.44;
       placements.add(
         BoardItemPlacement(
           item: top,
-          x: width * 0.17,
-          y: height * 0.12,
+          x: width * 0.18,
+          y: height * 0.20,
           width: topW,
           height: topW * 1.28,
           rotation: -0.02,
@@ -156,12 +156,12 @@ class EditorialBoardLayoutEngine {
       placements.add(
         BoardItemPlacement(
           item: bottom,
-          x: width * 0.44,
-          y: height * 0.46,
+          x: width * 0.45,
+          y: height * 0.53,
           width: botW,
           height: botW * 1.55,
           rotation: 0.01,
-          zIndex: 1,
+          zIndex: 2,
         ),
       );
     }
@@ -170,8 +170,8 @@ class EditorialBoardLayoutEngine {
     placements.add(
       BoardItemPlacement(
         item: footwear,
-        x: width * 0.12,
-        y: height * 0.71,
+        x: width * 0.16,
+        y: height * 0.69,
         width: footW,
         height: footW * 0.62,
         rotation: -0.03,
@@ -182,12 +182,12 @@ class EditorialBoardLayoutEngine {
     for (var i = 0; i < math.min(accessories.length, 2); i++) {
       // i==0 = small jewelry/accessory mid-right; i==1 = bag/extra upper-right,
       // a touch larger but never dominant. Both kept close to the outfit.
-      final accW = width * (i == 0 ? 0.21 : 0.27);
+      final accW = width * (i == 0 ? 0.16 : 0.20);
       placements.add(
         BoardItemPlacement(
           item: accessories[i],
-          x: width * (i == 0 ? 0.65 : 0.67),
-          y: height * (i == 0 ? 0.35 : 0.20),
+          x: width * (i == 0 ? 0.68 : 0.67),
+          y: height * (i == 0 ? 0.38 : 0.20),
           width: accW,
           height: accW,
           rotation: i == 0 ? 0.06 : -0.04,
