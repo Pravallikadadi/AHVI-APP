@@ -25,13 +25,31 @@ const _privateWearAliases = {
   'lounge shorts',
 };
 
+// Garment-identifying fields only — NOT prose (why_it_works / styling tips /
+// story). The board's LLM copy legitimately says "base layer" / "layer this",
+// and scanning the whole board blob false-flagged every look as private wear,
+// suppressing it to the empty "Regenerate look" placeholder. Mirrors the
+// backend fix in services/wardrobe_suitability.py:is_private_wear_item.
+const _garmentIdentityFields = <String>[
+  'name', 'label', 'title', 'garment_type', 'type',
+  'category', 'sub_category', 'subcategory',
+  'normalizedCategory', 'normalized_category',
+  'normalizedSubCategory', 'normalized_sub_category',
+  'style_role',
+];
+
+bool _itemIsPrivateWear(Map item) {
+  final blob =
+      ' ${_garmentIdentityFields.map((k) => item[k]?.toString() ?? '').join(' ').toLowerCase().replaceAll(RegExp(r'[^a-z0-9]+'), ' ').trim()} ';
+  // Word-boundary match so "brief" doesn't fire on "briefly" and "base layer"
+  // doesn't fire on prose.
+  return _privateWearAliases.any((alias) => blob.contains(' $alias '));
+}
+
 bool _containsPrivateWear(Map<String, dynamic> value) {
-  final blob = value.values
-      .where((v) => v is String || v is num || v is bool || v is List || v is Map)
-      .join(' ')
-      .toLowerCase()
-      .replaceAll(RegExp(r'[^a-z0-9]+'), ' ');
-  return _privateWearAliases.any((alias) => blob.contains(alias));
+  final items = value['items'];
+  if (items is! List) return false;
+  return items.any((r) => r is Map && _itemIsPrivateWear(r));
 }
 
 class StyleBoardBody extends StatelessWidget {

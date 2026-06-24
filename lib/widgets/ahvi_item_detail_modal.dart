@@ -492,9 +492,9 @@ class _ItemDetailModal extends StatelessWidget {
         maxChildSize: 0.95,
         expand: false,
         builder: (ctx, scrollCtrl) => Container(
-          decoration: const BoxDecoration(
-            color: Color(0xFF14110F),
-            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          decoration: BoxDecoration(
+            color: isAnchorBoard ? Colors.white : const Color(0xFF14110F),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
           ),
           padding: const EdgeInsets.fromLTRB(20, 14, 20, 24),
           child: ListView(
@@ -505,7 +505,9 @@ class _ItemDetailModal extends StatelessWidget {
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: Colors.white24,
+                    color: isAnchorBoard
+                        ? const Color(0x1A000000)
+                        : Colors.white24,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -513,8 +515,10 @@ class _ItemDetailModal extends StatelessWidget {
               const SizedBox(height: 16),
               Text(
                 mode == 'style_this' ? 'Style Directions' : 'Build Outfit',
-                style: const TextStyle(
-                  color: Colors.white,
+                style: TextStyle(
+                  color: isAnchorBoard
+                      ? const Color(0xFF1A1A1A)
+                      : Colors.white,
                   fontSize: 22,
                   fontWeight: FontWeight.w600,
                 ),
@@ -522,7 +526,12 @@ class _ItemDetailModal extends StatelessWidget {
               const SizedBox(height: 2),
               Text(
                 item.name,
-                style: const TextStyle(color: Colors.white60, fontSize: 13),
+                style: TextStyle(
+                  color: isAnchorBoard
+                      ? const Color(0xFF8A8A8E)
+                      : Colors.white60,
+                  fontSize: 13,
+                ),
               ),
               const SizedBox(height: 16),
               if (!ok || (message != null && message.isNotEmpty))
@@ -1665,45 +1674,24 @@ class _AnchorOutfitBoardCard extends StatelessWidget {
         .toList();
   }
 
-  StyleBoardData _buildBoardData(List<Map<String, dynamic>> rawItems) {
-    final boardItems = rawItems.map((raw) {
-      return StyleBoardItem(
-        id: raw['item_id']?.toString() ?? '',
-        name: raw['name']?.toString() ?? '',
-        imageUrl: raw['image_url']?.toString() ?? '',
-        category: raw['category']?.toString() ?? '',
-        role: _anchorBoardRoleFromRaw(raw),
-        raw: raw,
-      );
-    }).toList();
-
-    return StyleBoardData(
-      title: outfit['title']?.toString() ?? 'Your Outfit',
-      occasion: outfit['occasion']?.toString(),
-      whyItWorks: outfit['styling_notes']?.toString() ?? outfit['reason']?.toString(),
-      items: boardItems,
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final rawItems = _rawItems();
     final missing = _missingItems();
-    final boardData = _buildBoardData(rawItems);
     final stylingNote =
         outfit['styling_notes']?.toString() ?? outfit['reason']?.toString() ?? '';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // 9:16 visual board
+        // 9:16 flat-lay canvas
         AspectRatio(
           aspectRatio: 9 / 16,
           child: ClipRRect(
             borderRadius: BorderRadius.circular(16),
             child: Container(
-              color: const Color(0xFFF7F4EE),
-              child: StyleBoardBody(board: boardData),
+              color: Colors.white,
+              child: _AnchorBoardCanvas(items: rawItems),
             ),
           ),
         ),
@@ -1715,7 +1703,7 @@ class _AnchorOutfitBoardCard extends StatelessWidget {
           Text(
             stylingNote,
             style: const TextStyle(
-              color: Colors.white70,
+              color: Color(0xFF3C3C43),
               fontSize: 13,
               height: 1.4,
             ),
@@ -1726,7 +1714,7 @@ class _AnchorOutfitBoardCard extends StatelessWidget {
           const Text(
             'MISSING — SHOP THESE',
             style: TextStyle(
-              color: Colors.white38,
+              color: Color(0xFF8A8A8E),
               fontSize: 11,
               letterSpacing: 0.6,
             ),
@@ -1785,7 +1773,7 @@ class _AnchorItemRow extends StatelessWidget {
             child: Text(
               name,
               style: const TextStyle(
-                color: Colors.white,
+                color: Color(0xFF1A1A1A),
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
               ),
@@ -1812,6 +1800,180 @@ class _AnchorItemRow extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+// ============================================================
+// FLAT-LAY BOARD CANVAS — absolute-positioned 9:16 layout
+// ============================================================
+
+class _TileCfg {
+  final double left;
+  final double top;
+  final double width;
+  final double height;
+  final int zIndex;
+  const _TileCfg(this.left, this.top, this.width, this.height, this.zIndex);
+}
+
+class _AnchorBoardCanvas extends StatelessWidget {
+  final List<Map<String, dynamic>> items;
+  const _AnchorBoardCanvas({required this.items});
+
+  static const _l3Classic = <String, _TileCfg>{
+    'top':      _TileCfg(0.08, 0.04, 0.62, 0.40, 1),
+    'bottom':   _TileCfg(0.36, 0.46, 0.54, 0.42, 2),
+    'footwear': _TileCfg(0.08, 0.76, 0.44, 0.20, 3),
+  };
+  static const _l3Dress = <String, _TileCfg>{
+    'dress':     _TileCfg(0.10, 0.04, 0.58, 0.64, 1),
+    'footwear':  _TileCfg(0.08, 0.72, 0.40, 0.22, 2),
+    'accessory': _TileCfg(0.52, 0.68, 0.40, 0.26, 2),
+  };
+  static const _l4Classic = <String, _TileCfg>{
+    'top':       _TileCfg(0.08, 0.04, 0.55, 0.34, 1),
+    'accessory': _TileCfg(0.55, 0.06, 0.38, 0.26, 1),
+    'bottom':    _TileCfg(0.34, 0.42, 0.52, 0.38, 2),
+    'footwear':  _TileCfg(0.08, 0.72, 0.42, 0.22, 3),
+  };
+  static const _l5 = <String, _TileCfg>{
+    'outerwear': _TileCfg(0.06, 0.04, 0.44, 0.30, 1),
+    'top':       _TileCfg(0.48, 0.04, 0.46, 0.28, 1),
+    'bottom':    _TileCfg(0.24, 0.36, 0.52, 0.36, 2),
+    'footwear':  _TileCfg(0.06, 0.68, 0.40, 0.22, 3),
+    'accessory': _TileCfg(0.50, 0.64, 0.42, 0.28, 2),
+  };
+
+  static String _roleKey(BoardItemRole r) {
+    switch (r) {
+      case BoardItemRole.top: return 'top';
+      case BoardItemRole.bottom: return 'bottom';
+      case BoardItemRole.footwear: return 'footwear';
+      case BoardItemRole.outerwear: return 'outerwear';
+      case BoardItemRole.dress: return 'dress';
+      case BoardItemRole.accessory: return 'accessory';
+      case BoardItemRole.unknown: return 'unknown';
+    }
+  }
+
+  Map<String, _TileCfg> _pickTemplate() {
+    final roles = items.map((r) => _anchorBoardRoleFromRaw(r)).toSet();
+    if (roles.contains(BoardItemRole.dress)) return _l3Dress;
+    if (items.length >= 5) return _l5;
+    if (items.length == 4) return _l4Classic;
+    return _l3Classic;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final template = _pickTemplate();
+    final slots = <String, Map<String, dynamic>>{};
+    final usedSlots = <String>{};
+    for (final item in items) {
+      final key = _roleKey(_anchorBoardRoleFromRaw(item));
+      if (template.containsKey(key) && !usedSlots.contains(key)) {
+        slots[key] = item;
+        usedSlots.add(key);
+      }
+    }
+    final ordered = slots.entries.toList()
+      ..sort((a, b) =>
+          template[a.key]!.zIndex.compareTo(template[b.key]!.zIndex));
+
+    return LayoutBuilder(builder: (ctx, constraints) {
+      final W = constraints.maxWidth;
+      final H = constraints.maxHeight;
+      if (W <= 0 || H <= 0 || !W.isFinite || !H.isFinite) {
+        return const SizedBox.shrink();
+      }
+      debugPrint(
+        'AHVI_BOARD_CANVAS slots=${ordered.length} W=${W.toStringAsFixed(0)} H=${H.toStringAsFixed(0)}',
+      );
+      return Stack(
+        clipBehavior: Clip.hardEdge,
+        children: ordered.map((entry) {
+          final cfg = template[entry.key]!;
+          final left = cfg.left * W;
+          final top = cfg.top * H;
+          final w = cfg.width * W;
+          final h = cfg.height * H;
+          if (!left.isFinite || !top.isFinite || !w.isFinite || !h.isFinite || w <= 0 || h <= 0) {
+            return const SizedBox.shrink();
+          }
+          final raw = entry.value;
+          final imageUrl = raw['image_url']?.toString() ?? '';
+          final isAnchor = raw['is_anchor'] == true;
+          final name = raw['name']?.toString() ?? '';
+          debugPrint(
+            'AHVI_BOARD_TILE role=${entry.key} name=$name '
+            'x=${left.toStringAsFixed(1)} y=${top.toStringAsFixed(1)} '
+            'w=${w.toStringAsFixed(1)} h=${h.toStringAsFixed(1)} z=${cfg.zIndex} anchor=$isAnchor',
+          );
+          return Positioned(
+            left: left, top: top, width: w, height: h,
+            child: _FlatLayTile(imageUrl: imageUrl, isAnchor: isAnchor, name: name),
+          );
+        }).toList(),
+      );
+    });
+  }
+}
+
+class _FlatLayTile extends StatelessWidget {
+  final String imageUrl;
+  final bool isAnchor;
+  final String name;
+  const _FlatLayTile({required this.imageUrl, required this.isAnchor, required this.name});
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(10),
+            boxShadow: const [
+              BoxShadow(color: Color(0x1A000000), blurRadius: 12, offset: Offset(0, 4)),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: imageUrl.isNotEmpty
+                ? Image.network(
+                    imageUrl,
+                    fit: BoxFit.contain,
+                    width: double.infinity,
+                    height: double.infinity,
+                    errorBuilder: (_, __, ___) => const Center(
+                      child: Icon(Icons.checkroom, color: Color(0xFFD0CAC3), size: 32),
+                    ),
+                  )
+                : const Center(
+                    child: Icon(Icons.checkroom, color: Color(0xFFD0CAC3), size: 32),
+                  ),
+          ),
+        ),
+        if (isAnchor)
+          Positioned(
+            top: 6, left: 6,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+              decoration: BoxDecoration(
+                color: const Color(0xFF7B61FF),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: const Text(
+                'Yours',
+                style: TextStyle(
+                  color: Colors.white, fontSize: 9,
+                  fontWeight: FontWeight.w700, letterSpacing: 0.2,
+                ),
+              ),
+            ),
+          ),
+      ],
     );
   }
 }
