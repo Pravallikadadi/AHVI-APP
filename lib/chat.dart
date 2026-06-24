@@ -917,7 +917,7 @@ class _ChatScreenState extends State<ChatScreen>
   // Persisted style-pairing session — kept across follow-ups so anchor/route/
   // persona survive "use my wardrobe" / "show visual inspiration" / etc.
   Map<String, dynamic>? _lastStyleContext;
-  bool _isTyping = false;
+  bool _isTyping = false;
   bool _lastRequestWasWardrobe = false;
   String _userName = 'User';
   final Map<String, List<List<bool>>> _checklistChecksByTitle = {};
@@ -1358,53 +1358,69 @@ class _ChatScreenState extends State<ChatScreen>
       // which runs a module-aware LLM prompt. Same routing as the AHVI
       // stylist sheet, brought to the ChatScreen so Home/Utilities chats
       // actually return text instead of an empty style response.
-      final response = isStyleModule
-          ? await backend.sendChatQuery(
-              backendQueryText,
-              'user_$_userName',
-              List<Map<String, String>>.from(_chatHistory),
-              _runningMemory,
-              moduleContext: _module == 'daily_wear' ? 'style' : _module,
-              styleAction: isClosestAction ? 'show_closest_option' : null,
-              action: isClosestAction
-                  ? 'show_closest_option'
-                  : (isClarificationAnswer ? 'clarification_selected' : null),
-              clarification: isClarificationAnswer ? visibleText : null,
-              previousPrompt: isClarificationAnswer
-                  ? pendingClarificationPrompt
-                  : isClosestAction && originalStylePrompt.isNotEmpty
-                  ? originalStylePrompt
-                  : null,
-              resolvedPrompt: isClarificationAnswer
-                  ? clarificationResolvedPrompt
-                  : isClosestAction && resolvedStylePrompt.isNotEmpty
-                  ? resolvedStylePrompt
-                  : null,
-              styleContext: isClarificationAnswer
-                  ? {
-                      'original_prompt': pendingClarificationPrompt,
-                      'clarification': visibleText,
-                      'resolved_prompt': clarificationResolvedPrompt,
-                    }
-                  : isClosestAction && resolvedStylePrompt.isNotEmpty
-                  ? {
-                      'original_prompt': originalStylePrompt,
-                      'resolved_prompt': resolvedStylePrompt,
-                      if (interpretedOccasion != null)
-                        'interpreted_occasion': interpretedOccasion,
-                    }
-                  : null,
-              lastStyleContext: _lastStyleContext,
-              showClosestOption: isClosestAction,
-              allowClosestOption: isClosestAction,
-              closest: isClosestAction,
-            )
-          : await backend.sendModuleChat(
-              domain: isPlanPackRequest ? 'planner' : _module,
-              message: queryText,
-              context: isPlanPackAction ? _lastPlanPackContext : const {},
-              chatHistory: List<Map<String, String>>.from(_chatHistory),
-            );
+      // Style/wardrobe board requests route through /api/module-chat (the
+      // validated board path). The homepage is now the summary surface and
+      // /api/text only returns style_advice TEXT (no board), so a typed style
+      // prompt produced nothing. Closest-option / clarification follow-ups
+      // still use /api/text because they depend on its rich style params.
+      final bool styleViaText =
+          isStyleModule && (isClosestAction || isClarificationAnswer);
+      final Map<String, dynamic> response;
+      if (styleViaText) {
+        response = await backend.sendChatQuery(
+          backendQueryText,
+          'user_$_userName',
+          List<Map<String, String>>.from(_chatHistory),
+          _runningMemory,
+          moduleContext: _module == 'daily_wear' ? 'style' : _module,
+          styleAction: isClosestAction ? 'show_closest_option' : null,
+          action: isClosestAction
+              ? 'show_closest_option'
+              : (isClarificationAnswer ? 'clarification_selected' : null),
+          clarification: isClarificationAnswer ? visibleText : null,
+          previousPrompt: isClarificationAnswer
+              ? pendingClarificationPrompt
+              : isClosestAction && originalStylePrompt.isNotEmpty
+              ? originalStylePrompt
+              : null,
+          resolvedPrompt: isClarificationAnswer
+              ? clarificationResolvedPrompt
+              : isClosestAction && resolvedStylePrompt.isNotEmpty
+              ? resolvedStylePrompt
+              : null,
+          styleContext: isClarificationAnswer
+              ? {
+                  'original_prompt': pendingClarificationPrompt,
+                  'clarification': visibleText,
+                  'resolved_prompt': clarificationResolvedPrompt,
+                }
+              : isClosestAction && resolvedStylePrompt.isNotEmpty
+              ? {
+                  'original_prompt': originalStylePrompt,
+                  'resolved_prompt': resolvedStylePrompt,
+                  if (interpretedOccasion != null)
+                    'interpreted_occasion': interpretedOccasion,
+                }
+              : null,
+          lastStyleContext: _lastStyleContext,
+          showClosestOption: isClosestAction,
+          allowClosestOption: isClosestAction,
+          closest: isClosestAction,
+        );
+      } else if (isStyleModule) {
+        response = await backend.sendModuleChat(
+          domain: _module == 'daily_wear' ? 'style' : _module,
+          message: backendQueryText,
+          chatHistory: List<Map<String, String>>.from(_chatHistory),
+        );
+      } else {
+        response = await backend.sendModuleChat(
+          domain: isPlanPackRequest ? 'planner' : _module,
+          message: queryText,
+          context: isPlanPackAction ? _lastPlanPackContext : const {},
+          chatHistory: List<Map<String, String>>.from(_chatHistory),
+        );
+      }
       if (!mounted) return;
       if (response['updated_memory'] != null) {
         _runningMemory = response['updated_memory'];
@@ -1915,16 +1931,23 @@ class _ChatScreenState extends State<ChatScreen>
                 ),
         ),
       ),
-      if (!m.isMe && m.blocks.isNotEmpty)
-        ...m.blocks.map((block) => _renderBlock(block, t)),
-      if (!m.isMe && m.blocks.isEmpty && m.moduleCard != null)
-        _moduleCardView(m.moduleCard!, t),
-      if (!m.isMe && m.blocks.isEmpty && m.moduleCards.isNotEmpty)
-        _genericModuleCardsView(m.moduleCards, t),
-      if (!m.isMe && m.blocks.isEmpty && m.cards.isNotEmpty)
-        _outfitBoardView(m.cards, t),
-      if (!m.isMe && m.blocks.isEmpty && m.visualBoard != null)
-        _visualBoardView(m.visualBoard!, t),
+      // Style board cards take priority over text blocks. The module-chat
+      // style response carries both a text block ("I pulled together…") AND the
+      // board cards; rendering blocks first meant the board was skipped and the
+      // text/items showed as a checklist. When cards (or a visual board) exist,
+      // render the board and suppress the redundant blocks.
+      if (!m.isMe && m.cards.isNotEmpty)
+        _outfitBoardView(m.cards, t)
+      else if (!m.isMe && m.visualBoard != null)
+        _visualBoardView(m.visualBoard!, t)
+      else ...[
+        if (m.blocks.isNotEmpty)
+          ...m.blocks.map((block) => _renderBlock(block, t)),
+        if (m.blocks.isEmpty && m.moduleCard != null)
+          _moduleCardView(m.moduleCard!, t),
+        if (m.blocks.isEmpty && m.moduleCards.isNotEmpty)
+          _genericModuleCardsView(m.moduleCards, t),
+      ],
       if (!m.isMe && m.local != null) _localView(m.local!, t),
       if (!m.isMe && m.chips.isNotEmpty)
         Padding(

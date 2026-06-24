@@ -40,7 +40,8 @@ class AhviOutfitBoardCard extends StatelessWidget {
 
     return SizedBox(
       width: width,
-      height: width * 16 / 9,
+      // 4:5 portrait (Instagram-feed ratio): height = width * 5 / 4.
+      height: width * 5 / 4,
       child: DecoratedBox(
         decoration: BoxDecoration(
           // Soft off-white canvas so the board reads as one flat-lay surface,
