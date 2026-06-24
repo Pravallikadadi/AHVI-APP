@@ -352,6 +352,43 @@ class _EmptyState extends StatelessWidget {
   }
 }
 
+/// Returns the first valid transparent-PNG URL for a board item, or empty string.
+/// Priority: board_image_url → transparent_image_url → cutout_url (if ready)
+///   → image_url if board_status == cutout_ready.
+/// Never falls back to normalized/original opaque product images.
+String _selectTransparentUrl(Map<String, dynamic> m, {required String name}) {
+  for (final key in const <String>[
+    'board_image_url',
+    'boardImageUrl',
+    'transparent_image_url',
+    'transparentImageUrl',
+  ]) {
+    final v = m[key]?.toString().trim() ?? '';
+    if (v.isNotEmpty) return v;
+  }
+  final cutoutStatus =
+      (m['cutout_status'] ?? m['cutoutStatus'] ?? '').toString().toLowerCase().trim();
+  final cutoutUrl = (m['cutout_url'] ?? m['cutoutUrl'] ?? '').toString().trim();
+  if (cutoutUrl.isNotEmpty && cutoutStatus == 'ready') return cutoutUrl;
+
+  final boardStatus =
+      (m['board_status'] ?? m['boardStatus'] ?? '').toString().toLowerCase().trim();
+  if (boardStatus == 'cutout_ready') {
+    final imageUrl = (m['image_url'] ?? m['imageUrl'] ?? '').toString().trim();
+    if (imageUrl.isNotEmpty) return imageUrl;
+  }
+
+  debugPrint(
+    'AHVI_BOARD_ASSET_SKIPPED_NON_TRANSPARENT '
+    'name=$name '
+    'attempted_url_fields=[board_image_url,transparent_image_url,cutout_url,image_url(board_status=cutout_ready)] '
+    'cutout_status=$cutoutStatus '
+    'board_status=$boardStatus '
+    'reason=no_transparent_png_available',
+  );
+  return '';
+}
+
 StyleBoardData boardDataFromMap(Map<String, dynamic> board) {
   if (_containsPrivateWear(board)) {
     return const StyleBoardData(
@@ -366,21 +403,12 @@ StyleBoardData boardDataFromMap(Map<String, dynamic> board) {
   for (final r in rawItems) {
     if (r is! Map) continue;
     final m = Map<String, dynamic>.from(r);
-    final imageUrl =
-        (m['normalized_url'] ??
-                m['normalizedUrl'] ??
-                m['masked_url'] ??
-                m['maskedUrl'] ??
-                m['image_url'] ??
-                m['imageUrl'] ??
-                m['url'] ??
-                m['image'] ??
-                '')
-            .toString()
-            .trim();
     final name =
         (m['name'] ?? m['label'] ?? m['title'] ?? m['category'] ?? 'Item')
             .toString();
+    final imageUrl = _selectTransparentUrl(m, name: name);
+    // Skip items with no transparent PNG — never fall back to opaque tiles.
+    if (imageUrl.isEmpty) continue;
     final category =
         (m['category'] ??
                 m['sub_category'] ??
@@ -389,7 +417,6 @@ StyleBoardData boardDataFromMap(Map<String, dynamic> board) {
                 '')
             .toString();
     final id = (m[r'$id'] ?? m['id'] ?? m['item_id'] ?? name).toString();
-    if (imageUrl.isEmpty && name.trim().isEmpty) continue;
     items.add(
       StyleBoardItem(
         id: id,

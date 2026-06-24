@@ -16,8 +16,8 @@ class EditorialBoardCanvas extends StatelessWidget {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.78),
-        borderRadius: BorderRadius.circular(24),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
       ),
       clipBehavior: Clip.antiAlias,
       child: LayoutBuilder(
@@ -31,7 +31,7 @@ class EditorialBoardCanvas extends StatelessWidget {
           );
 
           return Stack(
-            clipBehavior: Clip.none,
+            clipBehavior: Clip.hardEdge,
             children: [
               const _EditorialBackgroundDecor(),
               ...layout.placements.map((p) {
@@ -43,34 +43,11 @@ class EditorialBoardCanvas extends StatelessWidget {
                   child: EditorialBoardItem(item: p.item, rotation: p.rotation),
                 );
               }),
-              Positioned(
-                left: w * 0.03,
-                bottom: h * 0.035,
-                width: w * 0.42,
-                child: Text(
-                  _resolveCornerLabel(board),
-                  style: const TextStyle(
-                    fontSize: 17,
-                    height: 1.05,
-                    fontStyle: FontStyle.italic,
-                    color: Color(0xFF8A6A78),
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
             ],
           );
         },
       ),
     );
-  }
-
-  static String _resolveCornerLabel(StyleBoardData board) {
-    final role = board.story?.role?.trim();
-    if (role != null && role.isNotEmpty) return role;
-    final occasion = board.occasion?.trim();
-    if (occasion != null && occasion.isNotEmpty) return occasion;
-    return 'Composed.';
   }
 }
 

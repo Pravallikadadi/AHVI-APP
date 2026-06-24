@@ -24,8 +24,9 @@ class EditorialBoardLayoutEngine {
       );
     }
 
+    final EditorialLayoutResult raw;
     if (dress != null) {
-      return _dressFocused(
+      raw = _dressFocused(
         dress: dress,
         footwear: footwear,
         outerwear: outerwear,
@@ -33,11 +34,9 @@ class EditorialBoardLayoutEngine {
         width: width,
         height: height,
       );
-    }
-
-    if (top != null && bottom != null && footwear != null) {
+    } else if (top != null && bottom != null && footwear != null) {
       if (accessories.length <= 2) {
-        return _classicThreePlusAccessory(
+        raw = _classicThreePlusAccessory(
           top: top,
           bottom: bottom,
           footwear: footwear,
@@ -46,22 +45,27 @@ class EditorialBoardLayoutEngine {
           width: width,
           height: height,
         );
+      } else {
+        raw = _accessoryHeavy(
+          mainItems: <StyleBoardItem>[
+            ?outerwear,
+            top,
+            bottom,
+            footwear,
+          ],
+          accessories: accessories,
+          width: width,
+          height: height,
+        );
       }
-
-      return _accessoryHeavy(
-        mainItems: <StyleBoardItem>[
-          if (outerwear != null) outerwear,
-          top,
-          bottom,
-          footwear,
-        ],
-        accessories: accessories,
-        width: width,
-        height: height,
-      );
+    } else {
+      raw = _generic(items: board.items, width: width, height: height);
     }
 
-    return _generic(items: board.items, width: width, height: height);
+    // Enforce safe zones: 5% top, 6% sides, 10% bottom.
+    // Prevents footwear/hems from touching the action row or canvas edge.
+    final safePlacements = _applySafeZone(raw.placements, width, height);
+    return EditorialLayoutResult(mode: raw.mode, placements: safePlacements);
   }
 
   static StyleBoardItem? _firstOf(
@@ -87,27 +91,64 @@ class EditorialBoardLayoutEngine {
     final placements = <BoardItemPlacement>[];
 
     if (hasOuter) {
-      // Outerwear gets its own left column (behind, zIndex 0) and the hero is
-      // shifted right to sit over its right half — so the jacket clearly reads
-      // as a layer instead of hiding fully behind the top.
+      // Outfit-first flat-lay: jacket+shirt column left/center, jeans below,
+      // footwear lower-left. AR-derived from canvas fractions (Meghna ratios as
+      // guidance only — never force absolute sizes that exceed the canvas).
+      final outerW = width * 0.60;
+      final outerH = outerW * (460.0 / 340.0); // AR 340:460
       placements.add(
         BoardItemPlacement(
           item: outerwear,
-          x: width * 0.00,
-          y: height * 0.05,
-          width: width * 0.44,
-          height: height * 0.52,
-          rotation: -0.05,
+          x: width * 0.08,
+          y: height * 0.00,
+          width: outerW,
+          height: outerH,
+          rotation: -0.03,
           zIndex: 0,
         ),
       );
+      final layerTopW = width * 0.44;
+      final layerTopH = layerTopW * (330.0 / 250.0); // AR 250:330
       placements.add(
         BoardItemPlacement(
           item: top,
-          x: width * 0.22,
-          y: height * 0.13,
-          width: width * 0.40,
-          height: height * 0.40,
+          x: width * 0.18,
+          y: height * 0.09,
+          width: layerTopW,
+          height: layerTopH,
+          rotation: -0.015,
+          zIndex: 2,
+        ),
+      );
+      final botW = width * 0.37;
+      final botY = height * 0.48;
+      // Cap jeans height so hem never exceeds safe-bottom zone.
+      final botH = (botW * (650.0 / 250.0)).clamp(0.0, height * 0.90 - botY);
+      placements.add(
+        BoardItemPlacement(
+          item: bottom,
+          x: width * 0.42,
+          y: botY,
+          width: botW,
+          height: botH,
+          rotation: 0.01,
+          zIndex: 1,
+        ),
+      );
+    } else {
+      // Editorial flat-lay, no outerwear: hero shirt upper-centre, jeans pulled
+      // UP and to the centre-right so it overlaps the shirt's hem (kills the
+      // dead vertical gap), shoes anchor lower-left. Aspect-derived heights so
+      // garments are not distorted.
+      final topW = width * 0.56;
+      final botW = width * 0.40;
+      placements.add(
+        BoardItemPlacement(
+          item: top,
+          x: width * 0.17,
+          y: height * 0.12,
+          width: topW,
+          height: topW * 1.28,
           rotation: -0.02,
           zIndex: 2,
         ),
@@ -115,61 +156,42 @@ class EditorialBoardLayoutEngine {
       placements.add(
         BoardItemPlacement(
           item: bottom,
-          x: width * 0.56,
-          y: height * 0.04,
-          width: width * 0.44,
-          height: height * 0.62,
-          rotation: 0.02,
-          zIndex: 1,
-        ),
-      );
-    } else {
-      placements.add(
-        BoardItemPlacement(
-          item: top,
-          x: width * 0.01,
-          y: height * 0.05,
-          width: width * 0.53,
-          height: height * 0.45,
-          rotation: -0.035,
-          zIndex: 2,
-        ),
-      );
-      placements.add(
-        BoardItemPlacement(
-          item: bottom,
-          x: width * 0.45,
-          y: height * 0.02,
-          width: width * 0.55,
-          height: height * 0.68,
-          rotation: 0.015,
+          x: width * 0.44,
+          y: height * 0.46,
+          width: botW,
+          height: botW * 1.55,
+          rotation: 0.01,
           zIndex: 1,
         ),
       );
     }
 
+    final footW = width * 0.40;
     placements.add(
       BoardItemPlacement(
         item: footwear,
-        x: width * 0.03,
-        y: height * 0.60,
-        width: width * 0.55,
-        height: height * 0.35,
+        x: width * 0.12,
+        y: height * 0.71,
+        width: footW,
+        height: footW * 0.62,
         rotation: -0.03,
         zIndex: 3,
       ),
     );
 
     for (var i = 0; i < math.min(accessories.length, 2); i++) {
+      // i==0 = small jewelry/accessory mid-right; i==1 = bag/extra upper-right,
+      // a touch larger but never dominant. Both kept close to the outfit.
+      final accW = width * (i == 0 ? 0.21 : 0.27);
       placements.add(
         BoardItemPlacement(
           item: accessories[i],
-          x: width * (i == 0 ? 0.62 : 0.66),
-          y: height * (i == 0 ? 0.72 : 0.50),
-          width: width * 0.31,
-          height: height * 0.23,
+          x: width * (i == 0 ? 0.65 : 0.67),
+          y: height * (i == 0 ? 0.35 : 0.20),
+          width: accW,
+          height: accW,
           rotation: i == 0 ? 0.06 : -0.04,
-          zIndex: 4,
+          zIndex: i == 0 ? 4 : 3,
         ),
       );
     }
@@ -316,6 +338,37 @@ class EditorialBoardLayoutEngine {
   static List<BoardItemPlacement> _sorted(List<BoardItemPlacement> placements) {
     return <BoardItemPlacement>[...placements]
       ..sort((a, b) => a.zIndex.compareTo(b.zIndex));
+  }
+
+  /// Enforce safe zones on every placement:
+  ///   top  5%, sides 6%, bottom 10%.
+  /// Shoes and hems that exceed the safe-bottom boundary are moved UP.
+  /// Items that exceed top/side margins are clamped to the margin edge.
+  /// Width/height are never shrunk unless the item is already too tall to fit.
+  static List<BoardItemPlacement> _applySafeZone(
+    List<BoardItemPlacement> placements,
+    double width,
+    double height,
+  ) {
+    final safeBottomY = height * 0.90;
+    final safeTopY = height * 0.05;
+    final safeLeftX = width * 0.06;
+    final safeRightX = width * 0.94;
+    return placements.map((p) {
+      double y = p.y;
+      double x = p.x;
+      // Push up if item bottom overflows the safe zone.
+      if (y + p.height > safeBottomY) {
+        y = safeBottomY - p.height;
+      }
+      // Don't go above top margin.
+      if (y < safeTopY) y = safeTopY;
+      // Clamp x to side margins.
+      if (x < safeLeftX) x = safeLeftX;
+      if (x + p.width > safeRightX) x = safeRightX - p.width;
+      if (x == p.x && y == p.y) return p;
+      return p.copyWith(x: x, y: y);
+    }).toList();
   }
 }
 
