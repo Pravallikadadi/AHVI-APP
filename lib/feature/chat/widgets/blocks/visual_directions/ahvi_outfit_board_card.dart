@@ -305,8 +305,25 @@ class OutfitContextStrip extends StatelessWidget {
                     .toList(growable: false),
               ),
             ],
+            // Style reason (why_it_works) — was never rendered, so boards
+            // showed no rationale. Show it under the title.
+            if (model.intelligenceText.isNotEmpty) ...[
+              const SizedBox(height: 6),
+              Text(
+                model.intelligenceText,
+                textAlign: TextAlign.left,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: t.textPrimary,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                  height: 1.22,
+                ),
+              ),
+            ],
             if (model.stylingTip.isNotEmpty) ...[
-              const SizedBox(height: 8),
+              const SizedBox(height: 6),
               Text(
                 model.stylingTip,
                 textAlign: TextAlign.left,
