@@ -647,6 +647,33 @@ class BackendService {
     }
   }
 
+  /// Fire-and-forget board feedback for the unified style card's
+  /// Like / Dislike (and Save / Shuffle / Share) actions. POSTs the backend
+  /// feedback endpoint; failures are swallowed so the UI never blocks on it.
+  /// This is also the training signal for the adaptive stylist brain.
+  Future<void> sendBoardFeedback({
+    required String action,
+    required Map<String, dynamic> board,
+  }) async {
+    try {
+      final userId = await _currentUserId();
+      await http
+          .post(
+            Uri.parse('$baseUrl/api/feedback/board'),
+            headers: await _authHeaders(),
+            body: jsonEncode({
+              'user_id': userId,
+              'action': action,
+              'board_payload': board,
+            }),
+          )
+          .timeout(const Duration(seconds: 12));
+      debugPrint('AHVI_BOARD_FEEDBACK_SENT action=$action');
+    } catch (e) {
+      debugPrint('AHVI_BOARD_FEEDBACK_FAIL action=$action error=$e');
+    }
+  }
+
   /// Bill receipt OCR. Sends a base64 image to the backend's vision
   /// pipeline; returns the extracted fields (store/amount/date/category/
   /// items/currency) so the Bills "AI Autofill" sheet can populate.

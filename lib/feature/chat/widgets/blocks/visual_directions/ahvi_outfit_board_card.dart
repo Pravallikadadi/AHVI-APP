@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:myapp/feature/chat/services/fashion_item_filter.dart';
 import 'package:myapp/feature/chat/services/saved_boards_store.dart';
 import 'package:myapp/feature/chat/widgets/blocks/visual_directions/editorial_collage.dart';
+import 'package:myapp/services/backend_service.dart';
 import 'package:myapp/theme/theme_tokens.dart';
 import 'package:myapp/style_board/board_models.dart';
 import 'package:myapp/style_board/editorial_board_renderer.dart';
@@ -398,6 +400,41 @@ class OutfitActionBar extends StatefulWidget {
 class _OutfitActionBarState extends State<OutfitActionBar> {
   bool _saved = false;
   bool _saving = false;
+  bool _liked = false;
+  bool _disliked = false;
+
+  void _sendFeedback(String action) {
+    // Fire-and-forget; also the adaptive stylist-brain training signal.
+    Provider.of<BackendService>(context, listen: false)
+        .sendBoardFeedback(action: action, board: widget.direction);
+  }
+
+  void _toggleLike() {
+    setState(() {
+      _liked = !_liked;
+      if (_liked) _disliked = false;
+    });
+    if (_liked) _sendFeedback('like');
+  }
+
+  void _toggleDislike() {
+    setState(() {
+      _disliked = !_disliked;
+      if (_disliked) _liked = false;
+    });
+    if (_disliked) _sendFeedback('dislike');
+  }
+
+  void _share() {
+    _sendFeedback('shared');
+    ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+      const SnackBar(
+        content: Text('Sharing this look…'),
+        duration: Duration(seconds: 2),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
 
   String get _occasion {
     final cover = _text(widget.editorialCover['occasion_label']);
@@ -436,6 +473,7 @@ class _OutfitActionBarState extends State<OutfitActionBar> {
           direction: widget.direction,
           editorialCover: widget.editorialCover,
         );
+        _sendFeedback('saved');
       }
       if (!mounted) return;
       setState(() {
@@ -466,26 +504,31 @@ class _OutfitActionBarState extends State<OutfitActionBar> {
         label: 'Shuffle',
         enabled: canSend,
         onTap: () => widget.onSendMessage?.call(
-          'Show more looks like ${widget.primaryLabel}',
+          'Show me another look for ${widget.primaryLabel}',
         ),
       ),
       _BoardAction(
-        icon: Icons.checkroom_rounded,
-        label: 'Use Wardrobe',
-        enabled: canSend,
-        onTap: () => widget.onSendMessage?.call(
-          'Use my wardrobe for ${widget.primaryLabel}',
-        ),
+        icon: _liked
+            ? Icons.thumb_up_alt_rounded
+            : Icons.thumb_up_off_alt_rounded,
+        label: 'Like',
+        enabled: true,
+        onTap: _toggleLike,
       ),
-      if (widget.missingName.isNotEmpty)
-        _BoardAction(
-          icon: Icons.shopping_bag_outlined,
-          label: 'Missing',
-          enabled: canSend,
-          onTap: () => widget.onSendMessage?.call(
-            'Show shopping ideas for: ${widget.missingName}',
-          ),
-        ),
+      _BoardAction(
+        icon: _disliked
+            ? Icons.thumb_down_alt_rounded
+            : Icons.thumb_down_off_alt_rounded,
+        label: 'Dislike',
+        enabled: true,
+        onTap: _toggleDislike,
+      ),
+      _BoardAction(
+        icon: Icons.ios_share_rounded,
+        label: 'Share',
+        enabled: true,
+        onTap: _share,
+      ),
     ];
 
     return DecoratedBox(
