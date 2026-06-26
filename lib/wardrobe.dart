@@ -4,6 +4,7 @@
 
 import 'dart:convert';
 import 'dart:io';
+import 'dart:ui' as ui;
 import 'package:camera/camera.dart';
 import 'package:myapp/services/backend_service.dart';
 import 'package:myapp/services/appwrite_service.dart';
@@ -1901,6 +1902,18 @@ class _DetectedItem {
       'input_type': inputType,
       if (sourceImageIndex != null) 'source_image_index': sourceImageIndex,
     });
+    // When the server cached the crop during analyze (image_cache_token present
+    // in `raw`), drop the heavy base64 from the save upload — the backend
+    // restores the bytes from the token. This collapses a ~MB upload to a few
+    // bytes (the big driver of slow saves on weak networks).
+    final hasCacheToken =
+        (raw['image_cache_token']?.toString().trim().isNotEmpty ?? false);
+    if (hasCacheToken) {
+      payload.remove('raw_image_base64');
+      payload.remove('rawImageBase64');
+      payload.remove('masked_image_base64');
+      payload.remove('maskedImageBase64');
+    }
     return payload;
   }
 
@@ -2780,6 +2793,46 @@ class _AddItemModalState extends State<_AddItemModal>
     );
   }
 
+  // Downscale a (data-uri) base64 image to <= maxDim px before upload, so the
+  // save payload stays small on weak networks (the dominant cost of slow
+  // saves). Safe for quality: the catalog re-renders generatively
+  // (ghost-mannequin), so a moderate downscale doesn't affect the output.
+  // Returns the original string on any failure.
+  Future<String> _downscaleBase64ForUpload(String dataB64,
+      {int maxDim = 1536}) async {
+    try {
+      var b64 = dataB64;
+      String prefix = '';
+      final comma = b64.indexOf(',');
+      if (b64.startsWith('data:') && comma != -1) {
+        prefix = b64.substring(0, comma + 1);
+        b64 = b64.substring(comma + 1);
+      }
+      final bytes = base64Decode(b64);
+      final codec = await ui.instantiateImageCodec(bytes);
+      final frame = await codec.getNextFrame();
+      final w = frame.image.width, h = frame.image.height;
+      final longSide = w > h ? w : h;
+      frame.image.dispose();
+      if (longSide <= maxDim) return dataB64;
+      final scale = maxDim / longSide;
+      final codec2 = await ui.instantiateImageCodec(
+        bytes,
+        targetWidth: (w * scale).round(),
+        targetHeight: (h * scale).round(),
+      );
+      final frame2 = await codec2.getNextFrame();
+      final byteData =
+          await frame2.image.toByteData(format: ui.ImageByteFormat.png);
+      frame2.image.dispose();
+      if (byteData == null) return dataB64;
+      final out = base64Encode(byteData.buffer.asUint8List());
+      return '${prefix.isNotEmpty ? prefix : 'data:image/png;base64,'}$out';
+    } catch (_) {
+      return dataB64;
+    }
+  }
+
   Future<void> _confirmAndSave() async {
     if (_isSavingWardrobe) return;
     final selected = _detected
@@ -2795,6 +2848,19 @@ class _AddItemModalState extends State<_AddItemModal>
     }
     HapticFeedback.lightImpact();
     final payloads = selected.map((item) => item.toBackendPayload()).toList();
+    // Shrink the upload: downscale heavy base64 before sending. Skipped when a
+    // server cache token is present (base64 already dropped via toBackendPayload).
+    for (final p in payloads) {
+      final hasToken =
+          (p['image_cache_token']?.toString().trim().isNotEmpty ?? false);
+      if (hasToken) continue;
+      for (final key in const ['masked_image_base64', 'raw_image_base64']) {
+        final b64 = p[key]?.toString();
+        if (b64 != null && b64.isNotEmpty) {
+          p[key] = await _downscaleBase64ForUpload(b64);
+        }
+      }
+    }
     final backendService = Provider.of<BackendService>(context, listen: false);
     // TIMING: split the slow "whole process" into human-review vs upload vs
     // server. review_ms = preview shown -> save tapped; payload_kb = upload
