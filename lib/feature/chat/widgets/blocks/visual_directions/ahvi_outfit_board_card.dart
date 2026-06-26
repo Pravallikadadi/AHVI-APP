@@ -296,15 +296,19 @@ class OutfitContextStrip extends StatelessWidget {
                 height: 1.05,
               ),
             ),
-            if (model.chips.isNotEmpty) ...[
+            if (model.chips.isNotEmpty || model.wardrobeMatchPct != null) ...[
               const SizedBox(height: 7),
               Wrap(
                 spacing: 6,
                 runSpacing: 5,
-                children: model.chips
-                    .take(3)
-                    .map((chip) => _ContextChip(label: chip))
-                    .toList(growable: false),
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  if (model.wardrobeMatchPct != null)
+                    _WardrobeMatchPill(pct: model.wardrobeMatchPct!),
+                  ...model.chips
+                      .take(3)
+                      .map((chip) => _ContextChip(label: chip)),
+                ],
               ),
             ],
             // Style reason (why_it_works) — was never rendered, so boards
@@ -372,6 +376,45 @@ class _ContextChip extends StatelessWidget {
           fontSize: 9.5,
           fontWeight: FontWeight.w700,
         ),
+      ),
+    );
+  }
+}
+
+/// Compact "NN% wardrobe match" pill — only shown for wardrobe boards
+/// (catalog / visual-inspiration looks carry no match and hide it).
+class _WardrobeMatchPill extends StatelessWidget {
+  final int pct;
+
+  const _WardrobeMatchPill({required this.pct});
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.themeTokens;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
+      decoration: BoxDecoration(
+        color: t.accent.primary.withValues(alpha: 0.12),
+        border: Border.all(
+          color: t.accent.primary.withValues(alpha: 0.45),
+          width: 0.7,
+        ),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.checkroom_rounded, size: 11, color: t.accent.primary),
+          const SizedBox(width: 4),
+          Text(
+            '$pct% wardrobe match',
+            style: TextStyle(
+              color: t.accent.primary,
+              fontSize: 9.5,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -610,6 +653,7 @@ class OutfitBoardModel {
   final String missingName;
   final String intelligenceText;
   final String stylingTip;
+  final int? wardrobeMatchPct;
 
   /// Items that carry a real image. Placeholders are never shown on the
   /// flat-lay board — the board only renders when there are enough of these.
@@ -623,6 +667,7 @@ class OutfitBoardModel {
     required this.missingName,
     required this.intelligenceText,
     required this.stylingTip,
+    this.wardrobeMatchPct,
   });
 
   factory OutfitBoardModel.fromPayload(
@@ -633,10 +678,19 @@ class OutfitBoardModel {
       direction['direction_name'] ?? direction['directionName'],
     );
     final archetype = _text(direction['archetype']);
-    final title = directionName.isNotEmpty
-        ? directionName
-        : (archetype.isNotEmpty
-              ? archetype
+    final _wmRaw = direction['wardrobe_match_pct'] ?? direction['wardrobeMatchPct'];
+    final int? wardrobeMatchPct = _wmRaw is int
+        ? _wmRaw
+        : (_wmRaw is num
+              ? _wmRaw.round()
+              : (_wmRaw is String ? int.tryParse(_wmRaw) : null));
+    // Title preference: the curated archetype name ("Structured Ease",
+    // "Clean Minimal") is the intended board title. Only fall back to
+    // direction_name / generic title when archetype is absent.
+    final title = archetype.isNotEmpty
+        ? archetype
+        : (directionName.isNotEmpty
+              ? directionName
               : _text(direction['title'], fallback: 'Style Direction'));
     final occasion = _text(
       direction['occasion'] ?? editorialCover['occasion_label'],
@@ -710,6 +764,7 @@ class OutfitBoardModel {
           missingName: isFashionItem(missingB) ? _text(missingB['name']) : '',
           intelligenceText: intelligenceText,
           stylingTip: stylingTip,
+          wardrobeMatchPct: wardrobeMatchPct,
         );
       }
     }
@@ -818,6 +873,7 @@ class OutfitBoardModel {
       missingName: missingName,
       intelligenceText: intelligenceText,
       stylingTip: stylingTip,
+      wardrobeMatchPct: wardrobeMatchPct,
     );
   }
 }
