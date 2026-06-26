@@ -59,28 +59,16 @@ class AhviHeader extends StatelessWidget {
     final double botPad = screenH < 700 ? 4.0 : 6.0;
     final double logoSize = screenH < 700 ? 26.0 : 30.0;
 
-    Widget logo = Hero(
-      tag: 'ahvi_logo',
-      transitionOnUserGestures: true,
-      // Shadow తీసేయడానికి: Hero flight లో default overlay shadow వస్తుంది,
-      // flightShuttleBuilder తో suppress చేస్తున్నాం
-      flightShuttleBuilder: (_, animation, __, ___, ____) {
-        return FadeTransition(
-          opacity: animation,
-          child: AhviHomeText(
-            color: t.textPrimary,
-            fontSize: logoSize,
-            letterSpacing: 3.2,
-            fontWeight: FontWeight.w400,
-          ),
-        );
-      },
-      child: AhviHomeText(
-        color: t.textPrimary,
-        fontSize: logoSize,
-        letterSpacing: 3.2,
-        fontWeight: FontWeight.w400,
-      ),
+    // NOT a Hero. The tag 'ahvi_logo' lived only in this shared header, so it
+    // never had a counterpart on another screen to animate to — every
+    // navigation just placed two identical-tag heroes in one transition
+    // subtree, throwing "multiple heroes share the same tag" -> red error
+    // flash on open. The Hero gave no benefit, only collisions.
+    Widget logo = AhviHomeText(
+      color: t.textPrimary,
+      fontSize: logoSize,
+      letterSpacing: 3.2,
+      fontWeight: FontWeight.w400,
     );
 
     return SafeArea(
