@@ -2203,6 +2203,8 @@ class _AddItemModalState extends State<_AddItemModal>
   List<_DetectedItem> _detected = [];
   String? _detectError;
   bool _isSavingWardrobe = false;
+  // Timing: when the detection preview was shown, to measure review-gap.
+  DateTime? _previewShownAt;
   bool _saveComplete = false;
   // Guards the one-shot launch of the 3-step review modal per detection cycle.
   bool _threeStepShown = false;
@@ -2310,7 +2312,12 @@ class _AddItemModalState extends State<_AddItemModal>
       final _ctrlToDispose = _camCtrl;
       _camCtrl = null;
       if (mounted) setState(() => _camReady = false);
-      await _ctrlToDispose?.dispose();
+      // Dispose AFTER this frame paints — by then CameraPreview is removed from
+      // the tree, so it won't rebuild on the dispose notification (which threw
+      // "Disposed CameraController" -> a one-frame red flash on teardown).
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _ctrlToDispose?.dispose();
+      });
 
       setState(() {
         _capturedBytes = bytes;
@@ -2342,7 +2349,12 @@ class _AddItemModalState extends State<_AddItemModal>
       final _ctrlToDispose = _camCtrl;
       _camCtrl = null;
       if (mounted) setState(() => _camReady = false);
-      await _ctrlToDispose?.dispose();
+      // Dispose AFTER this frame paints — by then CameraPreview is removed from
+      // the tree, so it won't rebuild on the dispose notification (which threw
+      // "Disposed CameraController" -> a one-frame red flash on teardown).
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _ctrlToDispose?.dispose();
+      });
 
       // Warn if user had more than 6 selected (some platforms ignore limit)
       final capped = files.take(6).toList();
@@ -2507,6 +2519,7 @@ class _AddItemModalState extends State<_AddItemModal>
           _detected = items;
           _step = _ModalStep.results;
         });
+        _previewShownAt = DateTime.now();
       }
     } catch (e) {
       debugPrint('Wardrobe single detection failed: $e');
@@ -2783,11 +2796,28 @@ class _AddItemModalState extends State<_AddItemModal>
     HapticFeedback.lightImpact();
     final payloads = selected.map((item) => item.toBackendPayload()).toList();
     final backendService = Provider.of<BackendService>(context, listen: false);
+    // TIMING: split the slow "whole process" into human-review vs upload vs
+    // server. review_ms = preview shown -> save tapped; payload_kb = upload
+    // size; save_call_ms = full client wall-time of the save (upload + server
+    // + download). Compare save_call_ms to the backend's latency_ms to isolate
+    // network/upload overhead vs server compute.
+    final int reviewMs = _previewShownAt == null
+        ? -1
+        : DateTime.now().difference(_previewShownAt!).inMilliseconds;
+    int payloadKb = -1;
+    try {
+      payloadKb = (jsonEncode(payloads).length / 1024).round();
+    } catch (_) {}
+    debugPrint(
+      'AHVI_SAVE_TIMING review_ms=$reviewMs payload_kb=$payloadKb items=${selected.length}',
+    );
+    final saveSw = Stopwatch()..start();
     setState(() {
       _isSavingWardrobe = true;
       _saveComplete = false;
     });
     final saveResult = await backendService.saveWardrobeLabels(payloads);
+    debugPrint('AHVI_SAVE_TIMING save_call_ms=${saveSw.elapsedMilliseconds}');
     if (!mounted) return;
     final savedCount = saveResult == null
         ? 0
