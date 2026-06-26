@@ -14,6 +14,7 @@ import 'package:myapp/widgets/ahvi_header.dart';
 import 'package:myapp/feature/chat/models/ahvi_response_block.dart';
 import 'package:myapp/feature/chat/services/ahvi_block_response_parser.dart';
 import 'package:myapp/feature/chat/widgets/blocks/ahvi_block_renderer.dart';
+import 'package:myapp/feature/chat/widgets/blocks/visual_directions/visual_direction_carousel.dart';
 import 'package:myapp/services/appwrite_service.dart';
 import 'package:myapp/services/ahvi_response_parser.dart';
 import 'package:myapp/services/ahvi_speech_service.dart';
@@ -2188,35 +2189,14 @@ class _ChatScreenState extends State<ChatScreen>
         .toList();
     if (boards.isEmpty) return const SizedBox.shrink();
 
-    // Phase 3: if the backend rendered an editorial board PNG (top-level
-    // image_url), show it first; the item swiper stays below as detail.
-    // No-op when image_url is absent (renderer gated off) — existing fallback.
-    final editorialUrl = _editorialBoardImageUrl(boards.first);
-    final swiper = _OutfitBoardSwiper(
-      boards: boards,
-      t: t,
-      onSave: _saveBoardToPlanner,
-    );
-    if (editorialUrl == null) return swiper;
-    debugPrint('AHVI_BOARD_IMAGE_RENDERED_FRONTEND url=$editorialUrl');
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(bottom: 12, right: 20, left: 4),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(18),
-            child: Image.network(
-              editorialUrl,
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-              loadingBuilder: (ctx, child, progress) =>
-                  progress == null ? child : const SizedBox.shrink(),
-            ),
-          ),
-        ),
-        swiper,
-      ],
+    // Unified renderer: route to the responsive VisualDirectionCarousel
+    // (AhviOutfitBoardCard + EditorialBoardCanvas) — the same card every
+    // surface uses. Replaces the fixed _OutfitBoardSwiper (empty/blob canvas).
+    // curationReveal off so the board doesn't re-animate on every rebuild.
+    return VisualDirectionCarousel(
+      directions: boards,
+      onSendMessage: (message) => _sendMessage(message),
+      curationReveal: false,
     );
   }
 
@@ -5574,7 +5554,13 @@ class _OutfitBoardSwiperState extends State<_OutfitBoardSwiper> {
 
     setState(() => _saving.add(index));
     final board = widget.boards[index];
-    final rawItems = board['items'] as List? ?? const [];
+    // Prefer board_items (role-tagged, image-bearing) over the legacy `items`.
+    // Visual-inspiration cards put the rendered pieces under board_items; their
+    // `items` are text pieces with no images, so the flat-lay collage rendered
+    // empty. board_items carries image_url, so the collage now paints.
+    final rawItems = (board['board_items'] as List?) ??
+        (board['items'] as List?) ??
+        const [];
     final items = rawItems
         .whereType<Map>()
         .map((e) => Map<String, dynamic>.from(e))
@@ -5594,7 +5580,13 @@ class _OutfitBoardSwiperState extends State<_OutfitBoardSwiper> {
     AppThemeTokens t,
     int index,
   ) {
-    final rawItems = board['items'] as List? ?? const [];
+    // Prefer board_items (role-tagged, image-bearing) over the legacy `items`.
+    // Visual-inspiration cards put the rendered pieces under board_items; their
+    // `items` are text pieces with no images, so the flat-lay collage rendered
+    // empty. board_items carries image_url, so the collage now paints.
+    final rawItems = (board['board_items'] as List?) ??
+        (board['items'] as List?) ??
+        const [];
     final items = rawItems
         .whereType<Map>()
         .map((e) => Map<String, dynamic>.from(e))
@@ -6321,7 +6313,13 @@ class _OutfitBoardSwiperState extends State<_OutfitBoardSwiper> {
           : () async {
               setState(() => _saving.add(_index));
               final board = widget.boards[_index];
-              final rawItems = board['items'] as List? ?? const [];
+              // Prefer board_items (role-tagged, image-bearing) over the legacy `items`.
+    // Visual-inspiration cards put the rendered pieces under board_items; their
+    // `items` are text pieces with no images, so the flat-lay collage rendered
+    // empty. board_items carries image_url, so the collage now paints.
+    final rawItems = (board['board_items'] as List?) ??
+        (board['items'] as List?) ??
+        const [];
               final items = rawItems
                   .whereType<Map>()
                   .map((e) => Map<String, dynamic>.from(e))
