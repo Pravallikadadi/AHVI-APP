@@ -2304,9 +2304,13 @@ class _AddItemModalState extends State<_AddItemModal>
       final bytes = await File(xfile.path).readAsBytes();
 
       // ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ Camera no longer needed ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â dispose immediately to save battery
-      await _camCtrl?.dispose();
+      // Null the controller and flip _camReady OFF *before* awaiting dispose,
+      // so no frame can build CameraPreview on a disposed controller (that
+      // caused a one-frame red "Disposed CameraController" error flash).
+      final _ctrlToDispose = _camCtrl;
       _camCtrl = null;
       if (mounted) setState(() => _camReady = false);
+      await _ctrlToDispose?.dispose();
 
       setState(() {
         _capturedBytes = bytes;
@@ -2332,9 +2336,13 @@ class _AddItemModalState extends State<_AddItemModal>
       if (!mounted) return;
 
       // ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ Gallery picked ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â camera no longer needed, dispose to save battery
-      await _camCtrl?.dispose();
+      // Null the controller and flip _camReady OFF *before* awaiting dispose,
+      // so no frame can build CameraPreview on a disposed controller (that
+      // caused a one-frame red "Disposed CameraController" error flash).
+      final _ctrlToDispose = _camCtrl;
       _camCtrl = null;
       if (mounted) setState(() => _camReady = false);
+      await _ctrlToDispose?.dispose();
 
       // Warn if user had more than 6 selected (some platforms ignore limit)
       final capped = files.take(6).toList();
