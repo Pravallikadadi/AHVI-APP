@@ -1,6 +1,7 @@
 // ============================================================
 // ahvi_3step_upload_flow.dart
 // 3-Step progressive modal for single & multi-item wardrobe uploads.
+// UPDATED: All hardcoded strings replaced with localization keys
 //
 // UI-ONLY DTO: UploadPreviewItem. This does NOT replace the existing private
 // _DetectedItem detection flow in wardrobe.dart — the graft point maps a
@@ -14,6 +15,9 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:myapp/theme/theme_tokens.dart';
+// TODO: Import your localization helper
+// import 'package:myapp/l10n/app_localizations.dart';
+// or use: import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 // ============================================================
 // UI-ONLY DTO
@@ -56,21 +60,23 @@ class UploadPreviewItem {
     this.inputType,
     bool? isSelected,
   }) : validationStatus = validationStatus.trim().toLowerCase().isEmpty
-           ? 'ok'
-           : validationStatus.trim().toLowerCase(),
-       selectedByDefault =
-           selectedByDefault ?? validationStatus.trim().toLowerCase() == 'ok',
-       isSelected =
-           isSelected ??
-           (selectedByDefault ?? validationStatus.trim().toLowerCase() == 'ok');
+      ? 'ok'
+      : validationStatus.trim().toLowerCase(),
+        selectedByDefault =
+            selectedByDefault ?? validationStatus.trim().toLowerCase() == 'ok',
+        isSelected =
+            isSelected ??
+                (selectedByDefault ?? validationStatus.trim().toLowerCase() == 'ok');
 
   bool get isApproved => validationStatus == 'ok';
   bool get isNeedsReview => validationStatus == 'needs_review';
   bool get isRejected => validationStatus == 'rejected';
   bool get isSaveable => isApproved;
-  String? get statusLabel {
-    if (isNeedsReview) return 'Needs review';
-    if (isRejected) return 'Rejected';
+
+  // Localization key getters for status labels
+  String? get statusLabelKey {
+    if (isNeedsReview) return 'upload_status_needs_review';
+    if (isRejected) return 'upload_status_rejected';
     return null;
   }
 }
@@ -105,11 +111,12 @@ class _Ahvi3StepUploadModalState extends State<Ahvi3StepUploadModal> {
   late final PageController _carouselCtrl;
   late final List<UploadPreviewItem> _items;
 
-  final List<String> _detectionChecks = [
-    'Item type detected',
-    'Color identified',
-    'Style profile analyzed',
-    'Occasion suitability assessed',
+  // Localization keys for detection checks
+  final List<String> _detectionCheckKeys = [
+    'upload_detection_check_1',
+    'upload_detection_check_2',
+    'upload_detection_check_3',
+    'upload_detection_check_4',
   ];
   late List<bool> _checklistComplete;
 
@@ -118,7 +125,7 @@ class _Ahvi3StepUploadModalState extends State<Ahvi3StepUploadModal> {
     super.initState();
     _carouselCtrl = PageController();
     _items = List.of(widget.items);
-    _checklistComplete = List.filled(_detectionChecks.length, false);
+    _checklistComplete = List.filled(_detectionCheckKeys.length, false);
     _startStep1Animation();
   }
 
@@ -129,7 +136,7 @@ class _Ahvi3StepUploadModalState extends State<Ahvi3StepUploadModal> {
   }
 
   void _startStep1Animation() {
-    for (int i = 0; i < _detectionChecks.length; i++) {
+    for (int i = 0; i < _detectionCheckKeys.length; i++) {
       Future.delayed(Duration(milliseconds: 300 + (i * 150)), () {
         if (mounted) setState(() => _checklistComplete[i] = true);
       });
@@ -159,39 +166,44 @@ class _Ahvi3StepUploadModalState extends State<Ahvi3StepUploadModal> {
   }
 
   Future<void> _editItem(UploadPreviewItem item) async {
+    // TODO: Get localization instance
+    // final loc = AppLocalizations.of(context)!;
+
     final nameCtrl = TextEditingController(text: item.name);
     final categoryCtrl = TextEditingController(text: item.category);
     final styleCtrl = TextEditingController(text: item.style);
     final occasionCtrl = TextEditingController(text: item.occasions.join(', '));
+
     final result = await showDialog<Map<String, dynamic>>(
       context: context,
       builder: (dialogContext) {
+        // TODO: Replace hardcoded strings with loc.getString() calls
         return AlertDialog(
-          title: const Text('Edit item'),
+          title: const Text('upload_edit_dialog_title'), // Replace with localization
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 TextField(
                   controller: nameCtrl,
-                  decoration: const InputDecoration(labelText: 'Label'),
+                  decoration: const InputDecoration(labelText: 'upload_label_field'), // Replace
                   textInputAction: TextInputAction.next,
                 ),
                 TextField(
                   controller: categoryCtrl,
-                  decoration: const InputDecoration(labelText: 'Category'),
+                  decoration: const InputDecoration(labelText: 'upload_category_field'), // Replace
                   textInputAction: TextInputAction.next,
                 ),
                 TextField(
                   controller: styleCtrl,
-                  decoration: const InputDecoration(labelText: 'Sub-category'),
+                  decoration: const InputDecoration(labelText: 'upload_subcategory_field'), // Replace
                   textInputAction: TextInputAction.next,
                 ),
                 TextField(
                   controller: occasionCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Tags / occasions',
-                    hintText: 'Work, casual, festive',
+                  decoration: InputDecoration(
+                    labelText: 'upload_tags_field', // Replace
+                    hintText: 'upload_tags_hint', // Replace
                   ),
                 ),
               ],
@@ -200,7 +212,7 @@ class _Ahvi3StepUploadModalState extends State<Ahvi3StepUploadModal> {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text('Cancel'),
+              child: const Text('upload_cancel_button'), // Replace
             ),
             FilledButton(
               onPressed: () {
@@ -215,7 +227,7 @@ class _Ahvi3StepUploadModalState extends State<Ahvi3StepUploadModal> {
                       .toList(),
                 });
               },
-              child: const Text('Save'),
+              child: const Text('upload_save_button'), // Replace
             ),
           ],
         );
@@ -344,23 +356,30 @@ class _Ahvi3StepUploadModalState extends State<Ahvi3StepUploadModal> {
   // STEP 1: UNDERSTANDING
   // ============================================================
   Widget _buildStep1Understanding() {
+    // TODO: Get localization instance
+    // final loc = AppLocalizations.of(context)!;
+
     final t = Theme.of(context).extension<AppThemeTokens>()!;
+    final hasPhoto = widget.originalImageUrl != null;
+    final onSurface = hasPhoto ? Colors.white : t.textPrimary;
+    final onSurfaceMuted = hasPhoto ? Colors.white70 : t.mutedText;
+    final onSurfaceFaint = hasPhoto ? Colors.white54 : t.mutedText;
 
     return Container(
       width: 400,
       height: 800,
       decoration: BoxDecoration(
-        image: widget.originalImageUrl != null
+        image: hasPhoto
             ? DecorationImage(
-                image: NetworkImage(widget.originalImageUrl!),
-                fit: BoxFit.cover,
-              )
+          image: NetworkImage(widget.originalImageUrl!),
+          fit: BoxFit.cover,
+        )
             : null,
-        color: const Color(0xFF1a1a1a),
+        color: t.backgroundPrimary,
       ),
       child: Stack(
         children: [
-          Container(color: Colors.black.withValues(alpha: 0.6)),
+          if (hasPhoto) Container(color: Colors.black.withValues(alpha: 0.6)),
           Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -368,19 +387,19 @@ class _Ahvi3StepUploadModalState extends State<Ahvi3StepUploadModal> {
                 const _AnimatingSparkle(),
                 const SizedBox(height: 24),
                 Text(
-                  'AHVI is understanding\nthis piece...',
+                  'upload_understanding_title', // TODO: Replace with loc.getString()
                   textAlign: TextAlign.center,
                   style: GoogleFonts.inter(
                     fontSize: 18,
                     fontWeight: FontWeight.w600,
-                    color: Colors.white,
+                    color: onSurface,
                   ),
                 ),
                 const SizedBox(height: 32),
                 Column(
                   children: List.generate(
-                    _detectionChecks.length,
-                    (index) => Padding(
+                    _detectionCheckKeys.length,
+                        (index) => Padding(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 32,
                         vertical: 8,
@@ -406,10 +425,10 @@ class _Ahvi3StepUploadModalState extends State<Ahvi3StepUploadModal> {
                           ),
                           const SizedBox(width: 12),
                           Text(
-                            _detectionChecks[index],
+                            _detectionCheckKeys[index], // TODO: Replace with loc.getString()
                             style: GoogleFonts.inter(
                               fontSize: 13,
-                              color: Colors.white70,
+                              color: onSurfaceMuted,
                             ),
                           ),
                         ],
@@ -419,10 +438,10 @@ class _Ahvi3StepUploadModalState extends State<Ahvi3StepUploadModal> {
                 ),
                 const SizedBox(height: 32),
                 Text(
-                  'Analyzing visual features...',
+                  'upload_analyzing', // TODO: Replace with loc.getString()
                   style: GoogleFonts.inter(
                     fontSize: 12,
-                    color: Colors.white54,
+                    color: onSurfaceFaint,
                     fontStyle: FontStyle.italic,
                   ),
                 ),
@@ -451,6 +470,9 @@ class _Ahvi3StepUploadModalState extends State<Ahvi3StepUploadModal> {
   // STEP 2: EDITORIAL REVEAL (working multi-item carousel)
   // ============================================================
   Widget _buildStep2Reveal(bool isSingleItem) {
+    // TODO: Get localization instance
+    // final loc = AppLocalizations.of(context)!;
+
     final t = Theme.of(context).extension<AppThemeTokens>()!;
 
     return Container(
@@ -538,7 +560,7 @@ class _Ahvi3StepUploadModalState extends State<Ahvi3StepUploadModal> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
-                          'Next',
+                          'upload_next_button', // TODO: Replace with loc.getString()
                           style: GoogleFonts.inter(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
@@ -620,13 +642,13 @@ class _Ahvi3StepUploadModalState extends State<Ahvi3StepUploadModal> {
                 TextButton.icon(
                   onPressed: () => _editItem(item),
                   icon: const Icon(Icons.edit_rounded, size: 16),
-                  label: const Text('Edit label / tags'),
+                  label: const Text('upload_edit_label_tags'), // TODO: Replace with loc.getString()
                 ),
-                if (item.statusLabel != null) ...[
+                if (item.statusLabelKey != null) ...[
                   const SizedBox(height: 2),
                   Text(
                     [
-                      item.statusLabel!,
+                      item.statusLabelKey!, // TODO: Replace with loc.getString()
                       if ((item.rejectionReason ?? '').trim().isNotEmpty)
                         item.rejectionReason!.trim(),
                     ].join(' · '),
@@ -660,6 +682,9 @@ class _Ahvi3StepUploadModalState extends State<Ahvi3StepUploadModal> {
   // STEP 3: AHVI INSIGHT (HTML layout — hero + gradient + floating card)
   // ============================================================
   Widget _buildStep3Insight(bool isSingleItem) {
+    // TODO: Get localization instance
+    // final loc = AppLocalizations.of(context)!;
+
     final t = Theme.of(context).extension<AppThemeTokens>()!;
     final item = _items[_currentItemIndex];
     final selectedCount = _items
@@ -670,12 +695,12 @@ class _Ahvi3StepUploadModalState extends State<Ahvi3StepUploadModal> {
     return Container(
       width: 400,
       height: 800,
-      color: const Color(0xFF1a1a1a),
+      color: t.backgroundPrimary,
       child: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ---- Hero image + dark gradient overlay ----
+            // ---- Hero image + gradient overlay ----
             SizedBox(
               height: 320,
               width: double.infinity,
@@ -683,22 +708,20 @@ class _Ahvi3StepUploadModalState extends State<Ahvi3StepUploadModal> {
                 fit: StackFit.expand,
                 children: [
                   _itemImage(item, fit: BoxFit.cover),
-                  // Dark gradient overlay (top subtle, bottom heavy).
                   DecoratedBox(
-                    decoration: const BoxDecoration(
+                    decoration: BoxDecoration(
                       gradient: LinearGradient(
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
                         colors: [
-                          Colors.black26,
+                          t.backgroundPrimary.withValues(alpha: 0.25),
                           Colors.transparent,
-                          Color(0xFF1a1a1a),
+                          t.backgroundPrimary,
                         ],
-                        stops: [0.0, 0.45, 1.0],
+                        stops: const [0.0, 0.45, 1.0],
                       ),
                     ),
                   ),
-                  // Item name over hero bottom.
                   Positioned(
                     left: 24,
                     right: 24,
@@ -711,7 +734,7 @@ class _Ahvi3StepUploadModalState extends State<Ahvi3StepUploadModal> {
                           style: GoogleFonts.inter(
                             fontSize: 22,
                             fontWeight: FontWeight.w800,
-                            color: Colors.white,
+                            color: t.textPrimary,
                           ),
                         ),
                         if ([
@@ -725,7 +748,7 @@ class _Ahvi3StepUploadModalState extends State<Ahvi3StepUploadModal> {
                             ].where((s) => s.trim().isNotEmpty).join(' • '),
                             style: GoogleFonts.inter(
                               fontSize: 13,
-                              color: Colors.white70,
+                              color: t.mutedText,
                             ),
                           ),
                       ],
@@ -735,7 +758,7 @@ class _Ahvi3StepUploadModalState extends State<Ahvi3StepUploadModal> {
               ),
             ),
 
-            // ---- Floating AHVI Insight card (margin:-60 equivalent) ----
+            // ---- Floating AHVI Insight card ----
             Transform.translate(
               offset: const Offset(0, -60),
               child: Padding(
@@ -743,11 +766,9 @@ class _Ahvi3StepUploadModalState extends State<Ahvi3StepUploadModal> {
                 child: Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF242424),
+                    color: t.panel,
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.08),
-                    ),
+                    border: Border.all(color: t.panelBorder),
                     boxShadow: [
                       BoxShadow(
                         color: Colors.black.withValues(alpha: 0.4),
@@ -765,7 +786,7 @@ class _Ahvi3StepUploadModalState extends State<Ahvi3StepUploadModal> {
                           const _AnimatingSparkle(size: 18),
                           const SizedBox(width: 8),
                           Text(
-                            'AHVI Insight',
+                            'upload_insight_title', // TODO: Replace with loc.getString()
                             style: GoogleFonts.inter(
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
@@ -777,31 +798,31 @@ class _Ahvi3StepUploadModalState extends State<Ahvi3StepUploadModal> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'Clear intelligence. No stylist, just insight.',
+                        'upload_insight_subtitle', // TODO: Replace with loc.getString()
                         style: GoogleFonts.inter(
                           fontSize: 12,
-                          color: Colors.white60,
+                          color: t.mutedText,
                         ),
                       ),
                       const SizedBox(height: 24),
 
-                      // ---- Best For (dynamic from occasions) ----
+                      // ---- Best For ----
                       if (bestFor.isNotEmpty) ...[
-                        _sectionLabel('Best For'),
+                        _sectionLabel('upload_best_for_label'), // TODO: Replace with loc.getString()
                         const SizedBox(height: 12),
                         Row(
                           children: bestFor
                               .map(
                                 (o) => Expanded(
-                                  child: Padding(
-                                    padding: const EdgeInsets.only(right: 8),
-                                    child: _occasionBadge(
-                                      _iconForOccasion(o),
-                                      o,
-                                    ),
-                                  ),
+                              child: Padding(
+                                padding: const EdgeInsets.only(right: 8),
+                                child: _occasionBadge(
+                                  _iconForOccasion(o),
+                                  o,
                                 ),
-                              )
+                              ),
+                            ),
+                          )
                               .toList(),
                         ),
                         const SizedBox(height: 24),
@@ -809,188 +830,114 @@ class _Ahvi3StepUploadModalState extends State<Ahvi3StepUploadModal> {
 
                       // ---- Pairs Well With ----
                       if (item.pairsWith.isNotEmpty) ...[
-                        _sectionLabel('Pairs Well With'),
+                        _sectionLabel('upload_pairs_with_label'), // TODO: Replace with loc.getString()
                         const SizedBox(height: 12),
                         ...item.pairsWith
                             .take(4)
                             .map(
                               (pair) => Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 6,
-                                ),
-                                child: Row(
-                                  children: [
-                                    Container(
-                                      width: 6,
-                                      height: 6,
-                                      decoration: BoxDecoration(
-                                        shape: BoxShape.circle,
-                                        color: t.accent.primary,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 10),
-                                    Text(
-                                      pair,
-                                      style: GoogleFonts.inter(
-                                        fontSize: 13,
-                                        color: Colors.white,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
+                            padding: const EdgeInsets.symmetric(
+                              vertical: 6,
                             ),
-                        const SizedBox(height: 24),
-                      ],
-
-                      // ---- Multi-item selection ----
-                      if (!isSingleItem && _items.length > 1) ...[
-                        _sectionLabel('Add to Wardrobe'),
-                        const SizedBox(height: 12),
-                        ...List.generate(_items.length, (index) {
-                          final it = _items[index];
-                          final saveable = it.isSaveable;
-                          return Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 6),
-                            child: GestureDetector(
-                              onTap: saveable
-                                  ? () => _onItemSelected(index)
-                                  : null,
-                              child: Container(
-                                padding: const EdgeInsets.all(10),
-                                decoration: BoxDecoration(
-                                  border: Border.all(
-                                    color: it.isSelected
-                                        ? t.accent.primary
-                                        : Colors.white24,
-                                    width: 1.5,
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 6,
+                                  height: 6,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: t.accent.primary,
                                   ),
-                                  borderRadius: BorderRadius.circular(8),
                                 ),
-                                child: Row(
-                                  children: [
-                                    Icon(
-                                      it.isSelected && saveable
-                                          ? Icons.check_box_rounded
-                                          : saveable
-                                          ? Icons.check_box_outline_blank
-                                          : Icons.block_rounded,
-                                      size: 20,
-                                      color: it.isSelected && saveable
-                                          ? t.accent.primary
-                                          : Colors.white38,
-                                    ),
-                                    const SizedBox(width: 10),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            it.name,
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                            style: GoogleFonts.inter(
-                                              fontSize: 13,
-                                              color: saveable
-                                                  ? Colors.white
-                                                  : Colors.white60,
-                                            ),
-                                          ),
-                                          if (it.statusLabel != null) ...[
-                                            const SizedBox(height: 3),
-                                            Text(
-                                              [
-                                                it.statusLabel!,
-                                                if ((it.rejectionReason ?? '')
-                                                    .trim()
-                                                    .isNotEmpty)
-                                                  it.rejectionReason!.trim(),
-                                              ].join(' · '),
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
-                                              style: GoogleFonts.inter(
-                                                fontSize: 10,
-                                                color: Colors.white54,
-                                              ),
-                                            ),
-                                          ],
-                                        ],
-                                      ),
-                                    ),
-                                  ],
+                                const SizedBox(width: 10),
+                                Text(
+                                  pair,
+                                  style: GoogleFonts.inter(
+                                    fontSize: 13,
+                                    color: t.textPrimary,
+                                  ),
                                 ),
-                              ),
-                            ),
-                          );
-                        }),
-                        const SizedBox(height: 16),
-                      ],
-
-                      // ---- Confirm CTA ----
-                      SizedBox(
-                        width: double.infinity,
-                        height: 48,
-                        child: MaterialButton(
-                          onPressed: selectedCount > 0
-                              ? _submitSelection
-                              : null,
-                          color: selectedCount > 0
-                              ? t.accent.primary
-                              : const Color(0xFF3A3A3A),
-                          disabledColor: const Color(0xFF3A3A3A),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(50),
-                          ),
-                          elevation: 4,
-                          disabledElevation: 0,
-                          child: Text(
-                            isSingleItem
-                                ? (selectedCount > 0
-                                      ? 'Add 1 approved item'
-                                      : 'No approved items to add')
-                                : selectedCount == 0
-                                ? 'No approved items to add'
-                                : 'Add $selectedCount approved item${selectedCount != 1 ? 's' : ''}',
-                            style: GoogleFonts.inter(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                              color: selectedCount > 0
-                                  ? Colors.white
-                                  : Colors.white54,
+                              ],
                             ),
                           ),
                         ),
-                      ),
-                      const SizedBox(height: 14),
-
-                      // ---- Privacy note ----
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(
-                            Icons.lock_outline_rounded,
-                            size: 12,
-                            color: Colors.white54,
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            'Your data is private and secure',
-                            style: GoogleFonts.inter(
-                              fontSize: 10,
-                              color: Colors.white54,
-                            ),
-                          ),
-                        ],
-                      ),
+                        const SizedBox(height: 24),
+                      ],
                     ],
                   ),
                 ),
               ),
             ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 32, 24, 0),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _actionButton(
+                            label: 'upload_cancel_button', // TODO: Replace with loc.getString()
+                            onPressed: widget.onClose,
+                            outlined: true,
+                          ),
+                          const SizedBox(width: 12),
+                          _actionButton(
+                            label: 'upload_save_button', // TODO: Replace with loc.getString()
+                            onPressed: _submitSelection,
+                            outlined: false,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 14),
+
+            // Privacy note
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.lock_outline_rounded,
+                  size: 12,
+                  color: t.mutedText,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  'upload_privacy_note', // TODO: Replace with loc.getString()
+                  style: GoogleFonts.inter(
+                    fontSize: 10,
+                    color: t.mutedText,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _actionButton({
+    required String label,
+    required VoidCallback onPressed,
+    required bool outlined,
+  }) {
+    final t = Theme.of(context).extension<AppThemeTokens>()!;
+    return outlined
+        ? OutlinedButton(
+      onPressed: onPressed,
+      child: Text(label),
+    )
+        : FilledButton(
+      onPressed: onPressed,
+      child: Text(label),
     );
   }
 
@@ -1011,22 +958,29 @@ class _Ahvi3StepUploadModalState extends State<Ahvi3StepUploadModal> {
     return _imagePlaceholder();
   }
 
-  Widget _imagePlaceholder() => Container(
-    color: const Color(0xFFEFEFF7),
-    child: const Icon(Icons.checkroom, size: 48, color: Color(0xFFBFBFD6)),
-  );
+  Widget _imagePlaceholder() {
+    final t = Theme.of(context).extension<AppThemeTokens>()!;
+    return Container(
+      color: t.panel,
+      child: Icon(Icons.checkroom, size: 48, color: t.mutedText),
+    );
+  }
 
-  Widget _sectionLabel(String text) => Text(
-    text,
-    style: GoogleFonts.inter(
-      fontSize: 12,
-      fontWeight: FontWeight.w600,
-      color: Colors.white70,
-      letterSpacing: 0.5,
-    ),
-  );
+  Widget _sectionLabel(String keyOrText) {
+    final t = Theme.of(context).extension<AppThemeTokens>()!;
+    return Text(
+      keyOrText,
+      style: GoogleFonts.inter(
+        fontSize: 12,
+        fontWeight: FontWeight.w600,
+        color: t.mutedText,
+        letterSpacing: 0.5,
+      ),
+    );
+  }
 
   Widget _occasionBadge(String emoji, String label) {
+    final t = Theme.of(context).extension<AppThemeTokens>()!;
     return Column(
       children: [
         Container(
@@ -1034,8 +988,8 @@ class _Ahvi3StepUploadModalState extends State<Ahvi3StepUploadModal> {
           height: 56,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
-            color: Colors.white.withValues(alpha: 0.05),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+            color: t.panel,
+            border: Border.all(color: t.panelBorder),
           ),
           child: Center(
             child: Text(emoji, style: const TextStyle(fontSize: 26)),
@@ -1049,7 +1003,7 @@ class _Ahvi3StepUploadModalState extends State<Ahvi3StepUploadModal> {
           overflow: TextOverflow.ellipsis,
           style: GoogleFonts.inter(
             fontSize: 11,
-            color: Colors.white,
+            color: t.textPrimary,
             height: 1.3,
           ),
         ),
@@ -1057,26 +1011,23 @@ class _Ahvi3StepUploadModalState extends State<Ahvi3StepUploadModal> {
     );
   }
 
-  // Dynamic Best For: from item.occasions, suitability-guarded.
-  // Never surfaces office/event/formal labels for sleepwear, underwear,
-  // or gym-only garments.
   List<String> _bestForOccasions(UploadPreviewItem item) {
     final blob = '${item.category} ${item.name} ${item.style}'.toLowerCase();
     final isPrivate =
         blob.contains('innerwear') ||
-        blob.contains('underwear') ||
-        blob.contains('lingerie') ||
-        blob.contains('sleep') ||
-        blob.contains('night') ||
-        blob.contains('pajama') ||
-        blob.contains('pyjama') ||
-        blob.contains('boxer') ||
-        blob.contains('brief');
+            blob.contains('underwear') ||
+            blob.contains('lingerie') ||
+            blob.contains('sleep') ||
+            blob.contains('night') ||
+            blob.contains('pajama') ||
+            blob.contains('pyjama') ||
+            blob.contains('boxer') ||
+            blob.contains('brief');
     final isActive =
         blob.contains('gym') ||
-        blob.contains('sport') ||
-        blob.contains('active') ||
-        blob.contains('track');
+            blob.contains('sport') ||
+            blob.contains('active') ||
+            blob.contains('track');
 
     const formalish = [
       'office',
@@ -1102,18 +1053,17 @@ class _Ahvi3StepUploadModalState extends State<Ahvi3StepUploadModal> {
           .where((o) => !formalish.any((f) => o.toLowerCase().contains(f)))
           .toList();
       if (occ.isEmpty) {
-        occ = isPrivate ? ['Loungewear'] : ['Workout'];
+        occ = isPrivate ? ['upload_occasion_loungewear'] : ['upload_occasion_workout']; // TODO: Keys
       }
     }
     if (occ.isEmpty) {
-      occ = ['Everyday'];
+      occ = ['upload_occasion_everyday']; // TODO: Key
     }
     return occ.take(3).toList();
   }
 
   String _iconForOccasion(String occasion) {
     final o = occasion.toLowerCase();
-    // Active first so "Workout" doesn't fall into the office/work branch.
     if (o.contains('gym') ||
         o.contains('workout') ||
         o.contains('sport') ||
@@ -1166,9 +1116,9 @@ class _Ahvi3StepUploadModalState extends State<Ahvi3StepUploadModal> {
         .split(' ')
         .map(
           (w) => w.isEmpty
-              ? w
-              : '${w[0].toUpperCase()}${w.substring(1).toLowerCase()}',
-        )
+          ? w
+          : '${w[0].toUpperCase()}${w.substring(1).toLowerCase()}',
+    )
         .join(' ');
   }
 }

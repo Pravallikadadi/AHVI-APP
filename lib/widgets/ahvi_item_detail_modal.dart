@@ -24,6 +24,7 @@ import 'package:myapp/services/backend_service.dart'; // styleWardrobeItem
 import 'package:myapp/style_board/board_models.dart';
 import 'package:myapp/style_board/board_renderer.dart';
 import 'package:myapp/style_board/board_layout_engine.dart';
+import 'package:myapp/app_localizations.dart'; // 🆕 Localization
 import 'pairing_engine.dart';
 
 // ============================================================
@@ -36,19 +37,19 @@ const Color _kDangerColor = Color(0xFFA32D2D);
 // PUBLIC ENTRY POINT
 // ============================================================
 void showItemDetailModal(
-  BuildContext context, {
-  required WardrobeItem item,
-  required List<WardrobeItem> allItems,
-  VoidCallback? onWore,
-  VoidCallback? onEdit,
-  VoidCallback? onLike,
-  VoidCallback? onShare,
-  VoidCallback? onRemove,
-  VoidCallback? onBuildOutfit,
-  VoidCallback? onViewWearHistory,
-  VoidCallback? onSetWearReminder,
-  VoidCallback? onSetCareReminder,
-}) {
+    BuildContext context, {
+      required WardrobeItem item,
+      required List<WardrobeItem> allItems,
+      VoidCallback? onWore,
+      VoidCallback? onEdit,
+      VoidCallback? onLike,
+      VoidCallback? onShare,
+      VoidCallback? onRemove,
+      VoidCallback? onBuildOutfit,
+      VoidCallback? onViewWearHistory,
+      VoidCallback? onSetWearReminder,
+      VoidCallback? onSetCareReminder,
+    }) {
   showDialog(
     context: context,
     useRootNavigator: true,
@@ -174,8 +175,9 @@ class _ItemDetailModal extends StatelessWidget {
                         const SizedBox(width: 8),
                         _Pill(
                           label: item.worn == 0
-                              ? 'Never worn'
-                              : 'Worn ${item.worn}x',
+                              ? AppLocalizations.t(context, 'item_detail_never_worn')
+                              : AppLocalizations.t(context, 'item_detail_worn_times')
+                              .replaceAll('{n}', '${item.worn}'),
                           bg: const Color(0xFFF2F2F7),
                           fg: const Color(0xFF8A8A8E),
                         ),
@@ -196,17 +198,17 @@ class _ItemDetailModal extends StatelessWidget {
                             ),
                             clipBehavior: Clip.antiAlias,
                             child:
-                                item.displayUrl != null &&
-                                    item.displayUrl!.isNotEmpty
+                            item.displayUrl != null &&
+                                item.displayUrl!.isNotEmpty
                                 ? Image.network(
-                                    item.displayUrl!,
-                                    fit: BoxFit.contain,
-                                  )
+                              item.displayUrl!,
+                              fit: BoxFit.contain,
+                            )
                                 : const Icon(
-                                    Icons.checkroom,
-                                    size: 64,
-                                    color: Color(0xFFBFBFD6),
-                                  ),
+                              Icons.checkroom,
+                              size: 64,
+                              color: Color(0xFFBFBFD6),
+                            ),
                           ),
                         );
 
@@ -254,12 +256,12 @@ class _ItemDetailModal extends StatelessWidget {
                         children: item.occasions
                             .map(
                               (o) => _Pill(
-                                label: o,
-                                bg: const Color(0xFFF7F7FB),
-                                fg: const Color(0xFF3C3C43),
-                                border: const Color(0xFFE5E5EA),
-                              ),
-                            )
+                            label: o,
+                            bg: const Color(0xFFF7F7FB),
+                            fg: const Color(0xFF3C3C43),
+                            border: const Color(0xFFE5E5EA),
+                          ),
+                        )
                             .toList(),
                       ),
                       const SizedBox(height: 16),
@@ -300,7 +302,7 @@ class _ItemDetailModal extends StatelessWidget {
                           Expanded(
                             child: _SecondaryActionButton(
                               icon: Icons.groups_2_outlined,
-                              label: 'Build Outfit',
+                              label: AppLocalizations.t(context, 'item_detail_build_outfit'),
                               onTap: () => _onBuildOutfit(context, item),
                             ),
                           ),
@@ -312,7 +314,7 @@ class _ItemDetailModal extends StatelessWidget {
                           Expanded(
                             child: _SecondaryActionButton(
                               icon: Icons.check,
-                              label: 'Wore Today',
+                              label: AppLocalizations.t(context, 'item_detail_wore_today'),
                               onTap: () => _onWoreToday(context, item),
                               accentColor: _kSuccessColor,
                             ),
@@ -321,7 +323,7 @@ class _ItemDetailModal extends StatelessWidget {
                           Expanded(
                             child: _SecondaryActionButton(
                               icon: Icons.edit_outlined,
-                              label: 'Edit',
+                              label: AppLocalizations.t(context, 'common_edit'),
                               onTap: onEdit,
                             ),
                           ),
@@ -392,10 +394,10 @@ class _ItemDetailModal extends StatelessWidget {
   }
 
   Future<void> _runStyleCta(
-    BuildContext context,
-    WardrobeItem item, {
-    required String mode,
-  }) async {
+      BuildContext context,
+      WardrobeItem item, {
+        required String mode,
+      }) async {
     final rootNav = Navigator.of(context, rootNavigator: true);
     final BuildContext appContext = rootNav.context;
     rootNav.pop(); // close the item-detail dialog
@@ -417,15 +419,15 @@ class _ItemDetailModal extends StatelessWidget {
       // barrierDismissible:false spinner (ANR / frozen-screen class).
       result = await BackendService()
           .styleWardrobeItem(
-            itemId: item.id,
-            mode: mode,
-            anchorItem: {
-              'item_id': item.id,
-              'name': item.name,
-              'category': item.cat,
-              if (item.displayUrl != null) 'image_url': item.displayUrl,
-            },
-          )
+        itemId: item.id,
+        mode: mode,
+        anchorItem: {
+          'item_id': item.id,
+          'name': item.name,
+          'category': item.cat,
+          if (item.displayUrl != null) 'image_url': item.displayUrl,
+        },
+      )
           .timeout(const Duration(seconds: 15));
     } on TimeoutException {
       timedOut = true;
@@ -441,18 +443,14 @@ class _ItemDetailModal extends StatelessWidget {
     if (!appContext.mounted) return;
     if (timedOut) {
       ScaffoldMessenger.maybeOf(appContext)?.showSnackBar(
-        const SnackBar(
-          content: Text('This took too long. Please try again.'),
+        SnackBar(
+          content: Text(AppLocalizations.t(appContext, 'item_detail_timeout_message')),
         ),
       );
       return;
     }
     _showStyleResultSheet(appContext, mode: mode, item: item, result: result);
   }
-
-  static const String _friendlyFail =
-      'AHVI could not build a complete outfit yet. '
-      'Try adding shoes or accessories.';
 
   List<Map<String, dynamic>> _asMapList(dynamic value) {
     if (value is List) {
@@ -465,20 +463,20 @@ class _ItemDetailModal extends StatelessWidget {
   }
 
   void _showStyleResultSheet(
-    BuildContext context, {
-    required String mode,
-    required WardrobeItem item,
-    required Map<String, dynamic>? result,
-  }) {
+      BuildContext context, {
+        required String mode,
+        required WardrobeItem item,
+        required Map<String, dynamic>? result,
+      }) {
     final bool ok = result != null && result['success'] == true;
     final String? message = result?['message']?.toString();
     final List<Map<String, dynamic>> directions = mode == 'style_this'
         ? _asMapList(result?['style_directions'])
         : <Map<String, dynamic>>[];
     final Map<String, dynamic>? outfit =
-        (mode == 'build_outfit' && result?['outfit'] is Map)
-            ? Map<String, dynamic>.from(result!['outfit'] as Map)
-            : null;
+    (mode == 'build_outfit' && result?['outfit'] is Map)
+        ? Map<String, dynamic>.from(result!['outfit'] as Map)
+        : null;
     final bool isAnchorBoard =
         outfit != null && outfit['payload_type'] == 'ANCHOR_OUTFIT_BOARD';
 
@@ -514,7 +512,9 @@ class _ItemDetailModal extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               Text(
-                mode == 'style_this' ? 'Style Directions' : 'Build Outfit',
+                mode == 'style_this'
+                    ? AppLocalizations.t(ctx, 'item_detail_style_directions')
+                    : AppLocalizations.t(ctx, 'item_detail_build_outfit'),
                 style: TextStyle(
                   color: isAnchorBoard
                       ? const Color(0xFF1A1A1A)
@@ -538,7 +538,7 @@ class _ItemDetailModal extends StatelessWidget {
                 _StyleNotice(
                   text: (message != null && message.isNotEmpty)
                       ? message
-                      : _friendlyFail,
+                      : AppLocalizations.t(ctx, 'item_detail_friendly_fail'),
                 ),
               if (mode == 'style_this')
                 ...directions.map((d) => _StyleDirectionCard(direction: d)),
@@ -557,7 +557,10 @@ class _ItemDetailModal extends StatelessWidget {
     onWore?.call();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Marked "${item.name}" as worn today'),
+        content: Text(
+          AppLocalizations.t(context, 'item_detail_marked_worn')
+              .replaceAll('{name}', item.name),
+        ),
         duration: const Duration(seconds: 2),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -626,7 +629,7 @@ class _PrimaryStyleThisButton extends StatelessWidget {
             const Icon(Icons.auto_awesome, size: 18, color: Colors.white),
             const SizedBox(width: 8),
             Text(
-              'Style This',
+              AppLocalizations.t(context, 'item_detail_style_this'),
               style: GoogleFonts.inter(
                 fontWeight: FontWeight.w800,
                 fontSize: 15,
@@ -714,7 +717,7 @@ class _WorksWellWithCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'WORKS WELL WITH',
+            AppLocalizations.t(context, 'item_detail_works_well_with'),
             style: GoogleFonts.inter(
               fontSize: 11,
               fontWeight: FontWeight.w700,
@@ -725,7 +728,7 @@ class _WorksWellWithCard extends StatelessWidget {
           const SizedBox(height: 10),
           if (pairings.isEmpty)
             Text(
-              'Add more items to your wardrobe to see pairing ideas.',
+              AppLocalizations.t(context, 'item_detail_works_well_empty'),
               style: GoogleFonts.inter(
                 fontSize: 12,
                 color: const Color(0xFF8A8A8E),
@@ -736,52 +739,52 @@ class _WorksWellWithCard extends StatelessWidget {
                 .take(3)
                 .map(
                   (p) => InkWell(
-                    onTap: onSelectPairing != null
-                        ? () => onSelectPairing!(p)
-                        : null,
-                    borderRadius: BorderRadius.circular(8),
-                    child: Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: Row(
-                        children: [
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
-                            child: Container(
-                              width: 32,
-                              height: 32,
-                              color: const Color(0xFFEFEFF7),
-                              child:
-                                  (p.displayUrl != null &&
-                                      p.displayUrl!.isNotEmpty)
-                                  ? Image.network(
-                                      p.displayUrl!,
-                                      fit: BoxFit.contain,
-                                    )
-                                  : const Icon(
-                                      Icons.checkroom,
-                                      size: 16,
-                                      color: Color(0xFFBFBFD6),
-                                    ),
-                            ),
+                onTap: onSelectPairing != null
+                    ? () => onSelectPairing!(p)
+                    : null,
+                borderRadius: BorderRadius.circular(8),
+                child: Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Row(
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Container(
+                          width: 32,
+                          height: 32,
+                          color: const Color(0xFFEFEFF7),
+                          child:
+                          (p.displayUrl != null &&
+                              p.displayUrl!.isNotEmpty)
+                              ? Image.network(
+                            p.displayUrl!,
+                            fit: BoxFit.contain,
+                          )
+                              : const Icon(
+                            Icons.checkroom,
+                            size: 16,
+                            color: Color(0xFFBFBFD6),
                           ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              p.name,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: GoogleFonts.inter(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                                color: const Color(0xFF1A1A1A),
-                              ),
-                            ),
-                          ),
-                        ],
+                        ),
                       ),
-                    ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          p.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.inter(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: const Color(0xFF1A1A1A),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
+              ),
+            ),
           if (pairings.length > 3)
             InkWell(
               onTap: onShowAllPairings,
@@ -789,7 +792,12 @@ class _WorksWellWithCard extends StatelessWidget {
               child: Padding(
                 padding: const EdgeInsets.only(top: 2),
                 child: Text(
-                  '+ ${pairings.length - 3} more item${pairings.length - 3 == 1 ? '' : 's'}',
+                  AppLocalizations.t(
+                    context,
+                    pairings.length - 3 == 1
+                        ? 'item_detail_more_items'
+                        : 'item_detail_more_items_plural',
+                  ).replaceAll('{n}', '${pairings.length - 3}'),
                   style: GoogleFonts.inter(
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
@@ -835,7 +843,7 @@ class _StyleInsightsCard extends StatelessWidget {
               Icon(Icons.auto_awesome, size: 14, color: t.accent.primary),
               const SizedBox(width: 6),
               Text(
-                'STYLE INSIGHTS',
+                AppLocalizations.t(context, 'item_detail_style_insights'),
                 style: GoogleFonts.inter(
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
@@ -851,7 +859,7 @@ class _StyleInsightsCard extends StatelessWidget {
             children: [
               Expanded(
                 child: _InsightColumn(
-                  title: 'Best for',
+                  title: AppLocalizations.t(context, 'item_detail_best_for'),
                   items: bestFor,
                   good: true,
                 ),
@@ -859,7 +867,7 @@ class _StyleInsightsCard extends StatelessWidget {
               const SizedBox(width: 16),
               Expanded(
                 child: _InsightColumn(
-                  title: 'Avoid',
+                  title: AppLocalizations.t(context, 'item_detail_avoid'),
                   items: avoid,
                   good: false,
                 ),
@@ -910,7 +918,7 @@ class _InsightColumn extends StatelessWidget {
           )
         else
           ...items.map(
-            (label) => Padding(
+                (label) => Padding(
               padding: const EdgeInsets.only(bottom: 6),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -952,13 +960,13 @@ class _WardrobeMatchCard extends StatelessWidget {
   Widget build(BuildContext context) {
     String label;
     if (matchCount >= greatThreshold) {
-      label = 'Great match potential';
+      label = AppLocalizations.t(context, 'item_detail_match_great');
     } else if (matchCount >= goodThreshold) {
-      label = 'Good match potential';
+      label = AppLocalizations.t(context, 'item_detail_match_good');
     } else if (matchCount >= limitedThreshold) {
-      label = 'Limited match potential';
+      label = AppLocalizations.t(context, 'item_detail_match_limited');
     } else {
-      label = 'Add more items to see matches';
+      label = AppLocalizations.t(context, 'item_detail_match_add_more');
     }
 
     return Container(
@@ -977,7 +985,7 @@ class _WardrobeMatchCard extends StatelessWidget {
               Icon(Icons.checkroom, size: 14, color: t.accent.primary),
               const SizedBox(width: 6),
               Text(
-                'WARDROBE MATCH',
+                AppLocalizations.t(context, 'item_detail_wardrobe_match'),
                 style: GoogleFonts.inter(
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
@@ -989,7 +997,10 @@ class _WardrobeMatchCard extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            '$matchCount item${matchCount == 1 ? '' : 's'}',
+            AppLocalizations.t(
+              context,
+              matchCount == 1 ? 'item_detail_match_item' : 'item_detail_match_items',
+            ).replaceAll('{n}', '$matchCount'),
             style: GoogleFonts.inter(
               fontSize: 14,
               fontWeight: FontWeight.w800,
@@ -1131,7 +1142,7 @@ class ItemMoreOptionsSheet extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'More options',
+                    AppLocalizations.t(context, 'item_detail_more_options'),
                     style: GoogleFonts.inter(
                       fontSize: 16,
                       fontWeight: FontWeight.w500,
@@ -1144,16 +1155,16 @@ class ItemMoreOptionsSheet extends StatelessWidget {
             const Divider(height: 0.5, color: Color(0xFFF0F0F4)),
             _OptionRow(
               icon: Icons.favorite_border,
-              label: 'Add to favorites',
+              label: AppLocalizations.t(context, 'item_detail_add_to_favorites'),
               onTap: () {
                 Navigator.of(context).pop();
                 onAddToFavorites?.call();
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Added to favorites'),
-                    duration: Duration(seconds: 2),
+                  SnackBar(
+                    content: Text(AppLocalizations.t(context, 'item_detail_added_favorites')),
+                    duration: const Duration(seconds: 2),
                     behavior: SnackBarBehavior.floating,
-                    shape: RoundedRectangleBorder(
+                    shape: const RoundedRectangleBorder(
                       borderRadius: BorderRadius.all(Radius.circular(12)),
                     ),
                   ),
@@ -1162,7 +1173,7 @@ class ItemMoreOptionsSheet extends StatelessWidget {
             ),
             _OptionRow(
               icon: Icons.history,
-              label: 'Wear history',
+              label: AppLocalizations.t(context, 'item_detail_wear_history'),
               onTap: () {
                 Navigator.of(context).pop();
                 onViewWearHistory?.call();
@@ -1170,7 +1181,7 @@ class ItemMoreOptionsSheet extends StatelessWidget {
             ),
             _OptionRow(
               icon: Icons.ios_share,
-              label: 'Share',
+              label: AppLocalizations.t(context, 'item_detail_share'),
               onTap: () {
                 Navigator.of(context).pop();
                 onShare?.call();
@@ -1178,7 +1189,7 @@ class ItemMoreOptionsSheet extends StatelessWidget {
             ),
             _OptionRow(
               icon: Icons.notifications_outlined,
-              label: 'Remind me to wear it',
+              label: AppLocalizations.t(context, 'item_detail_remind_wear'),
               onTap: () {
                 Navigator.of(context).pop();
                 onSetWearReminder?.call();
@@ -1186,7 +1197,7 @@ class ItemMoreOptionsSheet extends StatelessWidget {
             ),
             _OptionRow(
               icon: Icons.local_laundry_service_outlined,
-              label: 'Care reminder',
+              label: AppLocalizations.t(context, 'item_detail_care_reminder'),
               onTap: () {
                 Navigator.of(context).pop();
                 onSetCareReminder?.call();
@@ -1194,7 +1205,7 @@ class ItemMoreOptionsSheet extends StatelessWidget {
             ),
             _OptionRow(
               icon: Icons.delete_outline,
-              label: 'Delete permanently',
+              label: AppLocalizations.t(context, 'item_detail_delete_permanently'),
               color: _kDangerColor,
               showDivider: false,
               onTap: onDelete,
@@ -1213,7 +1224,7 @@ class ItemMoreOptionsSheet extends StatelessWidget {
                     ),
                   ),
                   child: Text(
-                    'Close',
+                    AppLocalizations.t(context, 'item_detail_close'),
                     style: GoogleFonts.inter(
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
@@ -1331,7 +1342,12 @@ class _AllPairingsSheet extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    '${pairings.length} pairing match${pairings.length == 1 ? '' : 'es'}',
+                    AppLocalizations.t(
+                      context,
+                      pairings.length == 1
+                          ? 'item_detail_pairing_match'
+                          : 'item_detail_pairing_matches',
+                    ).replaceAll('{n}', '${pairings.length}'),
                     style: GoogleFonts.inter(
                       fontSize: 16,
                       fontWeight: FontWeight.w500,
@@ -1348,7 +1364,7 @@ class _AllPairingsSheet extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(vertical: 4),
                 itemCount: pairings.length,
                 separatorBuilder: (_, __) =>
-                    const Divider(height: 0.5, color: Color(0xFFF0F0F4)),
+                const Divider(height: 0.5, color: Color(0xFFF0F0F4)),
                 itemBuilder: (context, index) {
                   final p = pairings[index];
                   return InkWell(
@@ -1370,17 +1386,17 @@ class _AllPairingsSheet extends StatelessWidget {
                               height: 40,
                               color: const Color(0xFFEFEFF7),
                               child:
-                                  (p.displayUrl != null &&
-                                      p.displayUrl!.isNotEmpty)
+                              (p.displayUrl != null &&
+                                  p.displayUrl!.isNotEmpty)
                                   ? Image.network(
-                                      p.displayUrl!,
-                                      fit: BoxFit.contain,
-                                    )
+                                p.displayUrl!,
+                                fit: BoxFit.contain,
+                              )
                                   : const Icon(
-                                      Icons.checkroom,
-                                      size: 18,
-                                      color: Color(0xFFBFBFD6),
-                                    ),
+                                Icons.checkroom,
+                                size: 18,
+                                color: Color(0xFFBFBFD6),
+                              ),
                             ),
                           ),
                           const SizedBox(width: 12),
@@ -1434,7 +1450,7 @@ class _AllPairingsSheet extends StatelessWidget {
                     ),
                   ),
                   child: Text(
-                    'Close',
+                    AppLocalizations.t(context, 'item_detail_close'),
                     style: GoogleFonts.inter(
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
@@ -1509,13 +1525,13 @@ class _StyleDirectionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final title = (direction['title'] ?? 'Your Look').toString();
+    final title = (direction['title'] ?? AppLocalizations.t(context, 'item_detail_your_look')).toString();
     final items = _names(direction['items']);
     final missing = _missing(direction['missing_items']);
     final note = (direction[reasonKey] ??
-            direction['styling_note'] ??
-            direction['reason'] ??
-            '')
+        direction['styling_note'] ??
+        direction['reason'] ??
+        '')
         .toString();
 
     return Container(
@@ -1550,9 +1566,9 @@ class _StyleDirectionCard extends StatelessWidget {
           ],
           if (items.isNotEmpty) ...[
             const SizedBox(height: 12),
-            const Text(
-              'WEAR',
-              style: TextStyle(
+            Text(
+              AppLocalizations.t(context, 'item_detail_wear_label'),
+              style: const TextStyle(
                 color: Colors.white38,
                 fontSize: 11,
                 letterSpacing: 0.6,
@@ -1563,14 +1579,14 @@ class _StyleDirectionCard extends StatelessWidget {
               spacing: 8,
               runSpacing: 8,
               children:
-                  items.map((n) => _StyleChip(label: n, accent: false)).toList(),
+              items.map((n) => _StyleChip(label: n, accent: false)).toList(),
             ),
           ],
           if (missing.isNotEmpty) ...[
             const SizedBox(height: 12),
-            const Text(
-              'MISSING - SHOP THESE',
-              style: TextStyle(
+            Text(
+              AppLocalizations.t(context, 'item_detail_missing_shop_these'),
+              style: const TextStyle(
                 color: Colors.white38,
                 fontSize: 11,
                 letterSpacing: 0.6,
@@ -1581,7 +1597,7 @@ class _StyleDirectionCard extends StatelessWidget {
               spacing: 8,
               runSpacing: 8,
               children:
-                  missing.map((n) => _StyleChip(label: n, accent: true)).toList(),
+              missing.map((n) => _StyleChip(label: n, accent: true)).toList(),
             ),
           ],
         ],
@@ -1601,7 +1617,7 @@ class _StyleChip extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
       decoration: BoxDecoration(
         color:
-            accent ? const Color(0x332E7D5B) : Colors.white.withOpacity(0.08),
+        accent ? const Color(0x332E7D5B) : Colors.white.withOpacity(0.08),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
           color: accent ? const Color(0x662E7D5B) : Colors.white12,
@@ -1711,9 +1727,9 @@ class _AnchorOutfitBoardCard extends StatelessWidget {
         ],
         if (missing.isNotEmpty) ...[
           const SizedBox(height: 14),
-          const Text(
-            'MISSING — SHOP THESE',
-            style: TextStyle(
+          Text(
+            AppLocalizations.t(context, 'item_detail_missing_shop_these'),
+            style: const TextStyle(
               color: Color(0xFF8A8A8E),
               fontSize: 11,
               letterSpacing: 0.6,
@@ -1725,7 +1741,7 @@ class _AnchorOutfitBoardCard extends StatelessWidget {
             runSpacing: 8,
             children: missing.map((m) {
               final label =
-                  (m['label'] ?? m['name'] ?? '').toString().trim();
+              (m['label'] ?? m['name'] ?? '').toString().trim();
               return _StyleChip(label: label, accent: true);
             }).toList(),
           ),
@@ -1747,7 +1763,11 @@ class _AnchorItemRow extends StatelessWidget {
     final source = raw['source']?.toString() ?? 'wardrobe';
     final imageUrl = raw['image_url']?.toString() ?? '';
 
-    final sourceLabel = isAnchor ? 'Your piece' : (source == 'wardrobe' ? 'Wardrobe' : 'Suggested');
+    final sourceLabel = isAnchor
+        ? AppLocalizations.t(context, 'item_detail_source_your_piece')
+        : (source == 'wardrobe'
+        ? AppLocalizations.t(context, 'item_detail_source_wardrobe')
+        : AppLocalizations.t(context, 'item_detail_source_suggested'));
     final sourceColor = isAnchor
         ? const Color(0xFF7B61FF)
         : (source == 'wardrobe' ? const Color(0xFF34C759) : const Color(0xFFFF9500));
@@ -1907,8 +1927,8 @@ class _AnchorBoardCanvas extends StatelessWidget {
           final name = raw['name']?.toString() ?? '';
           debugPrint(
             'AHVI_BOARD_TILE role=${entry.key} name=$name '
-            'x=${left.toStringAsFixed(1)} y=${top.toStringAsFixed(1)} '
-            'w=${w.toStringAsFixed(1)} h=${h.toStringAsFixed(1)} z=${cfg.zIndex} anchor=$isAnchor',
+                'x=${left.toStringAsFixed(1)} y=${top.toStringAsFixed(1)} '
+                'w=${w.toStringAsFixed(1)} h=${h.toStringAsFixed(1)} z=${cfg.zIndex} anchor=$isAnchor',
           );
           return Positioned(
             left: left, top: top, width: w, height: h,
@@ -1942,17 +1962,17 @@ class _FlatLayTile extends StatelessWidget {
             borderRadius: BorderRadius.circular(10),
             child: imageUrl.isNotEmpty
                 ? Image.network(
-                    imageUrl,
-                    fit: BoxFit.contain,
-                    width: double.infinity,
-                    height: double.infinity,
-                    errorBuilder: (_, __, ___) => const Center(
-                      child: Icon(Icons.checkroom, color: Color(0xFFD0CAC3), size: 32),
-                    ),
-                  )
+              imageUrl,
+              fit: BoxFit.contain,
+              width: double.infinity,
+              height: double.infinity,
+              errorBuilder: (_, __, ___) => const Center(
+                child: Icon(Icons.checkroom, color: Color(0xFFD0CAC3), size: 32),
+              ),
+            )
                 : const Center(
-                    child: Icon(Icons.checkroom, color: Color(0xFFD0CAC3), size: 32),
-                  ),
+              child: Icon(Icons.checkroom, color: Color(0xFFD0CAC3), size: 32),
+            ),
           ),
         ),
         if (isAnchor)
@@ -1964,9 +1984,9 @@ class _FlatLayTile extends StatelessWidget {
                 color: const Color(0xFF7B61FF),
                 borderRadius: BorderRadius.circular(6),
               ),
-              child: const Text(
-                'Yours',
-                style: TextStyle(
+              child: Text(
+                AppLocalizations.t(context, 'item_detail_yours_badge'),
+                style: const TextStyle(
                   color: Colors.white, fontSize: 9,
                   fontWeight: FontWeight.w700, letterSpacing: 0.2,
                 ),

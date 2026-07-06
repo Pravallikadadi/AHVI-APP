@@ -95,9 +95,9 @@ String _savedCategoryOccasion(_SavedBoardCategory category) {
 }
 
 Future<_SavedBoardCategory?> _showSaveBoardPicker(
-  BuildContext context,
-  _SavedBoardCategory suggested,
-) {
+    BuildContext context,
+    _SavedBoardCategory suggested,
+    ) {
   final t = context.themeTokens;
   return showModalBottomSheet<_SavedBoardCategory>(
     context: context,
@@ -139,9 +139,9 @@ Future<_SavedBoardCategory?> _showSaveBoardPicker(
                 ),
                 trailing: category.key == suggested.key
                     ? Icon(
-                        Icons.check_circle_rounded,
-                        color: t.accent.secondary,
-                      )
+                  Icons.check_circle_rounded,
+                  color: t.accent.secondary,
+                )
                     : null,
                 onTap: () => Navigator.of(ctx).pop(category),
               ),
@@ -179,10 +179,10 @@ Future<String?> _showCustomBoardNameDialog(BuildContext context) {
 }
 
 String _generatedSavedBoardTitle(
-  Map<String, dynamic> board,
-  Map<String, Map<String, dynamic>> slotted,
-  _SavedBoardCategory category,
-) {
+    Map<String, dynamic> board,
+    Map<String, Map<String, dynamic>> slotted,
+    _SavedBoardCategory category,
+    ) {
   final explicit = (board['title'] ?? board['name'] ?? '').toString().trim();
   final lowerExplicit = explicit.toLowerCase();
   if (explicit.isNotEmpty &&
@@ -192,8 +192,8 @@ String _generatedSavedBoardTitle(
   }
   final palette = (board['palette'] is Iterable)
       ? (board['palette'] as Iterable)
-            .map((e) => e.toString())
-            .firstWhere((e) => e.trim().isNotEmpty, orElse: () => '')
+      .map((e) => e.toString())
+      .firstWhere((e) => e.trim().isNotEmpty, orElse: () => '')
       : (board['color'] ?? board['color_story'] ?? '').toString();
   final top = slotted.values
       .map((it) => (it['name'] ?? it['label'] ?? '').toString())
@@ -283,6 +283,67 @@ class _ChatMessage {
     this.moduleCard,
     this.moduleCards = const [],
   });
+
+  // ── Persistence (for chat history) ────────────────────────────────────
+  // `local` (_LocalResponse) is a hardcoded static template keyed by chip
+  // text in the `_local` map — we don't serialize the object itself, we
+  // just remember its lookup key and re-resolve it from `_local` on load.
+  String? get _localLookupKey {
+    if (local == null) return null;
+    for (final entry in _local.entries) {
+      if (identical(entry.value, local)) return entry.key;
+    }
+    return null;
+  }
+
+  Map<String, dynamic> toJson() => {
+    'text': text,
+    'isMe': isMe,
+    'chips': chips,
+    'blocks': blocks.map((b) => b.toJson()).toList(),
+    'boardId': boardId,
+    'packId': packId,
+    'cards': cards,
+    'visualBoard': visualBoard?.toJson(),
+    'moduleCard': moduleCard?.toJson(),
+    'moduleCards': moduleCards,
+    'localKey': _localLookupKey,
+  };
+
+  factory _ChatMessage.fromJson(Map<String, dynamic> j) {
+    final localKey = j['localKey'] as String?;
+    return _ChatMessage(
+      text: (j['text'] ?? '').toString(),
+      isMe: j['isMe'] == true,
+      chips: (j['chips'] as List?) ?? const [],
+      blocks: (j['blocks'] as List?)
+          ?.map(
+            (b) => AhviResponseBlock.fromJson(
+          Map<String, dynamic>.from(b as Map),
+        ),
+      )
+          .toList() ??
+          const [],
+      boardId: j['boardId'] as String?,
+      packId: j['packId'] as String?,
+      cards: (j['cards'] as List?) ?? const [],
+      visualBoard: j['visualBoard'] != null
+          ? AhviVisualBoard.fromJson(
+        Map<String, dynamic>.from(j['visualBoard'] as Map),
+      )
+          : null,
+      moduleCard: j['moduleCard'] != null
+          ? AhviModuleCard.fromJson(
+        Map<String, dynamic>.from(j['moduleCard'] as Map),
+      )
+          : null,
+      moduleCards: (j['moduleCards'] as List?)
+          ?.map((e) => Map<String, dynamic>.from(e as Map))
+          .toList() ??
+          const [],
+      local: localKey != null ? _local[localKey] : null,
+    );
+  }
 }
 
 bool _isStyleMoreChip(String value) {
@@ -347,26 +408,26 @@ bool _isPlanPackRequest(String value) {
   final text = value.toLowerCase().trim();
   final asksForPacking =
       text.contains('pack') ||
-      text.contains('packing') ||
-      text.contains('carry-on') ||
-      text.contains('carry on');
+          text.contains('packing') ||
+          text.contains('carry-on') ||
+          text.contains('carry on');
   final tripContext =
       text.contains('trip') ||
-      text.contains('travel') ||
-      text.contains('beach') ||
-      text.contains('vacation') ||
-      text.contains('destination') ||
-      text.contains('goa');
+          text.contains('travel') ||
+          text.contains('beach') ||
+          text.contains('vacation') ||
+          text.contains('destination') ||
+          text.contains('goa');
   final prepContext =
       text.contains('prep') ||
-      text.contains('prepare') ||
-      text.contains('checklist') ||
-      text.contains('plan');
+          text.contains('prepare') ||
+          text.contains('checklist') ||
+          text.contains('plan');
   final eventPlan =
       text.contains('camping') ||
-      text.contains('goa trip') ||
-      text.contains('birthday party') ||
-      text.contains('plan a birthday');
+          text.contains('goa trip') ||
+          text.contains('birthday party') ||
+          text.contains('plan a birthday');
   return (asksForPacking && (tripContext || prepContext)) ||
       eventPlan ||
       (prepContext &&
@@ -444,8 +505,8 @@ List<String> _blockStringList(dynamic value) {
 }
 
 List<Map<String, dynamic>> _moduleCardsFromResponse(
-  Map<String, dynamic> response,
-) {
+    Map<String, dynamic> response,
+    ) {
   final out = <Map<String, dynamic>>[];
   final card = response['card'];
   if (card is Map) out.add(Map<String, dynamic>.from(card));
@@ -487,10 +548,10 @@ bool _looksLikeModuleCards(Map<String, dynamic> response) {
 }
 
 List<dynamic> _mergeStyleBoards(
-  List<dynamic> current,
-  List<dynamic> incoming, {
-  int maxBoards = 6,
-}) {
+    List<dynamic> current,
+    List<dynamic> incoming, {
+      int maxBoards = 6,
+    }) {
   final merged = <Map<String, dynamic>>[];
   final seen = <String>{};
 
@@ -512,20 +573,20 @@ List<dynamic> _mergeStyleBoards(
 }
 
 List<AhviResponseBlock> _replaceStyleBoardBlock(
-  List<AhviResponseBlock> blocks,
-  List<dynamic> boards,
-) {
+    List<AhviResponseBlock> blocks,
+    List<dynamic> boards,
+    ) {
   if (blocks.isEmpty) return blocks;
   var replaced = false;
   final next = blocks
       .map((block) {
-        if (block.type != AhviBlockType.styleBoards) return block;
-        replaced = true;
-        return AhviResponseBlock(
-          type: AhviBlockType.styleBoards,
-          data: {'boards': boards},
-        );
-      })
+    if (block.type != AhviBlockType.styleBoards) return block;
+    replaced = true;
+    return AhviResponseBlock(
+      type: AhviBlockType.styleBoards,
+      data: {'boards': boards},
+    );
+  })
       .toList(growable: true);
   if (!replaced && boards.isNotEmpty) {
     next.add(
@@ -548,23 +609,23 @@ List<String> _styleBoardSignatures(List<dynamic> boards) {
 
 String _styleBoardSignature(Map<String, dynamic> board) {
   final names =
-      _styleBoardItems(board)
-          .map(
-            (item) =>
-                (item['id'] ??
-                        item[r'$id'] ??
-                        item['item_id'] ??
-                        item['image_id'] ??
-                        item['name'] ??
-                        item['label'] ??
-                        '')
-                    .toString()
-                    .trim()
-                    .toLowerCase(),
-          )
-          .where((value) => value.isNotEmpty)
-          .toList()
-        ..sort();
+  _styleBoardItems(board)
+      .map(
+        (item) =>
+        (item['id'] ??
+            item[r'$id'] ??
+            item['item_id'] ??
+            item['image_id'] ??
+            item['name'] ??
+            item['label'] ??
+            '')
+            .toString()
+            .trim()
+            .toLowerCase(),
+  )
+      .where((value) => value.isNotEmpty)
+      .toList()
+    ..sort();
 
   if (names.isNotEmpty) return names.join('|');
   return (board['id'] ?? board['title'] ?? board['name'] ?? '')
@@ -622,12 +683,12 @@ class _Outfit {
   final String description;
   bool saved;
   _Outfit(
-    this.name,
-    this.tags,
-    this.image, {
-    this.description = '',
-    this.saved = false,
-  });
+      this.name,
+      this.tags,
+      this.image, {
+        this.description = '',
+        this.saved = false,
+      });
 }
 
 class _Plan {
@@ -712,84 +773,84 @@ final _local = <String, _LocalResponse>{
   'What should I wear today?': _LocalResponse(
     type: _RespType.outfits,
     intro:
-        "Based on today's 14°C partly cloudy weather, here are 3 looks curated for you:",
+    "Based on today's 14°C partly cloudy weather, here are 3 looks curated for you:",
     outfits: [
       _Outfit(
         'Layered Minimal',
         ['Casual', 'Today'],
         'https://images.unsplash.com/photo-1594938298603-c8148c4b9c2b?w=220&h=260&fit=crop&crop=top&auto=format',
         description:
-            'A light knit layered over a crisp tee with slim trousers. Comfortable yet polished for a cool day.',
+        'A light knit layered over a crisp tee with slim trousers. Comfortable yet polished for a cool day.',
       ),
       _Outfit(
         'Smart Casual',
         ['Office', 'Versatile'],
         'https://images.unsplash.com/photo-1591369822096-ffd140ec948f?w=220&h=260&fit=crop&crop=top&auto=format',
         description:
-            'Tailored chinos paired with a structured shirt. Effortless transition from desk to dinner.',
+        'Tailored chinos paired with a structured shirt. Effortless transition from desk to dinner.',
       ),
       _Outfit(
         'Street Edit',
         ['Urban', 'Fresh'],
         'https://images.unsplash.com/photo-1509631179647-0177331693ae?w=220&h=260&fit=crop&crop=top&auto=format',
         description:
-            'Wide-leg joggers with an oversized graphic tee and clean sneakers. Relaxed city energy.',
+        'Wide-leg joggers with an oversized graphic tee and clean sneakers. Relaxed city energy.',
       ),
     ],
   ),
   'Build a rooftop party outfit': _LocalResponse(
     type: _RespType.outfits,
     intro:
-        "Rooftop energy calls for elevated looks. Here's what works perfectly:",
+    "Rooftop energy calls for elevated looks. Here's what works perfectly:",
     outfits: [
       _Outfit(
         'Evening Glow',
         ['Party', 'Night'],
         'https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=220&h=260&fit=crop&crop=top&auto=format',
         description:
-            'A sleek satin slip dress with strappy heels. Warm-toned accessories complete the golden-hour vibe.',
+        'A sleek satin slip dress with strappy heels. Warm-toned accessories complete the golden-hour vibe.',
       ),
       _Outfit(
         'Rooftop Chic',
         ['Elevated', 'Cool'],
         'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=220&h=260&fit=crop&crop=top&auto=format',
         description:
-            'Tailored wide-leg trousers with a cropped blazer. Sharp, confident and built for the skyline.',
+        'Tailored wide-leg trousers with a cropped blazer. Sharp, confident and built for the skyline.',
       ),
       _Outfit(
         'Bold Statement',
         ['Trendy', 'Standout'],
         'https://images.unsplash.com/photo-1469334031218-e382a71b716b?w=220&h=260&fit=crop&crop=top&auto=format',
         description:
-            'A vibrant co-ord set that commands attention. Minimal jewellery lets the colour do the talking.',
+        'A vibrant co-ord set that commands attention. Minimal jewellery lets the colour do the talking.',
       ),
     ],
   ),
   'Show trending casual looks': _LocalResponse(
     type: _RespType.outfits,
     intro:
-        'Quiet luxury and clean lines are having a moment. Top trending now:',
+    'Quiet luxury and clean lines are having a moment. Top trending now:',
     outfits: [
       _Outfit(
         'Quiet Luxury',
         ['Trending', 'Minimal'],
         'https://images.unsplash.com/photo-1538805060514-97d9cc17730c?w=220&h=260&fit=crop&crop=top&auto=format',
         description:
-            'Cream wide-leg trousers with a fine-knit cardigan. Understated elegance that speaks volumes.',
+        'Cream wide-leg trousers with a fine-knit cardigan. Understated elegance that speaks volumes.',
       ),
       _Outfit(
         'Soft Tones',
         ['Casual', 'Neutral'],
         'https://images.unsplash.com/photo-1594938298603-c8148c4b9c2b?w=220&h=260&fit=crop&crop=top&auto=format',
         description:
-            'Dusty beige linen set with white sneakers. Easy, breathable and endlessly wearable.',
+        'Dusty beige linen set with white sneakers. Easy, breathable and endlessly wearable.',
       ),
       _Outfit(
         'Classic Ease',
         ['Everyday', 'Fresh'],
         'https://images.unsplash.com/photo-1509631179647-0177331693ae?w=220&h=260&fit=crop&crop=top&auto=format',
         description:
-            'A white oversized button-down tucked into straight jeans. The perfect no-fuss uniform.',
+        'A white oversized button-down tucked into straight jeans. The perfect no-fuss uniform.',
       ),
     ],
   ),
@@ -864,20 +925,23 @@ class _ChatSession {
   final String id;
   String title;
   final DateTime createdAt;
-  final List<Map<String, String>> history; // [{role, content}]
+  final List<Map<String, String>> history; // [{role, content}] — sent to backend as context
+  final List<_ChatMessage> messages; // rich UI messages (boards, cards, chips, images)
 
   _ChatSession({
     required this.id,
     required this.title,
     required this.createdAt,
     required this.history,
-  });
+    List<_ChatMessage>? messages,
+  }) : messages = messages ?? [];
 
   Map<String, dynamic> toJson() => {
     'id': id,
     'title': title,
     'createdAt': createdAt.toIso8601String(),
     'history': history,
+    'messages': messages.map((m) => m.toJson()).toList(),
   };
 
   factory _ChatSession.fromJson(Map<String, dynamic> j) => _ChatSession(
@@ -887,6 +951,14 @@ class _ChatSession {
     history: (j['history'] as List)
         .map((e) => Map<String, String>.from(e as Map))
         .toList(),
+    // Older saved sessions won't have `messages` — fall back to an empty
+    // list, which _loadSession() rebuilds from `history` as plain text.
+    messages: (j['messages'] as List?)
+        ?.map(
+          (e) => _ChatMessage.fromJson(Map<String, dynamic>.from(e as Map)),
+    )
+        .toList() ??
+        const [],
   );
 }
 
@@ -943,7 +1015,9 @@ class _ChatScreenState extends State<ChatScreen>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _currentSessionId = DateTime.now().millisecondsSinceEpoch.toString();
-    _loadSessions();
+    // If we're opening fresh (no initialPrompt forcing a new topic), resume
+    // the most recent conversation automatically instead of starting empty.
+    _loadSessions(autoResume: widget.initialPrompt == null);
 
     // Keyboard వచ్చినప్పుడు scroll to bottom
     _chatFocusNode.addListener(() {
@@ -974,7 +1048,7 @@ class _ChatScreenState extends State<ChatScreen>
     final user = await appwrite.getCurrentUser();
     if (user != null && mounted) {
       setState(
-        () => _userName = user.name.isNotEmpty
+            () => _userName = user.name.isNotEmpty
             ? user.name.split(' ').first
             : 'Stylist',
       );
@@ -1013,21 +1087,45 @@ class _ChatScreenState extends State<ChatScreen>
 
   // ── Session persistence ────────────────────────────────────────────────────
 
-  Future<void> _loadSessions() async {
+  Future<void> _loadSessions({bool autoResume = false}) async {
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getString(_kSessionsKey);
     if (raw == null) return;
     try {
       final List decoded = jsonDecode(raw) as List;
-      if (mounted) {
-        setState(() {
-          _sessions =
-              decoded
-                  .map((e) => _ChatSession.fromJson(e as Map<String, dynamic>))
-                  .toList()
-                ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
-        });
-      }
+      final loaded =
+      decoded
+          .map((e) => _ChatSession.fromJson(e as Map<String, dynamic>))
+          .toList()
+        ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      if (!mounted) return;
+      setState(() {
+        _sessions = loaded;
+        if (autoResume && loaded.isNotEmpty && !_greetingAdded) {
+          final last = loaded.first;
+          _currentSessionId = last.id;
+          _chatHistory
+            ..clear()
+            ..addAll(last.history);
+          _messages
+            ..clear()
+            ..add(_ChatMessage(text: '', isMe: false, isGreeting: true));
+          if (last.messages.isNotEmpty) {
+            _messages.addAll(last.messages);
+          } else {
+            for (final h in last.history) {
+              _messages.add(
+                _ChatMessage(
+                  text: h['content'] ?? '',
+                  isMe: h['role'] == 'user',
+                ),
+              );
+            }
+          }
+          _greetingAdded = true; // stop didChangeDependencies re-adding it
+          _fetchUser();
+        }
+      });
     } catch (_) {}
   }
 
@@ -1037,18 +1135,24 @@ class _ChatScreenState extends State<ChatScreen>
 
     // Build a readable title from the first user message
     final firstUser = _chatHistory.firstWhere(
-      (m) => m['role'] == 'user',
+          (m) => m['role'] == 'user',
       orElse: () => {'content': 'Chat'},
     );
     final title = (firstUser['content'] ?? 'Chat').length > 40
         ? '${firstUser['content']!.substring(0, 40)}…'
         : firstUser['content']!;
 
+    // Greeting bubble is re-added on load, so skip persisting it here.
+    final richMessages = _messages.where((m) => !m.isGreeting).toList();
+
     final existing = _sessions.indexWhere((s) => s.id == _currentSessionId);
     if (existing >= 0) {
       _sessions[existing].history
         ..clear()
         ..addAll(_chatHistory);
+      _sessions[existing].messages
+        ..clear()
+        ..addAll(richMessages);
       _sessions[existing].title = title;
     } else {
       _sessions.insert(
@@ -1058,6 +1162,7 @@ class _ChatScreenState extends State<ChatScreen>
           title: title,
           createdAt: DateTime.now(),
           history: List.from(_chatHistory),
+          messages: List.from(richMessages),
         ),
       );
     }
@@ -1078,7 +1183,7 @@ class _ChatScreenState extends State<ChatScreen>
   }
 
   void _startNewChat() {
-    Navigator.of(context).pop(); // close drawer
+    _scaffoldKey.currentState?.closeDrawer(); // close drawer only, not the screen
     setState(() {
       _currentSessionId = DateTime.now().millisecondsSinceEpoch.toString();
       _messages
@@ -1092,19 +1197,26 @@ class _ChatScreenState extends State<ChatScreen>
   }
 
   void _loadSession(_ChatSession session) {
-    Navigator.of(context).pop(); // close drawer
+    _scaffoldKey.currentState?.closeDrawer(); // close drawer only, not the screen
     setState(() {
       _currentSessionId = session.id;
       _chatHistory
         ..clear()
         ..addAll(session.history);
-      _messages.clear();
-      // Rebuild _messages from history for display
-      _messages.add(_ChatMessage(text: '', isMe: false, isGreeting: true));
-      for (final h in session.history) {
-        _messages.add(
-          _ChatMessage(text: h['content'] ?? '', isMe: h['role'] == 'user'),
-        );
+      _messages
+        ..clear()
+        ..add(_ChatMessage(text: '', isMe: false, isGreeting: true));
+      if (session.messages.isNotEmpty) {
+        // Full-fidelity restore: boards, cards, chips, images all come back.
+        _messages.addAll(session.messages);
+      } else {
+        // Backward compatibility for sessions saved before rich-message
+        // persistence existed — falls back to plain text bubbles.
+        for (final h in session.history) {
+          _messages.add(
+            _ChatMessage(text: h['content'] ?? '', isMe: h['role'] == 'user'),
+          );
+        }
       }
       _runningMemory = '';
       _lastStyleContext = null;
@@ -1235,11 +1347,11 @@ class _ChatScreenState extends State<ChatScreen>
       final added = mergedBoards.length > sourceCards.length;
       final rawMessage = response['message'];
       final aiText =
-          (response['message_text'] ??
-                  (rawMessage is Map ? rawMessage['content'] : rawMessage) ??
-                  '')
-              .toString()
-              .trim();
+      (response['message_text'] ??
+          (rawMessage is Map ? rawMessage['content'] : rawMessage) ??
+          '')
+          .toString()
+          .trim();
 
       setState(() {
         if (sourceIndex != null && added) {
@@ -1281,11 +1393,10 @@ class _ChatScreenState extends State<ChatScreen>
               : "I've shown the strongest options from this wardrobe.",
         });
       });
-      _saveCurrentSession();
     } catch (e) {
       if (!mounted) return;
       setState(
-        () => _messages.add(
+            () => _messages.add(
           _ChatMessage(
             text: '${AppLocalizations.t(context, 'chat_error_prefix')}: $e',
             isMe: false,
@@ -1294,6 +1405,9 @@ class _ChatScreenState extends State<ChatScreen>
       );
     } finally {
       if (mounted) setState(() => _isTyping = false);
+      // Save regardless of success/failure so the user message (and any
+      // error bubble) is never silently lost from history.
+      _saveCurrentSession();
       _scrollToBottom();
     }
   }
@@ -1341,7 +1455,7 @@ class _ChatScreenState extends State<ChatScreen>
           : '';
       final isClarificationAnswer =
           pendingClarificationPrompt.isNotEmpty &&
-          visibleText.trim().isNotEmpty;
+              visibleText.trim().isNotEmpty;
       final clarificationResolvedPrompt = isClarificationAnswer
           ? '$pendingClarificationPrompt · $visibleText'
           : '';
@@ -1352,7 +1466,7 @@ class _ChatScreenState extends State<ChatScreen>
           ? resolvedStylePrompt.split('·').first.trim()
           : resolvedStylePrompt;
       final interpretedOccasion =
-          resolvedStylePrompt.toLowerCase().contains('beach') ? 'beach' : null;
+      resolvedStylePrompt.toLowerCase().contains('beach') ? 'beach' : null;
       // Only style / wardrobe / daily_wear flows go through /api/text which
       // builds boards. Every other module (home, utilities, fitness, diet,
       // skincare, medi, bills, calendar) goes through the shared module chat
@@ -1391,17 +1505,17 @@ class _ChatScreenState extends State<ChatScreen>
               : null,
           styleContext: isClarificationAnswer
               ? {
-                  'original_prompt': pendingClarificationPrompt,
-                  'clarification': visibleText,
-                  'resolved_prompt': clarificationResolvedPrompt,
-                }
+            'original_prompt': pendingClarificationPrompt,
+            'clarification': visibleText,
+            'resolved_prompt': clarificationResolvedPrompt,
+          }
               : isClosestAction && resolvedStylePrompt.isNotEmpty
               ? {
-                  'original_prompt': originalStylePrompt,
-                  'resolved_prompt': resolvedStylePrompt,
-                  if (interpretedOccasion != null)
-                    'interpreted_occasion': interpretedOccasion,
-                }
+            'original_prompt': originalStylePrompt,
+            'resolved_prompt': resolvedStylePrompt,
+            if (interpretedOccasion != null)
+              'interpreted_occasion': interpretedOccasion,
+          }
               : null,
           lastStyleContext: _lastStyleContext,
           showClosestOption: isClosestAction,
@@ -1454,11 +1568,11 @@ class _ChatScreenState extends State<ChatScreen>
         _lastPlanPackContext = {
           ...Map<String, dynamic>.from(responseData),
           'last_plan_prompt':
-              responseData['source_text'] ??
+          responseData['source_text'] ??
               _lastPlanPackContext['last_plan_prompt'] ??
               queryText,
           'active_plan_prompt':
-              responseData['source_text'] ??
+          responseData['source_text'] ??
               _lastPlanPackContext['active_plan_prompt'] ??
               queryText,
         };
@@ -1485,9 +1599,9 @@ class _ChatScreenState extends State<ChatScreen>
           : aiText;
       final duplicateWeakMatch =
           (response['type'] ?? '').toString() == 'weak_match' &&
-          _messages.isNotEmpty &&
-          !_messages.last.isMe &&
-          _messages.last.text.trim() == aiText.trim();
+              _messages.isNotEmpty &&
+              !_messages.last.isMe &&
+              _messages.last.text.trim() == aiText.trim();
       _chatHistory.add({'role': 'assistant', 'content': closestEmptyFallback});
       setState(() {
         if (duplicateWeakMatch && !isClosestAction) return;
@@ -1507,11 +1621,10 @@ class _ChatScreenState extends State<ChatScreen>
           ),
         );
       });
-      _saveCurrentSession();
     } catch (e) {
       if (!mounted) return;
       setState(
-        () => _messages.add(
+            () => _messages.add(
           _ChatMessage(
             text: '${AppLocalizations.t(context, 'chat_error_prefix')}: $e',
             isMe: false,
@@ -1520,6 +1633,9 @@ class _ChatScreenState extends State<ChatScreen>
       );
     } finally {
       if (mounted) setState(() => _isTyping = false);
+      // Save regardless of success/failure so the user message (and any
+      // error bubble) is never silently lost from history.
+      _saveCurrentSession();
       _scrollToBottom();
     }
   }
@@ -1599,6 +1715,9 @@ class _ChatScreenState extends State<ChatScreen>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    // Fire-and-forget: catches the case where the user backs out of the
+    // screen quickly, before the async write from a prior send completes.
+    _saveCurrentSession();
     if (_isListening) {
       AhviSpeechService.instance.cancel();
     }
@@ -1665,9 +1784,9 @@ class _ChatScreenState extends State<ChatScreen>
                   final double listBottomPad = kbH > 0
                       ? promptBarH
                       : navBarH +
-                            promptBarH +
-                            floatingContentClearance +
-                            (widget.showBackButton ? 0 : 80);
+                      promptBarH +
+                      floatingContentClearance +
+                      (widget.showBackButton ? 0 : 80);
                   return Column(
                     children: [
                       Expanded(
@@ -1779,83 +1898,83 @@ class _ChatScreenState extends State<ChatScreen>
             Expanded(
               child: _sessions.isEmpty
                   ? Center(
-                      child: Text(
-                        AppLocalizations.t(context, 'chat_no_history'),
-                        textAlign: TextAlign.center,
-                        style: TextStyle(color: t.mutedText, fontSize: 13),
-                      ),
-                    )
+                child: Text(
+                  AppLocalizations.t(context, 'chat_no_history'),
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: t.mutedText, fontSize: 13),
+                ),
+              )
                   : ListView.builder(
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      itemCount: _sessions.length,
-                      itemBuilder: (ctx, i) {
-                        final s = _sessions[i];
-                        final isActive = s.id == _currentSessionId;
-                        final date = _formatDate(s.createdAt);
-                        return Dismissible(
-                          key: ValueKey(s.id),
-                          direction: DismissDirection.endToStart,
-                          background: Container(
-                            alignment: Alignment.centerRight,
-                            padding: const EdgeInsets.only(right: 20),
-                            color: Colors.red.withValues(alpha: 0.15),
-                            child: const Icon(
-                              Icons.delete_outline,
-                              color: Colors.redAccent,
-                            ),
-                          ),
-                          onDismissed: (_) => _deleteSession(s.id),
-                          child: ListTile(
-                            selected: isActive,
-                            selectedTileColor: t.accent.primary.withValues(
-                              alpha: 0.1,
-                            ),
-                            onTap: () => _loadSession(s),
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 20,
-                              vertical: 2,
-                            ),
-                            leading: Container(
-                              width: 36,
-                              height: 36,
-                              decoration: BoxDecoration(
-                                color: isActive
-                                    ? t.accent.primary.withValues(alpha: 0.2)
-                                    : t.panel,
-                                borderRadius: BorderRadius.circular(10),
-                                border: Border.all(color: t.cardBorder),
-                              ),
-                              child: Icon(
-                                Icons.chat_bubble_outline_rounded,
-                                size: 16,
-                                color: isActive
-                                    ? t.accent.primary
-                                    : t.mutedText,
-                              ),
-                            ),
-                            title: Text(
-                              s.title,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                color: t.textPrimary,
-                                fontSize: 13,
-                                fontWeight: isActive
-                                    ? FontWeight.w700
-                                    : FontWeight.w500,
-                              ),
-                            ),
-                            subtitle: Text(
-                              date,
-                              style: TextStyle(
-                                color: t.mutedText,
-                                fontSize: 11,
-                              ),
-                            ),
-                          ),
-                        );
-                      },
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                itemCount: _sessions.length,
+                itemBuilder: (ctx, i) {
+                  final s = _sessions[i];
+                  final isActive = s.id == _currentSessionId;
+                  final date = _formatDate(s.createdAt);
+                  return Dismissible(
+                    key: ValueKey(s.id),
+                    direction: DismissDirection.endToStart,
+                    background: Container(
+                      alignment: Alignment.centerRight,
+                      padding: const EdgeInsets.only(right: 20),
+                      color: Colors.red.withValues(alpha: 0.15),
+                      child: const Icon(
+                        Icons.delete_outline,
+                        color: Colors.redAccent,
+                      ),
                     ),
+                    onDismissed: (_) => _deleteSession(s.id),
+                    child: ListTile(
+                      selected: isActive,
+                      selectedTileColor: t.accent.primary.withValues(
+                        alpha: 0.1,
+                      ),
+                      onTap: () => _loadSession(s),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 2,
+                      ),
+                      leading: Container(
+                        width: 36,
+                        height: 36,
+                        decoration: BoxDecoration(
+                          color: isActive
+                              ? t.accent.primary.withValues(alpha: 0.2)
+                              : t.panel,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: t.cardBorder),
+                        ),
+                        child: Icon(
+                          Icons.chat_bubble_outline_rounded,
+                          size: 16,
+                          color: isActive
+                              ? t.accent.primary
+                              : t.mutedText,
+                        ),
+                      ),
+                      title: Text(
+                        s.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: t.textPrimary,
+                          fontSize: 13,
+                          fontWeight: isActive
+                              ? FontWeight.w700
+                              : FontWeight.w500,
+                        ),
+                      ),
+                      subtitle: Text(
+                        date,
+                        style: TextStyle(
+                          color: t.mutedText,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
             ),
           ],
         ),
@@ -1897,39 +2016,39 @@ class _ChatScreenState extends State<ChatScreen>
           ),
           child: m.isMe
               ? Text(
-                  m.text,
-                  style: const TextStyle(
-                    color: Colors.white,
+            m.text,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 14.5,
+              height: 1.4,
+            ),
+          )
+              : Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(top: 1, right: 8),
+                child: Icon(
+                  Icons.auto_awesome_rounded,
+                  size: 15,
+                  color: t.accent.primary,
+                ),
+              ),
+              Flexible(
+                child: Text(
+                  m.isGreeting
+                      ? AppLocalizations.t(context, 'chat_greeting')
+                      : m.text,
+                  style: TextStyle(
+                    color: t.textPrimary,
                     fontSize: 14.5,
                     height: 1.4,
                   ),
-                )
-              : Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.only(top: 1, right: 8),
-                      child: Icon(
-                        Icons.auto_awesome_rounded,
-                        size: 15,
-                        color: t.accent.primary,
-                      ),
-                    ),
-                    Flexible(
-                      child: Text(
-                        m.isGreeting
-                            ? AppLocalizations.t(context, 'chat_greeting')
-                            : m.text,
-                        style: TextStyle(
-                          color: t.textPrimary,
-                          fontSize: 14.5,
-                          height: 1.4,
-                        ),
-                      ),
-                    ),
-                  ],
                 ),
+              ),
+            ],
+          ),
         ),
       ),
       // Style board cards take priority over text blocks. The module-chat
@@ -1942,13 +2061,13 @@ class _ChatScreenState extends State<ChatScreen>
       else if (!m.isMe && m.visualBoard != null)
         _visualBoardView(m.visualBoard!, t)
       else ...[
-        if (m.blocks.isNotEmpty)
-          ...m.blocks.map((block) => _renderBlock(block, t)),
-        if (m.blocks.isEmpty && m.moduleCard != null)
-          _moduleCardView(m.moduleCard!, t),
-        if (m.blocks.isEmpty && m.moduleCards.isNotEmpty)
-          _genericModuleCardsView(m.moduleCards, t),
-      ],
+          if (m.blocks.isNotEmpty)
+            ...m.blocks.map((block) => _renderBlock(block, t)),
+          if (m.blocks.isEmpty && m.moduleCard != null)
+            _moduleCardView(m.moduleCard!, t),
+          if (m.blocks.isEmpty && m.moduleCards.isNotEmpty)
+            _genericModuleCardsView(m.moduleCards, t),
+        ],
       if (!m.isMe && m.local != null) _localView(m.local!, t),
       if (!m.isMe && m.chips.isNotEmpty)
         Padding(
@@ -2117,29 +2236,29 @@ class _ChatScreenState extends State<ChatScreen>
                     children: palette
                         .map(
                           (color) => Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 5,
-                            ),
-                            decoration: BoxDecoration(
-                              color: t.accent.secondary.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(999),
-                              border: Border.all(
-                                color: t.accent.secondary.withValues(
-                                  alpha: 0.22,
-                                ),
-                              ),
-                            ),
-                            child: Text(
-                              color,
-                              style: TextStyle(
-                                color: t.textPrimary,
-                                fontSize: 10.5,
-                                fontWeight: FontWeight.w700,
-                              ),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 5,
+                        ),
+                        decoration: BoxDecoration(
+                          color: t.accent.secondary.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(999),
+                          border: Border.all(
+                            color: t.accent.secondary.withValues(
+                              alpha: 0.22,
                             ),
                           ),
-                        )
+                        ),
+                        child: Text(
+                          color,
+                          style: TextStyle(
+                            color: t.textPrimary,
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    )
                         .toList(growable: false),
                   ),
                 ],
@@ -2209,9 +2328,9 @@ class _ChatScreenState extends State<ChatScreen>
   }
 
   Future<void> _saveBoardToPlanner(
-    Map<String, dynamic> board,
-    Map<String, Map<String, dynamic>> slotted,
-  ) async {
+      Map<String, dynamic> board,
+      Map<String, Map<String, dynamic>> slotted,
+      ) async {
     final appwrite = Provider.of<AppwriteService>(context, listen: false);
 
     var selectedCategory = await _showSaveBoardPicker(
@@ -2233,20 +2352,20 @@ class _ChatScreenState extends State<ChatScreen>
         .where((s) => s.isNotEmpty)
         .join(' + ');
     final firstWithImage = slotted.values.firstWhere(
-      (it) => _flatLayImageUrlKv(it).isNotEmpty,
+          (it) => _flatLayImageUrlKv(it).isNotEmpty,
       orElse: () => const <String, dynamic>{},
     );
     final imageUrl = _flatLayImageUrlKv(firstWithImage);
     final outfitItems = _savedBoardOutfitItems(slotted);
     final existingTitles =
-        (await appwrite.getSavedBoardsByOccasion(
-              _savedCategoryOccasion(selectedCategory),
-            ))
-            .map(
-              (doc) =>
-                  (doc.data['title'] ?? doc.data['occasion'] ?? '').toString(),
-            )
-            .toSet();
+    (await appwrite.getSavedBoardsByOccasion(
+      _savedCategoryOccasion(selectedCategory),
+    ))
+        .map(
+          (doc) =>
+          (doc.data['title'] ?? doc.data['occasion'] ?? '').toString(),
+    )
+        .toSet();
     final title = _uniqueSavedBoardTitle(
       _generatedSavedBoardTitle(board, slotted, selectedCategory),
       existingTitles,
@@ -2264,13 +2383,13 @@ class _ChatScreenState extends State<ChatScreen>
         'itemIds': slotted.values
             .map(
               (it) =>
-                  it[r'$id'] ??
-                  it['id'] ??
-                  it['item_id'] ??
-                  it['itemId'] ??
-                  it['image_id'] ??
-                  it['imageId'],
-            )
+          it[r'$id'] ??
+              it['id'] ??
+              it['item_id'] ??
+              it['itemId'] ??
+              it['image_id'] ??
+              it['imageId'],
+        )
             .where((id) => id != null && id.toString().trim().isNotEmpty)
             .map((id) => id.toString())
             .toList(),
@@ -2303,8 +2422,8 @@ class _ChatScreenState extends State<ChatScreen>
   }
 
   List<Map<String, dynamic>> _savedBoardOutfitItems(
-    Map<String, Map<String, dynamic>> slotted,
-  ) {
+      Map<String, Map<String, dynamic>> slotted,
+      ) {
     final items = <Map<String, dynamic>>[];
     final seen = <String>{};
     for (final entry in _flatLaySortedEntriesKv(slotted)) {
@@ -2315,23 +2434,23 @@ class _ChatScreenState extends State<ChatScreen>
 
       final rawId =
           item[r'$id'] ??
-          item['id'] ??
-          item['item_id'] ??
-          item['itemId'] ??
-          item['image_id'] ??
-          item['imageId'];
+              item['id'] ??
+              item['item_id'] ??
+              item['itemId'] ??
+              item['image_id'] ??
+              item['imageId'];
       final id = rawId?.toString().trim() ?? '';
       final name = (item['name'] ?? item['label'] ?? item['title'] ?? entry.key)
           .toString()
           .trim();
       final category =
-          (item['category'] ??
-                  item['sub_category'] ??
-                  item['subcategory'] ??
-                  item['type'] ??
-                  entry.key)
-              .toString()
-              .trim();
+      (item['category'] ??
+          item['sub_category'] ??
+          item['subcategory'] ??
+          item['type'] ??
+          entry.key)
+          .toString()
+          .trim();
       final maskedUrl = (item['masked_url'] ?? item['maskedUrl'] ?? imageUrl)
           .toString();
 
@@ -2383,8 +2502,8 @@ class _ChatScreenState extends State<ChatScreen>
       final text = (row['content'] ?? '').toLowerCase();
       final isClarification =
           text.contains('what are we dressing') ||
-          text.contains('pick an occasion') ||
-          text.contains('what are you dressing for');
+              text.contains('pick an occasion') ||
+              text.contains('what are you dressing for');
       if (!isClarification) continue;
       for (var j = i - 1; j >= 0; j--) {
         final previous = _chatHistory[j];
@@ -2559,28 +2678,28 @@ class _ChatScreenState extends State<ChatScreen>
                                     .take(2)
                                     .map(
                                       (tag) => Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 6,
-                                          vertical: 2,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: t.accent.primary.withValues(
-                                            alpha: 0.10,
-                                          ),
-                                          borderRadius: BorderRadius.circular(
-                                            100,
-                                          ),
-                                        ),
-                                        child: Text(
-                                          tag,
-                                          style: TextStyle(
-                                            color: t.mutedText,
-                                            fontSize: 8.5,
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                        ),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 6,
+                                      vertical: 2,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: t.accent.primary.withValues(
+                                        alpha: 0.10,
                                       ),
-                                    )
+                                      borderRadius: BorderRadius.circular(
+                                        100,
+                                      ),
+                                    ),
+                                    child: Text(
+                                      tag,
+                                      style: TextStyle(
+                                        color: t.mutedText,
+                                        fontSize: 8.5,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ),
+                                )
                                     .toList(),
                               ),
                             ],
@@ -2604,44 +2723,44 @@ class _ChatScreenState extends State<ChatScreen>
             .entries
             .map(
               (e) => Container(
-                margin: const EdgeInsets.only(bottom: 14),
-                padding: const EdgeInsets.only(left: 12),
-                decoration: BoxDecoration(
-                  border: Border(
-                    left: BorderSide(color: colors[e.key % 3], width: 2),
+            margin: const EdgeInsets.only(bottom: 14),
+            padding: const EdgeInsets.only(left: 12),
+            decoration: BoxDecoration(
+              border: Border(
+                left: BorderSide(color: colors[e.key % 3], width: 2),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  e.value.title,
+                  style: TextStyle(
+                    color: colors[e.key % 3],
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      e.value.title,
-                      style: TextStyle(
-                        color: colors[e.key % 3],
-                        fontSize: 11.5,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    ...e.value.items.map(
+                const SizedBox(height: 6),
+                ...e.value.items.map(
                       (it) => Padding(
-                        padding: const EdgeInsets.only(bottom: 4),
-                        child: Text(
-                          it,
-                          style: TextStyle(
-                            color: t.mutedText,
-                            fontSize: 12.5,
-                            height: 1.5,
-                          ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: Text(
+                      it,
+                      style: TextStyle(
+                        color: t.mutedText,
+                        fontSize: 12.5,
+                        height: 1.5,
                       ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                  ],
+                  ),
                 ),
-              ),
-            )
+              ],
+            ),
+          ),
+        )
             .toList(),
       );
     }
@@ -2709,7 +2828,7 @@ class _ChatScreenState extends State<ChatScreen>
           ),
           const SizedBox(height: 12),
           ...d.rows.map(
-            (x) => Container(
+                (x) => Container(
               margin: const EdgeInsets.only(bottom: 8),
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
               decoration: BoxDecoration(
@@ -2799,9 +2918,9 @@ class _ChatScreenState extends State<ChatScreen>
   }
 
   Widget _genericModuleCardsView(
-    List<Map<String, dynamic>> cards,
-    AppThemeTokens t,
-  ) {
+      List<Map<String, dynamic>> cards,
+      AppThemeTokens t,
+      ) {
     final usable = cards.where((card) => card.isNotEmpty).toList();
     if (usable.isEmpty) return const SizedBox.shrink();
     return Padding(
@@ -2820,25 +2939,25 @@ class _ChatScreenState extends State<ChatScreen>
       return _visualPackingChecklistCard(card, t);
     }
     final title =
-        (card['title'] ??
-                card['name'] ??
-                card['label'] ??
-                card['intent'] ??
-                card['module'] ??
-                'Plan')
-            .toString()
-            .replaceAll('_', ' ')
-            .trim();
+    (card['title'] ??
+        card['name'] ??
+        card['label'] ??
+        card['intent'] ??
+        card['module'] ??
+        'Plan')
+        .toString()
+        .replaceAll('_', ' ')
+        .trim();
     final subtitle =
-        (card['subtitle'] ??
-                card['summary'] ??
-                card['description'] ??
-                card['message_text'] ??
-                card['response'] ??
-                card['message'] ??
-                '')
-            .toString()
-            .trim();
+    (card['subtitle'] ??
+        card['summary'] ??
+        card['description'] ??
+        card['message_text'] ??
+        card['response'] ??
+        card['message'] ??
+        '')
+        .toString()
+        .trim();
     final itemMaps = _genericCardItemMaps(card);
     final items = itemMaps.isEmpty ? _genericCardItems(card) : const <String>[];
     final action = (card['action'] is Map
@@ -2847,13 +2966,13 @@ class _ChatScreenState extends State<ChatScreen>
         ? Map<String, dynamic>.from(card['cta'] as Map)
         : <String, dynamic>{});
     final actionModule =
-        (action['module'] ??
-                action['route'] ??
-                card['open_module'] ??
-                card['open_key'] ??
-                card['module'] ??
-                '')
-            .toString();
+    (action['module'] ??
+        action['route'] ??
+        card['open_module'] ??
+        card['open_key'] ??
+        card['module'] ??
+        '')
+        .toString();
     final actionTitle = (action['title'] ?? action['label'] ?? 'Open')
         .toString()
         .trim();
@@ -2917,30 +3036,30 @@ class _ChatScreenState extends State<ChatScreen>
                 .take(8)
                 .map(
                   (item) => Padding(
-                    padding: const EdgeInsets.only(bottom: 7),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Icon(
-                          Icons.check_circle_outline_rounded,
-                          size: 16,
-                          color: t.accent.primary,
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            item,
-                            style: TextStyle(
-                              color: t.textPrimary,
-                              fontSize: 12.5,
-                              height: 1.3,
-                            ),
-                          ),
-                        ),
-                      ],
+                padding: const EdgeInsets.only(bottom: 7),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(
+                      Icons.check_circle_outline_rounded,
+                      size: 16,
+                      color: t.accent.primary,
                     ),
-                  ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        item,
+                        style: TextStyle(
+                          color: t.textPrimary,
+                          fontSize: 12.5,
+                          height: 1.3,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
+              ),
+            ),
           ],
           if (actionModule.isNotEmpty) ...[
             const SizedBox(height: 8),
@@ -2986,9 +3105,9 @@ class _ChatScreenState extends State<ChatScreen>
   }
 
   Widget _visualPackingChecklistCard(
-    Map<String, dynamic> card,
-    AppThemeTokens t,
-  ) {
+      Map<String, dynamic> card,
+      AppThemeTokens t,
+      ) {
     final sections = _packingVisualSections(card);
     if (sections.isEmpty) return const SizedBox.shrink();
     final title = (card['title'] ?? 'Carry-on Packing Checklist')
@@ -3001,10 +3120,10 @@ class _ChatScreenState extends State<ChatScreen>
     final actions = rawActions.isNotEmpty
         ? rawActions
         : const [
-            {'label': 'Open checklist'},
-            {'label': 'Plan outfits'},
-            {'label': 'Weather prep'},
-          ];
+      {'label': 'Open checklist'},
+      {'label': 'Plan outfits'},
+      {'label': 'Weather prep'},
+    ];
 
     // Card-level StatefulBuilder so toggling an item live-updates the
     // progress bar and every section tile in one rebuild.
@@ -3103,7 +3222,7 @@ class _ChatScreenState extends State<ChatScreen>
                             sections[i],
                             i + 1,
                             t,
-                            () => setBoard(() {}),
+                                () => setBoard(() {}),
                           ),
                         ),
                     ],
@@ -3143,9 +3262,9 @@ class _ChatScreenState extends State<ChatScreen>
 
   bool _packingItemDone(Map<String, dynamic> item) {
     final label =
-        (item['display_label'] ?? item['label'] ?? item['name'] ?? 'Item')
-            .toString()
-            .trim();
+    (item['display_label'] ?? item['label'] ?? item['name'] ?? 'Item')
+        .toString()
+        .trim();
     final stateKey = (item['id'] ?? label).toString();
     final saved = _checklistChecksByTitle[stateKey];
     if (saved != null && saved.isNotEmpty && saved.first.isNotEmpty) {
@@ -3156,9 +3275,9 @@ class _ChatScreenState extends State<ChatScreen>
 
   void _togglePackingItem(Map<String, dynamic> item) {
     final label =
-        (item['display_label'] ?? item['label'] ?? item['name'] ?? 'Item')
-            .toString()
-            .trim();
+    (item['display_label'] ?? item['label'] ?? item['name'] ?? 'Item')
+        .toString()
+        .trim();
     final stateKey = (item['id'] ?? label).toString();
     _checklistChecksByTitle[stateKey] = [
       [!_packingItemDone(item)],
@@ -3218,7 +3337,7 @@ class _ChatScreenState extends State<ChatScreen>
             child: Row(
               children: List.generate(
                 3,
-                (i) => Container(
+                    (i) => Container(
                   margin: const EdgeInsets.only(left: 3),
                   width: 3,
                   height: 3,
@@ -3312,11 +3431,11 @@ class _ChatScreenState extends State<ChatScreen>
   }
 
   Widget _packingGridCard(
-    Map<String, dynamic> section,
-    int number,
-    AppThemeTokens t,
-    VoidCallback onChanged,
-  ) {
+      Map<String, dynamic> section,
+      int number,
+      AppThemeTokens t,
+      VoidCallback onChanged,
+      ) {
     final title = (section['title'] ?? section['label'] ?? 'Section')
         .toString()
         .trim();
@@ -3404,14 +3523,14 @@ class _ChatScreenState extends State<ChatScreen>
   }
 
   Widget _packingGridItem(
-    Map<String, dynamic> item,
-    AppThemeTokens t,
-    VoidCallback onChanged,
-  ) {
+      Map<String, dynamic> item,
+      AppThemeTokens t,
+      VoidCallback onChanged,
+      ) {
     final label =
-        (item['display_label'] ?? item['label'] ?? item['name'] ?? 'Item')
-            .toString()
-            .trim();
+    (item['display_label'] ?? item['label'] ?? item['name'] ?? 'Item')
+        .toString()
+        .trim();
     final done = _packingItemDone(item);
     return Column(
       children: [
@@ -3524,12 +3643,12 @@ class _ChatScreenState extends State<ChatScreen>
   }
 
   Widget _packingThumb(
-    Map<String, dynamic> item,
-    AppThemeTokens t, {
-    double size = 40,
-    bool round = false,
-    bool fill = false,
-  }) {
+      Map<String, dynamic> item,
+      AppThemeTokens t, {
+        double size = 40,
+        bool round = false,
+        bool fill = false,
+      }) {
     final imageUrls = item['image_urls'] ?? item['imageUrls'];
     final imageUrl = imageUrls is List && imageUrls.isNotEmpty
         ? imageUrls.first.toString().trim()
@@ -3676,17 +3795,17 @@ class _ChatScreenState extends State<ChatScreen>
     if (raw is List) {
       return raw
           .map((item) {
-            if (item is Map) {
-              return (item['title'] ??
-                      item['label'] ??
-                      item['name'] ??
-                      item['text'] ??
-                      '')
-                  .toString()
-                  .trim();
-            }
-            return item.toString().trim();
-          })
+        if (item is Map) {
+          return (item['title'] ??
+              item['label'] ??
+              item['name'] ??
+              item['text'] ??
+              '')
+              .toString()
+              .trim();
+        }
+        return item.toString().trim();
+      })
           .where((item) => item.isNotEmpty)
           .toList(growable: false);
     }
@@ -3695,27 +3814,27 @@ class _ChatScreenState extends State<ChatScreen>
       return sections
           .whereType<Map>()
           .expand((section) {
-            final heading = (section['title'] ?? section['label'] ?? '')
-                .toString()
-                .trim();
-            final sectionItems = section['items'];
-            if (sectionItems is! List) {
-              return heading.isEmpty ? const <String>[] : <String>[heading];
-            }
-            return sectionItems.map((item) {
-              final label = item is Map
-                  ? (item['title'] ??
-                            item['label'] ??
-                            item['name'] ??
-                            item['text'] ??
-                            '')
-                        .toString()
-                        .trim()
-                  : item.toString().trim();
-              if (heading.isEmpty || label.isEmpty) return label;
-              return '$heading: $label';
-            });
-          })
+        final heading = (section['title'] ?? section['label'] ?? '')
+            .toString()
+            .trim();
+        final sectionItems = section['items'];
+        if (sectionItems is! List) {
+          return heading.isEmpty ? const <String>[] : <String>[heading];
+        }
+        return sectionItems.map((item) {
+          final label = item is Map
+              ? (item['title'] ??
+              item['label'] ??
+              item['name'] ??
+              item['text'] ??
+              '')
+              .toString()
+              .trim()
+              : item.toString().trim();
+          if (heading.isEmpty || label.isEmpty) return label;
+          return '$heading: $label';
+        });
+      })
           .where((item) => item.isNotEmpty)
           .toList(growable: false);
     }
@@ -3729,16 +3848,16 @@ class _ChatScreenState extends State<ChatScreen>
           .whereType<Map>()
           .map((item) => Map<String, dynamic>.from(item))
           .where((item) {
-            final label =
-                (item['label'] ??
-                        item['title'] ??
-                        item['name'] ??
-                        item['text'] ??
-                        '')
-                    .toString()
-                    .trim();
-            return label.isNotEmpty;
-          })
+        final label =
+        (item['label'] ??
+            item['title'] ??
+            item['name'] ??
+            item['text'] ??
+            '')
+            .toString()
+            .trim();
+        return label.isNotEmpty;
+      })
           .toList(growable: false);
     }
     return const [];
@@ -3772,9 +3891,9 @@ class _ChatScreenState extends State<ChatScreen>
 
   Widget _visualChecklistRow(Map<String, dynamic> item, AppThemeTokens t) {
     final label =
-        (item['label'] ?? item['title'] ?? item['name'] ?? item['text'] ?? '')
-            .toString()
-            .trim();
+    (item['label'] ?? item['title'] ?? item['name'] ?? item['text'] ?? '')
+        .toString()
+        .trim();
     final category = (item['category'] ?? '').toString().trim();
     final imageUrl = (item['imageUrl'] ?? item['image_url'] ?? '')
         .toString()
@@ -3815,19 +3934,19 @@ class _ChatScreenState extends State<ChatScreen>
                   clipBehavior: Clip.antiAlias,
                   child: imageUrl.isNotEmpty
                       ? Image.network(
-                          imageUrl,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => Icon(
-                            _fallbackIconFor(iconKey.isNotEmpty ? iconKey : label),
-                            size: 18,
-                            color: t.accent.primary,
-                          ),
-                        )
+                    imageUrl,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => Icon(
+                      _fallbackIconFor(iconKey.isNotEmpty ? iconKey : label),
+                      size: 18,
+                      color: t.accent.primary,
+                    ),
+                  )
                       : Icon(
-                          _fallbackIconFor(iconKey.isNotEmpty ? iconKey : label),
-                          size: 18,
-                          color: t.accent.primary,
-                        ),
+                    _fallbackIconFor(iconKey.isNotEmpty ? iconKey : label),
+                    size: 18,
+                    color: t.accent.primary,
+                  ),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
@@ -3878,40 +3997,40 @@ class _ChatScreenState extends State<ChatScreen>
     final title = r.intro.isNotEmpty ? r.intro : 'Checklist';
     const sections = [
       (
-        name: 'Documents',
-        emoji: '📄',
-        color: Color(0xFF04D7C8), // teal - keep as semantic category color
-        items: [
-          'Passport / ID',
-          'Boarding pass',
-          'Travel insurance',
-          'Hotel confirmation',
-          'Visa (if required)',
-        ],
+      name: 'Documents',
+      emoji: '📄',
+      color: Color(0xFF04D7C8), // teal - keep as semantic category color
+      items: [
+        'Passport / ID',
+        'Boarding pass',
+        'Travel insurance',
+        'Hotel confirmation',
+        'Visa (if required)',
+      ],
       ),
       (
-        name: 'Tech & Power',
-        emoji: '🔌',
-        color: Color(0xFF8D7DFF),
-        items: [
-          'Phone + charger',
-          'Power bank',
-          'Headphones',
-          'Laptop or tablet',
-          'Universal adapter',
-        ],
+      name: 'Tech & Power',
+      emoji: '🔌',
+      color: Color(0xFF8D7DFF),
+      items: [
+        'Phone + charger',
+        'Power bank',
+        'Headphones',
+        'Laptop or tablet',
+        'Universal adapter',
+      ],
       ),
       (
-        name: 'Comfort',
-        emoji: '😴',
-        color: Color(0xFF6B91FF),
-        items: [
-          'Neck pillow',
-          'Eye mask',
-          'Earplugs',
-          'Light jacket',
-          'Compression socks',
-        ],
+      name: 'Comfort',
+      emoji: '😴',
+      color: Color(0xFF6B91FF),
+      items: [
+        'Neck pillow',
+        'Eye mask',
+        'Earplugs',
+        'Light jacket',
+        'Compression socks',
+      ],
       ),
     ];
     const sectionImages = [
@@ -3937,18 +4056,18 @@ class _ChatScreenState extends State<ChatScreen>
 
     final itemsState = _checklistItemsByTitle.putIfAbsent(
       title,
-      () => sections.map((s) => List<String>.from(s.items)).toList(),
+          () => sections.map((s) => List<String>.from(s.items)).toList(),
     );
     final addCtrls = _checklistAddCtrlsByTitle.putIfAbsent(
       title,
-      () => List.generate(sections.length, (_) => TextEditingController()),
+          () => List.generate(sections.length, (_) => TextEditingController()),
     );
     final checksState = _checklistChecksByTitle.putIfAbsent(
       title,
-      () => itemsState
+          () => itemsState
           .map(
             (items) => List<bool>.filled(items.length, false, growable: true),
-          )
+      )
           .toList(),
     );
     final isSaved = _checklistSavedByTitle[title] ?? false;
@@ -3972,11 +4091,11 @@ class _ChatScreenState extends State<ChatScreen>
       builder: (context, checklistSetState) {
         final totalItems = itemsState.fold<int>(
           0,
-          (sum, items) => sum + items.length,
+              (sum, items) => sum + items.length,
         );
         final totalChecked = checksState.fold<int>(
           0,
-          (sum, items) => sum + items.where((v) => v).length,
+              (sum, items) => sum + items.where((v) => v).length,
         );
         final progress = totalItems == 0 ? 0.0 : totalChecked / totalItems;
 
@@ -4133,7 +4252,7 @@ class _ChatScreenState extends State<ChatScreen>
                             children: [
                               GestureDetector(
                                 onTap: () => checklistSetState(
-                                  () => checksState[sIdx][i] = !done,
+                                      () => checksState[sIdx][i] = !done,
                                 ),
                                 child: Icon(
                                   done
@@ -4261,61 +4380,61 @@ class _ChatScreenState extends State<ChatScreen>
                   onTap: isSaved
                       ? null
                       : () {
-                          showModalBottomSheet(
-                            context: context,
-                            backgroundColor: t.backgroundSecondary,
-                            shape: const RoundedRectangleBorder(
-                              borderRadius: BorderRadius.vertical(
-                                top: Radius.circular(20),
+                    showModalBottomSheet(
+                      context: context,
+                      backgroundColor: t.backgroundSecondary,
+                      shape: const RoundedRectangleBorder(
+                        borderRadius: BorderRadius.vertical(
+                          top: Radius.circular(20),
+                        ),
+                      ),
+                      builder: (_) => SafeArea(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const SizedBox(height: 12),
+                            Text(
+                              AppLocalizations.t(
+                                context,
+                                'save_to_board_title',
+                              ),
+                              style: TextStyle(
+                                color: t.textPrimary,
+                                fontSize: 15,
+                                fontWeight: FontWeight.w700,
                               ),
                             ),
-                            builder: (_) => SafeArea(
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  const SizedBox(height: 12),
-                                  Text(
-                                    AppLocalizations.t(
-                                      context,
-                                      'save_to_board_title',
-                                    ),
-                                    style: TextStyle(
-                                      color: t.textPrimary,
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 12),
-                                  ...[
-                                    'Party Looks',
-                                    'Occasion',
-                                    'Office Fit',
-                                    'Vacation',
-                                  ].map(
-                                    (b) => ListTile(
-                                      title: Text(
-                                        b,
-                                        style: TextStyle(color: t.textPrimary),
-                                      ),
-                                      trailing: Icon(
-                                        Icons.chevron_right_rounded,
-                                        color: t.mutedText,
-                                      ),
-                                      onTap: () {
-                                        Navigator.pop(context);
-                                        checklistSetState(
-                                          () => _checklistSavedByTitle[title] =
-                                              true,
-                                        );
-                                      },
-                                    ),
-                                  ),
-                                  const SizedBox(height: 12),
-                                ],
+                            const SizedBox(height: 12),
+                            ...[
+                              'Party Looks',
+                              'Occasion',
+                              'Office Fit',
+                              'Vacation',
+                            ].map(
+                                  (b) => ListTile(
+                                title: Text(
+                                  b,
+                                  style: TextStyle(color: t.textPrimary),
+                                ),
+                                trailing: Icon(
+                                  Icons.chevron_right_rounded,
+                                  color: t.mutedText,
+                                ),
+                                onTap: () {
+                                  Navigator.pop(context);
+                                  checklistSetState(
+                                        () => _checklistSavedByTitle[title] =
+                                    true,
+                                  );
+                                },
                               ),
                             ),
-                          );
-                        },
+                            const SizedBox(height: 12),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 180),
                     width: double.infinity,
@@ -4323,11 +4442,11 @@ class _ChatScreenState extends State<ChatScreen>
                     decoration: BoxDecoration(
                       gradient: isSaved
                           ? LinearGradient(
-                              colors: [t.accent.tertiary, t.accent.tertiary],
-                            )
+                        colors: [t.accent.tertiary, t.accent.tertiary],
+                      )
                           : LinearGradient(
-                              colors: [t.accent.tertiary, t.accent.primary],
-                            ),
+                        colors: [t.accent.tertiary, t.accent.primary],
+                      ),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Text(
@@ -4431,7 +4550,7 @@ class _ChatScreenState extends State<ChatScreen>
           onVisualSearch: null,
           onFindSimilar: null,
           onAddToWardrobe:
-              null, // uses showAddToWardrobeModal default in lens sheet
+          null, // uses showAddToWardrobeModal default in lens sheet
         ),
         const SizedBox(height: 8),
       ],
@@ -4652,32 +4771,32 @@ class _OutfitDetailPageState extends State<_OutfitDetailPage>
                                     children: widget.outfit.tags
                                         .map(
                                           (tag) => Container(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 10,
-                                              vertical: 4,
-                                            ),
-                                            decoration: BoxDecoration(
-                                              color: accent.withValues(
-                                                alpha: 0.10,
-                                              ),
-                                              borderRadius:
-                                                  BorderRadius.circular(100),
-                                              border: Border.all(
-                                                color: accent.withValues(
-                                                  alpha: 0.20,
-                                                ),
-                                              ),
-                                            ),
-                                            child: Text(
-                                              tag,
-                                              style: TextStyle(
-                                                color: accent,
-                                                fontSize: 10.5,
-                                                fontWeight: FontWeight.w600,
-                                              ),
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 10,
+                                          vertical: 4,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: accent.withValues(
+                                            alpha: 0.10,
+                                          ),
+                                          borderRadius:
+                                          BorderRadius.circular(100),
+                                          border: Border.all(
+                                            color: accent.withValues(
+                                              alpha: 0.20,
                                             ),
                                           ),
-                                        )
+                                        ),
+                                        child: Text(
+                                          tag,
+                                          style: TextStyle(
+                                            color: accent,
+                                            fontSize: 10.5,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ),
+                                    )
                                         .toList(),
                                   ),
                                   const SizedBox(height: 10),
@@ -4731,38 +4850,38 @@ class _OutfitDetailPageState extends State<_OutfitDetailPage>
                                         gradient: _saved
                                             ? null
                                             : LinearGradient(
-                                                begin: Alignment.topLeft,
-                                                end: Alignment.bottomRight,
-                                                colors: [
-                                                  accent,
-                                                  accentTertiary,
-                                                ],
-                                              ),
+                                          begin: Alignment.topLeft,
+                                          end: Alignment.bottomRight,
+                                          colors: [
+                                            accent,
+                                            accentTertiary,
+                                          ],
+                                        ),
                                         color: _saved ? t.panel : null,
                                         borderRadius: BorderRadius.circular(16),
                                         border: _saved
                                             ? Border.all(
-                                                color: accent.withValues(
-                                                  alpha: 0.30,
-                                                ),
-                                                width: 1,
-                                              )
+                                          color: accent.withValues(
+                                            alpha: 0.30,
+                                          ),
+                                          width: 1,
+                                        )
                                             : null,
                                         boxShadow: _saved
                                             ? []
                                             : [
-                                                BoxShadow(
-                                                  color: accent.withValues(
-                                                    alpha: 0.30,
-                                                  ),
-                                                  blurRadius: 18,
-                                                  offset: const Offset(0, 6),
-                                                ),
-                                              ],
+                                          BoxShadow(
+                                            color: accent.withValues(
+                                              alpha: 0.30,
+                                            ),
+                                            blurRadius: 18,
+                                            offset: const Offset(0, 6),
+                                          ),
+                                        ],
                                       ),
                                       child: Row(
                                         mainAxisAlignment:
-                                            MainAxisAlignment.center,
+                                        MainAxisAlignment.center,
                                         children: [
                                           Icon(
                                             _saved
@@ -4822,7 +4941,7 @@ class _TypingBubbleState extends State<_TypingBubble>
     super.initState();
     _ctrls = List.generate(
       3,
-      (i) => AnimationController(
+          (i) => AnimationController(
         vsync: this,
         duration: const Duration(milliseconds: 500),
       ),
@@ -4830,10 +4949,10 @@ class _TypingBubbleState extends State<_TypingBubble>
     _anims = _ctrls
         .map(
           (c) => Tween<double>(
-            begin: 0,
-            end: -6,
-          ).animate(CurvedAnimation(parent: c, curve: Curves.easeInOut)),
-        )
+        begin: 0,
+        end: -6,
+      ).animate(CurvedAnimation(parent: c, curve: Curves.easeInOut)),
+    )
         .toList();
     for (var i = 0; i < 3; i++) {
       Future.delayed(Duration(milliseconds: i * 160), () {
@@ -4867,7 +4986,7 @@ class _TypingBubbleState extends State<_TypingBubble>
         mainAxisSize: MainAxisSize.min,
         children: List.generate(
           3,
-          (i) => AnimatedBuilder(
+              (i) => AnimatedBuilder(
             animation: _anims[i],
             builder: (_, __) => Transform.translate(
               offset: Offset(0, _anims[i].value),
@@ -5201,11 +5320,11 @@ int _flatLayRoleZKv(String role) {
 }
 
 List<MapEntry<String, Map<String, dynamic>>> _flatLaySortedEntriesKv(
-  Map<String, Map<String, dynamic>> byRole,
-) {
+    Map<String, Map<String, dynamic>> byRole,
+    ) {
   final entries = byRole.entries.toList();
   entries.sort(
-    (a, b) => _flatLayRoleZKv(a.key).compareTo(_flatLayRoleZKv(b.key)),
+        (a, b) => _flatLayRoleZKv(a.key).compareTo(_flatLayRoleZKv(b.key)),
   );
   return entries;
 }
@@ -5313,8 +5432,8 @@ String _roleForItem(Map<String, dynamic> item) {
 }
 
 Map<String, Map<String, dynamic>> _slotItemsForFlatLayKv(
-  List<Map<String, dynamic>> items,
-) {
+    List<Map<String, dynamic>> items,
+    ) {
   final byRole = <String, Map<String, dynamic>>{};
   final seenRole = <String>{};
   final seenId = <String>{};
@@ -5326,12 +5445,12 @@ Map<String, Map<String, dynamic>> _slotItemsForFlatLayKv(
 
   String itemId(Map<String, dynamic> item) {
     return (item[r'$id'] ??
-            item['id'] ??
-            item['item_id'] ??
-            item['image_id'] ??
-            item['name'] ??
-            item['label'] ??
-            item.hashCode)
+        item['id'] ??
+        item['item_id'] ??
+        item['image_id'] ??
+        item['name'] ??
+        item['label'] ??
+        item.hashCode)
         .toString()
         .toLowerCase();
   }
@@ -5398,11 +5517,11 @@ Map<String, Map<String, dynamic>> _slotItemsForFlatLayKv(
 }
 
 Widget _flatLayPieceKv(
-  Map<String, dynamic> item,
-  String role,
-  Rect slot,
-  Size boardSize,
-) {
+    Map<String, dynamic> item,
+    String role,
+    Rect slot,
+    Size boardSize,
+    ) {
   final imageUrl = _flatLayImageUrlKv(item);
 
   if (imageUrl.isEmpty) {
@@ -5455,9 +5574,9 @@ Widget _flatLayPieceKv(
 }
 
 typedef _OutfitBoardSaveCallback =
-    Future<void> Function(
-      Map<String, dynamic> board,
-      Map<String, Map<String, dynamic>> slotted,
+Future<void> Function(
+    Map<String, dynamic> board,
+    Map<String, Map<String, dynamic>> slotted,
     );
 
 class _OutfitBoardSwiper extends StatefulWidget {
@@ -5576,10 +5695,10 @@ class _OutfitBoardSwiperState extends State<_OutfitBoardSwiper> {
   }
 
   Widget _editorialBoardCanvas(
-    Map<String, dynamic> board,
-    AppThemeTokens t,
-    int index,
-  ) {
+      Map<String, dynamic> board,
+      AppThemeTokens t,
+      int index,
+      ) {
     // Prefer board_items (role-tagged, image-bearing) over the legacy `items`.
     // Visual-inspiration cards put the rendered pieces under board_items; their
     // `items` are text pieces with no images, so the flat-lay collage rendered
@@ -5735,11 +5854,11 @@ class _OutfitBoardSwiperState extends State<_OutfitBoardSwiper> {
                         : h * 0.142;
                     final railItemW = w * 0.250;
                     final bottomText =
-                        '${bottom?['name'] ?? ''} ${bottom?['category'] ?? ''} ${bottom?['subcategory'] ?? ''}'
-                            .toLowerCase();
+                    '${bottom?['name'] ?? ''} ${bottom?['category'] ?? ''} ${bottom?['subcategory'] ?? ''}'
+                        .toLowerCase();
                     final bottomIsShorts =
                         bottomText.contains('short') ||
-                        bottomText.contains('skirt');
+                            bottomText.contains('skirt');
 
                     return Container(
                       width: double.infinity,
@@ -5887,8 +6006,8 @@ class _OutfitBoardSwiperState extends State<_OutfitBoardSwiper> {
                                 _saving.contains(index)
                                     ? 'Saving…'
                                     : (_saved.contains(index)
-                                          ? 'Saved'
-                                          : 'Save Look'),
+                                    ? 'Saved'
+                                    : 'Save Look'),
                                 style: TextStyle(
                                   color: t.mutedText,
                                   fontWeight: FontWeight.w800,
@@ -5939,11 +6058,11 @@ class _OutfitBoardSwiperState extends State<_OutfitBoardSwiper> {
   }
 
   Widget _editorialHeader(
-    AppThemeTokens t,
-    int index,
-    String lookName,
-    String occasion,
-  ) {
+      AppThemeTokens t,
+      int index,
+      String lookName,
+      String occasion,
+      ) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -6058,9 +6177,9 @@ class _OutfitBoardSwiperState extends State<_OutfitBoardSwiper> {
   }
 
   Widget _editorialImageOrPlaceholder(
-    Map<String, dynamic> item,
-    AppThemeTokens t,
-  ) {
+      Map<String, dynamic> item,
+      AppThemeTokens t,
+      ) {
     final imageUrl = _flatLayImageUrlKv(item);
     if (imageUrl.isNotEmpty) {
       return Image.network(
@@ -6076,12 +6195,12 @@ class _OutfitBoardSwiperState extends State<_OutfitBoardSwiper> {
 
   Widget _editorialPlaceholder(Map<String, dynamic> item, AppThemeTokens t) {
     final name =
-        (item['name'] ??
-                item['label'] ??
-                item['title'] ??
-                item['category'] ??
-                'Item')
-            .toString();
+    (item['name'] ??
+        item['label'] ??
+        item['title'] ??
+        item['category'] ??
+        'Item')
+        .toString();
 
     return Container(
       alignment: Alignment.center,
@@ -6126,10 +6245,10 @@ class _OutfitBoardSwiperState extends State<_OutfitBoardSwiper> {
   }
 
   Map<String, dynamic>? _editorialFindItem(
-    Map<String, Map<String, dynamic>> slotted,
-    List<Map<String, dynamic>> items,
-    List<String> tokens,
-  ) {
+      Map<String, Map<String, dynamic>> slotted,
+      List<Map<String, dynamic>> items,
+      List<String> tokens,
+      ) {
     for (final entry in slotted.entries) {
       final key = entry.key.toLowerCase();
       if (tokens.any((token) => key.contains(token))) {
@@ -6161,12 +6280,12 @@ class _OutfitBoardSwiperState extends State<_OutfitBoardSwiper> {
   }
 
   List<Map<String, dynamic>> _editorialAccessories(
-    List<Map<String, dynamic>> items,
-    Map<String, dynamic>? top,
-    Map<String, dynamic>? bottom,
-    Map<String, dynamic>? dress,
-    Map<String, dynamic>? footwear,
-  ) {
+      List<Map<String, dynamic>> items,
+      Map<String, dynamic>? top,
+      Map<String, dynamic>? bottom,
+      Map<String, dynamic>? dress,
+      Map<String, dynamic>? footwear,
+      ) {
     final blocked = <Map<String, dynamic>>[
       if (top != null) top,
       if (bottom != null) bottom,
@@ -6183,27 +6302,27 @@ class _OutfitBoardSwiperState extends State<_OutfitBoardSwiper> {
       final text = _editorialItemText(item);
       final isAccessory =
           text.contains('watch') ||
-          text.contains('bracelet') ||
-          text.contains('belt') ||
-          text.contains('cap') ||
-          text.contains('bag') ||
-          text.contains('sunglass') ||
-          text.contains('eyewear') ||
-          text.contains('jewel') ||
-          text.contains('chain') ||
-          text.contains('ring');
+              text.contains('bracelet') ||
+              text.contains('belt') ||
+              text.contains('cap') ||
+              text.contains('bag') ||
+              text.contains('sunglass') ||
+              text.contains('eyewear') ||
+              text.contains('jewel') ||
+              text.contains('chain') ||
+              text.contains('ring');
 
       if (!isAccessory) continue;
 
       final key =
-          (item['category'] ??
-                  item['sub_category'] ??
-                  item['name'] ??
-                  item['label'] ??
-                  text)
-              .toString()
-              .toLowerCase()
-              .trim();
+      (item['category'] ??
+          item['sub_category'] ??
+          item['name'] ??
+          item['label'] ??
+          text)
+          .toString()
+          .toLowerCase()
+          .trim();
 
       if (key.isEmpty || seen.add(key)) {
         output.add(item);
@@ -6214,31 +6333,31 @@ class _OutfitBoardSwiperState extends State<_OutfitBoardSwiper> {
   }
 
   String _editorialLookName(
-    Map<String, dynamic> board,
-    Map<String, dynamic>? top,
-    Map<String, dynamic>? bottom,
-  ) {
+      Map<String, dynamic> board,
+      Map<String, dynamic>? top,
+      Map<String, dynamic>? bottom,
+      ) {
     final existing =
-        (board['look_name'] ??
-                board['lookName'] ??
-                board['title'] ??
-                board['name'] ??
-                board['label'] ??
-                '')
-            .toString()
-            .trim();
+    (board['look_name'] ??
+        board['lookName'] ??
+        board['title'] ??
+        board['name'] ??
+        board['label'] ??
+        '')
+        .toString()
+        .trim();
 
     final occasion = _editorialOccasion(board).toLowerCase();
     final lower = existing.toLowerCase();
     final genericTitle =
         existing.isEmpty ||
-        lower == 'styled look' ||
-        lower == 'ahvi style board' ||
-        lower == 'hero look' ||
-        lower == "today's edit" ||
-        lower == 'easy win' ||
-        lower == 'signature combo' ||
-        lower == 'polished daily';
+            lower == 'styled look' ||
+            lower == 'ahvi style board' ||
+            lower == 'hero look' ||
+            lower == "today's edit" ||
+            lower == 'easy win' ||
+            lower == 'signature combo' ||
+            lower == 'polished daily';
 
     if (occasion.contains('date') && genericTitle) return 'Date Night Edit';
     if (occasion.contains('office') && genericTitle) return 'Boardroom Casual';
@@ -6270,20 +6389,20 @@ class _OutfitBoardSwiperState extends State<_OutfitBoardSwiper> {
   }
 
   String _editorialWhy(
-    Map<String, dynamic> board,
-    Map<String, dynamic>? top,
-    Map<String, dynamic>? bottom,
-    Map<String, dynamic>? footwear,
-  ) {
+      Map<String, dynamic> board,
+      Map<String, dynamic>? top,
+      Map<String, dynamic>? bottom,
+      Map<String, dynamic>? footwear,
+      ) {
     final existing =
-        (board['why_it_works'] ??
-                board['whyItWorks'] ??
-                board['explanation'] ??
-                board['reason'] ??
-                board['vibe'] ??
-                '')
-            .toString()
-            .trim();
+    (board['why_it_works'] ??
+        board['whyItWorks'] ??
+        board['explanation'] ??
+        board['reason'] ??
+        board['vibe'] ??
+        '')
+        .toString()
+        .trim();
 
     if (existing.isNotEmpty && existing.toLowerCase() != 'wardrobe ready') {
       return existing;
@@ -6292,14 +6411,14 @@ class _OutfitBoardSwiperState extends State<_OutfitBoardSwiper> {
     final topName = (top?['name'] ?? top?['label'] ?? top?['category'] ?? 'top')
         .toString();
     final bottomName =
-        (bottom?['name'] ?? bottom?['label'] ?? bottom?['category'] ?? 'bottom')
-            .toString();
+    (bottom?['name'] ?? bottom?['label'] ?? bottom?['category'] ?? 'bottom')
+        .toString();
     final footwearName =
-        (footwear?['name'] ??
-                footwear?['label'] ??
-                footwear?['category'] ??
-                'footwear')
-            .toString();
+    (footwear?['name'] ??
+        footwear?['label'] ??
+        footwear?['category'] ??
+        'footwear')
+        .toString();
 
     return 'The $topName creates the focal point, the $bottomName balances the silhouette, and the $footwearName finishes the look cleanly.';
   }
@@ -6311,27 +6430,27 @@ class _OutfitBoardSwiperState extends State<_OutfitBoardSwiper> {
       onTap: saving || saved
           ? null
           : () async {
-              setState(() => _saving.add(_index));
-              final board = widget.boards[_index];
-              // Prefer board_items (role-tagged, image-bearing) over the legacy `items`.
-    // Visual-inspiration cards put the rendered pieces under board_items; their
-    // `items` are text pieces with no images, so the flat-lay collage rendered
-    // empty. board_items carries image_url, so the collage now paints.
-    final rawItems = (board['board_items'] as List?) ??
-        (board['items'] as List?) ??
-        const [];
-              final items = rawItems
-                  .whereType<Map>()
-                  .map((e) => Map<String, dynamic>.from(e))
-                  .toList();
-              final slotted = _slotItemsForFlatLayKv(items);
-              await widget.onSave(board, slotted);
-              if (!mounted) return;
-              setState(() {
-                _saving.remove(_index);
-                _saved.add(_index);
-              });
-            },
+        setState(() => _saving.add(_index));
+        final board = widget.boards[_index];
+        // Prefer board_items (role-tagged, image-bearing) over the legacy `items`.
+        // Visual-inspiration cards put the rendered pieces under board_items; their
+        // `items` are text pieces with no images, so the flat-lay collage rendered
+        // empty. board_items carries image_url, so the collage now paints.
+        final rawItems = (board['board_items'] as List?) ??
+            (board['items'] as List?) ??
+            const [];
+        final items = rawItems
+            .whereType<Map>()
+            .map((e) => Map<String, dynamic>.from(e))
+            .toList();
+        final slotted = _slotItemsForFlatLayKv(items);
+        await widget.onSave(board, slotted);
+        if (!mounted) return;
+        setState(() {
+          _saving.remove(_index);
+          _saved.add(_index);
+        });
+      },
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(

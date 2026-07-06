@@ -203,11 +203,60 @@ class AppwriteService extends ChangeNotifier {
     }
   }
 
+  // ================= EMAIL OTP LOGIN (token-based, no password) ==========
+  // Appwrite's "email token" flow: createEmailToken() emails a 6-digit
+  // secret and returns a Token whose userId we must hang on to — the
+  // subsequent createSession() call needs BOTH the userId and the secret
+  // the user typed in, not just the email.
+  String? _otpUserId;
+
+  Future<void> sendOTP(String email) async {
+    try {
+      final token = await account.createEmailToken(
+        userId: ID.unique(),
+        email: email,
+      );
+      _otpUserId = token.userId;
+    } catch (e) {
+      debugPrint("Send OTP error: $e");
+      rethrow;
+    }
+  }
+
+  Future<bool> verifyOTP(String email, String otp) async {
+    final userId = _otpUserId;
+    if (userId == null) {
+      debugPrint("Verify OTP error: no pending OTP request for this email");
+      return false;
+    }
+    try {
+      // Wipe any previous user's in-memory state before establishing the
+      // new session — same rule as the password login path.
+      clearUserCache();
+
+      await account.createSession(userId: userId, secret: otp);
+
+      await cacheCurrentUser();
+      await ensureCurrentUserProfile();
+      await refreshCurrentUserProfile();
+
+      notifyListeners();
+      return true;
+    } catch (e) {
+      debugPrint("Verify OTP error: $e");
+      return false;
+    } finally {
+      // One-shot: a used or expired token can't be retried anyway.
+      _otpUserId = null;
+    }
+  }
+  // ================= EMAIL OTP LOGIN END ===================================
+
   Future<User> registerEmailPassword(
-    String email,
-    String password,
-    String name,
-  ) async {
+      String email,
+      String password,
+      String name,
+      ) async {
     final cleanEmail = email.trim();
     final cleanName = name.trim();
     try {
@@ -313,10 +362,10 @@ class AppwriteService extends ChangeNotifier {
   String _safeUsernameFromUser(dynamic user) {
     final emailPrefix = user.email.toString().split('@').first;
     final raw =
-        (user.name.toString().trim().isNotEmpty
-                ? user.name.toString()
-                : emailPrefix)
-            .toLowerCase();
+    (user.name.toString().trim().isNotEmpty
+        ? user.name.toString()
+        : emailPrefix)
+        .toLowerCase();
 
     final cleaned = raw
         .replaceAll(RegExp(r'[^a-z0-9_]+'), '_')
@@ -370,17 +419,17 @@ class AppwriteService extends ChangeNotifier {
 
     final done =
         profile?['onboarding1'] == true &&
-        profile?['onboarding2'] == true &&
-        profile?['onboarding3'] == true &&
-        gender.isNotEmpty;
+            profile?['onboarding2'] == true &&
+            profile?['onboarding3'] == true &&
+            gender.isNotEmpty;
 
     debugPrint(
       'AHVI_ONBOARDING_PROFILE '
-      'gender=${profile?['gender']} '
-      'onboarding1=${profile?['onboarding1']} '
-      'onboarding2=${profile?['onboarding2']} '
-      'onboarding3=${profile?['onboarding3']} '
-      'done=$done',
+          'gender=${profile?['gender']} '
+          'onboarding1=${profile?['onboarding1']} '
+          'onboarding2=${profile?['onboarding2']} '
+          'onboarding3=${profile?['onboarding3']} '
+          'done=$done',
     );
 
     return done;
@@ -410,7 +459,7 @@ class AppwriteService extends ChangeNotifier {
 
   Map<String, dynamic> _cleanProfilePayload(Map<String, dynamic> data) {
     final Map<String, dynamic> cleaned = Map<String, dynamic>.from(data);
-    
+
     if (cleaned.containsKey('skinTone')) {
       final sanitizedSkinTone = _sanitizeSkinToneForAppwrite(cleaned['skinTone']);
       if (sanitizedSkinTone != null) {
@@ -464,7 +513,7 @@ class AppwriteService extends ChangeNotifier {
       );
     } on AppwriteException catch (e) {
       final fallback = _coreProfilePayload(cleaned);
-      
+
       bool retryWithSkinToneZero = false;
       if (e.message != null && e.message!.contains('skinTone')) {
         fallback['skinTone'] = 0;
@@ -472,7 +521,7 @@ class AppwriteService extends ChangeNotifier {
       }
 
       if (!retryWithSkinToneZero && (fallback.isEmpty || fallback.length == cleaned.length)) rethrow;
-      
+
       debugPrint(
         'AHVI_PROFILE_UPDATE_SCHEMA_RETRY error=${e.message} keys=${fallback.keys.toList()}',
       );
@@ -505,7 +554,7 @@ class AppwriteService extends ChangeNotifier {
       );
     } on AppwriteException catch (e) {
       final fallback = _coreProfilePayload(cleaned);
-      
+
       bool retryWithSkinToneZero = false;
       if (e.message != null && e.message!.contains('skinTone')) {
         fallback['skinTone'] = 0;
@@ -513,7 +562,7 @@ class AppwriteService extends ChangeNotifier {
       }
 
       if (!retryWithSkinToneZero && (fallback.isEmpty || fallback.length == cleaned.length)) rethrow;
-      
+
       debugPrint(
         'AHVI_PROFILE_CREATE_SCHEMA_RETRY error=${e.message} keys=${fallback.keys.toList()}',
       );
@@ -743,7 +792,7 @@ class AppwriteService extends ChangeNotifier {
           "pattern": doc.data['pattern'],
           "occasions": doc.data['occasions'],
           "image_url":
-              doc.data['normalized_url'] ??
+          doc.data['normalized_url'] ??
               doc.data['masked_url'] ??
               doc.data['image_url'] ??
               doc.data['raw_url'],
@@ -901,9 +950,9 @@ class AppwriteService extends ChangeNotifier {
       final rawItemIds = extra?['itemIds'] ?? extra?['item_ids'] ?? <dynamic>[];
       final itemIds = rawItemIds is Iterable
           ? rawItemIds
-                .map((e) => e.toString())
-                .where((e) => e.isNotEmpty)
-                .toList()
+          .map((e) => e.toString())
+          .where((e) => e.isNotEmpty)
+          .toList()
           : <String>[];
       final outfitItems = _savedBoardItemList(extra?['outfitItems']);
       final items = _savedBoardItemList(extra?['items']);
@@ -1013,18 +1062,18 @@ class AppwriteService extends ChangeNotifier {
         .whereType<Map>()
         .map((item) => Map<String, dynamic>.from(item))
         .where((item) {
-          final url =
-              (item['imageUrl'] ??
-                      item['image_url'] ??
-                      item['masked_url'] ??
-                      item['maskedUrl'] ??
-                      item['url'] ??
-                      item['thumbnailUrl'])
-                  ?.toString()
-                  .trim() ??
+      final url =
+          (item['imageUrl'] ??
+              item['image_url'] ??
+              item['masked_url'] ??
+              item['maskedUrl'] ??
+              item['url'] ??
+              item['thumbnailUrl'])
+              ?.toString()
+              .trim() ??
               '';
-          return url.isNotEmpty;
-        })
+      return url.isNotEmpty;
+    })
         .toList();
   }
 
@@ -1430,8 +1479,8 @@ class AppwriteService extends ChangeNotifier {
 
       debugPrint(
         'AHVI_MEDLOG_CREATE userId=${user.$id} '
-        'medId=${data['medId']} status=${data['status']} '
-        'collection=${Env.medLogsCollection}',
+            'medId=${data['medId']} status=${data['status']} '
+            'collection=${Env.medLogsCollection}',
       );
 
       final doc = await databases.createDocument(

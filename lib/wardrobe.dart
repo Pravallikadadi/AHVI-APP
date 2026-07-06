@@ -71,9 +71,9 @@ const Color kTransparent = Colors.transparent;
 
 // ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ PUBLIC HELPER ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬
 void showAddToWardrobeModal(
-  BuildContext context, {
-  void Function(Map<String, dynamic> item)? onSaved,
-}) {
+    BuildContext context, {
+      void Function(Map<String, dynamic> item)? onSaved,
+    }) {
   showDialog(
     context: context,
     useRootNavigator: true,
@@ -120,11 +120,11 @@ class WardrobeItem {
 
   // Central resolver: canonical catalog/cutout URL wins; masked is last.
   String? get displayUrl => resolveWardrobeImage(
-        raw,
-        normalizedUrl: normalizedUrl,
-        imageUrl: imageUrl,
-        maskedUrl: maskedUrl,
-      ).url;
+    raw,
+    normalizedUrl: normalizedUrl,
+    imageUrl: imageUrl,
+    maskedUrl: maskedUrl,
+  ).url;
 }
 
 /// Resolved wardrobe image: the URL, the field it came from, and whether it
@@ -139,11 +139,11 @@ class ResolvedWardrobeImage {
 /// Wardrobe grid image priority. Canonical catalog/cutout URLs win; the
 /// masked/temporary URL is only used when nothing canonical exists.
 ResolvedWardrobeImage resolveWardrobeImage(
-  Map<String, dynamic> raw, {
-  String? normalizedUrl,
-  String? imageUrl,
-  String? maskedUrl,
-}) {
+    Map<String, dynamic> raw, {
+      String? normalizedUrl,
+      String? imageUrl,
+      String? maskedUrl,
+    }) {
   String? clean(Object? v) {
     final t = v?.toString().trim() ?? '';
     return t.isEmpty || t == 'null' ? null : t;
@@ -188,9 +188,9 @@ String _cleanUiText(Object? value, {String fallback = ''}) {
   if (raw.isEmpty) return fallback;
   final looksCorrupt =
       raw.contains('\\u00c3') ||
-      raw.contains('\\u00c2') ||
-      raw.contains('\\u00e2\\u20ac') ||
-      raw.contains('\\ufffd');
+          raw.contains('\\u00c2') ||
+          raw.contains('\\u00e2\\u20ac') ||
+          raw.contains('\\ufffd');
   if (!looksCorrupt) return raw;
   final cleaned = raw
       .replaceAll(RegExp(r'[^\x20-\x7E]+'), ' ')
@@ -396,7 +396,7 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
   bool _silentWardrobeRefreshScheduled = false;
 
   bool _isLoading =
-      true; // ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ Loader state for initial fetch
+  true; // ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ Loader state for initial fetch
 
   AppThemeTokens get t => context.themeTokens;
   final FocusNode _keyboardFocusNode = FocusNode();
@@ -413,14 +413,17 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
     super.didChangeDependencies();
     // Detect user-switch (Abhinav -> Kavya on same device) and purge stale
     // wardrobe state before re-fetching for the new user.
-    final appwrite = Provider.of<AppwriteService>(context, listen: true);
+    // FIX: listen: false prevents didChangeDependencies from firing on every
+    // AppwriteService notification (was triggering redundant _fetchWardrobeItems
+    // calls during back-swipe transitions and overwhelming the main thread).
+    final appwrite = Provider.of<AppwriteService>(context, listen: false);
     final cachedUser = appwrite.cachedUserProfileData;
     final newUid =
-        (cachedUser != null
-                ? (cachedUser['userId'] ?? cachedUser['\$id'] ?? '')
-                : '')
-            .toString()
-            .trim();
+    (cachedUser != null
+        ? (cachedUser['userId'] ?? cachedUser['\$id'] ?? '')
+        : '')
+        .toString()
+        .trim();
     if (newUid.isEmpty) return;
     if (_currentUserId != null && _currentUserId != newUid) {
       // Different authed user than last build. Hard reset.
@@ -472,9 +475,9 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
       liked: data['liked'] == true,
       imageUrl: data['imageUrl']?.toString() ?? data['image_url']?.toString(),
       maskedUrl:
-          data['maskedUrl']?.toString() ?? data['masked_url']?.toString(),
+      data['maskedUrl']?.toString() ?? data['masked_url']?.toString(),
       normalizedUrl:
-          data['normalizedUrl']?.toString() ??
+      data['normalizedUrl']?.toString() ??
           data['normalized_url']?.toString(),
     );
   }
@@ -496,7 +499,9 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
       }
       final raw = prefs.getString(_wardrobeCacheUserKey(userId));
       if (raw == null || raw.isEmpty) return false;
-      final decoded = jsonDecode(raw);
+      // FIX: Run jsonDecode in a background isolate so the main thread is
+      // never blocked (large wardrobe cache can be several hundred KB).
+      final decoded = await compute(jsonDecode, raw);
       if (decoded is! List) return false;
       final cached = decoded
           .whereType<Map>()
@@ -528,7 +533,10 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
         // accounts on the same device.
         return;
       }
-      final raw = jsonEncode(_wardrobe.map(_itemToCacheJson).toList());
+      // FIX: Run jsonEncode in a background isolate so the main thread is
+      // never blocked (was causing ANR / back-swipe freeze with 100 items).
+      final items = _wardrobe.map(_itemToCacheJson).toList();
+      final raw = await compute(jsonEncode, items);
       await prefs.setString(_wardrobeCacheUserKey(uid), raw);
       // Belt-and-suspenders: drop the legacy global key on every save.
       if (prefs.containsKey(_wardrobeCacheGlobalKeyLegacy)) {
@@ -540,9 +548,9 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
   }
 
   Future<void> _updateOutfitDocument(
-    String id,
-    Map<String, dynamic> data,
-  ) async {
+      String id,
+      Map<String, dynamic> data,
+      ) async {
     final client = Client()
         .setEndpoint(Env.appwriteEndpoint)
         .setProject(Env.appwriteProjectId);
@@ -562,7 +570,7 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
       await _updateOutfitDocument(item.id, {'worn': item.worn});
     } catch (e) {
       debugPrint('Failed to persist wear count: $e');
-      _showToast('Saved locally. Wear count will sync when online.');
+      _showToast(AppLocalizations.t(context, 'wardrobe_saved_offline'));
       return;
     }
     _showToast('Logged a wear for "${item.name}"');
@@ -634,6 +642,10 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
 
   @override
   void dispose() {
+    // ✅ FIX: Clear image cache to prevent memory buildup on back-nav
+    imageCache.clear();
+    imageCache.clearLiveImages();
+
     _keyboardFocusNode.dispose();
     super.dispose();
   }
@@ -686,7 +698,7 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
           final alreadySavedRemotely = item['remoteSaved'] == true;
           if (alreadySavedRemotely) {
             if (mounted) {
-              _showToast('Item saved to wardrobe');
+              _showToast(AppLocalizations.t(context, 'wardrobe_item_saved'));
             }
             return;
           }
@@ -776,8 +788,8 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
               final willSilentRefresh = resolved.usedMasked && !_silentWardrobeRefreshScheduled;
               debugPrint(
                 'AHVI_WARDROBE_SAVE_IMAGE_RESOLVE itemId=${savedItem.id} '
-                'resolvedField=${resolved.field} usedMaskedFallback=${resolved.usedMasked} '
-                'silentRefresh=$willSilentRefresh',
+                    'resolvedField=${resolved.field} usedMaskedFallback=${resolved.usedMasked} '
+                    'silentRefresh=$willSilentRefresh',
               );
               if (willSilentRefresh) {
                 _silentWardrobeRefreshScheduled = true;
@@ -804,7 +816,7 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
                   listen: false,
                 ).invalidateWardrobeCache();
               }
-              _showToast('Item saved to wardrobe');
+              _showToast(AppLocalizations.t(context, 'wardrobe_item_saved'));
             }
           } on AppwriteException catch (e, st) {
             debugPrint('❌ Wardrobe AppwriteException');
@@ -815,7 +827,7 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
 
             if (mounted) {
               setState(
-                () => _wardrobe.removeWhere((w) => w.id == localItem.id),
+                    () => _wardrobe.removeWhere((w) => w.id == localItem.id),
               );
               await _saveWardrobeCache();
               _showToast('Save failed: ${e.message}');
@@ -826,7 +838,7 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
 
             if (mounted) {
               setState(
-                () => _wardrobe.removeWhere((w) => w.id == localItem.id),
+                    () => _wardrobe.removeWhere((w) => w.id == localItem.id),
               );
               await _saveWardrobeCache();
               _showToast('Save failed. Check logs.');
@@ -843,8 +855,8 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
       final matchCat = _activeCat == 'All' || item.cat == _activeCat;
       final matchQ =
           q.isEmpty ||
-          item.name.toLowerCase().contains(q) ||
-          item.cat.toLowerCase().contains(q);
+              item.name.toLowerCase().contains(q) ||
+              item.cat.toLowerCase().contains(q);
       return matchCat && matchQ;
     }).toList();
   }
@@ -913,7 +925,7 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
         '$notesText';
 
     Clipboard.setData(ClipboardData(text: text));
-    _showToast('Copied to clipboard');
+    _showToast(AppLocalizations.t(context, 'wardrobe_copy_clipboard'));
   }
 
   Future<void> _showEditSavedItem(WardrobeItem item) async {
@@ -945,23 +957,23 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (dialogContext, setDialogState) => AlertDialog(
-          title: const Text('Edit labels'),
+          title: Text(AppLocalizations.t(context, 'wardrobe_edit_labels')),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 TextField(
                   controller: nameCtrl,
-                  decoration: const InputDecoration(labelText: 'Name'),
+                  decoration: InputDecoration(labelText: AppLocalizations.t(context, 'wardrobe_input_name')),
                 ),
                 const SizedBox(height: 10),
                 DropdownButtonFormField<String>(
                   initialValue: selectedCat,
-                  decoration: const InputDecoration(labelText: 'Category'),
+                  decoration: InputDecoration(labelText: AppLocalizations.t(context, 'wardrobe_input_category')),
                   items: cats
                       .map(
                         (cat) => DropdownMenuItem(value: cat, child: Text(cat)),
-                      )
+                  )
                       .toList(),
                   onChanged: (value) {
                     if (value != null) {
@@ -972,13 +984,13 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
                 const SizedBox(height: 10),
                 TextField(
                   controller: notesCtrl,
-                  decoration: const InputDecoration(labelText: 'Notes'),
+                  decoration: InputDecoration(labelText: AppLocalizations.t(context, 'wardrobe_input_notes')),
                 ),
                 const SizedBox(height: 10),
                 TextField(
                   controller: occCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Occasions / tags',
+                  decoration: InputDecoration(
+                    labelText: AppLocalizations.t(context, 'wardrobe_input_occasions'),
                   ),
                 ),
               ],
@@ -987,11 +999,11 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: const Text('Cancel'),
+              child: Text(AppLocalizations.t(context, 'wardrobe_btn_cancel')),
             ),
             FilledButton(
               onPressed: () => Navigator.of(dialogContext).pop(true),
-              child: const Text('Save'),
+              child: Text(AppLocalizations.t(context, 'wardrobe_btn_save')),
             ),
           ],
         ),
@@ -1022,7 +1034,7 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
       final backend = Provider.of<BackendService>(context, listen: false);
       debugPrint(
         'AHVI_LABEL_UPDATE item=${item.id} category=$selectedCat '
-        'name="$nextName" occasions=${nextOccasions.join(',')}',
+            'name="$nextName" occasions=${nextOccasions.join(',')}',
       );
       final result = await backend.updateWardrobeLabels(
         itemId: item.id,
@@ -1031,13 +1043,13 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
         tags: nextOccasions,
       );
       if (result == null) {
-        _showToast("Couldn't reach backend to update labels. Try again.");
+        _showToast(AppLocalizations.t(context, 'wardrobe_backend_update_fail'));
         return;
       }
       if (result['success'] != true) {
         final reason =
-            (result['detail'] ?? result['error'] ?? result['message'] ?? '')
-                .toString();
+        (result['detail'] ?? result['error'] ?? result['message'] ?? '')
+            .toString();
         debugPrint('AHVI_LABEL_UPDATE_FAIL reason="$reason" raw=$result');
         _showToast(
           reason.isNotEmpty
@@ -1054,7 +1066,7 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
       });
       await _saveWardrobeCache();
       await _fetchWardrobeItems();
-      _showToast('Labels updated');
+      _showToast(AppLocalizations.t(context, 'wardrobe_labels_updated'));
     } catch (e, st) {
       debugPrint('AHVI_LABEL_UPDATE_EXCEPTION err=$e');
       debugPrint('AHVI_LABEL_UPDATE_EXCEPTION stack=$st');
@@ -1110,7 +1122,7 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
         backgroundColor: t.backgroundSecondary,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Text(
-          'Remove item?',
+          AppLocalizations.t(context, 'wardrobe_remove_confirm'),
           style: TextStyle(
             fontFamily: GoogleFonts.inter().fontFamily,
             fontWeight: FontWeight.w600,
@@ -1237,42 +1249,42 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
             Expanded(
               child: _isLoading
                   ? Center(
-                      child: CircularProgressIndicator(color: t.accent.primary),
-                    )
+                child: CircularProgressIndicator(color: t.accent.primary),
+              )
                   : _activeTab == 0
                   ? _WardrobePanel(
-                      items: _filtered,
-                      allEmpty: _wardrobe.isEmpty,
-                      onAddTap: _openAddModal,
-                      wardrobe: _wardrobe,
-                      onDelete: (id) => _showDeleteConfirm(id),
-                      onToggleLike: (id) {
-                        HapticFeedback.selectionClick();
-                        final i = _wardrobe.firstWhere((e) => e.id == id);
-                        setState(() => i.liked = !i.liked);
-                        _saveWardrobeCache();
-                        _updateOutfitDocument(i.id, {
-                          'liked': i.liked,
-                        }).catchError((_) {});
-                        _showToast(
-                          i.liked
-                              ? 'Added "${i.name}" to favourites'
-                              : 'Removed from favourites',
-                        );
-                      },
-                      onWore: (id) {
-                        final i = _wardrobe.firstWhere((e) => e.id == id);
-                        _markWoreToday(i);
-                      },
-                      onShare: (id) {
-                        final i = _wardrobe.firstWhere((e) => e.id == id);
-                        _shareItem(i);
-                      },
-                      onTapCard: _openItemDetail,
-                      onRefresh: () async {
-                        await _fetchWardrobeItems();
-                      },
-                    )
+                items: _filtered,
+                allEmpty: _wardrobe.isEmpty,
+                onAddTap: _openAddModal,
+                wardrobe: _wardrobe,
+                onDelete: (id) => _showDeleteConfirm(id),
+                onToggleLike: (id) {
+                  HapticFeedback.selectionClick();
+                  final i = _wardrobe.firstWhere((e) => e.id == id);
+                  setState(() => i.liked = !i.liked);
+                  _saveWardrobeCache();
+                  _updateOutfitDocument(i.id, {
+                    'liked': i.liked,
+                  }).catchError((_) {});
+                  _showToast(
+                    i.liked
+                        ? 'Added "${i.name}" to favourites'
+                        : 'Removed from favourites',
+                  );
+                },
+                onWore: (id) {
+                  final i = _wardrobe.firstWhere((e) => e.id == id);
+                  _markWoreToday(i);
+                },
+                onShare: (id) {
+                  final i = _wardrobe.firstWhere((e) => e.id == id);
+                  _shareItem(i);
+                },
+                onTapCard: _openItemDetail,
+                onRefresh: () async {
+                  await _fetchWardrobeItems();
+                },
+              )
                   : _StatsPanel(wardrobe: _wardrobe),
             ),
           ],
@@ -1320,11 +1332,11 @@ class _ItemDetailPanelState extends State<_ItemDetailPanel>
     );
     _slideAnim = Tween<Offset>(begin: const Offset(0, 0.06), end: Offset.zero)
         .animate(
-          CurvedAnimation(
-            parent: _slideCtrl,
-            curve: const Cubic(0.2, 0.8, 0.3, 1.0),
-          ),
-        );
+      CurvedAnimation(
+        parent: _slideCtrl,
+        curve: const Cubic(0.2, 0.8, 0.3, 1.0),
+      ),
+    );
     _fadeAnim = Tween<double>(
       begin: 0,
       end: 1,
@@ -1357,7 +1369,7 @@ class _ItemDetailPanelState extends State<_ItemDetailPanel>
         'Makeup': 'MKP',
         'Skincare': 'SKN',
       }[cat] ??
-      'ITM';
+          'ITM';
 
   @override
   Widget build(BuildContext context) {
@@ -1461,7 +1473,7 @@ class _ItemDetailPanelState extends State<_ItemDetailPanel>
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          item.worn == 0 ? 'Never worn' : 'Worn ${item.worn}',
+                          item.worn == 0 ? AppLocalizations.t(context, 'wardrobe_never_worn') : 'Worn ${item.worn}',
                           style: TextStyle(
                             fontFamily: GoogleFonts.inter().fontFamily,
                             fontSize: 13,
@@ -1500,31 +1512,31 @@ class _ItemDetailPanelState extends State<_ItemDetailPanel>
                                     borderRadius: BorderRadius.circular(16),
                                     image: item.displayUrl != null
                                         ? DecorationImage(
-                                            image: NetworkImage(
-                                              item.displayUrl!,
-                                            ),
-                                            fit: BoxFit.contain,
-                                          )
+                                      image: NetworkImage(
+                                        item.displayUrl!,
+                                      ),
+                                      fit: BoxFit.contain,
+                                    )
                                         : (item.imageBytes != null
-                                              ? DecorationImage(
-                                                  image: MemoryImage(
-                                                    item.imageBytes!,
-                                                  ),
-                                                  fit: BoxFit.contain,
-                                                )
-                                              : null),
+                                        ? DecorationImage(
+                                      image: MemoryImage(
+                                        item.imageBytes!,
+                                      ),
+                                      fit: BoxFit.contain,
+                                    )
+                                        : null),
                                   ),
                                   child:
-                                      (item.displayUrl == null &&
-                                          item.imageBytes == null)
+                                  (item.displayUrl == null &&
+                                      item.imageBytes == null)
                                       ? Center(
-                                          child: Text(
-                                            _catEmoji(item.cat),
-                                            style: const TextStyle(
-                                              fontSize: 56,
-                                            ),
-                                          ),
-                                        )
+                                    child: Text(
+                                      _catEmoji(item.cat),
+                                      style: const TextStyle(
+                                        fontSize: 56,
+                                      ),
+                                    ),
+                                  )
                                       : null,
                                 ),
                               ),
@@ -1538,7 +1550,7 @@ class _ItemDetailPanelState extends State<_ItemDetailPanel>
                                   ),
                                   child: Column(
                                     crossAxisAlignment:
-                                        CrossAxisAlignment.start,
+                                    CrossAxisAlignment.start,
                                     children: [
                                       _DetailInfoRow(
                                         label: AppLocalizations.t(
@@ -1579,26 +1591,26 @@ class _ItemDetailPanelState extends State<_ItemDetailPanel>
                               children: item.occasions
                                   .map(
                                     (o) => Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 12,
-                                        vertical: 5,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: t.panel,
-                                        borderRadius: BorderRadius.circular(20),
-                                        border: Border.all(color: t.cardBorder),
-                                      ),
-                                      child: Text(
-                                        o,
-                                        style: TextStyle(
-                                          fontFamily:
-                                              GoogleFonts.inter().fontFamily,
-                                          fontSize: 12,
-                                          color: t.mutedText,
-                                        ),
-                                      ),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 5,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: t.panel,
+                                    borderRadius: BorderRadius.circular(20),
+                                    border: Border.all(color: t.cardBorder),
+                                  ),
+                                  child: Text(
+                                    o,
+                                    style: TextStyle(
+                                      fontFamily:
+                                      GoogleFonts.inter().fontFamily,
+                                      fontSize: 12,
+                                      color: t.mutedText,
                                     ),
-                                  )
+                                  ),
+                                ),
+                              )
                                   .toList(),
                             ),
                           ],
@@ -1825,13 +1837,13 @@ class _DetectedItem {
     this.inputType,
     bool? selected,
   }) : validationStatus = validationStatus.trim().toLowerCase().isEmpty
-           ? 'ok'
-           : validationStatus.trim().toLowerCase(),
-       selectedByDefault =
-           selectedByDefault ?? validationStatus.trim().toLowerCase() == 'ok',
-       selected =
-           selected ??
-           (selectedByDefault ?? validationStatus.trim().toLowerCase() == 'ok');
+      ? 'ok'
+      : validationStatus.trim().toLowerCase(),
+        selectedByDefault =
+            selectedByDefault ?? validationStatus.trim().toLowerCase() == 'ok',
+        selected =
+            selected ??
+                (selectedByDefault ?? validationStatus.trim().toLowerCase() == 'ok');
 
   bool get isApproved => validationStatus == 'ok';
   bool get isNeedsReview => validationStatus == 'needs_review';
@@ -1907,7 +1919,7 @@ class _DetectedItem {
     // restores the bytes from the token. This collapses a ~MB upload to a few
     // bytes (the big driver of slow saves on weak networks).
     final hasCacheToken =
-        (raw['image_cache_token']?.toString().trim().isNotEmpty ?? false);
+    (raw['image_cache_token']?.toString().trim().isNotEmpty ?? false);
     if (hasCacheToken) {
       payload.remove('raw_image_base64');
       payload.remove('rawImageBase64');
@@ -2038,7 +2050,7 @@ class _DetectedItem {
         'Skincare': 'SKN',
         'Needs Review': 'REV',
       }[cat] ??
-      'ITM';
+          'ITM';
 }
 
 bool _isPrivateWearText(String value) {
@@ -2149,19 +2161,19 @@ _DetectedTaxonomy _normalizeDetectedTaxonomy(Map<String, dynamic> data) {
   ]);
   final weakAccessory =
       category == 'Accessories' &&
-      !_hasAnyText(text, [
-        'watch',
-        'belt',
-        'scarf',
-        'hat',
-        'cap',
-        'sunglass',
-        'accessory',
-      ]);
+          !_hasAnyText(text, [
+            'watch',
+            'belt',
+            'scarf',
+            'hat',
+            'cap',
+            'sunglass',
+            'accessory',
+          ]);
   final needsReview =
       genericUnknown ||
-      category == 'Needs Review' ||
-      (confidence > 0 && confidence < 0.35 && weakAccessory);
+          category == 'Needs Review' ||
+          (confidence > 0 && confidence < 0.35 && weakAccessory);
 
   if (needsReview) {
     return _DetectedTaxonomy(
@@ -2264,11 +2276,11 @@ class _AddItemModalState extends State<_AddItemModal>
     );
     _slideAnim = Tween<Offset>(begin: const Offset(0, 0.08), end: Offset.zero)
         .animate(
-          CurvedAnimation(
-            parent: _slideCtrl,
-            curve: const Cubic(0.22, 1, 0.36, 1),
-          ),
-        );
+      CurvedAnimation(
+        parent: _slideCtrl,
+        curve: const Cubic(0.22, 1, 0.36, 1),
+      ),
+    );
     _fadeAnim = Tween<double>(
       begin: 0,
       end: 1,
@@ -2306,7 +2318,7 @@ class _AddItemModalState extends State<_AddItemModal>
 
   Future<void> _toggleFlash() async {
     setState(
-      () => _flash = _flash == FlashMode.off ? FlashMode.torch : FlashMode.off,
+          () => _flash = _flash == FlashMode.off ? FlashMode.torch : FlashMode.off,
     );
     await _camCtrl?.setFlashMode(_flash);
   }
@@ -2420,8 +2432,8 @@ class _AddItemModalState extends State<_AddItemModal>
   }
 
   List<_DetectedItem> _detectedItemsFromAnalyzeResponse(
-    Map<String, dynamic>? data,
-  ) {
+      Map<String, dynamic>? data,
+      ) {
     if (data == null) {
       throw Exception('Backend returned no scan response');
     }
@@ -2444,15 +2456,15 @@ class _AddItemModalState extends State<_AddItemModal>
           : validationStatus.toLowerCase();
       final selectedByDefault =
           _captureBool(data, 'selected_by_default', 'selectedByDefault') ??
-          safeValidationStatus == 'ok';
+              safeValidationStatus == 'ok';
       final occasions = data['occasions'] is List
           ? List<String>.from(
-              (data['occasions'] as List).map((v) => v.toString()),
-            )
+        (data['occasions'] as List).map((v) => v.toString()),
+      )
           : <String>[];
       return _DetectedItem(
         id:
-            data['item_id']?.toString() ??
+        data['item_id']?.toString() ??
             data['id']?.toString() ??
             UniqueKey().toString(),
         name: taxonomy.name,
@@ -2473,16 +2485,16 @@ class _AddItemModalState extends State<_AddItemModal>
         sourceImageIndex: data['source_image_index'] is num
             ? (data['source_image_index'] as num).toInt()
             : (data['batch_index'] is num
-                  ? (data['batch_index'] as num).toInt()
-                  : null),
+            ? (data['batch_index'] as num).toInt()
+            : null),
         raw: data,
         validationStatus: safeValidationStatus,
         rejectionReason:
-            _captureString(
-              data,
-              'rejection_reason',
-              'rejectionReason',
-            ).isNotEmpty
+        _captureString(
+          data,
+          'rejection_reason',
+          'rejectionReason',
+        ).isNotEmpty
             ? _captureString(data, 'rejection_reason', 'rejectionReason')
             : null,
         selectedByDefault: selectedByDefault,
@@ -2492,11 +2504,11 @@ class _AddItemModalState extends State<_AddItemModal>
           'cropQualityScore',
         ),
         detectionMode:
-            _captureString(data, 'detection_mode', 'detectionMode').isNotEmpty
+        _captureString(data, 'detection_mode', 'detectionMode').isNotEmpty
             ? _captureString(data, 'detection_mode', 'detectionMode')
             : null,
         regenProvider:
-            _captureString(data, 'regen_provider', 'regenProvider').isNotEmpty
+        _captureString(data, 'regen_provider', 'regenProvider').isNotEmpty
             ? _captureString(data, 'regen_provider', 'regenProvider')
             : null,
         inputType: _captureString(data, 'input_type', 'inputType').isNotEmpty
@@ -2517,8 +2529,8 @@ class _AddItemModalState extends State<_AddItemModal>
         .length;
     debugPrint(
       'wardrobe_capture.validation total=${items.length} ok=$okCount '
-      'needs_review=$reviewCount rejected=$rejectedCount '
-      'selected_approved=$selectedApprovedCount',
+          'needs_review=$reviewCount rejected=$rejectedCount '
+          'selected_approved=$selectedApprovedCount',
     );
     return items;
   }
@@ -2569,7 +2581,7 @@ class _AddItemModalState extends State<_AddItemModal>
           ),
         ];
         _detectError =
-            'AI needs a quick review. Edit labels if needed, then save.';
+        'AI needs a quick review. Edit labels if needed, then save.';
         _step = _ModalStep.results;
       });
     }
@@ -2592,7 +2604,7 @@ class _AddItemModalState extends State<_AddItemModal>
       if (allItems.isEmpty) {
         final results = await Future.wait(
           bytesList.map(
-            (bytes) => _detectOneImage(bytes).catchError((error) {
+                (bytes) => _detectOneImage(bytes).catchError((error) {
               debugPrint('Single image fallback failed: $error');
               return <_DetectedItem>[];
             }),
@@ -2704,7 +2716,7 @@ class _AddItemModalState extends State<_AddItemModal>
 
   void _saveEditedItem() {
     if (_nameCtrl.text.trim().isEmpty || _selectedCat.isEmpty) {
-      _toast('Name and category are required');
+      _toast(AppLocalizations.t(context, 'wardrobe_name_category_required'));
       return;
     }
     if (_editingIndex != null) {
@@ -2740,24 +2752,24 @@ class _AddItemModalState extends State<_AddItemModal>
     final previews = _detected
         .map(
           (d) => UploadPreviewItem(
-            id: d.id,
-            name: d.name,
-            color: d.color ?? '',
-            style: d.subCategory,
-            category: d.category,
-            occasions: List<String>.from(d.occasions),
-            imageUrl: d.displayUrl,
-            previewBytes: d.previewBytes,
-            validationStatus: d.validationStatus,
-            rejectionReason: d.rejectionReason,
-            selectedByDefault: d.selectedByDefault,
-            cropQualityScore: d.cropQualityScore,
-            detectionMode: d.detectionMode,
-            regenProvider: d.regenProvider,
-            inputType: d.inputType,
-            isSelected: d.selected && d.isSaveable,
-          ),
-        )
+        id: d.id,
+        name: d.name,
+        color: d.color ?? '',
+        style: d.subCategory,
+        category: d.category,
+        occasions: List<String>.from(d.occasions),
+        imageUrl: d.displayUrl,
+        previewBytes: d.previewBytes,
+        validationStatus: d.validationStatus,
+        rejectionReason: d.rejectionReason,
+        selectedByDefault: d.selectedByDefault,
+        cropQualityScore: d.cropQualityScore,
+        detectionMode: d.detectionMode,
+        regenProvider: d.regenProvider,
+        inputType: d.inputType,
+        isSelected: d.selected && d.isSaveable,
+      ),
+    )
         .toList();
 
     showDialog(
@@ -2823,7 +2835,7 @@ class _AddItemModalState extends State<_AddItemModal>
       );
       final frame2 = await codec2.getNextFrame();
       final byteData =
-          await frame2.image.toByteData(format: ui.ImageByteFormat.png);
+      await frame2.image.toByteData(format: ui.ImageByteFormat.png);
       frame2.image.dispose();
       if (byteData == null) return dataB64;
       final out = base64Encode(byteData.buffer.asUint8List());
@@ -2839,7 +2851,7 @@ class _AddItemModalState extends State<_AddItemModal>
         .where((i) => i.selected && i.isSaveable)
         .toList();
     if (selected.isEmpty) {
-      _toast('No approved items to add');
+      _toast(AppLocalizations.t(context, 'wardrobe_no_items_to_add'));
       return;
     }
     if (selected.length > 6) {
@@ -2852,7 +2864,7 @@ class _AddItemModalState extends State<_AddItemModal>
     // server cache token is present (base64 already dropped via toBackendPayload).
     for (final p in payloads) {
       final hasToken =
-          (p['image_cache_token']?.toString().trim().isNotEmpty ?? false);
+      (p['image_cache_token']?.toString().trim().isNotEmpty ?? false);
       if (hasToken) continue;
       for (final key in const ['masked_image_base64', 'raw_image_base64']) {
         final b64 = p[key]?.toString();
@@ -2888,8 +2900,8 @@ class _AddItemModalState extends State<_AddItemModal>
     final savedCount = saveResult == null
         ? 0
         : (saveResult['saved_count'] is int
-              ? saveResult['saved_count'] as int
-              : int.tryParse(saveResult['saved_count']?.toString() ?? '') ?? 0);
+        ? saveResult['saved_count'] as int
+        : int.tryParse(saveResult['saved_count']?.toString() ?? '') ?? 0);
     if (saveResult == null || savedCount <= 0) {
       setState(() => _isSavingWardrobe = false);
       _toast(
@@ -2909,10 +2921,10 @@ class _AddItemModalState extends State<_AddItemModal>
         if (displayBytes == null && (remoteUrl == null || remoteUrl.isEmpty)) {
           final index = item.sourceImageIndex;
           displayBytes =
-              _isGalleryPick &&
-                  index != null &&
-                  index >= 0 &&
-                  index < _galleryImages.length
+          _isGalleryPick &&
+              index != null &&
+              index >= 0 &&
+              index < _galleryImages.length
               ? _galleryImages[index]
               : _capturedBytes;
         }
@@ -2939,11 +2951,11 @@ class _AddItemModalState extends State<_AddItemModal>
         final row = Map<String, dynamic>.from(raw);
         final displayUrl =
             row['display_image_url']?.toString() ??
-            row['displayImageUrl']?.toString();
+                row['displayImageUrl']?.toString();
         final normalizedUrl =
             displayUrl ??
-            row['normalized_url']?.toString() ??
-            row['normalizedUrl']?.toString();
+                row['normalized_url']?.toString() ??
+                row['normalizedUrl']?.toString();
         final maskedUrl =
             row['masked_url']?.toString() ?? row['maskedUrl']?.toString();
         final imageUrl =
@@ -2984,7 +2996,7 @@ class _AddItemModalState extends State<_AddItemModal>
 
   void _manualSave() {
     if (_nameCtrl.text.trim().isEmpty || _selectedCat.isEmpty) {
-      _toast('Name and category are required');
+      _toast(AppLocalizations.t(context, 'wardrobe_name_category_required'));
       return;
     }
     Navigator.of(context).pop();
@@ -3047,88 +3059,88 @@ class _AddItemModalState extends State<_AddItemModal>
             ? EdgeInsets.zero
             : const EdgeInsets.symmetric(horizontal: 20, vertical: 32),
         child: isFullScreen
-            // ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ Full-screen camera / detecting ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬
+        // ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ Full-screen camera / detecting ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬
             ? AnnotatedRegion<SystemUiOverlayStyle>(
-                value: SystemUiOverlayStyle.light,
-                child: ClipRRect(
-                  borderRadius: BorderRadius.zero,
-                  child: Material(
-                    color: Colors.black,
-                    child: SafeArea(
-                      child: Stack(
-                        fit: StackFit.expand,
-                        children: [
-                          _buildBody(),
-                          // Close button top-right
-                          Positioned(
-                            top: 12,
-                            right: 16,
-                            child: GestureDetector(
-                              onTap: () => Navigator.of(context).pop(),
-                              child: Container(
-                                width: 36,
-                                height: 36,
-                                decoration: BoxDecoration(
-                                  color: Colors.black.withOpacity(0.45),
-                                  shape: BoxShape.circle,
-                                  border: Border.all(
-                                    color: Colors.white.withOpacity(0.20),
-                                  ),
-                                ),
-                                child: const Icon(
-                                  Icons.close,
-                                  color: Colors.white,
-                                  size: 18,
-                                ),
-                              ),
+          value: SystemUiOverlayStyle.light,
+          child: ClipRRect(
+            borderRadius: BorderRadius.zero,
+            child: Material(
+              color: Colors.black,
+              child: SafeArea(
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    _buildBody(),
+                    // Close button top-right
+                    Positioned(
+                      top: 12,
+                      right: 16,
+                      child: GestureDetector(
+                        onTap: () => Navigator.of(context).pop(),
+                        child: Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            color: Colors.black.withOpacity(0.45),
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: Colors.white.withOpacity(0.20),
                             ),
                           ),
-                        ],
+                          child: const Icon(
+                            Icons.close,
+                            color: Colors.white,
+                            size: 18,
+                          ),
+                        ),
                       ),
                     ),
-                  ),
-                ),
-              )
-            // ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ Card modal for results / editing ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬
-            : SlideTransition(
-                position: _slideAnim,
-                child: ScaleTransition(
-                  scale: _scaleAnim,
-                  child: Container(
-                    constraints: BoxConstraints(
-                      maxHeight: MediaQuery.of(context).size.height * 0.92,
-                    ),
-                    decoration: BoxDecoration(
-                      color: t.backgroundSecondary.withValues(alpha: 0.97),
-                      borderRadius: BorderRadius.circular(32),
-                      border: Border.all(color: t.cardBorder),
-                      boxShadow: [
-                        BoxShadow(
-                          color: t.backgroundPrimary.withValues(alpha: 0.5),
-                          blurRadius: 80,
-                          offset: const Offset(0, 40),
-                        ),
-                        BoxShadow(
-                          color: t.accent.primary.withValues(alpha: 0.15),
-                          blurRadius: 24,
-                          offset: const Offset(0, 8),
-                        ),
-                      ],
-                    ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(32),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          _buildHeader(),
-                          Flexible(child: _buildBody()),
-                          _buildFooter(),
-                        ],
-                      ),
-                    ),
-                  ),
+                  ],
                 ),
               ),
+            ),
+          ),
+        )
+        // ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ Card modal for results / editing ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬
+            : SlideTransition(
+          position: _slideAnim,
+          child: ScaleTransition(
+            scale: _scaleAnim,
+            child: Container(
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(context).size.height * 0.92,
+              ),
+              decoration: BoxDecoration(
+                color: t.backgroundSecondary.withValues(alpha: 0.97),
+                borderRadius: BorderRadius.circular(32),
+                border: Border.all(color: t.cardBorder),
+                boxShadow: [
+                  BoxShadow(
+                    color: t.backgroundPrimary.withValues(alpha: 0.5),
+                    blurRadius: 80,
+                    offset: const Offset(0, 40),
+                  ),
+                  BoxShadow(
+                    color: t.accent.primary.withValues(alpha: 0.15),
+                    blurRadius: 24,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(32),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _buildHeader(),
+                    Flexible(child: _buildBody()),
+                    _buildFooter(),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -3163,16 +3175,16 @@ class _AddItemModalState extends State<_AddItemModal>
                   ? null
                   : _step == _ModalStep.editing
                   ? (_editingIndex != null
-                        ? () => setState(() {
-                            _editingIndex = null;
-                            _step = _ModalStep.results;
-                          })
-                        : (_detected.length > 1
-                              ? () => setState(() {
-                                  _editingIndex = null;
-                                  _step = _ModalStep.results;
-                                })
-                              : _retake))
+                  ? () => setState(() {
+                _editingIndex = null;
+                _step = _ModalStep.results;
+              })
+                  : (_detected.length > 1
+                  ? () => setState(() {
+                _editingIndex = null;
+                _step = _ModalStep.results;
+              })
+                  : _retake))
                   : _retake,
               child: Container(
                 width: 34,
@@ -3243,11 +3255,11 @@ class _AddItemModalState extends State<_AddItemModal>
       child: _saveComplete
           ? _buildSaveCompleteBody()
           : switch (_step) {
-              _ModalStep.camera => _buildCameraBody(),
-              _ModalStep.detecting => _buildDetectingBody(),
-              _ModalStep.results => _buildResultsBody(),
-              _ModalStep.editing => _buildEditingBody(),
-            },
+        _ModalStep.camera => _buildCameraBody(),
+        _ModalStep.detecting => _buildDetectingBody(),
+        _ModalStep.results => _buildResultsBody(),
+        _ModalStep.editing => _buildEditingBody(),
+      },
     );
   }
 
@@ -3314,28 +3326,28 @@ class _AddItemModalState extends State<_AddItemModal>
         _camReady && _camCtrl != null
             ? CameraPreview(_camCtrl!)
             : Container(
-                color: Colors.black,
-                child: Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      CircularProgressIndicator(
-                        color: t.accent.primary,
-                        strokeWidth: 2,
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        AppLocalizations.t(context, 'wardrobe_starting_camera'),
-                        style: TextStyle(
-                          fontFamily: GoogleFonts.inter().fontFamily,
-                          fontSize: 13,
-                          color: Colors.white60,
-                        ),
-                      ),
-                    ],
+          color: Colors.black,
+          child: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(
+                  color: t.accent.primary,
+                  strokeWidth: 2,
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  AppLocalizations.t(context, 'wardrobe_starting_camera'),
+                  style: TextStyle(
+                    fontFamily: GoogleFonts.inter().fontFamily,
+                    fontSize: 13,
+                    color: Colors.white60,
                   ),
                 ),
-              ),
+              ],
+            ),
+          ),
+        ),
         // ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ Corner frame guides ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬
         if (_camReady)
           Positioned.fill(
@@ -3774,12 +3786,12 @@ class _AddItemModalState extends State<_AddItemModal>
                         .where((i) => i.isSaveable)
                         .toList();
                     if (saveable.isEmpty) {
-                      _toast('No approved items to add');
+                      _toast(AppLocalizations.t(context, 'wardrobe_no_items_to_add'));
                       return;
                     }
                     final all =
                         saveable.isNotEmpty &&
-                        saveable.every((i) => i.selected);
+                            saveable.every((i) => i.selected);
                     if (all) {
                       // deselect all
                       setState(() {
@@ -3807,9 +3819,9 @@ class _AddItemModalState extends State<_AddItemModal>
                   },
                   child: Text(
                     _detected.where((i) => i.isSaveable).isNotEmpty &&
-                            _detected
-                                .where((i) => i.isSaveable)
-                                .every((i) => i.selected)
+                        _detected
+                            .where((i) => i.isSaveable)
+                            .every((i) => i.selected)
                         ? AppLocalizations.t(context, 'wardrobe_deselect_all')
                         : AppLocalizations.t(context, 'wardrobe_select_all'),
                     style: TextStyle(
@@ -3884,37 +3896,37 @@ class _AddItemModalState extends State<_AddItemModal>
                           clipBehavior: Clip.antiAlias,
                           child: item.previewBytes != null
                               ? Image.memory(
-                                  item.previewBytes!,
-                                  fit: BoxFit.contain,
-                                  gaplessPlayback: true,
-                                  errorBuilder: (_, _, _) => Center(
-                                    child: Text(
-                                      _DetectedItem.catEmoji(item.category),
-                                      style: const TextStyle(fontSize: 20),
-                                    ),
-                                  ),
-                                )
+                            item.previewBytes!,
+                            fit: BoxFit.contain,
+                            gaplessPlayback: true,
+                            errorBuilder: (_, _, _) => Center(
+                              child: Text(
+                                _DetectedItem.catEmoji(item.category),
+                                style: const TextStyle(fontSize: 20),
+                              ),
+                            ),
+                          )
                               : (item.displayUrl != null
-                                    ? Image.network(
-                                        item.displayUrl!,
-                                        fit: BoxFit.contain,
-                                        errorBuilder: (_, _, _) => Center(
-                                          child: Text(
-                                            _DetectedItem.catEmoji(
-                                              item.category,
-                                            ),
-                                            style: const TextStyle(
-                                              fontSize: 20,
-                                            ),
-                                          ),
-                                        ),
-                                      )
-                                    : Center(
-                                        child: Text(
-                                          _DetectedItem.catEmoji(item.category),
-                                          style: const TextStyle(fontSize: 20),
-                                        ),
-                                      )),
+                              ? Image.network(
+                            item.displayUrl!,
+                            fit: BoxFit.contain,
+                            errorBuilder: (_, _, _) => Center(
+                              child: Text(
+                                _DetectedItem.catEmoji(
+                                  item.category,
+                                ),
+                                style: const TextStyle(
+                                  fontSize: 20,
+                                ),
+                              ),
+                            ),
+                          )
+                              : Center(
+                            child: Text(
+                              _DetectedItem.catEmoji(item.category),
+                              style: const TextStyle(fontSize: 20),
+                            ),
+                          )),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
@@ -4021,11 +4033,11 @@ class _AddItemModalState extends State<_AddItemModal>
                             shape: BoxShape.circle,
                             gradient: item.selected
                                 ? LinearGradient(
-                                    colors: [
-                                      t.accent.primary,
-                                      t.accent.tertiary,
-                                    ],
-                                  )
+                              colors: [
+                                t.accent.primary,
+                                t.accent.tertiary,
+                              ],
+                            )
                                 : null,
                             color: item.selected ? null : t.backgroundSecondary,
                             border: Border.all(
@@ -4037,10 +4049,10 @@ class _AddItemModalState extends State<_AddItemModal>
                           ),
                           child: item.selected
                               ? Icon(
-                                  Icons.check,
-                                  color: t.textPrimary,
-                                  size: 14,
-                                )
+                            Icons.check,
+                            color: t.textPrimary,
+                            size: 14,
+                          )
                               : null,
                         ),
                       ],
@@ -4364,15 +4376,15 @@ class _AddItemModalState extends State<_AddItemModal>
                       final active = _selectedOccs.contains(occ);
                       final disabled =
                           privateWearDetected &&
-                          {'Work', 'Dinner', 'Travel'}.contains(occ);
+                              {'Work', 'Dinner', 'Travel'}.contains(occ);
                       return GestureDetector(
                         onTap: disabled
                             ? null
                             : () => setState(
-                                () => active
-                                    ? _selectedOccs.remove(occ)
-                                    : _selectedOccs.add(occ),
-                              ),
+                              () => active
+                              ? _selectedOccs.remove(occ)
+                              : _selectedOccs.add(occ),
+                        ),
                         child: AnimatedContainer(
                           duration: const Duration(milliseconds: 180),
                           padding: const EdgeInsets.symmetric(
@@ -4382,17 +4394,17 @@ class _AddItemModalState extends State<_AddItemModal>
                           decoration: BoxDecoration(
                             gradient: active
                                 ? LinearGradient(
-                                    colors: [
-                                      t.accent.primary,
-                                      t.accent.tertiary,
-                                    ],
-                                  )
+                              colors: [
+                                t.accent.primary,
+                                t.accent.tertiary,
+                              ],
+                            )
                                 : null,
                             color: active
                                 ? null
                                 : t.panel.withValues(
-                                    alpha: disabled ? 0.45 : 1,
-                                  ),
+                              alpha: disabled ? 0.45 : 1,
+                            ),
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(
                               color: active ? t.accent.primary : t.cardBorder,
@@ -4511,31 +4523,31 @@ class _AddItemModalState extends State<_AddItemModal>
     final String primaryLabel = _isSavingWardrobe
         ? 'Saving to wardrobe...'
         : switch (_step) {
-            _ModalStep.camera => '',
-            _ModalStep.detecting => 'Detecting...',
-            _ModalStep.results =>
-              selCount == 0
-                  ? 'No approved items to add'
-                  : 'Add $selCount approved item${selCount != 1 ? 's' : ''}',
-            _ModalStep.editing =>
-              _editingIndex != null ? 'Save changes' : 'Save to wardrobe',
-          };
+      _ModalStep.camera => '',
+      _ModalStep.detecting => 'Detecting...',
+      _ModalStep.results =>
+      selCount == 0
+          ? 'No approved items to add'
+          : 'Add $selCount approved item${selCount != 1 ? 's' : ''}',
+      _ModalStep.editing =>
+      _editingIndex != null ? 'Save changes' : 'Save to wardrobe',
+    };
     final bool primaryDisabled =
         _isSavingWardrobe ||
-        (_step == _ModalStep.results && selCount == 0) ||
-        _step == _ModalStep.detecting;
+            (_step == _ModalStep.results && selCount == 0) ||
+            _step == _ModalStep.detecting;
     final VoidCallback? primaryAction = _isSavingWardrobe
         ? null
         : switch (_step) {
-            _ModalStep.camera => null,
-            _ModalStep.detecting => null,
-            _ModalStep.results =>
-              (selCount == 0 || _detected.isEmpty)
-                  ? null
-                  : () => _confirmAndSave(),
-            _ModalStep.editing =>
-              _editingIndex != null ? _saveEditedItem : _manualSave,
-          };
+      _ModalStep.camera => null,
+      _ModalStep.detecting => null,
+      _ModalStep.results =>
+      (selCount == 0 || _detected.isEmpty)
+          ? null
+          : () => _confirmAndSave(),
+      _ModalStep.editing =>
+      _editingIndex != null ? _saveEditedItem : _manualSave,
+    };
 
     return Container(
       padding: const EdgeInsets.fromLTRB(18, 12, 18, 20),
@@ -4574,14 +4586,14 @@ class _AddItemModalState extends State<_AddItemModal>
                 decoration: BoxDecoration(
                   gradient: primaryDisabled
                       ? LinearGradient(
-                          colors: [
-                            t.accent.primary.withValues(alpha: 0.4),
-                            t.accent.tertiary.withValues(alpha: 0.4),
-                          ],
-                        )
+                    colors: [
+                      t.accent.primary.withValues(alpha: 0.4),
+                      t.accent.tertiary.withValues(alpha: 0.4),
+                    ],
+                  )
                       : LinearGradient(
-                          colors: [t.accent.primary, t.accent.tertiary],
-                        ),
+                    colors: [t.accent.primary, t.accent.tertiary],
+                  ),
                   borderRadius: BorderRadius.circular(14),
                 ),
                 alignment: Alignment.center,
@@ -5422,11 +5434,11 @@ class _FilterChipState extends State<_FilterChip> {
             gradient: widget.isActive ? widget.chip.activeGradient : null,
             color: widget.isActive
                 ? (widget.chip.activeGradient == null
-                      ? widget.chip.activeBg
-                      : null)
+                ? widget.chip.activeBg
+                : null)
                 : (_hovered
-                      ? widget.chip.inactiveBg.withValues(alpha: 0.28)
-                      : widget.chip.inactiveBg),
+                ? widget.chip.inactiveBg.withValues(alpha: 0.28)
+                : widget.chip.inactiveBg),
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
               color: widget.isActive
@@ -5436,21 +5448,21 @@ class _FilterChipState extends State<_FilterChip> {
             ),
             boxShadow: widget.isActive
                 ? [
-                    BoxShadow(
-                      color: widget.chip.activeShadow,
-                      blurRadius: 10,
-                      offset: const Offset(0, 2),
-                    ),
-                  ]
+              BoxShadow(
+                color: widget.chip.activeShadow,
+                blurRadius: 10,
+                offset: const Offset(0, 2),
+              ),
+            ]
                 : (_hovered
-                      ? [
-                          BoxShadow(
-                            color: t.backgroundPrimary.withValues(alpha: 0.10),
-                            blurRadius: 12,
-                            offset: const Offset(0, 4),
-                          ),
-                        ]
-                      : null),
+                ? [
+              BoxShadow(
+                color: t.backgroundPrimary.withValues(alpha: 0.10),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              ),
+            ]
+                : null),
           ),
           padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 7),
           child: Row(
@@ -5589,6 +5601,22 @@ class _InlineInsightCardState extends State<_InlineInsightCard>
       begin: 0.6,
       end: 1.0,
     ).animate(CurvedAnimation(parent: _dotCtrl, curve: Curves.easeInOut));
+  }
+
+  // FIX: Pause repeating animations while the route is not fully active
+  // (e.g. during back-swipe transitions). Firing AnimatedBuilders every frame
+  // while the Navigator gesture is running was contributing to frame skips.
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final route = ModalRoute.of(context);
+    if (route?.isCurrent == false) {
+      _glowCtrl.stop();
+      _dotCtrl.stop();
+    } else {
+      if (!_glowCtrl.isAnimating) _glowCtrl.repeat(reverse: true);
+      if (!_dotCtrl.isAnimating) _dotCtrl.repeat(reverse: true);
+    }
   }
 
   @override
@@ -5926,7 +5954,7 @@ class _ItemCardState extends State<_ItemCard>
         'Makeup': 'MKP',
         'Skincare': 'SKN',
       }[cat] ??
-      'ITM';
+          'ITM';
 
   void _handleLike() {
     widget.onToggleLike();
@@ -5961,12 +5989,12 @@ class _ItemCardState extends State<_ItemCard>
             border: Border.all(color: t.cardBorder, width: 1),
             boxShadow: _hovered
                 ? [
-                    BoxShadow(
-                      color: t.backgroundPrimary.withValues(alpha: 0.4),
-                      blurRadius: 40,
-                      offset: const Offset(0, 12),
-                    ),
-                  ]
+              BoxShadow(
+                color: t.backgroundPrimary.withValues(alpha: 0.4),
+                blurRadius: 40,
+                offset: const Offset(0, 12),
+              ),
+            ]
                 : [],
           ),
           clipBehavior: Clip.hardEdge,
@@ -5991,24 +6019,24 @@ class _ItemCardState extends State<_ItemCard>
                         // ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ Prioritize Masked URL over Raw URL
                         image: item.displayUrl != null
                             ? DecorationImage(
-                                image: NetworkImage(item.displayUrl!),
-                                fit: BoxFit.contain,
-                              )
+                          image: NetworkImage(item.displayUrl!),
+                          fit: BoxFit.contain,
+                        )
                             : (item.imageBytes != null
-                                  ? DecorationImage(
-                                      image: MemoryImage(item.imageBytes!),
-                                      fit: BoxFit.contain,
-                                    )
-                                  : null),
+                            ? DecorationImage(
+                          image: MemoryImage(item.imageBytes!),
+                          fit: BoxFit.contain,
+                        )
+                            : null),
                       ),
                       child:
-                          (item.displayUrl == null && item.imageBytes == null)
+                      (item.displayUrl == null && item.imageBytes == null)
                           ? Center(
-                              child: Text(
-                                _catEmoji(item.cat),
-                                style: const TextStyle(fontSize: 40),
-                              ),
-                            )
+                        child: Text(
+                          _catEmoji(item.cat),
+                          style: const TextStyle(fontSize: 40),
+                        ),
+                      )
                           : null,
                     ),
                   ),
@@ -6125,12 +6153,12 @@ class _ItemCardState extends State<_ItemCard>
                           color: item.liked
                               ? accent4.withValues(alpha: 0.2)
                               : (_likeHovered
-                                    ? t.backgroundSecondary.withValues(
-                                        alpha: 0.98,
-                                      )
-                                    : t.backgroundPrimary.withValues(
-                                        alpha: 0.7,
-                                      )),
+                              ? t.backgroundSecondary.withValues(
+                            alpha: 0.98,
+                          )
+                              : t.backgroundPrimary.withValues(
+                            alpha: 0.7,
+                          )),
                           shape: BoxShape.circle,
                           border: Border.all(
                             color: t.textPrimary.withValues(alpha: 0.15),
@@ -6138,12 +6166,12 @@ class _ItemCardState extends State<_ItemCard>
                           ),
                           boxShadow: _likeHovered && !_likePressed
                               ? [
-                                  BoxShadow(
-                                    color: accent4.withValues(alpha: 0.18),
-                                    blurRadius: 14,
-                                    offset: const Offset(0, 4),
-                                  ),
-                                ]
+                            BoxShadow(
+                              color: accent4.withValues(alpha: 0.18),
+                              blurRadius: 14,
+                              offset: const Offset(0, 4),
+                            ),
+                          ]
                               : null,
                         ),
                         child: Icon(
@@ -6272,12 +6300,12 @@ class _DeleteHoverButtonState extends State<_DeleteHoverButton> {
           ),
           boxShadow: _hovered
               ? [
-                  BoxShadow(
-                    color: accent4.withValues(alpha: 0.14),
-                    blurRadius: 14,
-                    offset: const Offset(0, 4),
-                  ),
-                ]
+            BoxShadow(
+              color: accent4.withValues(alpha: 0.14),
+              blurRadius: 14,
+              offset: const Offset(0, 4),
+            ),
+          ]
               : null,
         ),
         child: Icon(
@@ -6309,7 +6337,7 @@ class _EmptyState extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            'Your wardrobe is empty',
+            AppLocalizations.t(context, 'wardrobe_empty_title'),
             style: TextStyle(
               fontFamily: GoogleFonts.inter().fontFamily,
               fontSize: 22,
@@ -6320,7 +6348,7 @@ class _EmptyState extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'Add pieces to start building your digital closet and get AI-powered outfit ideas.',
+            AppLocalizations.t(context, 'wardrobe_empty_subtitle'),
             style: TextStyle(
               fontFamily: GoogleFonts.inter().fontFamily,
               fontSize: 14,
@@ -6375,7 +6403,7 @@ class _EmptySearch extends StatelessWidget {
           const Opacity(opacity: 0.4, child: Icon(Icons.search_off, size: 40)),
           const SizedBox(height: 12),
           Text(
-            'No results',
+            AppLocalizations.t(context, 'wardrobe_no_search_results'),
             style: TextStyle(
               fontFamily: GoogleFonts.inter().fontFamily,
               fontSize: 20,
@@ -6385,7 +6413,7 @@ class _EmptySearch extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'Try a different search or category.',
+            AppLocalizations.t(context, 'wardrobe_no_search_subtitle'),
             style: TextStyle(
               fontFamily: GoogleFonts.inter().fontFamily,
               fontSize: 14,
@@ -6418,7 +6446,7 @@ class _StatsPanel extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Overview',
+            AppLocalizations.t(context, 'wardrobe_overview'),
             style: TextStyle(
               fontFamily: GoogleFonts.inter().fontFamily,
               fontSize: 20,
@@ -6566,93 +6594,93 @@ class _StatsPanel extends StatelessWidget {
       children: neverWorn
           .map(
             (item) => Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: t.panel,
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: t.cardBorder),
+          padding: const EdgeInsets.only(bottom: 8),
+          child: Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: t.panel,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: t.cardBorder),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 40,
+                  height: 52,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        t.accent.secondary.withValues(alpha: 0.12),
+                        t.accent.primary.withValues(alpha: 0.10),
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Center(
+                    child: Text(
+                      _catEmoji(item.cat),
+                      style: const TextStyle(fontSize: 18),
+                    ),
+                  ),
                 ),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 40,
-                      height: 52,
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [
-                            t.accent.secondary.withValues(alpha: 0.12),
-                            t.accent.primary.withValues(alpha: 0.10),
-                          ],
-                        ),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Center(
-                        child: Text(
-                          _catEmoji(item.cat),
-                          style: const TextStyle(fontSize: 18),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            item.name,
-                            style: TextStyle(
-                              fontFamily: GoogleFonts.inter().fontFamily,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              color: t.textPrimary,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            item.cat,
-                            style: TextStyle(
-                              fontFamily: GoogleFonts.inter().fontFamily,
-                              fontSize: 11,
-                              color: t.mutedText,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 9,
-                        vertical: 3,
-                      ),
-                      decoration: BoxDecoration(
-                        color: accent4.withValues(alpha: 0.07),
-                        border: Border.all(
-                          color: accent4.withValues(alpha: 0.28),
-                        ),
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                      child: Text(
-                        'Unworn',
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        item.name,
                         style: TextStyle(
                           fontFamily: GoogleFonts.inter().fontFamily,
-                          fontSize: 9,
-                          fontWeight: FontWeight.w700,
-                          color: accent4,
-                          letterSpacing: 0.5,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: t.textPrimary,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        item.cat,
+                        style: TextStyle(
+                          fontFamily: GoogleFonts.inter().fontFamily,
+                          fontSize: 11,
+                          color: t.mutedText,
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 9,
+                    vertical: 3,
+                  ),
+                  decoration: BoxDecoration(
+                    color: accent4.withValues(alpha: 0.07),
+                    border: Border.all(
+                      color: accent4.withValues(alpha: 0.28),
+                    ),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(
+                    'Unworn',
+                    style: TextStyle(
+                      fontFamily: GoogleFonts.inter().fontFamily,
+                      fontSize: 9,
+                      fontWeight: FontWeight.w700,
+                      color: accent4,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ),
+              ],
             ),
-          )
+          ),
+        ),
+      )
           .toList(),
     );
   }
@@ -6670,7 +6698,7 @@ class _StatsPanel extends StatelessWidget {
         'Makeup': 'MKP',
         'Skincare': 'SKN',
       }[cat] ??
-      'ITM';
+          'ITM';
 
   Widget _buildDivider(BuildContext context, String label) => Row(
     children: [
@@ -6731,7 +6759,7 @@ class _StatsPanel extends StatelessWidget {
     return _BarSection(
       bars: List.generate(
         cats.length,
-        (i) => _BarItem(
+            (i) => _BarItem(
           label: cats[i],
           color: colors[i],
           value: max > 0 ? counts[i] / max : 0,
@@ -6765,7 +6793,7 @@ class _MostWornHoverCardState extends State<_MostWornHoverCard> {
         'Makeup': 'MKP',
         'Skincare': 'SKN',
       }[cat] ??
-      'ITM';
+          'ITM';
 
   @override
   Widget build(BuildContext context) {
@@ -6855,7 +6883,7 @@ class _HoverStatCardState extends State<_HoverStatCard> {
         curve: Curves.easeOut,
         transform: _hovered
             ? (Matrix4.translationValues(0.0, -2.0, 0.0)
-                ..multiply(Matrix4.diagonal3Values(1.01, 1.01, 1.0)))
+          ..multiply(Matrix4.diagonal3Values(1.01, 1.01, 1.0)))
             : Matrix4.identity(),
         padding: const EdgeInsets.all(22),
         decoration: BoxDecoration(
@@ -6863,19 +6891,19 @@ class _HoverStatCardState extends State<_HoverStatCard> {
           borderRadius: BorderRadius.circular(20),
           boxShadow: _hovered
               ? [
-                  BoxShadow(
-                    color: t.backgroundPrimary.withValues(alpha: 0.4),
-                    blurRadius: 28,
-                    offset: const Offset(0, 8),
-                  ),
-                ]
+            BoxShadow(
+              color: t.backgroundPrimary.withValues(alpha: 0.4),
+              blurRadius: 28,
+              offset: const Offset(0, 8),
+            ),
+          ]
               : [
-                  BoxShadow(
-                    color: t.backgroundPrimary.withValues(alpha: 0.3),
-                    blurRadius: 16,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
+            BoxShadow(
+              color: t.backgroundPrimary.withValues(alpha: 0.3),
+              blurRadius: 16,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -6984,63 +7012,63 @@ class _BarSectionState extends State<_BarSection>
         children: widget.bars
             .map(
               (bar) => Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: Row(
-                  children: [
-                    SizedBox(
-                      width: 100,
-                      child: Text(
-                        bar.label,
-                        style: TextStyle(
-                          fontFamily: GoogleFonts.inter().fontFamily,
-                          fontSize: 13,
-                          color: t.mutedText,
-                          fontWeight: FontWeight.w400,
-                        ),
-                      ),
+            padding: const EdgeInsets.only(bottom: 10),
+            child: Row(
+              children: [
+                SizedBox(
+                  width: 100,
+                  child: Text(
+                    bar.label,
+                    style: TextStyle(
+                      fontFamily: GoogleFonts.inter().fontFamily,
+                      fontSize: 13,
+                      color: t.mutedText,
+                      fontWeight: FontWeight.w400,
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Container(
+                    height: 7,
+                    decoration: BoxDecoration(
+                      color: t.panel,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: FractionallySizedBox(
+                      alignment: Alignment.centerLeft,
+                      widthFactor: bar.value.clamp(0.0, 1.0) * _anim.value,
                       child: Container(
-                        height: 7,
                         decoration: BoxDecoration(
-                          color: t.panel,
+                          gradient: LinearGradient(
+                            colors: [
+                              bar.color.withValues(alpha: 0.7),
+                              bar.color,
+                            ],
+                          ),
                           borderRadius: BorderRadius.circular(4),
                         ),
-                        child: FractionallySizedBox(
-                          alignment: Alignment.centerLeft,
-                          widthFactor: bar.value.clamp(0.0, 1.0) * _anim.value,
-                          child: Container(
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [
-                                  bar.color.withValues(alpha: 0.7),
-                                  bar.color,
-                                ],
-                              ),
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                          ),
-                        ),
                       ),
                     ),
-                    const SizedBox(width: 12),
-                    SizedBox(
-                      width: 28,
-                      child: Text(
-                        '${(bar.value * 100).round()}',
-                        textAlign: TextAlign.right,
-                        style: TextStyle(
-                          fontFamily: GoogleFonts.inter().fontFamily,
-                          fontSize: 12,
-                          color: t.mutedText,
-                        ),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
-              ),
-            )
+                const SizedBox(width: 12),
+                SizedBox(
+                  width: 28,
+                  child: Text(
+                    '${(bar.value * 100).round()}',
+                    textAlign: TextAlign.right,
+                    style: TextStyle(
+                      fontFamily: GoogleFonts.inter().fontFamily,
+                      fontSize: 12,
+                      color: t.mutedText,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        )
             .toList(),
       ),
     );
@@ -7392,15 +7420,17 @@ class _AskAhviFab extends StatefulWidget {
 }
 
 class _AskAhviFabState extends State<_AskAhviFab>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   late final AnimationController _pulseCtrl;
   late final Animation<double> _pulseScale;
   late final Animation<double> _pulseOpacity;
   bool _pressed = false;
+  bool _isRouteActive = true;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _pulseCtrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 2500),
@@ -7416,7 +7446,39 @@ class _AskAhviFabState extends State<_AskAhviFab>
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Pause animation when app goes to background to reduce janking
+    if (state == AppLifecycleState.paused) {
+      _pulseCtrl.stop();
+    } else if (state == AppLifecycleState.resumed && _isRouteActive) {
+      if (!_pulseCtrl.isAnimating) _pulseCtrl.repeat();
+    }
+  }
+
+  // FIX: Stop pulse animation when the route is not in the foreground so it
+  // does not fire AnimatedBuilder callbacks during back-swipe transitions.
+  // Enhanced with state tracking to prevent redundant animation control calls.
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final route = ModalRoute.of(context);
+    final routeActive = route?.isCurrent ?? false;
+
+    // Only update if the route state actually changed
+    if (routeActive != _isRouteActive) {
+      _isRouteActive = routeActive;
+
+      if (!_isRouteActive) {
+        _pulseCtrl.stop();
+      } else if (!_pulseCtrl.isAnimating) {
+        _pulseCtrl.repeat();
+      }
+    }
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _pulseCtrl.dispose();
     super.dispose();
   }

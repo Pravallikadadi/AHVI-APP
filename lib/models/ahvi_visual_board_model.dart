@@ -17,11 +17,11 @@ List<String> _strList(dynamic raw) {
   if (raw is! List) return const [];
   return raw
       .map((e) {
-        if (e is Map) {
-          return _str(e['label'] ?? e['name'] ?? e['title'] ?? e['text']);
-        }
-        return _str(e);
-      })
+    if (e is Map) {
+      return _str(e['label'] ?? e['name'] ?? e['title'] ?? e['text']);
+    }
+    return _str(e);
+  })
       .where((e) => e.isNotEmpty)
       .toList(growable: false);
 }
@@ -41,6 +41,8 @@ class AhviBoardPrinciple {
     }
     return AhviBoardPrinciple(label: _str(raw), value: '');
   }
+
+  Map<String, dynamic> toJson() => {'label': label, 'value': value};
 }
 
 /// One row inside a section. Fields are layout-dependent; unused ones stay empty.
@@ -96,6 +98,18 @@ class AhviBoardItem {
     return AhviBoardItem(label: _str(raw));
   }
 
+  Map<String, dynamic> toJson() => {
+    'name': name,
+    'pairing': pairing,
+    'label': label,
+    'category': category,
+    'options': options,
+    'image_url': imageUrl,
+    'icon_name': iconName,
+    'source': source,
+    'checked': checked,
+  };
+
   /// Best single-line text for this item, used for plain-text fallbacks.
   String get displayText {
     if (label.isNotEmpty) return label;
@@ -138,13 +152,20 @@ class AhviBoardSection {
       layout: _str(raw['layout']).isEmpty ? 'checklist' : _str(raw['layout']),
       items: rawItems is List
           ? rawItems
-                .map(AhviBoardItem.fromJson)
-                .where((i) => i.displayText.isNotEmpty)
-                .toList(growable: false)
+          .map(AhviBoardItem.fromJson)
+          .where((i) => i.displayText.isNotEmpty)
+          .toList(growable: false)
           : const [],
       turnInto: _strList(raw['turn_into'] ?? raw['turnInto']),
     );
   }
+
+  Map<String, dynamic> toJson() => {
+    'title': title,
+    'layout': layout,
+    'items': items.map((i) => i.toJson()).toList(),
+    'turn_into': turnInto,
+  };
 }
 
 class AhviVisualBoard {
@@ -200,17 +221,28 @@ class AhviVisualBoard {
       subtitle: _str(src['subtitle']),
       principles: principles is List
           ? principles
-                .map(AhviBoardPrinciple.fromJson)
-                .where((p) => p.label.isNotEmpty)
-                .toList(growable: false)
+          .map(AhviBoardPrinciple.fromJson)
+          .where((p) => p.label.isNotEmpty)
+          .toList(growable: false)
           : const [],
       sections: sections is List
           ? sections
-                .map(AhviBoardSection.fromJson)
-                .where((s) => s.title.isNotEmpty || s.items.isNotEmpty)
-                .toList(growable: false)
+          .map(AhviBoardSection.fromJson)
+          .where((s) => s.title.isNotEmpty || s.items.isNotEmpty)
+          .toList(growable: false)
           : const [],
       whyThisPlan: _str(src['why_this_plan'] ?? src['whyThisPlan']),
     );
   }
+
+  /// Round-trips with [AhviVisualBoard.fromJson] — same key shape as the
+  /// backend envelope, so this can be saved and later reloaded from storage.
+  Map<String, dynamic> toJson() => {
+    'board_type': boardType,
+    'title': title,
+    'subtitle': subtitle,
+    'principles': principles.map((p) => p.toJson()).toList(),
+    'sections': sections.map((s) => s.toJson()).toList(),
+    'why_this_plan': whyThisPlan,
+  };
 }

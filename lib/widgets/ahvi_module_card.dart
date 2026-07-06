@@ -16,6 +16,21 @@ class AhviModuleCardRow {
     required this.sub,
     required this.tag,
   });
+
+  Map<String, dynamic> toJson() => {
+    'done': done,
+    'main': main,
+    'sub': sub,
+    'tag': tag,
+  };
+
+  factory AhviModuleCardRow.fromJson(Map<String, dynamic> j) =>
+      AhviModuleCardRow(
+        done: j['done'] == true,
+        main: (j['main'] ?? '').toString(),
+        sub: (j['sub'] ?? '').toString(),
+        tag: (j['tag'] ?? '').toString(),
+      );
 }
 
 class AhviModuleCard {
@@ -78,6 +93,45 @@ class AhviModuleCard {
       countTotal: _toInt(raw['count_total']),
       rows: rows,
       openKey: (raw['open_key'] ?? '').toString(),
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'module': module,
+    'title': title,
+    'icon': icon,
+    'summary': summary,
+    'count_done': countDone,
+    'count_total': countTotal,
+    'rows': rows.map((r) => r.toJson()).toList(),
+    'open_key': openKey,
+  };
+
+  /// For restoring from local storage (flat shape, distinct from the
+  /// backend's [fromResponse] envelope shape).
+  factory AhviModuleCard.fromJson(Map<String, dynamic> j) {
+    int toInt(dynamic v) {
+      if (v is int) return v;
+      if (v is num) return v.toInt();
+      return int.tryParse(v?.toString() ?? '') ?? 0;
+    }
+
+    final rowsRaw = j['rows'];
+    return AhviModuleCard(
+      module: (j['module'] ?? '').toString(),
+      title: (j['title'] ?? 'Summary').toString(),
+      icon: (j['icon'] ?? '').toString(),
+      summary: (j['summary'] ?? '').toString(),
+      countDone: toInt(j['count_done']),
+      countTotal: toInt(j['count_total']),
+      rows: rowsRaw is List
+          ? rowsRaw
+          .map((r) => AhviModuleCardRow.fromJson(
+        Map<String, dynamic>.from(r as Map),
+      ))
+          .toList()
+          : const [],
+      openKey: (j['open_key'] ?? '').toString(),
     );
   }
 

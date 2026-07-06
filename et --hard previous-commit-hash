@@ -1,0 +1,196 @@
+[33m41df82f[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m)[m Initial commit
+[33m28defe5[m Merge pull request #8 from devlovasit-source/feat/save-upload-shrink
+[33mbf0530c[m feat(save): shrink the upload — downscale base64 + drop it when cached
+[33m39bfee3[m Merge pull request #7 from devlovasit-source/fix/red-flash-hero-and-save-timing
+[33mb87cc85[m fix(ui): kill ahvi_logo Hero crash + camera teardown flash + add save timing
+[33m031b07f[m Merge pull request #6 from devlovasit-source/fix/camera-dispose-race-red-flash
+[33mc33f86d[m fix(wardrobe): stop one-frame red flash when opening/using camera
+[33m0bd6728[m Merge pull request #5 from devlovasit-source/fix/style-board-stable-layout-vm-build
+[33mef09bdc[m feat(board): archetype-first title + wardrobe-match pill
+[33m706dad9[m wip(board): route chat to responsive card + 5-action bar + board feedback
+[33m97f1df9[m fix: light cutouts invisible on white canvas + render style reason
+[33mdddb84c[m Merge pull request #4 from devlovasit-source/fix/style-board-stable-layout-vm-build
+[33m6f6af5c[m fix: route all style entries to module-chat board path + render boards over text + 4:5
+[33m6c554df[m fix: board private-wear false-suppression + layout/detail polish
+[33mcc50f40[m feat(wardrobe): render ANCHOR_OUTFIT_BOARD as 9:16 style board
+[33m320ad48[m Fix Appwrite skinTone payload serialization
+[33m867c822[m Tune style board layout and readiness messaging
+[33md8742a7[m Stabilize style board layout and board asset rendering
+[33m969cdff[m fix(board): unify editorial board rendering and simplify canvas
+[33mb09c425[m Merge pull request #3 from devlovasit-source/fix/board-render-robustness
+[33m39e97a3[m fix(board): render backend board_items verbatim + outerwear slot + fuller layout
+[33m455b57f[m fix(nav): drop autofocus on WardrobeScreen KeyboardListener to fix global back swipe freezes
+[33m87b89c5[m ci: trigger APK build automatically on main push for demo
+[33m76c3ccf[m feat(ui): unify saved board previews to use EditorialBoardCanvas for consistent Pinterest flat-lay design across Wardrobe, Prep, and Planning modes
+[33m2adb342[m feat(chat): unify daily wardrobe rendering to use premium Pinterest 85 flat-lay layout across all AI modules
+[33me27c0ff[m fix(profile): add shopPrefs to Appwrite fallback allowlist so onboarding fields are not stripped on schema mismatch
+[33m0e00694[m fix(onboarding): restore gender field and properly save to Appwrite users collection
+[33mb0e10a8[m Merge pull request #2 from devlovasit-source/fix/board-slot-enforcement
+[33mfb3722a[m fix(board): enforce outfit-board slot caps + completeness gate
+[33mc660c10[m Merge pull request #1 from devlovasit-source/fix/style-board-gender-context
+[33m2673e70[m fix(style): send user gender to /api/module-chat so catalog boards populate
+[33m139af86[m fix(nav): add timeout guards for modal flows and heavy screen loads
+[33m9db3b62[m fix(wardrobe): resolve saved item image before grid insert
+[33mfb35f36[m fix(mvp): resolve home summary planning lens wardrobe and navigation issues
+[33m0057706[m fix(style): prevent legacy fallback when 85 board data is incomplete
+[33m65dd333[m fix(style): remove dead collage helper references
+[33mdfcf5c7[m fix(mvp): stabilize style boards home summary and mojibake
+[33m6372b9a[m fix(style): enforce board viability and suppress duplicate cards
+[33ma841cbb[m fix(chat): prevent blank style boards and improve wardrobe fallback
+[33ma49e39f[m fix(chat): show style boards as visual-first flat-lays
+[33mf263aba[m fix(app): reduce splash duration to two seconds
+[33m2a6a4ee[m feat(contacts): add phonebook import and masked numbers
+[33m1ce8ddc[m fix(chat): enable 85 style board layout by default
+[33m1d35c2e[m fix(chat): polish packing board layout
+[33mbeb277b[m Update android-debug-apk.yml
+[33m57cf254[m Create android-debug-apk.yml
+[33m745a896[m feat(chat): upgrade visual packing checklist board
+[33m86c4c37[m feat(chat): parse visual packing checklist sections
+[33mbad3140[m feat(chat): render packing checklist icon keys
+[33mac4440c[m feat(wardrobe): wire style item actions
+[33m562b5b5[m fix(wardrobe): stabilize save flow pairings and daily wear copy
+[33mdd0da0f[m fix(wardrobe): honor capture validation in UI
+[33mbf32f83[m feat(style): update wardrobe catalog image flow
+[33me15f90a[m feat(wardrobe): deterministic catalog image URL with fallback chain
+[33md206cdb[m feat(style): add phase 1 visual board layout
+[33m7ba645a[m fix(board): stop garment clipping and duplicate wardrobe-match label
+[33m1e9fd83[m fix(wardrobe): BoxFit.contain for items, crop previews, hide debug chips
+[33m8de5ee2[m Bound startup auth hydration
+[33m105a22f[m P0: filterFashionItems safety net for stylist surfaces
+[33m9280b34[m Premium polish: full-bleed boards, luxury badges, CTA missing piece
+[33me224c2a[m Ownership truth chips + persistent Save Board
+[33mb2eb3f9[m Premium stylist slice: reveal, collage, sticky bar, ownership
+[33m0be7c68[m Editorial cover + premium direction card
+[33m5ddebe9[m Send structured find-this metadata
+[33m6d52452[m Render complete-the-look images from payload
+[33mcba7738[m Add local accessory assets (Meghna) + Complete the Look strip
+[33m52b38b7[m Polish visual style cards
+[33m481e5b6[m Render rich visual direction cards
+[33mc18666d[m Render structured style-advice cards (proportion / color / occasion)
+[33mc1e0af8[m Render transition_plan + stylist_reasoning blocks + wardrobe-reality
+[33m4fa4ac2[m Persist + echo last_style_context across style follow-ups
+[33mb87be1c[m Render editorial board image first when backend provides image_url
+[33m6298530[m Wire Wear Today button to /api/style/wear-today
+[33m785301a[m Render Style V2 blocks: visual_inspiration_board + missing_piece_intelligence
+[33ma27d47c[m Preserve style action chip context
+[33ma2c8ca2[m Avoid duplicate visual direction cards
+[33m54f129c[m Extract chat response block rendering
+[33m29ed21f[m Introduce block based chat rendering
+[33m52570f7[m Render visual direction cards in stylist chat
+[33mf136f18[m Fix email signup onboarding flow
+[33m48239a5[m Delete assets/shape/female directory
+[33m4bebb89[m Delete assets/shape/tl
+[33mb8b642b[m Create tl
+[33m8c93ba8[m Create tl
+[33m9dc695c[m Delete assets/exercises directory
+[33m9d70fd7[m Add files via upload
+[33mc43606e[m Create tl
+[33mcbfd86c[m Delete assets/exercises
+[33m0f62028[m Create exercises
+[33m29e01fa[m Render module responses before style boards
+[33m7374bda[m Remove dead _buildReply() fake module replies from stylist chat
+[33md282a46[m Fix saved board detail modal
+[33m1379a63[m Render occasion saved boards with board cards
+[33mf3fc5dd[m Persist saved board outfit items
+[33m7dd097f[m Preserve style clarification context
+[33m5e4d2b4[m Fix saved board image parsing
+[33me1dfc64[m Fix multi-image wardrobe previews
+[33m2c52481[m Polish wardrobe save confirmation flow
+[33mb1f0b00[m Call backend wardrobe delete endpoint
+[33mc6f3eed[m Log style chat backend failures
+[33m20949f8[m Fix Daily Wear release-only grey overlay (Positioned ParentData crash)
+[33mc4d2c57[m Fix stuck AHVI Lens loading modal that grey-overlays Daily Wear
+[33m82b96fd[m Close active modals before navigating to Daily Wear
+[33m21619f7[m Remove top-of-image darkening from Daily Wear carousel — fixes faded look
+[33m84432bb[m Reset Daily Wear overlay flags on screen entry
+[33m7040713[m Add canonical style-board renderer + structured network failure logs
+[33m9e7ddf8[m Add board story model and expandable why-this-works UI
+[33m88cfc05[m Fix calendar chat bubble overflow
+[33m12b87fa[m Use PUT for contacts updates
+[33ma872c12[m Add backend-backed contacts flow
+[33mc81dd83[m Fix Daily Wear opacity and response chips
+[33me3bf42e[m Add AHVI Lens find similar UI safeguards
+[33me7c0fb6[m Fix client demo module actions and layout polish
+[33m7c35473[m Render visual plan pack chat actions
+[33m69a3a4e[m Guard offline cache before init
+[33ma2c19de[m Persist skincare profile selections
+[33me863bed[m Clear Daily Wear input dim overlay
+[33m589cfcc[m Persist meal plans as one doc with JSON-encoded meals[] entries
+[33m35c1cc2[m Import Provider and AppwriteService in diet_page
+[33mf3ae383[m Persist saved meal plans to Appwrite
+[33m5c8f6d6[m Make Add-a-Bill scan badge live
+[33m01c496c[m Prefill Add-a-Bill from backend receipt scan
+[33m8fad32b[m Force bright Daily Wear rendering
+[33mee70d30[m Remove Daily Wear permanent background wash
+[33m26f82f1[m Render module summary cards in calendar and diet chats
+[33mae766d4[m Route all module summary chips to the backend
+[33m0e3cca1[m Remove Daily Wear light overlay wash
+[33m9a367ad[m Show raw Appwrite error in mark-taken sync toast
+[33m6e09197[m Send Appwrite datetime values in UTC ISO format
+[33ma52eefd[m Implement edit medicine flow
+[33m8dab67f[m Render real-data module summary cards in chat
+[33m70a6019[m Raise wardrobe image upload timeouts for slow vision pipeline
+[33mcff54c8[m Render visual board responses for diet, pack, and plan
+[33m635bdd2[m Hydrate saved board item previews
+[33mbd8ea06[m Center single garment upload preview
+[33mf2a5e20[m Stabilize client APK demo flows
+[33m7021966[m Share Appwrite session for backend JWTs
+[33m27716c7[m Stabilize stylist sheet style actions
+[33m9960a91[m Send closest style action context
+[33m3fec0c3[m feat(chat): forward style-session context to backend
+[33mdb3762c[m chore: ignore local build logs and kotlin daemon cache
+[33md9f8e5d[m feat(ui): Codex pass across modules — theme, onboarding, modules
+[33mdd9ca65[m diag(medlog): loud Appwrite error logs on create
+[33m3e61dd0[m fix(ui): diet send + global grey overlay
+[33m35f1205[m Route modules through shared chat endpoint
+[33m1faf7fd[m fix(daily_wear): also lighten scaffold bg, not just panels (v2)
+[33mf52778a[m fix(chat): use correct /api/module-chat URL (was /api/chat/module-chat)
+[33mf3b72e8[m fix(daily_wear): drop grey overlay on light theme panel surfaces
+[33maf51e45[m fix(chat): route Home/Utilities/non-style modules through /module-chat
+[33md353ad4[m fix(auth): route by Appwrite truth, not SharedPreferences cache
+[33mac0c93d[m fix(wardrobe): send Appwrite db + collection id with /update-labels
+[33m3235b41[m chore(wardrobe): add Makeup to label edit category picker
+[33m8b340c3[m fix(wardrobe): drop Indian Wear, add Skincare to category picker
+[33mf77adab[m fix(wardrobe): surface backend reason on label-update failure
+[33mcc3601a[m fix(stabilization): production cleanup release
+[33mfdf6ff2[m fix(skincare): route through /api/chat/module-chat (Phase 4 cleanup)
+[33medf2ce9[m fix(chat): unmask hidden backend errors; widen style timeout
+[33m677314f[m Share speech-to-text service across prompts
+[33m9530049[m Persist onboarding profile fields
+[33m0be389f[m feat(style): polish AHVI style board layout (Phase 8)
+[33m9168b81[m feat(wardrobe): wire label edits through backend (Phase 3, frontend)
+[33m42d7099[m fix(style): log backend failures before fallback (Phase 2)
+[33m6056dfd[m feat(style): unify Pinterest board renderer (Phase 1)
+[33m263ca5e[m chore: dev env and local settings tweaks
+[33ma88b96a[m Improve wardrobe capture review flow and AHVI board UX
+[33m9823452[m Remove chat from bottom navigation
+[33m18afd49[m Improve wardrobe capture reliability
+[33m8627e37[m Make wardrobe review list scrollable
+[33m07d8cb7[m Wire module-aware AHVI chat context
+[33m7ce876f[m Integrate workout recommendations frontend
+[33m111632c[m Integrate Plan and Prep frontend responses
+[33m2cf5718[m Fix wardrobe categorization and Android build
+[33m1716938[m Avoid base64 style board chat payloads
+[33m744db75[m Fix style board carousel flow
+[33mdae8724[m Wardrobe: add pull-to-refresh
+[33m5e30577[m Logout hardening: deleteSessions() + cache detach
+[33m862aa77[m P0: stop cross-user wardrobe leak on shared device
+[33mcd8cf23[m Add offline-first cache for wardrobe and saved boards
+[33mabcd839[m Add calendar integration, style chips, and session persistence fixes
+[33m3233873[m Improve editorial style board layout and explanations
+[33mf5ece0a[m Add editorial style board UI
+[33m18e5583[m Persist wardrobe deletes through backend
+[33md703a44[m Refine editorial boards and persist user session
+[33me21f5f5[m Improve auth session handling on app restart
+[33m16b2fc8[m Create editorial V6 style board layout
+[33mdbd7832[m Tighten flat-lay renderer spacing and canonical item slots
+[33m8c11fa8[m Render full accessory flat lay in chat boards
+[33m7670d10[m Prefer live style cards over rendered board images
+[33mba4452e[m Fix user sync and style board rendering
+[33m135eab3[m Fix Appwrite id key in style board renderer
+[33mcbfb85b[m Sync auth users to users collection
+[33m6ef72ea[m Render accessory pieces in style board collage
+[33me66f24f[m Render multiple style board cards in chat
+[33m0a28092[m Fix backend URL env key for Cloud Run
+[33mf139679[m Fix wardrobe category matching and Appwrite save flow
+[33mefe0993[m Initial AHVI frontend commit

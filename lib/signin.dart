@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:appwrite/appwrite.dart';
 import 'package:myapp/app_routes.dart';
@@ -6,6 +7,7 @@ import 'package:provider/provider.dart';
 import 'package:myapp/services/appwrite_service.dart';
 import 'package:myapp/services/notification_service.dart';
 import 'package:myapp/profile.dart';
+import 'package:myapp/widgets/ahvi_home_text.dart';
 
 void main() => runApp(const AhviApp());
 
@@ -22,34 +24,35 @@ class AhviApp extends StatelessWidget {
 
 /// Source-of-truth onboarding gate.
 ///
-String _nextRouteForProfile(Map<String, dynamic>? profile) {
-  if (profile?['onboarding1'] != true) return AppRoutes.onboarding1;
-  if (profile?['onboarding2'] != true) return AppRoutes.onboarding2;
-  if (profile?['onboarding3'] != true) return AppRoutes.onboarding3;
-  return AppRoutes.main;
-}
-
-/// Routes the user to the exact incomplete onboarding step. Relying on
-/// SharedPreferences alone is wrong because a returning user on a fresh
-/// install / new device has no local cache.
+/// Routes the user to onboarding1 ONLY if their Appwrite profile is
+/// incomplete (missing gender or onboarding1/2/3 flags). Otherwise sends
+/// them straight to the main shell. Relying on SharedPreferences alone is
+/// wrong because a returning user on a fresh install / new device has no
+/// local cache, even though Appwrite already has onboardingComplete=true.
 Future<void> _routeAfterSignIn(BuildContext context) async {
   if (!context.mounted) return;
   final appwrite = Provider.of<AppwriteService>(context, listen: false);
 
-  String nextRoute = AppRoutes.onboarding1;
+  bool onboardingDone = false;
   try {
-    await appwrite.ensureCurrentUserProfile();
-    final profile = await appwrite.refreshCurrentUserProfile();
-    nextRoute = _nextRouteForProfile(profile);
+    onboardingDone = await appwrite.isCurrentUserOnboardingComplete();
   } catch (e) {
     debugPrint('AHVI_SIGNIN_GATE failed to read onboarding state: $e');
-    nextRoute = AppRoutes.onboarding1;
+    onboardingDone = false;
   }
 
-  debugPrint('AHVI_SIGNIN_GATE nextRoute=$nextRoute');
+  debugPrint('AHVI_SIGNIN_GATE onboardingDone=$onboardingDone');
 
   if (!context.mounted) return;
-  Navigator.of(context).pushNamedAndRemoveUntil(nextRoute, (route) => false);
+  if (onboardingDone) {
+    Navigator.of(
+      context,
+    ).pushNamedAndRemoveUntil(AppRoutes.main, (route) => false);
+  } else {
+    Navigator.of(
+      context,
+    ).pushNamedAndRemoveUntil(AppRoutes.onboarding1, (route) => false);
+  }
 }
 
 class SignInScreen extends StatelessWidget {
@@ -164,29 +167,42 @@ class SignInScreen extends StatelessWidget {
   }
 }
 
-class EmailAuthScreen extends StatefulWidget {
-  const EmailAuthScreen({super.key});
+// ============================================================================
+// EMAIL OTP LOGIN SCREEN - SIMPLIFIED (OTP ONLY, NO PASSWORD)
+// ============================================================================
+class EmailOTPLoginScreen extends StatefulWidget {
+  const EmailOTPLoginScreen({super.key});
 
   @override
-  State<EmailAuthScreen> createState() => _EmailAuthScreenState();
+  State<EmailOTPLoginScreen> createState() => _EmailOTPLoginScreenState();
 }
 
-class _EmailAuthScreenState extends State<EmailAuthScreen> {
+class _EmailOTPLoginScreenState extends State<EmailOTPLoginScreen> {
   late final TextEditingController _emailCtrl;
-  late final TextEditingController _passwordCtrl;
+  late final TextEditingController _otpCtrl;
   bool _isLoading = false;
+  bool _otpSent = false;
+  bool _canResend = false;
+  bool _otpExpired = false;
+  int _otpExpirationCountdown = 60;
+  int _resendCountdown = 60;
+  String _currentEmail = '';
+  Timer? _otpExpirationTimer;
+  Timer? _resendTimer;
 
   @override
   void initState() {
     super.initState();
     _emailCtrl = TextEditingController();
-    _passwordCtrl = TextEditingController();
+    _otpCtrl = TextEditingController();
   }
 
   @override
   void dispose() {
     _emailCtrl.dispose();
-    _passwordCtrl.dispose();
+    _otpCtrl.dispose();
+    _otpExpirationTimer?.cancel();
+    _resendTimer?.cancel();
     super.dispose();
   }
 
@@ -211,26 +227,111 @@ class _EmailAuthScreenState extends State<EmailAuthScreen> {
     );
   }
 
-  Future<void> _onSignIn() async {
+  void _startOtpExpirationTimer() {
+    _otpExpired = false;
+    _otpExpirationCountdown = 60;
+
+    _otpExpirationTimer?.cancel();
+    _otpExpirationTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (mounted) {
+        setState(() {
+          _otpExpirationCountdown--;
+          if (_otpExpirationCountdown <= 0) {
+            _otpExpired = true;
+            timer.cancel();
+            _showSnackBar('OTP expired. Please request a new one.', isError: true);
+          }
+        });
+      }
+    });
+  }
+
+  void _startResendTimer() {
+    _canResend = false;
+    _resendCountdown = 60;
+
+    _resendTimer?.cancel();
+    _resendTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (mounted) {
+        setState(() {
+          _resendCountdown--;
+          if (_resendCountdown <= 0) {
+            _canResend = true;
+            timer.cancel();
+          }
+        });
+      }
+    });
+  }
+
+  Future<void> _onSendOTP() async {
     final email = _emailCtrl.text.trim();
-    final password = _passwordCtrl.text;
 
     if (!_isValidEmail(email)) {
       _showSnackBar('Please enter a valid email address.');
-      return;
-    }
-    if (password.trim().isEmpty) {
-      _showSnackBar('Please enter your password.');
       return;
     }
 
     setState(() => _isLoading = true);
     try {
       final appwrite = Provider.of<AppwriteService>(context, listen: false);
-      final session = await appwrite.loginEmailPassword(email, password);
+
+      // Send OTP to email
+      await appwrite.sendOTP(email);
+
       if (!mounted) return;
-      if (session != null) {
-        // Load real name & email into ProfileController so profile never shows "New User"
+
+      _currentEmail = email;
+      setState(() {
+        _otpSent = true;
+        _isLoading = false;
+      });
+      _showSnackBar('OTP sent to your email. Expires in 60 seconds.', isError: false);
+      _startOtpExpirationTimer();
+      _startResendTimer();
+    } on AppwriteException catch (e) {
+      if (!mounted) return;
+      _showSnackBar('Failed to send OTP: ${e.message}');
+    } catch (e) {
+      if (!mounted) return;
+      _showSnackBar('Something went wrong. Please try again.');
+      debugPrint('Send OTP error: $e');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _onVerifyOTP() async {
+    final otp = _otpCtrl.text.trim();
+
+    if (_otpExpired) {
+      _showSnackBar('OTP has expired. Please request a new one.');
+      return;
+    }
+
+    if (otp.isEmpty) {
+      _showSnackBar('Please enter the OTP.');
+      return;
+    }
+    if (otp.length != 6) {
+      _showSnackBar('OTP must be 6 digits.');
+      return;
+    }
+
+    setState(() => _isLoading = true);
+    try {
+      final appwrite = Provider.of<AppwriteService>(context, listen: false);
+
+      // Verify OTP
+      final success = await appwrite.verifyOTP(_currentEmail, otp);
+
+      if (!mounted) return;
+
+      if (success) {
+        _otpExpirationTimer?.cancel();
+        _resendTimer?.cancel();
+
+        // Load user account
         try {
           final account = await appwrite.account.get();
           if (mounted) {
@@ -242,100 +343,66 @@ class _EmailAuthScreenState extends State<EmailAuthScreen> {
         } catch (_) {}
 
         try {
-          await AhviNotificationService.instance.registerForCurrentUser(
-            appwrite,
-          );
+          await AhviNotificationService.instance.registerForCurrentUser(appwrite);
         } catch (_) {}
 
         if (!mounted) return;
+        _showSnackBar('Verified successfully!', isError: false);
+
+        // Route after sign-in
         await _routeAfterSignIn(context);
+      } else {
+        _showSnackBar('Invalid OTP. Please try again.');
       }
     } on AppwriteException catch (e) {
-      if (e.code == 401) {
-        _showSnackBar('Invalid email or password. Please try again.');
-      } else {
-        _showSnackBar('Something went wrong. Please try again.');
-      }
-    } catch (_) {
-      _showSnackBar('Something went wrong. Please try again.');
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
-  }
-
-  Future<void> _onForgotPassword() async {
-    final email = _emailCtrl.text.trim();
-    if (!_isValidEmail(email)) {
-      _showSnackBar(
-        'Enter your email address above first, then tap Forgot password.',
-      );
-      return;
-    }
-    setState(() => _isLoading = true);
-    try {
-      final appwrite = Provider.of<AppwriteService>(context, listen: false);
-      await appwrite.sendPasswordReset(email);
       if (!mounted) return;
-      _showSnackBar('Password reset link sent to $email', isError: false);
-    } catch (_) {
-      _showSnackBar('Failed to send reset email. Please try again.');
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
-  }
-
-  Future<void> _onCreateAccount() async {
-    final email = _emailCtrl.text.trim();
-    final password = _passwordCtrl.text;
-
-    if (!_isValidEmail(email)) {
-      _showSnackBar('Please enter a valid email address.');
-      return;
-    }
-    if (password.length < 8) {
-      _showSnackBar('Use a password with at least 8 characters.');
-      return;
-    }
-
-    setState(() => _isLoading = true);
-    try {
-      final appwrite = Provider.of<AppwriteService>(context, listen: false);
-      final name = email.split('@').first;
-      context.read<ProfileController>().reset();
-      await appwrite.registerEmailPassword(email, password, name);
-
-      try {
-        final account = await appwrite.account.get();
-        if (mounted) {
-          context.read<ProfileController>().loadFromAccount(
-            name: account.name,
-            email: account.email,
-          );
-        }
-      } catch (_) {}
-
-      try {
-        await AhviNotificationService.instance.registerForCurrentUser(appwrite);
-      } catch (_) {}
-
-      if (!mounted) return;
-      await _routeAfterSignIn(context);
-    } on AppwriteException catch (e) {
-      if (e.code == 409) {
-        _showSnackBar(
-          'An account already exists for this email. Sign in instead.',
-        );
-      } else {
-        _showSnackBar(
-          e.message ?? 'Could not create account. Please try again.',
-        );
-      }
+      _showSnackBar('Verification failed: ${e.message}');
     } catch (e) {
-      debugPrint('AHVI_EMAIL_SIGNUP_UI_FAILED error=$e');
-      _showSnackBar('Could not create account. Please try again.');
+      if (!mounted) return;
+      _showSnackBar('Something went wrong. Please try again.');
+      debugPrint('OTP verification error: $e');
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  Future<void> _onResendOTP() async {
+    if (!_canResend) return;
+
+    setState(() => _isLoading = true);
+    try {
+      final appwrite = Provider.of<AppwriteService>(context, listen: false);
+      await appwrite.sendOTP(_currentEmail);
+
+      if (!mounted) return;
+      _otpCtrl.clear();
+      setState(() => _otpExpired = false);
+      _showSnackBar('OTP resent to your email.', isError: false);
+      _startOtpExpirationTimer();
+      _startResendTimer();
+    } catch (e) {
+      if (!mounted) return;
+      _showSnackBar('Failed to resend OTP. Please try again.');
+      debugPrint('Resend OTP error: $e');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  void _resetToEmailInput() {
+    _otpExpirationTimer?.cancel();
+    _resendTimer?.cancel();
+
+    setState(() {
+      _otpSent = false;
+      _otpExpired = false;
+      _emailCtrl.clear();
+      _otpCtrl.clear();
+      _currentEmail = '';
+      _canResend = false;
+      _otpExpirationCountdown = 60;
+      _resendCountdown = 60;
+    });
   }
 
   @override
@@ -347,63 +414,188 @@ class _EmailAuthScreenState extends State<EmailAuthScreen> {
           SafeArea(
             child: Center(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 24,
-                ),
-                child: _SignInPage(
-                  emailController: _emailCtrl,
-                  passwordController: _passwordCtrl,
-                  onCreateAccount: _onCreateAccount,
-                  onSignIn: _onSignIn,
-                  onForgotPassword: _onForgotPassword,
-                  isLoading: _isLoading,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+                child: _AuthCard(
+                  padding: const EdgeInsets.fromLTRB(28, 28, 28, 36),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Back Button
+                      GestureDetector(
+                        onTap: () {
+                          if (_otpSent) {
+                            _resetToEmailInput();
+                          } else {
+                            Navigator.of(context).pop();
+                          }
+                        },
+                        child: Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF0F4FF),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: const Color(0xFFCDD5EF)),
+                          ),
+                          child: const Icon(
+                            Icons.arrow_back,
+                            color: Color(0xFF1A1D26),
+                            size: 20,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+
+                      // AHVI wordmark
+                      const Center(
+                        child: AhviHomeText(
+                          fontSize: 36,
+                          letterSpacing: 1,
+                        ),
+                      ),
+                      const SizedBox(height: 18),
+
+                      if (!_otpSent) ...[
+                        // ===== EMAIL INPUT SCREEN =====
+                        const _AuthHeading(
+                          title: 'Welcome back.',
+                          subtitle: 'Sign in with your email',
+                        ),
+                        const SizedBox(height: 28),
+                        _InputField(
+                          controller: _emailCtrl,
+                          hint: 'Email address',
+                          icon: Icons.alternate_email,
+                          keyboardType: TextInputType.emailAddress,
+                          enabled: !_isLoading,
+                        ),
+                        const SizedBox(height: 24),
+                        _PrimaryButton(
+                          label: _isLoading ? 'Sending OTP...' : 'Sign In',
+                          onTap: _isLoading ? null : _onSendOTP,
+                          isLoading: _isLoading,
+                        ),
+                      ] else ...[
+                        // ===== OTP VERIFICATION SCREEN =====
+                        _AuthHeading(
+                          title: 'Verify your email',
+                          subtitle: 'Enter the code sent to $_currentEmail',
+                        ),
+                        const SizedBox(height: 24),
+
+                        _InputField(
+                          controller: _otpCtrl,
+                          hint: 'Enter 6-digit code',
+                          icon: Icons.password,
+                          keyboardType: TextInputType.number,
+                          maxLength: 6,
+                          enabled: !_isLoading && !_otpExpired,
+                        ),
+                        const SizedBox(height: 24),
+                        _PrimaryButton(
+                          label: _isLoading ? 'Verifying...' : 'Sign In',
+                          onTap: (_isLoading || _otpExpired) ? null : _onVerifyOTP,
+                          isLoading: _isLoading,
+                        ),
+                        const SizedBox(height: 16),
+
+                        // Resend OTP Section
+                        Center(
+                          child: GestureDetector(
+                            onTap: (_canResend && !_isLoading)
+                                ? _onResendOTP
+                                : null,
+                            child: Text(
+                              _otpExpired
+                                  ? 'Request new OTP'
+                                  : _canResend
+                                  ? 'Didn\'t receive code? Resend'
+                                  : 'Resend code in $_resendCountdown seconds',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                                color: _canResend
+                                    ? const Color(0xFF4B6FE0)
+                                    : const Color(0xFF66708A),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
                 ),
               ),
             ),
           ),
-          if (_isLoading)
-            Container(
-              color: Colors.white.withOpacity(0.55),
-              child: const Center(
-                child: CircularProgressIndicator(
-                  color: Color(0xFF8D7DFF),
-                  strokeWidth: 2.5,
-                ),
-              ),
-            ),
         ],
       ),
     );
   }
 }
 
-class _AnimatedAppBackground extends StatelessWidget {
-  const _AnimatedAppBackground();
+class _AuthCard extends StatelessWidget {
+  final Widget child;
+  final EdgeInsetsGeometry padding;
+  const _AuthCard({
+    required this.child,
+    this.padding = const EdgeInsets.fromLTRB(28, 44, 28, 36),
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
+    return Container(
+      width: double.infinity,
+      constraints: const BoxConstraints(maxWidth: 420),
+      padding: padding,
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFFFFFFFF), Color(0xFFF3F6FC)],
+        ),
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: const Color(0xFFE6EAF5)),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x14000000),
+            blurRadius: 40,
+            offset: Offset(0, 20),
+          ),
+        ],
+      ),
+      child: child,
+    );
+  }
+}
+
+class _AuthHeading extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  const _AuthHeading({required this.title, required this.subtitle});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
       children: [
-        Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [Color(0xFFFFFFFF), Color(0xFFEEF3FF)],
-            ),
+        Text(
+          title,
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF1A1D26),
           ),
         ),
-        Container(
-          decoration: BoxDecoration(
-            gradient: RadialGradient(
-              center: const Alignment(-1.0, -1.0),
-              radius: 0.9,
-              colors: [
-                const Color(0xFF6B91FF).withOpacity(0.18),
-                Colors.transparent,
-              ],
-            ),
+        const SizedBox(height: 6),
+        Text(
+          subtitle,
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w400,
+            color: Color(0xFF66708A),
           ),
         ),
       ],
@@ -411,165 +603,54 @@ class _AnimatedAppBackground extends StatelessWidget {
   }
 }
 
-class _GlassCard extends StatelessWidget {
-  final Widget child;
-  const _GlassCard({required this.child});
-
-  @override
-  Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(28),
-      child: Container(
-        width: double.infinity,
-        constraints: const BoxConstraints(maxWidth: 420),
-        decoration: BoxDecoration(
-          color: const Color(0xF5FFFFFF),
-          borderRadius: BorderRadius.circular(28),
-          border: Border.all(color: const Color(0xFFE5E9F7), width: 1),
-          boxShadow: const [
-            BoxShadow(
-              color: Color(0x18000000),
-              blurRadius: 48,
-              offset: Offset(0, 16),
-            ),
-            BoxShadow(
-              color: Color(0x0A000000),
-              blurRadius: 8,
-              offset: Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Stack(
-          children: [
-            Positioned.fill(
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(28),
-                  gradient: const LinearGradient(
-                    begin: Alignment(-0.6, -1),
-                    end: Alignment(0.6, 0.5),
-                    colors: [Color(0x18A0B0FF), Colors.transparent],
-                  ),
-                ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(32, 40, 32, 36),
-              child: child,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _IntroPage extends StatelessWidget {
-  final VoidCallback onCta;
-  const _IntroPage({required this.onCta});
-
-  @override
-  Widget build(BuildContext context) {
-    return _GlassCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          const Text(
-            'AHVI',
-            style: TextStyle(
-              fontSize: 52,
-              fontWeight: FontWeight.w700,
-              color: Color(0xFF1A1D26),
-              letterSpacing: -0.03 * 52,
-              height: 1,
-            ),
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            'AI PERSONAL STYLIST',
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w500,
-              color: Color(0xFF66708A),
-              letterSpacing: 0.08 * 13,
-            ),
-          ),
-          const SizedBox(height: 20),
-          const Text(
-            'Plan outfits. Organise your wardrobe.\nTry looks virtually.\nPersonalised — just for you.',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w400,
-              color: Color(0xFF66708A),
-              height: 1.75,
-            ),
-          ),
-          const SizedBox(height: 32),
-          _PrimaryButton(label: 'Get styled →', onTap: onCta),
-        ],
-      ),
-    );
-  }
-}
-
+// ============================================================================
+// ORIGINAL SIGN UP PAGE (UPDATED - ONLY EMAIL OTP)
+// ============================================================================
 class _SignUpPage extends StatelessWidget {
-  final VoidCallback onEmailTap;
   final VoidCallback onGoogleTap;
   final VoidCallback onAppleTap;
+  final VoidCallback onEmailTap;
+
   const _SignUpPage({
-    required this.onEmailTap,
     required this.onGoogleTap,
     required this.onAppleTap,
+    required this.onEmailTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return _GlassCard(
+    return _AuthCard(
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Align(
-            alignment: Alignment.center,
-            child: Text(
-              'AHVI',
-              style: GoogleFonts.anton(
-                fontSize: 36,
-                fontWeight: FontWeight.w400,
-                color: const Color(0xFF1A1D26),
-                letterSpacing: 3.2,
-                height: 1.0,
-              ),
-            ),
+          const AhviHomeText(
+            fontSize: 36,
+            letterSpacing: 1,
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 22),
           const _SectionTitle(
-            line1: 'Your Personal Assistant Awaits.',
+            line1: 'Your Personal Assistant',
+            line2: 'Awaits.',
             italic: true,
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 12),
           const _SectionSub(text: 'Sign in or create your account'),
-          const SizedBox(height: 28),
+          const SizedBox(height: 32),
           _SocialButton(
             icon: _GoogleIcon(),
             label: 'Continue with Google',
             onTap: onGoogleTap,
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
           _SocialButton(
-            icon: const Text(
-              '',
-              style: TextStyle(fontSize: 17, color: Color(0xFF1A1D26)),
-            ),
             label: 'Continue with Apple',
             onTap: onAppleTap,
           ),
           const _Divider(),
           GestureDetector(
             onTap: onEmailTap,
-            child: const _HoverOpacity(
-              child: _LinkText(prefix: 'Sign up with ', highlight: 'Email'),
-            ),
+            behavior: HitTestBehavior.opaque,
+            child: const _LinkText(prefix: 'Sign up with ', highlight: 'Email'),
           ),
         ],
       ),
@@ -577,254 +658,77 @@ class _SignUpPage extends StatelessWidget {
   }
 }
 
-class _SignInPage extends StatelessWidget {
-  final VoidCallback onCreateAccount;
-  final VoidCallback onSignIn;
-  final VoidCallback onForgotPassword;
-  final TextEditingController emailController;
-  final TextEditingController passwordController;
-  final bool isLoading;
-  const _SignInPage({
-    required this.onCreateAccount,
-    required this.onSignIn,
-    required this.onForgotPassword,
-    required this.emailController,
-    required this.passwordController,
-    this.isLoading = false,
-  });
 
-  @override
-  Widget build(BuildContext context) {
-    return _GlassCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Center(
-            child: Text(
-              'AHVI',
-              style: GoogleFonts.anton(
-                fontSize: 36,
-                fontWeight: FontWeight.w400,
-                color: const Color(0xFF1A1D26),
-                letterSpacing: 3.2,
-                height: 1.0,
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
-          const Center(
-            child: Text(
-              'Welcome back.',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-                color: Color(0xFF66708A),
-                letterSpacing: 0.1,
-              ),
-            ),
-          ),
-          const SizedBox(height: 4),
-          const Center(child: _SectionSub(text: 'Sign in with your email')),
-          const SizedBox(height: 28),
-          _AnimatedInputField(
-            icon: '@',
-            placeholder: 'Email address',
-            obscure: false,
-            controller: emailController,
-            keyboardType: TextInputType.emailAddress,
-            textInputAction: TextInputAction.next,
-          ),
-          const SizedBox(height: 10),
-          _AnimatedInputField(
-            icon: '*',
-            placeholder: 'Password',
-            obscure: true,
-            controller: passwordController,
-            textInputAction: TextInputAction.done,
-            onSubmitted: (_) => onSignIn(),
-          ),
-          Align(
-            alignment: Alignment.centerRight,
-            child: Padding(
-              padding: const EdgeInsets.only(top: 4, bottom: 20),
-              child: _AnimatedForgotPassword(onTap: onForgotPassword),
-            ),
-          ),
-          _PrimaryButton(
-            label: isLoading ? 'Signing in…' : 'Sign In',
-            onTap: isLoading ? () {} : onSignIn,
-          ),
-          const SizedBox(height: 18),
-          Center(
-            child: GestureDetector(
-              onTap: onCreateAccount,
-              child: const _HoverOpacity(
-                child: _LinkText(
-                  prefix: 'New here? ',
-                  highlight: 'Create New Account',
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
+// ============================================================================
+// REUSABLE COMPONENTS
+// ============================================================================
 
-class _AnimatedForgotPassword extends StatefulWidget {
-  final VoidCallback onTap;
-  const _AnimatedForgotPassword({required this.onTap});
-  @override
-  State<_AnimatedForgotPassword> createState() =>
-      _AnimatedForgotPasswordState();
-}
+class _InputField extends StatefulWidget {
+  final TextEditingController controller;
+  final String hint;
+  final IconData icon;
+  final TextInputType keyboardType;
+  final int? maxLength;
+  final bool enabled;
 
-class _AnimatedForgotPasswordState extends State<_AnimatedForgotPassword> {
-  bool _hovered = false;
-
-  @override
-  Widget build(BuildContext context) {
-    return MouseRegion(
-      onEnter: (_) => setState(() => _hovered = true),
-      onExit: (_) => setState(() => _hovered = false),
-      child: GestureDetector(
-        onTap: widget.onTap,
-        child: AnimatedDefaultTextStyle(
-          duration: const Duration(milliseconds: 200),
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w400,
-            color: _hovered ? const Color(0xFF4B6FE0) : const Color(0xFF66708A),
-          ),
-          child: const Text('Forgot password?'),
-        ),
-      ),
-    );
-  }
-}
-
-class _HoverOpacity extends StatefulWidget {
-  final Widget child;
-  const _HoverOpacity({required this.child});
-  @override
-  State<_HoverOpacity> createState() => _HoverOpacityState();
-}
-
-class _HoverOpacityState extends State<_HoverOpacity> {
-  bool _hovered = false;
-
-  @override
-  Widget build(BuildContext context) {
-    return MouseRegion(
-      onEnter: (_) => setState(() => _hovered = true),
-      onExit: (_) => setState(() => _hovered = false),
-      child: AnimatedOpacity(
-        opacity: _hovered ? 0.6 : 1.0,
-        duration: const Duration(milliseconds: 200),
-        child: widget.child,
-      ),
-    );
-  }
-}
-
-class _AnimatedInputField extends StatefulWidget {
-  final String icon;
-  final String placeholder;
-  final bool obscure;
-  final TextEditingController? controller;
-  final TextInputType? keyboardType;
-  final TextInputAction? textInputAction;
-  final ValueChanged<String>? onSubmitted;
-  const _AnimatedInputField({
+  const _InputField({
+    required this.controller,
+    required this.hint,
     required this.icon,
-    required this.placeholder,
-    required this.obscure,
-    this.controller,
-    this.keyboardType,
-    this.textInputAction,
-    this.onSubmitted,
+    this.keyboardType = TextInputType.text,
+    this.maxLength,
+    this.enabled = true,
   });
+
   @override
-  State<_AnimatedInputField> createState() => _AnimatedInputFieldState();
+  State<_InputField> createState() => _InputFieldState();
 }
 
-class _AnimatedInputFieldState extends State<_AnimatedInputField> {
-  final FocusNode _focusNode = FocusNode();
+class _InputFieldState extends State<_InputField> {
   bool _focused = false;
 
   @override
-  void initState() {
-    super.initState();
-    _focusNode.addListener(() {
-      setState(() => _focused = _focusNode.hasFocus);
-    });
-  }
-
-  @override
-  void dispose() {
-    _focusNode.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 220),
-      decoration: BoxDecoration(
-        color: _focused ? const Color(0xFFFFFFFF) : const Color(0xFFF5F8FF),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: _focused ? const Color(0xFF6B91FF) : const Color(0xFFD0D8F0),
-        ),
-        boxShadow: _focused
-            ? [
-                const BoxShadow(
-                  color: Color(0x206B91FF),
-                  blurRadius: 0,
-                  spreadRadius: 3,
-                ),
-                const BoxShadow(
-                  color: Color(0x0A000000),
-                  blurRadius: 4,
-                  offset: Offset(0, 1),
-                ),
-              ]
-            : const [
-                BoxShadow(
-                  color: Color(0x0A000000),
-                  blurRadius: 4,
-                  offset: Offset(0, 1),
-                ),
-              ],
-      ),
-      child: TextField(
-        focusNode: _focusNode,
-        controller: widget.controller,
-        keyboardType: widget.keyboardType,
-        textInputAction: widget.textInputAction,
-        obscureText: widget.obscure,
-        onSubmitted: widget.onSubmitted,
-        style: const TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.w400,
-          color: Color(0xFF1A1D26),
-        ),
-        decoration: InputDecoration(
-          hintText: widget.placeholder,
-          hintStyle: const TextStyle(color: Color(0xFF66708A)),
-          prefixIcon: Padding(
-            padding: const EdgeInsets.only(left: 16, right: 8),
-            child: Text(widget.icon, style: const TextStyle(fontSize: 16)),
+    return Focus(
+      onFocusChange: (focused) => setState(() => _focused = focused),
+      child: Container(
+        decoration: BoxDecoration(
+          color: const Color(0xFFFAFBFF),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: _focused ? const Color(0xFF6C72E0) : const Color(0xFFDFE3F2),
+            width: 1.5,
           ),
-          prefixIconConstraints: const BoxConstraints(minWidth: 48),
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 20,
-            vertical: 15,
-          ),
-          border: InputBorder.none,
-          focusedBorder: InputBorder.none,
-          enabledBorder: InputBorder.none,
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: Row(
+          children: [
+            Icon(widget.icon, size: 18, color: const Color(0xFF9AA5C2)),
+            const SizedBox(width: 12),
+            Expanded(
+              child: TextField(
+                controller: widget.controller,
+                keyboardType: widget.keyboardType,
+                maxLength: widget.maxLength,
+                enabled: widget.enabled,
+                decoration: InputDecoration(
+                  hintText: widget.hint,
+                  hintStyle: const TextStyle(
+                    fontSize: 15,
+                    color: Color(0xFFB0BCD4),
+                  ),
+                  border: InputBorder.none,
+                  counterText: '',
+                  isDense: true,
+                  contentPadding: const EdgeInsets.symmetric(vertical: 16),
+                ),
+                style: const TextStyle(
+                  fontSize: 15,
+                  color: Color(0xFF1A1D26),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -833,87 +737,79 @@ class _AnimatedInputFieldState extends State<_AnimatedInputField> {
 
 class _PrimaryButton extends StatefulWidget {
   final String label;
-  final VoidCallback onTap;
-  const _PrimaryButton({required this.label, required this.onTap});
+  final VoidCallback? onTap;
+  final bool isLoading;
+
+  const _PrimaryButton({
+    required this.label,
+    this.onTap,
+    this.isLoading = false,
+  });
+
   @override
   State<_PrimaryButton> createState() => _PrimaryButtonState();
 }
 
 class _PrimaryButtonState extends State<_PrimaryButton> {
-  bool _hovered = false;
   bool _pressed = false;
 
   @override
   Widget build(BuildContext context) {
-    final transform = _pressed
-        ? (Matrix4.identity()..scale(0.98))
-        : _hovered
-        ? (Matrix4.identity()..translate(0.0, -2.0))
-        : Matrix4.identity();
+    final isEnabled = widget.onTap != null && !widget.isLoading;
 
-    return MouseRegion(
-      onEnter: (_) => setState(() => _hovered = true),
-      onExit: (_) => setState(() => _hovered = false),
-      child: GestureDetector(
-        onTap: widget.onTap,
-        onTapDown: (_) => setState(() => _pressed = true),
-        onTapUp: (_) => setState(() => _pressed = false),
-        onTapCancel: () => setState(() => _pressed = false),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 220),
-          transform: transform,
-          width: double.infinity,
-          height: 54,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            gradient: const LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [Color(0xFFA259FF), Color(0xFF8D7DFF)],
+    return GestureDetector(
+      onTap: isEnabled ? widget.onTap : null,
+      onTapDown: isEnabled ? (_) => setState(() => _pressed = true) : null,
+      onTapUp: isEnabled ? (_) => setState(() => _pressed = false) : null,
+      onTapCancel: isEnabled ? () => setState(() => _pressed = false) : null,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        width: double.infinity,
+        height: 54,
+        transform: _pressed ? (Matrix4.identity()..scale(0.98)) : Matrix4.identity(),
+        decoration: BoxDecoration(
+          gradient: isEnabled
+              ? const LinearGradient(
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
+            colors: [Color(0xFF9B6BE0), Color(0xFF6C72E0)],
+          )
+              : null,
+          color: isEnabled ? null : const Color(0xFFCDD5EF),
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: isEnabled
+              ? [
+            const BoxShadow(
+              color: Color(0x4D6C72E0),
+              blurRadius: 16,
+              offset: Offset(0, 6),
             ),
-            boxShadow: _hovered && !_pressed
-                ? [
-                    const BoxShadow(
-                      color: Color(0x6B8D7DFF),
-                      blurRadius: 28,
-                      offset: Offset(0, 12),
-                    ),
-                    const BoxShadow(
-                      color: Color(0x40000000),
-                      blurRadius: 8,
-                      offset: Offset(0, 3),
-                    ),
-                  ]
-                : _pressed
-                ? [
-                    const BoxShadow(
-                      color: Color(0x408D7DFF),
-                      blurRadius: 12,
-                      offset: Offset(0, 4),
-                    ),
-                  ]
-                : const [
-                    BoxShadow(
-                      color: Color(0x528D7DFF),
-                      blurRadius: 24,
-                      offset: Offset(0, 8),
-                    ),
-                    BoxShadow(
-                      color: Color(0x33000000),
-                      blurRadius: 6,
-                      offset: Offset(0, 2),
-                    ),
-                  ],
+          ]
+              : const [
+            BoxShadow(
+              color: Color(0x0D000000),
+              blurRadius: 8,
+              offset: Offset(0, 2),
+            ),
+          ],
+        ),
+        alignment: Alignment.center,
+        child: widget.isLoading
+            ? const SizedBox(
+          width: 20,
+          height: 20,
+          child: CircularProgressIndicator(
+            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFF5F7FF)),
+            strokeWidth: 2,
           ),
-          alignment: Alignment.center,
-          child: Text(
-            widget.label,
-            style: const TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFFF5F7FF),
-              letterSpacing: -0.01 * 15,
-            ),
+        )
+            : Text(
+          widget.label,
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+            color: Color(0xFFFFFFFF),
+            letterSpacing: -0.01 * 16,
           ),
         ),
       ),
@@ -922,11 +818,11 @@ class _PrimaryButtonState extends State<_PrimaryButton> {
 }
 
 class _SocialButton extends StatefulWidget {
-  final Widget icon;
+  final Widget? icon;
   final String label;
   final VoidCallback onTap;
   const _SocialButton({
-    required this.icon,
+    this.icon,
     required this.label,
     required this.onTap,
   });
@@ -965,30 +861,32 @@ class _SocialButtonState extends State<_SocialButton> {
             border: Border.all(color: const Color(0xFFCDD5EF)),
             boxShadow: _hovered
                 ? [
-                    const BoxShadow(
-                      color: Color(0x1A000000),
-                      blurRadius: 18,
-                      offset: Offset(0, 6),
-                    ),
-                  ]
+              const BoxShadow(
+                color: Color(0x1A000000),
+                blurRadius: 18,
+                offset: Offset(0, 6),
+              ),
+            ]
                 : const [
-                    BoxShadow(
-                      color: Color(0x0D000000),
-                      blurRadius: 8,
-                      offset: Offset(0, 2),
-                    ),
-                  ],
+              BoxShadow(
+                color: Color(0x0D000000),
+                blurRadius: 8,
+                offset: Offset(0, 2),
+              ),
+            ],
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             mainAxisSize: MainAxisSize.min,
             children: [
-              SizedBox(
-                width: 20,
-                height: 20,
-                child: Center(child: widget.icon),
-              ),
-              const SizedBox(width: 10),
+              if (widget.icon != null) ...[
+                SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: Center(child: widget.icon!),
+                ),
+                const SizedBox(width: 10),
+              ],
               Flexible(
                 child: Text(
                   widget.label,
@@ -1127,21 +1025,21 @@ class _SectionTitle extends StatelessWidget {
   Widget build(BuildContext context) {
     final titleStyle = italic
         ? GoogleFonts.cormorantGaramond(
-            fontSize: 30,
-            fontWeight: FontWeight.w500,
-            fontStyle: FontStyle.italic,
-            color: const Color(0xFF1A1D26),
-            letterSpacing: -0.02 * 30,
-            height: 1.25,
-          )
+      fontSize: 30,
+      fontWeight: FontWeight.w500,
+      fontStyle: FontStyle.italic,
+      color: const Color(0xFF1A1D26),
+      letterSpacing: -0.02 * 30,
+      height: 1.25,
+    )
         : const TextStyle(
-            fontFamily: 'Georgia',
-            fontSize: 30,
-            fontWeight: FontWeight.w400,
-            color: Color(0xFF1A1D26),
-            letterSpacing: -0.02 * 30,
-            height: 1.25,
-          );
+      fontFamily: 'Georgia',
+      fontSize: 30,
+      fontWeight: FontWeight.w400,
+      color: Color(0xFF1A1D26),
+      letterSpacing: -0.02 * 30,
+      height: 1.25,
+    );
 
     return Center(
       child: RichText(
@@ -1176,6 +1074,18 @@ class _SectionSub extends StatelessWidget {
         fontWeight: FontWeight.w400,
         color: Color(0xFF66708A),
       ),
+    );
+  }
+}
+
+class _AnimatedAppBackground extends StatelessWidget {
+  const _AnimatedAppBackground();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: const Color(0xFFFAFBFF),
+      // Add your animated background here
     );
   }
 }

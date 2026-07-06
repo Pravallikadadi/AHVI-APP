@@ -69,10 +69,10 @@ class _Screen2State extends State<Screen2> with TickerProviderStateMixin {
   }
 
   Widget _staggered(
-    Widget child, {
-    required double start,
-    required double end,
-  }) {
+      Widget child, {
+        required double start,
+        required double end,
+      }) {
     final anim = CurvedAnimation(
       parent: _entranceCtrl,
       curve: Interval(start, end, curve: const Cubic(0.22, 1.0, 0.36, 1.0)),
@@ -536,12 +536,12 @@ class _StyleCard extends StatelessWidget {
             ),
             boxShadow: isSelected
                 ? const [
-                    BoxShadow(
-                      color: Color(0x476B91FF),
-                      blurRadius: 28,
-                      offset: Offset(0, 8),
-                    ),
-                  ]
+              BoxShadow(
+                color: Color(0x476B91FF),
+                blurRadius: 28,
+                offset: Offset(0, 8),
+              ),
+            ]
                 : [],
           ),
           clipBehavior: Clip.hardEdge,

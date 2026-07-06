@@ -348,7 +348,7 @@ class _SkincareScreenState extends State<SkincareScreen>
     }
     _stepAnimCtrls = List.generate(
       _currentRoutineKeys.length,
-      (i) => AnimationController(
+          (i) => AnimationController(
         vsync: this,
         duration: const Duration(milliseconds: 350),
       ),
@@ -356,18 +356,18 @@ class _SkincareScreenState extends State<SkincareScreen>
     _stepSlideAnims = _stepAnimCtrls
         .map(
           (ctrl) => Tween<double>(
-            begin: 16,
-            end: 0,
-          ).animate(CurvedAnimation(parent: ctrl, curve: Curves.easeOut)),
-        )
+        begin: 16,
+        end: 0,
+      ).animate(CurvedAnimation(parent: ctrl, curve: Curves.easeOut)),
+    )
         .toList();
     _stepFadeAnims = _stepAnimCtrls
         .map(
           (ctrl) => Tween<double>(
-            begin: 0,
-            end: 1,
-          ).animate(CurvedAnimation(parent: ctrl, curve: Curves.easeOut)),
-        )
+        begin: 0,
+        end: 1,
+      ).animate(CurvedAnimation(parent: ctrl, curve: Curves.easeOut)),
+    )
         .toList();
   }
 
@@ -778,12 +778,12 @@ class _SkincareScreenState extends State<SkincareScreen>
                   borderRadius: BorderRadius.circular(11),
                   boxShadow: isActive
                       ? [
-                          BoxShadow(
-                            color: s.shadowColor,
-                            blurRadius: 10,
-                            offset: const Offset(0, 2),
-                          ),
-                        ]
+                    BoxShadow(
+                      color: s.shadowColor,
+                      blurRadius: 10,
+                      offset: const Offset(0, 2),
+                    ),
+                  ]
                       : [],
                 ),
                 child: Column(
@@ -876,12 +876,12 @@ class _SkincareScreenState extends State<SkincareScreen>
               borderRadius: BorderRadius.circular(30),
               boxShadow: isActive
                   ? [
-                      BoxShadow(
-                        color: c.shadowColor,
-                        blurRadius: 12,
-                        offset: const Offset(0, 3),
-                      ),
-                    ]
+                BoxShadow(
+                  color: c.shadowColor,
+                  blurRadius: 12,
+                  offset: const Offset(0, 3),
+                ),
+              ]
                   : [],
             ),
             child: Row(
@@ -1060,7 +1060,7 @@ class _SkincareScreenState extends State<SkincareScreen>
       AppLocalizations.t(context, 'skin_retinol'): Icons.biotech_outlined,
       AppLocalizations.t(context, 'skin_night_cream'): Icons.bedtime_outlined,
       AppLocalizations.t(context, 'skin_lip_care'):
-          Icons.face_retouching_natural,
+      Icons.face_retouching_natural,
     };
     return iconMap[name] ?? Icons.spa_outlined;
   }
@@ -1092,7 +1092,7 @@ class _SkincareScreenState extends State<SkincareScreen>
               borderRadius: BorderRadius.circular(12),
             ),
             child: const Center(
-              child: Text('ðŸ’¡', style: TextStyle(fontSize: 16)),
+              child: Text('💡', style: TextStyle(fontSize: 16)),
             ),
           ),
           const SizedBox(width: 10),
@@ -1229,13 +1229,13 @@ class _StepCardState extends State<_StepCard> {
             color: widget.isDone ? _bg.withValues(alpha: 0.20) : widget.bg,
             gradient: widget.isDone
                 ? LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      _accent.withValues(alpha: 0.20),
-                      _accent2.withValues(alpha: 0.20),
-                    ],
-                  )
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                _accent.withValues(alpha: 0.20),
+                _accent2.withValues(alpha: 0.20),
+              ],
+            )
                 : null,
             border: Border.all(
               color: widget.isDone
@@ -1399,11 +1399,11 @@ class _ChatOverlayState extends State<_ChatOverlay>
     );
     _slideAnim = Tween<Offset>(begin: const Offset(0, 1), end: Offset.zero)
         .animate(
-          CurvedAnimation(
-            parent: _animCtrl,
-            curve: const Cubic(0.32, 0.72, 0.0, 1.0),
-          ),
-        );
+      CurvedAnimation(
+        parent: _animCtrl,
+        curve: const Cubic(0.32, 0.72, 0.0, 1.0),
+      ),
+    );
     _animCtrl.forward();
 
     _micPulseCtrl = AnimationController(
@@ -1441,12 +1441,12 @@ class _ChatOverlayState extends State<_ChatOverlay>
       );
       final rawMessage = response['message'];
       final text =
-          (response['message_text'] ??
-                  (rawMessage is Map ? rawMessage['content'] : rawMessage) ??
-                  response['response'] ??
-                  '')
-              .toString()
-              .trim();
+      (response['message_text'] ??
+          (rawMessage is Map ? rawMessage['content'] : rawMessage) ??
+          response['response'] ??
+          '')
+          .toString()
+          .trim();
 
       if (mounted && text.isNotEmpty) {
         setState(() {
@@ -1518,19 +1518,19 @@ class _ChatOverlayState extends State<_ChatOverlay>
       );
       final rawMessage = response['message'];
       final aiText =
-          (response['message_text'] ??
-                  (rawMessage is Map ? rawMessage['content'] : rawMessage) ??
-                  response['response'] ??
-                  response['reply'] ??
-                  '')
-              .toString()
-              .trim();
+      (response['message_text'] ??
+          (rawMessage is Map ? rawMessage['content'] : rawMessage) ??
+          response['response'] ??
+          response['reply'] ??
+          '')
+          .toString()
+          .trim();
 
       debugPrint(
         'AHVI_SKINCARE_RESP type=${response['type']} '
-        'has_text=${aiText.isNotEmpty} '
-        'used_fallback=${response['meta']?['used_local_fallback']} '
-        'keys=${response.keys.toList()}',
+            'has_text=${aiText.isNotEmpty} '
+            'used_fallback=${response['meta']?['used_local_fallback']} '
+            'keys=${response.keys.toList()}',
       );
 
       if (mounted) {
@@ -1650,7 +1650,7 @@ class _ChatOverlayState extends State<_ChatOverlay>
             // FIX: removed `const` â€” Text style uses runtime color getter _accent
             child: Center(
               child: Text(
-                'âœ¦',
+                '✦',
                 style: TextStyle(fontSize: 18, color: _accent),
               ),
             ),
@@ -1708,7 +1708,7 @@ class _ChatOverlayState extends State<_ChatOverlay>
               // FIX: removed `const` â€” Text style uses runtime color getter _muted
               child: Center(
                 child: Text(
-                  'âœ•',
+                  '✕',
                   style: TextStyle(fontSize: 14, color: _muted),
                 ),
               ),
@@ -1764,7 +1764,7 @@ class _ChatOverlayState extends State<_ChatOverlay>
           ),
           // FIX: removed `const` â€” Text style uses runtime color getter _accent
           child: Center(
-            child: Text('âœ¦', style: TextStyle(fontSize: 24, color: _accent)),
+            child: Text('✦', style: TextStyle(fontSize: 24, color: _accent)),
           ),
         ),
         const SizedBox(height: 8),
@@ -1797,132 +1797,132 @@ class _ChatOverlayState extends State<_ChatOverlay>
             : MainAxisAlignment.start,
         children: msg.isUser
             ? [
-                Flexible(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Container(
-                        constraints: const BoxConstraints(maxWidth: 280),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 15,
-                          vertical: 11,
-                        ),
-                        decoration: BoxDecoration(
-                          color: _panel2,
-                          border: Border.all(color: _cardBorder, width: 1.5),
-                          borderRadius: const BorderRadius.only(
-                            topLeft: Radius.circular(18),
-                            topRight: Radius.circular(4),
-                            bottomLeft: Radius.circular(18),
-                            bottomRight: Radius.circular(18),
-                          ),
-                          // FIX: removed `const` from BoxShadow list â€” uses runtime getter _bg
-                          boxShadow: [
-                            BoxShadow(
-                              color: _bg.withValues(alpha: 0.15),
-                              blurRadius: 10,
-                              offset: Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: Text(
-                          msg.text,
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: _text,
-                            height: 1.6,
-                          ),
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.only(top: 4, right: 4),
-                        child: Text(
-                          msg.time,
-                          style: TextStyle(fontSize: 10, color: _muted),
-                        ),
+          Flexible(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Container(
+                  constraints: const BoxConstraints(maxWidth: 280),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 15,
+                    vertical: 11,
+                  ),
+                  decoration: BoxDecoration(
+                    color: _panel2,
+                    border: Border.all(color: _cardBorder, width: 1.5),
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(18),
+                      topRight: Radius.circular(4),
+                      bottomLeft: Radius.circular(18),
+                      bottomRight: Radius.circular(18),
+                    ),
+                    // FIX: removed `const` from BoxShadow list â€” uses runtime getter _bg
+                    boxShadow: [
+                      BoxShadow(
+                        color: _bg.withValues(alpha: 0.15),
+                        blurRadius: 10,
+                        offset: Offset(0, 2),
                       ),
                     ],
                   ),
-                ),
-                const SizedBox(width: 9),
-                Container(
-                  width: 28,
-                  height: 28,
-                  decoration: BoxDecoration(
-                    color: _panel,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: _cardBorder),
-                  ),
-                  child: const Center(
-                    child: Text('ðŸ‘¤', style: TextStyle(fontSize: 11)),
-                  ),
-                ),
-              ]
-            : [
-                Container(
-                  width: 28,
-                  height: 28,
-                  decoration: BoxDecoration(
-                    color: _phoneShell2,
-                    shape: BoxShape.circle,
-                  ),
-                  // FIX: removed `const` â€” Text style uses runtime getter _accent
-                  child: Center(
-                    child: Text(
-                      'âœ¦',
-                      style: TextStyle(fontSize: 12, color: _accent),
+                  child: Text(
+                    msg.text,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: _text,
+                      height: 1.6,
                     ),
                   ),
                 ),
-                const SizedBox(width: 9),
-                Flexible(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        constraints: const BoxConstraints(maxWidth: 280),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 15,
-                          vertical: 11,
-                        ),
-                        decoration: BoxDecoration(
-                          color: _panel,
-                          border: Border.all(color: _cardBorder),
-                          borderRadius: const BorderRadius.only(
-                            topLeft: Radius.circular(4),
-                            topRight: Radius.circular(18),
-                            bottomLeft: Radius.circular(18),
-                            bottomRight: Radius.circular(18),
-                          ),
-                          // FIX: removed `const` from BoxShadow list â€” uses runtime getter _bg
-                          boxShadow: [
-                            BoxShadow(
-                              color: _bg.withValues(alpha: 0.15),
-                              blurRadius: 8,
-                              offset: Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: Text(
-                          msg.text,
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: _text,
-                            height: 1.6,
-                          ),
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.only(top: 4, left: 4),
-                        child: Text(
-                          msg.time,
-                          style: TextStyle(fontSize: 10, color: _muted),
-                        ),
-                      ),
-                    ],
+                Padding(
+                  padding: const EdgeInsets.only(top: 4, right: 4),
+                  child: Text(
+                    msg.time,
+                    style: TextStyle(fontSize: 10, color: _muted),
                   ),
                 ),
               ],
+            ),
+          ),
+          const SizedBox(width: 9),
+          Container(
+            width: 28,
+            height: 28,
+            decoration: BoxDecoration(
+              color: _panel,
+              shape: BoxShape.circle,
+              border: Border.all(color: _cardBorder),
+            ),
+            child: const Center(
+              child: Text('👤', style: TextStyle(fontSize: 11)),
+            ),
+          ),
+        ]
+            : [
+          Container(
+            width: 28,
+            height: 28,
+            decoration: BoxDecoration(
+              color: _phoneShell2,
+              shape: BoxShape.circle,
+            ),
+            // FIX: removed `const` â€” Text style uses runtime getter _accent
+            child: Center(
+              child: Text(
+                '✦',
+                style: TextStyle(fontSize: 12, color: _accent),
+              ),
+            ),
+          ),
+          const SizedBox(width: 9),
+          Flexible(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  constraints: const BoxConstraints(maxWidth: 280),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 15,
+                    vertical: 11,
+                  ),
+                  decoration: BoxDecoration(
+                    color: _panel,
+                    border: Border.all(color: _cardBorder),
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(4),
+                      topRight: Radius.circular(18),
+                      bottomLeft: Radius.circular(18),
+                      bottomRight: Radius.circular(18),
+                    ),
+                    // FIX: removed `const` from BoxShadow list â€” uses runtime getter _bg
+                    boxShadow: [
+                      BoxShadow(
+                        color: _bg.withValues(alpha: 0.15),
+                        blurRadius: 8,
+                        offset: Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Text(
+                    msg.text,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: _text,
+                      height: 1.6,
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(top: 4, left: 4),
+                  child: Text(
+                    msg.time,
+                    style: TextStyle(fontSize: 10, color: _muted),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1940,7 +1940,7 @@ class _ChatOverlayState extends State<_ChatOverlay>
           ),
           // FIX: removed `const` â€” Text style uses runtime getter _accent
           child: Center(
-            child: Text('âœ¦', style: TextStyle(fontSize: 12, color: _accent)),
+            child: Text('✦', style: TextStyle(fontSize: 12, color: _accent)),
           ),
         ),
         const SizedBox(width: 9),
@@ -1960,7 +1960,7 @@ class _ChatOverlayState extends State<_ChatOverlay>
             mainAxisSize: MainAxisSize.min,
             children: List.generate(
               3,
-              (i) => _TypingDot(delay: Duration(milliseconds: i * 180)),
+                  (i) => _TypingDot(delay: Duration(milliseconds: i * 180)),
             ),
           ),
         ),
@@ -2019,10 +2019,10 @@ class _ChatOverlayState extends State<_ChatOverlay>
                     decoration: BoxDecoration(
                       gradient: _isListening
                           ? LinearGradient(
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                              colors: [_accent4, _accent2],
-                            )
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [_accent4, _accent2],
+                      )
                           : null,
                       color: _isListening ? null : _panel,
                       shape: BoxShape.circle,
@@ -2245,10 +2245,10 @@ class _QuickPillButtonState extends State<_QuickPillButton> {
         decoration: BoxDecoration(
           gradient: _active
               ? LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [_accent, _accent2],
-                )
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [_accent, _accent2],
+          )
               : null,
           color: _active ? null : _panel,
           border: Border.all(color: _active ? kTransparent : _cardBorder),
@@ -2368,13 +2368,13 @@ class _ConcernData {
   final Color borderColor;
   final Color shadowColor;
   const _ConcernData(
-    this.label,
-    this.icon,
-    this.activeColor,
-    this.bgColor,
-    this.borderColor,
-    this.shadowColor,
-  );
+      this.label,
+      this.icon,
+      this.activeColor,
+      this.bgColor,
+      this.borderColor,
+      this.shadowColor,
+      );
 }
 
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -2422,8 +2422,8 @@ class _AskAhviFabState extends State<_AskAhviFab>
   Widget build(BuildContext context) {
     context
         .watch<
-          ThemeController
-        >(); // theme change à°…à°¯à°¿à°¨à°ªà±à°ªà±à°¡à± rebuild à°…à°µà±à°¤à±à°‚à°¦à°¿
+        ThemeController
+    >(); // theme change à°…à°¯à°¿à°¨à°ªà±à°ªà±à°¡à± rebuild à°…à°µà±à°¤à±à°‚à°¦à°¿
     final t = context.themeTokens;
     return GestureDetector(
       onTapDown: (_) => setState(() => _pressed = true),
@@ -2481,9 +2481,10 @@ class _AskAhviFabState extends State<_AskAhviFab>
                 CircleAvatar(
                   radius: 11,
                   backgroundColor: Colors.white.withValues(alpha: 0.18),
-                  child: const Text(
-                    'âœ¦',
-                    style: TextStyle(fontSize: 11, color: Colors.white),
+                  child: const Icon(
+                    Icons.auto_awesome_rounded,
+                    size: 13,
+                    color: Colors.white,
                   ),
                 ),
                 const SizedBox(width: 7),
@@ -2601,16 +2602,16 @@ class _SkincarePlusButtonState extends State<_SkincarePlusButton>
                         children: actions
                             .map(
                               (a) => _SkincarePlusMenuRow(
-                                icon: a.$1,
-                                label: a.$2,
-                                color: a.$3,
-                                text: widget.text,
-                                onTap: () {
-                                  _closeMenu();
-                                  widget.onCameraSelected?.call();
-                                },
-                              ),
-                            )
+                            icon: a.$1,
+                            label: a.$2,
+                            color: a.$3,
+                            text: widget.text,
+                            onTap: () {
+                              _closeMenu();
+                              widget.onCameraSelected?.call();
+                            },
+                          ),
+                        )
                             .toList(),
                       ),
                     ),

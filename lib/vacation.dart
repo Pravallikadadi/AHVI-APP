@@ -70,8 +70,8 @@ class _VacationScreenState extends State<VacationScreen> {
   }
 
   Map<String, Map<String, dynamic>> _buildIdMap(
-    List<Map<String, dynamic>> items,
-  ) {
+      List<Map<String, dynamic>> items,
+      ) {
     final byId = <String, Map<String, dynamic>>{};
     for (final item in items) {
       for (final rawId in [
@@ -158,11 +158,23 @@ class _VacationScreenState extends State<VacationScreen> {
           Expanded(
             child: _isLoading
                 ? Center(
-                    child: CircularProgressIndicator(color: t.accent.primary),
-                  )
+              child: CircularProgressIndicator(color: t.accent.primary),
+            )
                 : _boards.isEmpty
-                ? _buildEmptyState(t)
-                : _buildBoardsGrid(t),
+                ? RefreshIndicator(
+              onRefresh: _loadBoards,
+              color: t.accent.primary,
+              backgroundColor: t.card,
+              child: ListView(
+                children: [_buildEmptyState(t)],
+              ),
+            )
+                : RefreshIndicator(
+              onRefresh: _loadBoards,
+              color: t.accent.primary,
+              backgroundColor: t.card,
+              child: _buildBoardsGrid(t),
+            ),
           ),
         ],
       ),

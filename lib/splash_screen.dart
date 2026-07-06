@@ -46,7 +46,7 @@ class _Particle {
 
 List<_Particle> _buildParticles(int count, math.Random rng) => List.generate(
   count,
-  (_) => _Particle(
+      (_) => _Particle(
     x: rng.nextDouble(),
     y: rng.nextDouble(),
     size: 1.5 + rng.nextDouble() * 2.5,
@@ -123,8 +123,8 @@ class _RingPainter extends CustomPainter {
       final radius = (80.0 + i * 38.0) + pulse * 10.0 * (i + 1);
       final alpha =
           (0.14 - i * 0.03) *
-          fadeIn *
-          (1.0 - pulse * 0.3); // softer on light bg
+              fadeIn *
+              (1.0 - pulse * 0.3); // softer on light bg
       canvas.drawCircle(
         center,
         radius,
@@ -172,12 +172,12 @@ class _SplashScreenState extends State<SplashScreen>
   late final Animation<double> _glowOpacity;
   late final List<_Particle> _particles;
 
-  static const _entranceDuration = Duration(milliseconds: 700);
-  static const _glowDuration = Duration(milliseconds: 1600);
-  static const _shimmerDuration = Duration(milliseconds: 1400);
-  static const _particleDuration = Duration(milliseconds: 2000);
-  static const _ringDuration = Duration(milliseconds: 900);
-  static const _autoNavDelay = Duration(milliseconds: 2000);
+  static const _entranceDuration = Duration(milliseconds: 1800);
+  static const _glowDuration = Duration(milliseconds: 3200);
+  static const _shimmerDuration = Duration(milliseconds: 2600);
+  static const _particleDuration = Duration(milliseconds: 8000);
+  static const _ringDuration = Duration(milliseconds: 2800);
+  static const _autoNavDelay = Duration(milliseconds: 5500);
 
   @override
   void initState() {
@@ -222,11 +222,11 @@ class _SplashScreenState extends State<SplashScreen>
     );
     _subSlide = Tween<Offset>(begin: const Offset(0, 0.40), end: Offset.zero)
         .animate(
-          CurvedAnimation(
-            parent: _staggerCtrl,
-            curve: const Interval(0.45, 0.80, curve: Curves.easeOutCubic),
-          ),
-        );
+      CurvedAnimation(
+        parent: _staggerCtrl,
+        curve: const Interval(0.45, 0.80, curve: Curves.easeOutCubic),
+      ),
+    );
     _tagFade = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
         parent: _staggerCtrl,
@@ -235,11 +235,11 @@ class _SplashScreenState extends State<SplashScreen>
     );
     _tagSlide = Tween<Offset>(begin: const Offset(0, 0.60), end: Offset.zero)
         .animate(
-          CurvedAnimation(
-            parent: _staggerCtrl,
-            curve: const Interval(0.65, 0.95, curve: Curves.easeOutCubic),
-          ),
-        );
+      CurvedAnimation(
+        parent: _staggerCtrl,
+        curve: const Interval(0.65, 0.95, curve: Curves.easeOutCubic),
+      ),
+    );
     _dotsFade = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
         parent: _staggerCtrl,
@@ -337,18 +337,7 @@ class _SplashScreenState extends State<SplashScreen>
                     ),
                   ),
                   SafeArea(
-                    child: Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        Center(child: _buildBrandSection()),
-                        Positioned(
-                          bottom: 48,
-                          left: 0,
-                          right: 0,
-                          child: Center(child: _buildBottomSection()),
-                        ),
-                      ],
-                    ),
+                    child: Center(child: _buildBrandSection()),
                   ),
                 ],
               ),
@@ -412,126 +401,25 @@ class _SplashScreenState extends State<SplashScreen>
             ),
           ],
         ),
-        const SizedBox(height: 20),
-        // Subtitle: "Your personal AI assistant"
-        SlideTransition(
-          position: _subSlide,
-          child: Opacity(
-            opacity: _subFade.value,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text(
-                  'Your personal ',
-                  style: TextStyle(
-                    color: _C.text,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 0.1,
-                  ),
+        Transform.translate(
+          offset: const Offset(0, -70),
+          child: SlideTransition(
+            position: _subSlide,
+            child: Opacity(
+              opacity: _subFade.value,
+              child: const Text(
+                'STYLE• PREP• PLAN',
+                style: TextStyle(
+                  color: _C.text,
+                  fontSize: 17,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 1.2,
                 ),
-                ShaderMask(
-                  blendMode: BlendMode.srcIn,
-                  shaderCallback: (b) => const LinearGradient(
-                    colors: [_C.accent, _C.accent2],
-                  ).createShader(b),
-                  child: const Text(
-                    'AI',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 0.1,
-                    ),
-                  ),
-                ),
-                const Icon(
-                  Icons.auto_awesome_rounded,
-                  color: _C.accent2,
-                  size: 9,
-                ),
-                const Text(
-                  ' assistant',
-                  style: TextStyle(
-                    color: _C.text,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 0.1,
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildBottomSection() {
-    return SlideTransition(
-      position: _tagSlide,
-      child: Opacity(
-        opacity: _tagFade.value,
-        child: Column(
-          children: [
-            // Tagline: "Style. Plan. Prep."
-            const Text(
-              'Style. Plan. Prep.',
-              style: TextStyle(
-                color: _C.text,
-                fontSize: 22,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 0.2,
-              ),
-            ),
-            const SizedBox(height: 28),
-            Opacity(opacity: _dotsFade.value, child: _buildShimmerBar()),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildShimmerBar() {
-    // AI pulse dots — 5 nodes that light up sequentially
-    final t = _shimmerCtrl.value;
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: List.generate(5, (i) {
-        final phase = (t * 5 - i) % 1.0;
-        final glow = phase < 0.3
-            ? (phase / 0.3)
-            : phase < 0.6
-            ? 1.0 - ((phase - 0.3) / 0.3)
-            : 0.0;
-        final size = 4.0 + glow * 4.0;
-        return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 5),
-          child: Container(
-            width: size,
-            height: size,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: Color.lerp(
-                _C.accent.withValues(alpha: 0.30),
-                _C.accent2,
-                glow,
-              ),
-              boxShadow: glow > 0.1
-                  ? [
-                      BoxShadow(
-                        color: _C.accent.withValues(
-                          alpha: glow * 0.5,
-                        ), // softer shadow on light bg
-                        blurRadius: 8,
-                        spreadRadius: 1,
-                      ),
-                    ]
-                  : null,
-            ),
-          ),
-        );
-      }),
     );
   }
 }

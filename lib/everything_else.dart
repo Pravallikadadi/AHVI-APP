@@ -171,8 +171,8 @@ class _EverythingElseScreenState extends State<EverythingElseScreen> {
         );
         final occasion =
             doc.data['boardCategoryLabel']?.toString() ??
-            doc.data['occasion']?.toString() ??
-            'Everything Else';
+                doc.data['occasion']?.toString() ??
+                'Everything Else';
         if (_excludedMainCategories.contains(occasion.toLowerCase())) continue;
 
         uniqueCategories.add(occasion);
@@ -190,9 +190,9 @@ class _EverythingElseScreenState extends State<EverythingElseScreen> {
             id: doc.$id,
             title: (doc.data['title'] ?? occasion).toString(),
             description:
-                (doc.data['outfitDescription'] ??
-                        'Style board generated for $occasion')
-                    .toString(),
+            (doc.data['outfitDescription'] ??
+                'Style board generated for $occasion')
+                .toString(),
             emoji: '✨',
             category: occasion,
             filter: occasion.toLowerCase(),
@@ -235,7 +235,7 @@ class _EverythingElseScreenState extends State<EverythingElseScreen> {
 
   Future<void> _deleteLook(String id) async {
     setState(
-      () => _boards.removeWhere((board) => _boardId(board.source) == id),
+          () => _boards.removeWhere((board) => _boardId(board.source) == id),
     );
     try {
       final appwrite = Provider.of<AppwriteService>(context, listen: false);
@@ -254,8 +254,8 @@ class _EverythingElseScreenState extends State<EverythingElseScreen> {
   }
 
   Map<String, Map<String, dynamic>> _buildIdMap(
-    List<Map<String, dynamic>> items,
-  ) {
+      List<Map<String, dynamic>> items,
+      ) {
     final byId = <String, Map<String, dynamic>>{};
     for (final item in items) {
       for (final rawId in [
@@ -321,18 +321,37 @@ class _EverythingElseScreenState extends State<EverythingElseScreen> {
                   color: _bg,
                   child: _isLoading
                       ? Center(
-                          child: CircularProgressIndicator(
-                            color: _t.accent.primary,
-                          ),
-                        )
+                    child: CircularProgressIndicator(
+                      color: _t.accent.primary,
+                    ),
+                  )
                       : _boards.isEmpty
-                      ? _EmptyState()
+                      ? RefreshIndicator(
+                    onRefresh: _fetchDynamicLooks,
+                    color: _t.accent.primary,
+                    backgroundColor: _t.card,
+                    child: ListView(
+                      children: [_EmptyState()],
+                    ),
+                  )
                       : filtered.isEmpty
-                      ? _NoResultsState()
-                      : _LooksGrid(
-                          boards: filtered,
-                          wardrobeById: _wardrobeById,
-                        ),
+                      ? RefreshIndicator(
+                    onRefresh: _fetchDynamicLooks,
+                    color: _t.accent.primary,
+                    backgroundColor: _t.card,
+                    child: ListView(
+                      children: [_NoResultsState()],
+                    ),
+                  )
+                      : RefreshIndicator(
+                    onRefresh: _fetchDynamicLooks,
+                    color: _t.accent.primary,
+                    backgroundColor: _t.card,
+                    child: _LooksGrid(
+                      boards: filtered,
+                      wardrobeById: _wardrobeById,
+                    ),
+                  ),
                 ),
               ),
             ],
@@ -627,32 +646,32 @@ class _LookCardState extends State<_LookCard> {
                 children: [
                   look.outfitImages.length >= 2
                       ? AspectRatio(
-                          aspectRatio: aspectRatio,
-                          child: _SavedLookImageGrid(images: look.outfitImages),
-                        )
+                    aspectRatio: aspectRatio,
+                    child: _SavedLookImageGrid(images: look.outfitImages),
+                  )
                       : look.imageUrl != null && look.imageUrl!.isNotEmpty
                       ? AspectRatio(
-                          aspectRatio: aspectRatio,
-                          child: Image.network(
-                            look.imageUrl!,
-                            fit: BoxFit.cover,
-                            width: double.infinity,
-                          ),
-                        )
+                    aspectRatio: aspectRatio,
+                    child: Image.network(
+                      look.imageUrl!,
+                      fit: BoxFit.cover,
+                      width: double.infinity,
+                    ),
+                  )
                       : AspectRatio(
-                          aspectRatio: aspectRatio,
-                          child: Container(
-                            decoration: BoxDecoration(
-                              gradient: _bgGradient(look.bg),
-                            ),
-                            child: Center(
-                              child: Text(
-                                look.emoji,
-                                style: const TextStyle(fontSize: 32),
-                              ),
-                            ),
-                          ),
+                    aspectRatio: aspectRatio,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        gradient: _bgGradient(look.bg),
+                      ),
+                      child: Center(
+                        child: Text(
+                          look.emoji,
+                          style: const TextStyle(fontSize: 32),
                         ),
+                      ),
+                    ),
+                  ),
                   Positioned(
                     top: 10,
                     right: 10,

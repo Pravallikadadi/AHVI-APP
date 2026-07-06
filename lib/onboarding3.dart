@@ -378,31 +378,31 @@ class _TabBar extends StatelessWidget {
                 ),
                 decoration: (isActive || isTryOn)
                     ? BoxDecoration(
-                        gradient: isTryOn
-                            ? const LinearGradient(
-                                colors: [Color(0xFF6B91FF), Color(0xFF8D7DFF)],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              )
-                            : null,
-                        color: isTryOn ? null : const Color(0xFFEDF0FF),
-                        borderRadius: BorderRadius.circular(11),
-                        boxShadow: [
-                          BoxShadow(
-                            color: isTryOn
-                                ? const Color(0x336B91FF)
-                                : const Color(0x1A6B91FF),
-                            blurRadius: isTryOn ? 14 : 8,
-                            offset: Offset(0, isTryOn ? 4 : 2),
-                          ),
-                          if (!isTryOn)
-                            const BoxShadow(
-                              color: Color(0x22FFFFFF),
-                              blurRadius: 0,
-                              offset: Offset(0, 1),
-                            ),
-                        ],
-                      )
+                  gradient: isTryOn
+                      ? const LinearGradient(
+                    colors: [Color(0xFF6B91FF), Color(0xFF8D7DFF)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  )
+                      : null,
+                  color: isTryOn ? null : const Color(0xFFEDF0FF),
+                  borderRadius: BorderRadius.circular(11),
+                  boxShadow: [
+                    BoxShadow(
+                      color: isTryOn
+                          ? const Color(0x336B91FF)
+                          : const Color(0x1A6B91FF),
+                      blurRadius: isTryOn ? 14 : 8,
+                      offset: Offset(0, isTryOn ? 4 : 2),
+                    ),
+                    if (!isTryOn)
+                      const BoxShadow(
+                        color: Color(0x22FFFFFF),
+                        blurRadius: 0,
+                        offset: Offset(0, 1),
+                      ),
+                  ],
+                )
                     : null,
                 child: Text(
                   tabs[i],
@@ -688,12 +688,12 @@ class _ToggleCard extends StatelessWidget {
                   color: enabled ? _accent2 : const Color(0xFFDDE2F0),
                   boxShadow: enabled
                       ? const [
-                          BoxShadow(
-                            color: Color(0x288D7DFF),
-                            blurRadius: 0,
-                            spreadRadius: 3,
-                          ),
-                        ]
+                    BoxShadow(
+                      color: Color(0x288D7DFF),
+                      blurRadius: 0,
+                      spreadRadius: 3,
+                    ),
+                  ]
                       : null,
                   border: enabled ? null : Border.all(color: _cardBorder),
                 ),
@@ -854,15 +854,15 @@ class _UploadRow extends StatelessWidget {
     // Thumb gradient
     final thumbGradient = isFace
         ? const LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0x208D7DFF), Color(0x146B91FF)],
-          )
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+      colors: [Color(0x208D7DFF), Color(0x146B91FF)],
+    )
         : const LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0x1A04D7C8), Color(0x146B91FF)],
-          );
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+      colors: [Color(0x1A04D7C8), Color(0x146B91FF)],
+    );
 
     return GestureDetector(
       onTap: onTap,
@@ -875,24 +875,24 @@ class _UploadRow extends StatelessWidget {
           border: Border.all(color: borderColor, width: 1),
           boxShadow: uploaded
               ? const [
-                  BoxShadow(
-                    color: Color(0x188D7DFF),
-                    blurRadius: 20,
-                    offset: Offset(0, 5),
-                  ),
-                  BoxShadow(
-                    color: Color(0x0A000000),
-                    blurRadius: 4,
-                    offset: Offset(0, 1),
-                  ),
-                ]
+            BoxShadow(
+              color: Color(0x188D7DFF),
+              blurRadius: 20,
+              offset: Offset(0, 5),
+            ),
+            BoxShadow(
+              color: Color(0x0A000000),
+              blurRadius: 4,
+              offset: Offset(0, 1),
+            ),
+          ]
               : const [
-                  BoxShadow(
-                    color: Color(0x0E8D7DFF),
-                    blurRadius: 10,
-                    offset: Offset(0, 2),
-                  ),
-                ],
+            BoxShadow(
+              color: Color(0x0E8D7DFF),
+              blurRadius: 10,
+              offset: Offset(0, 2),
+            ),
+          ],
         ),
         child: Row(
           children: [
@@ -1042,7 +1042,7 @@ class _PrivacyBlock extends StatelessWidget {
                     children: [
                       TextSpan(
                         text:
-                            'Photos are used solely for fit modeling and are ',
+                        'Photos are used solely for fit modeling and are ',
                       ),
                       TextSpan(
                         text: 'deleted on request',

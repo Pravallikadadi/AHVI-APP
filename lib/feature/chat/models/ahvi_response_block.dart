@@ -21,6 +21,18 @@ class AhviResponseBlock {
   final Map<String, dynamic> data;
 
   const AhviResponseBlock({required this.type, required this.data});
+
+  Map<String, dynamic> toJson() => {'type': type.name, 'data': data};
+
+  factory AhviResponseBlock.fromJson(Map<String, dynamic> json) {
+    return AhviResponseBlock(
+      type: AhviBlockType.values.firstWhere(
+            (e) => e.name == json['type'],
+        orElse: () => AhviBlockType.unknown,
+      ),
+      data: Map<String, dynamic>.from(json['data'] as Map? ?? const {}),
+    );
+  }
 }
 
 class AhviParsedResponse {
