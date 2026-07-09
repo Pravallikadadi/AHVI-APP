@@ -268,7 +268,7 @@ class _MainNavigationShellState extends State<MainNavigationShell>
 
     _navRiseCtrls = List.generate(
       5,
-          (i) => AnimationController(vsync: this, duration: _A.normal, value: 0.0),
+      (i) => AnimationController(vsync: this, duration: _A.normal, value: 0.0),
     );
 
     // Home tab (index 0) active గా start చేయి
@@ -324,6 +324,21 @@ class _MainNavigationShellState extends State<MainNavigationShell>
     return false;
   }
 
+  // 🔧 FIX: Single entry point for back handling. Runs the actual tab-switch
+  // logic AFTER a delay instead of synchronously inside the
+  // PopScope/predictive-back callback. On Android 13/14 (Vivo/Samsung), the
+  // OS drives an interactive edge-swipe animation on its own render pass;
+  // doing setState() synchronously inside that callback fights that
+  // animation for frames on the same tick. Delaying 200ms lets the OS gesture
+  // animation complete fully before our IndexedStack switches tabs.
+  void _handleShellBackDeferred() {
+    Future.delayed(const Duration(milliseconds: 200), () {
+      if (mounted) {
+        _handleShellBack();
+      }
+    });
+  }
+
   void _handleNavTap(int idx) {
     if (idx == 4) {
       _showComingSoon();
@@ -350,16 +365,16 @@ class _MainNavigationShellState extends State<MainNavigationShell>
     final navItems = <({IconData icon, String label})>[
       (icon: Icons.home_outlined, label: l?.translate('home') ?? 'Home'),
       (
-      icon: Icons.dry_cleaning_outlined,
-      label: l?.translate('wardrobe') ?? 'Wardrobe',
+        icon: Icons.dry_cleaning_outlined,
+        label: l?.translate('wardrobe') ?? 'Wardrobe',
       ),
       (
-      icon: Icons.grid_view_rounded,
-      label: l?.translate('planner') ?? 'Planner',
+        icon: Icons.grid_view_rounded,
+        label: l?.translate('planner') ?? 'Planner',
       ),
       (
-      icon: Icons.explore_outlined,
-      label: l?.translate('explore') ?? 'Explore',
+        icon: Icons.explore_outlined,
+        label: l?.translate('explore') ?? 'Explore',
       ),
     ];
 
@@ -375,7 +390,19 @@ class _MainNavigationShellState extends State<MainNavigationShell>
       const _ExploreComingSoon(key: PageStorageKey('explore')),
     ];
     return NotificationListener<ShellBackNavigationNotification>(
-      onNotification: (notification) => _handleShellBack(),
+      // 🔧 FIX: This listener and PopScope used to both call _handleShellBack()
+      // independently for what can be the *same* physical back gesture —
+      // a race condition where the tab-history stack could get mutated twice
+      // (or an animation re-triggered) for one user action. PopScope is now
+      // the single source of truth for OS-level back/edge-swipe; this
+      // listener only handles in-app "back" requests raised by child widgets
+      // (e.g. a widget-level back button dispatching the notification), and
+      // even those are routed through the same deferred handler so nothing
+      // runs synchronously inside a build/gesture callback.
+      onNotification: (notification) {
+        _handleShellBackDeferred();
+        return true;
+      },
       child: PopScope(
         // 🔧 FIX: was `canPop: _tabHistory.isEmpty`, which toggled true/false
         // based on tab history. That let the OS start a *real* interactive
@@ -389,9 +416,23 @@ class _MainNavigationShellState extends State<MainNavigationShell>
         // no interactive transition left half-finished.
         canPop: false,
         onPopInvokedWithResult: (didPop, result) {
-          if (!didPop) {
-            _handleShellBack();
+          if (didPop) return;
+          
+          // ✅ FIX: Check if nested Navigator can pop FIRST
+          // This prevents gesture conflicts when back-swiping from nested screens like Wardrobe
+          try {
+            final navigator = Navigator.of(context);
+            if (navigator.canPop()) {
+              // Let the nested Navigator handle the pop, not the shell
+              navigator.pop();
+              return;
+            }
+          } catch (_) {
+            // No nested Navigator found, continue with shell back
           }
+          
+          // No nested routes, handle shell-level back (tab switch)
+          _handleShellBackDeferred();
         },
         child: Scaffold(
           backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -497,31 +538,31 @@ class _MainNavigationShellState extends State<MainNavigationShell>
                                 height: 44,
                                 decoration: active
                                     ? BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  gradient: LinearGradient(
-                                    begin: Alignment.topLeft,
-                                    end: Alignment.bottomRight,
-                                    colors: [
-                                      t.accent.primary,
-                                      t.accent.secondary,
-                                    ],
-                                  ),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: t.accent.primary.withValues(
-                                        alpha: 0.45,
-                                      ),
-                                      blurRadius: 16,
-                                      offset: const Offset(0, 4),
-                                    ),
-                                    BoxShadow(
-                                      color: t.accent.primary.withValues(
-                                        alpha: 0.25,
-                                      ),
-                                      blurRadius: 28,
-                                    ),
-                                  ],
-                                )
+                                        shape: BoxShape.circle,
+                                        gradient: LinearGradient(
+                                          begin: Alignment.topLeft,
+                                          end: Alignment.bottomRight,
+                                          colors: [
+                                            t.accent.primary,
+                                            t.accent.secondary,
+                                          ],
+                                        ),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: t.accent.primary.withValues(
+                                              alpha: 0.45,
+                                            ),
+                                            blurRadius: 16,
+                                            offset: const Offset(0, 4),
+                                          ),
+                                          BoxShadow(
+                                            color: t.accent.primary.withValues(
+                                              alpha: 0.25,
+                                            ),
+                                            blurRadius: 28,
+                                          ),
+                                        ],
+                                      )
                                     : null,
                                 child: Icon(
                                   item.icon,
@@ -863,12 +904,12 @@ class _LensOptionState extends State<_LensOption> {
           boxShadow: _pressed
               ? []
               : [
-            BoxShadow(
-              color: widget.color.withValues(alpha: 0.07),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
-            ),
-          ],
+                  BoxShadow(
+                    color: widget.color.withValues(alpha: 0.07),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
         ),
         child: Row(
           children: [
@@ -1076,10 +1117,10 @@ class _NavPillPainter extends CustomPainter {
   @override
   bool shouldRepaint(_NavPillPainter old) =>
       old.activeIdx != activeIdx ||
-          old.bulgeT != bulgeT ||
-          old.fillColor != fillColor ||
-          old.glowColor != glowColor ||
-          old.borderColor != borderColor;
+      old.bulgeT != bulgeT ||
+      old.fillColor != fillColor ||
+      old.glowColor != glowColor ||
+      old.borderColor != borderColor;
 }
 
 // ═════════════════════════════════════════════════════════════════════════════

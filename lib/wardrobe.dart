@@ -769,40 +769,34 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
               );
 
               setState(() {
-                final index = _wardrobe.indexWhere((w) => w.id == localItem.id);
-                if (index >= 0) {
-                  _wardrobe[index] = savedItem;
-                }
+                // FIXED: Remove the locally-added placeholder and replace with server version
+                // The local item has a client UUID, but the server returns doc.$id
+                _wardrobe.removeWhere((w) => w.id == localItem.id);
+                // Insert the real server item at the top
+                _wardrobe.insert(0, savedItem);
               });
 
-              // Resolve the saved item image. If only a masked/temporary URL
-              // is available (canonical catalog/cutout is generated async
-              // server-side), trigger ONE silent refresh so the grid swaps to
-              // the canonical image without a manual pull-to-refresh.
-              final resolved = resolveWardrobeImage(
-                savedItem.raw,
-                normalizedUrl: savedItem.normalizedUrl,
-                imageUrl: savedItem.imageUrl,
-                maskedUrl: savedItem.maskedUrl,
-              );
-              final willSilentRefresh = resolved.usedMasked && !_silentWardrobeRefreshScheduled;
+              // FIXED: Always trigger a silent refresh after 3 seconds to ensure
+              // all images are loaded and any async processing (background removal, etc)
+              // is complete. This happens regardless of whether masked URL is used.
+              final willSilentRefresh = !_silentWardrobeRefreshScheduled;
               debugPrint(
-                'AHVI_WARDROBE_SAVE_IMAGE_RESOLVE itemId=${savedItem.id} '
-                    'resolvedField=${resolved.field} usedMaskedFallback=${resolved.usedMasked} '
-                    'silentRefresh=$willSilentRefresh',
+                'AHVI_WARDROBE_SAVE itemId=${savedItem.id} '
+                    'scheduleRefresh=$willSilentRefresh',
               );
               if (willSilentRefresh) {
                 _silentWardrobeRefreshScheduled = true;
-                Future.delayed(const Duration(seconds: 4), () async {
+                Future.delayed(const Duration(seconds: 3), () async {
                   if (!mounted) {
                     _silentWardrobeRefreshScheduled = false;
                     return;
                   }
                   try {
+                    debugPrint('AHVI: Silent wardrobe refresh triggered...');
                     await _fetchWardrobeItems()
                         .timeout(const Duration(seconds: 8));
-                  } catch (_) {
-                    // Best-effort; grid keeps the masked image until next load.
+                  } catch (e) {
+                    debugPrint('Silent refresh failed (non-critical): $e');
                   } finally {
                     _silentWardrobeRefreshScheduled = false;
                   }

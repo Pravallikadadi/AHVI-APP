@@ -2740,7 +2740,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
           // px value — on wide/tablet cards this stops the photo from
           // ballooning and eating the text column; on narrow phones it stops
           // the photo from being squeezed to nothing.
-          final imageW = (cardW * 0.34).clamp(112.0, 190.0);
+          final imageW = (cardW * 0.42).clamp(140.0, 220.0);
           final fadeW = (imageW * 0.55).clamp(56.0, 96.0);
           // How much of the fade area text is allowed to sit under (keeps
           // the text block from looking cramped against the photo edge).
@@ -2790,7 +2790,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                     children: [
                       Positioned.fill(
                         child: Image.asset(
-                          'assets/images/hero_card.jpg',
+                          'assets/images/hero_card.jpeg',
                           fit: BoxFit.cover,
                           alignment: Alignment.topCenter,
                           filterQuality: FilterQuality.low,
