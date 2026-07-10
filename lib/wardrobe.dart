@@ -646,6 +646,11 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
     imageCache.clear();
     imageCache.clearLiveImages();
 
+    // ✅ CRITICAL FIX: Cancel pending refresh timer on back-swipe
+    // This prevents setState() from firing after the screen is disposed,
+    // which was causing the back-swipe freeze
+    _silentWardrobeRefreshScheduled = false;
+
     _keyboardFocusNode.dispose();
     super.dispose();
   }
@@ -787,7 +792,9 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
               if (willSilentRefresh) {
                 _silentWardrobeRefreshScheduled = true;
                 Future.delayed(const Duration(seconds: 3), () async {
-                  if (!mounted) {
+                  // ✅ CRITICAL FIX: Check both mounted AND the flag is still set
+                  // This prevents setState() from firing after back-swipe disposes the screen
+                  if (!mounted || !_silentWardrobeRefreshScheduled) {
                     _silentWardrobeRefreshScheduled = false;
                     return;
                   }

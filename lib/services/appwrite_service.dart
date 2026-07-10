@@ -389,7 +389,9 @@ class AppwriteService extends ChangeNotifier {
       }
 
       final user = await account.get();
-      if (createIfMissing) {
+
+      // 🛡️ ANTI-FREEZE GUARD: Prevent recursive calls to ensureCurrentUserProfile
+      if (createIfMissing && !_userProfileSyncInFlight) {
         await ensureCurrentUserProfile();
       }
 
@@ -634,7 +636,6 @@ class AppwriteService extends ChangeNotifier {
       final now = DateTime.now().toIso8601String();
 
       final createData = <String, dynamic>{
-        'userId': user.$id,
         'name': displayName,
         'username': _safeUsernameFromUser(user),
         'email': user.email,
@@ -668,7 +669,6 @@ class AppwriteService extends ChangeNotifier {
           usersCollectionId: usersCollectionId,
           documentId: user.$id,
           payload: {
-            'userId': user.$id,
             'name': displayName,
             'username': _safeUsernameFromUser(user),
             'email': user.email,

@@ -19,7 +19,7 @@ class AppLocalizations {
     );
     final Map<String, dynamic> jsonMap = json.decode(jsonString);
     _localizedStrings = jsonMap.map(
-      (key, value) => MapEntry(key, value.toString()),
+          (key, value) => MapEntry(key, value.toString()),
     );
     return true;
   }
@@ -45,16 +45,16 @@ class AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {
   @override
   bool isSupported(Locale locale) =>
       // ✅ 8 languages support
-      [
-        'en',
-        'hi',
-        'te',
-        'ta',
-        'kn',
-        'ml',
-        'bn',
-        'mr',
-      ].contains(locale.languageCode);
+  [
+    'en',
+    'hi',
+    'te',
+    'ta',
+    'kn',
+    'ml',
+    'bn',
+    'mr',
+  ].contains(locale.languageCode);
 
   @override
   Future<AppLocalizations> load(Locale locale) async {
@@ -64,5 +64,5 @@ class AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {
   }
 
   @override
-  bool shouldReload(AppLocalizationsDelegate old) => true;
+  bool shouldReload(AppLocalizationsDelegate old) => false;
 }

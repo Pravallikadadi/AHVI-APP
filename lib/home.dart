@@ -27,7 +27,73 @@ import 'package:myapp/diet_page.dart';
 import 'package:myapp/skincare.dart';
 import 'package:myapp/home_card_summary_provider.dart';
 
+/// ═══════════════════════════════════════════════════════════════════════════
+/// 🎯 AHVI HOME SCREEN - COMPLETE LOCALIZATION
+/// ═══════════════════════════════════════════════════════════════════════════
+///
+/// This screen implements full localization for 8 languages:
+/// English, Hindi, Telugu, Tamil, Kannada, Malayalam, Marathi, Bengali
+///
+/// 📋 MAIN LOCALIZATION KEYS:
+/// ───────────────────────────────────────────────────────────────────────────
+/// Navigation (Bottom Nav):
+///   • nav_home, nav_chat, nav_wardrobe, nav_planner, nav_explore
+///
+/// Hero Card:
+///   • home_hero_title → "Your Effortlessly Put-Together Day ✨"
+///   • home_hero_badge_routine → "Routine"
+///
+/// Routine Items:
+///   • routine_wear, routine_wear_desc
+///   • routine_move, routine_move_desc
+///   • routine_eat, routine_eat_desc
+///   • routine_care, routine_care_desc
+///
+/// Greetings (Time-based):
+///   • home_greeting_morning, home_greeting_afternoon, home_greeting_evening
+///
+/// ✅ HELPER METHODS FOR EASY ACCESS:
+/// ───────────────────────────────────────────────────────────────────────────
+///   _getTimeBasedGreeting() → Returns "Good morning"/"Good afternoon"/"Good evening"
+///   _getPersonalizedGreeting(name) → Returns "Good morning, John"
+///   _getNavLabels() → Returns List<String> of 5 nav item labels
+///   _getHeroTitle() → Returns localized hero card title with emoji
+///   _getRoutineItems() → Returns List of routine items with labels
+///   _getCtaLabels() → Returns gym outfit & plan workout labels
+///   _getAskPlaceholder() → Returns chat input placeholder
+///
+/// 🚀 QUICK USAGE EXAMPLES:
+/// ───────────────────────────────────────────────────────────────────────────
+///   // Direct key usage
+///   Text(AppLocalizations.t(context, 'nav_home'))
+///
+///   // Using helper methods
+///   Text(_getPersonalizedGreeting(_userName))
+///   final labels = _getNavLabels() // All 5 nav labels
+///
+///   // Greeting in chat
+///   greeting: _getTimeBasedGreeting()
+///
+/// ═══════════════════════════════════════════════════════════════════════════
+
 // ─── Colors ──────────────────────────────────────────────
+
+// 🆕 LOCALIZATION KEYS REFERENCE
+// ─────────────────────────────────────────────────────────
+// Navigation Keys (Bottom Nav):
+//   'nav_home', 'nav_chat', 'nav_wardrobe', 'nav_planner', 'nav_explore'
+// Hero Card Keys:
+//   'home_hero_title' - "Your Effortlessly Put-Together Day ✨"
+//   'home_hero_badge_routine' - "Routine"
+// Routine Items:
+//   'routine_wear', 'routine_wear_desc'
+//   'routine_move', 'routine_move_desc'
+//   'routine_eat', 'routine_eat_desc'
+//   'routine_care', 'routine_care_desc'
+// Greeting Keys:
+//   'home_greeting_morning', 'home_greeting_afternoon', 'home_greeting_evening'
+// CTA Keys:
+//   'cta_gym_outfit', 'cta_plan_workout', 'cta_ask_ahvi'
 
 // 🆕 Nav items are now built dynamically in _buildBottomNav() using localization
 // _homeNavItems icons only — labels come from JSON
@@ -38,6 +104,16 @@ const _homeNavIcons = <IconData>[
   Icons.grid_view_rounded,
   Icons.explore_outlined,
 ];
+
+// 🆕 Localization keys for navigation (used by _buildBottomNav)
+const _homeNavKeys = <String>[
+  'nav_home',
+  'nav_chat',
+  'nav_wardrobe',
+  'nav_planner',
+  'nav_explore',
+];
+
 // Keep original for fallback / non-localized usage
 const _homeNavItems = <({IconData icon, String label})>[
   (icon: Icons.home_outlined, label: 'Home'),
@@ -1222,6 +1298,73 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
     }
 
     await Future<void>.delayed(const Duration(milliseconds: 180));
+  }
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // 🆕 LOCALIZATION HELPERS - Get translated strings easily
+  // ──────────────────────────────────────────────────────────────────────────
+
+  /// Get greeting based on current time of day
+  String _getTimeBasedGreeting() {
+    final hour = DateTime.now().hour;
+    if (hour < 12) {
+      return AppLocalizations.t(context, 'home_greeting_morning');
+    } else if (hour < 17) {
+      return AppLocalizations.t(context, 'home_greeting_afternoon');
+    } else {
+      return AppLocalizations.t(context, 'home_greeting_evening');
+    }
+  }
+
+  /// Get personalized greeting with user name
+  String _getPersonalizedGreeting(String userName) {
+    final greeting = _getTimeBasedGreeting();
+    return '$greeting, $userName';
+  }
+
+  /// Get all navigation labels localized
+  List<String> _getNavLabels() {
+    return _homeNavKeys.map((key) => AppLocalizations.t(context, key)).toList();
+  }
+
+  /// Get hero title localized
+  String _getHeroTitle() {
+    return AppLocalizations.t(context, 'home_hero_title');
+  }
+
+  /// Get routine items with localized labels
+  List<({String label, String desc})> _getRoutineItems() {
+    return [
+      (
+      label: AppLocalizations.t(context, 'routine_wear'),
+      desc: AppLocalizations.t(context, 'routine_wear_desc'),
+      ),
+      (
+      label: AppLocalizations.t(context, 'routine_move'),
+      desc: AppLocalizations.t(context, 'routine_move_desc'),
+      ),
+      (
+      label: AppLocalizations.t(context, 'routine_eat'),
+      desc: AppLocalizations.t(context, 'routine_eat_desc'),
+      ),
+      (
+      label: AppLocalizations.t(context, 'routine_care'),
+      desc: AppLocalizations.t(context, 'routine_care_desc'),
+      ),
+    ];
+  }
+
+  /// Get CTA button labels
+  ({String gymOutfit, String planWorkout}) _getCtaLabels() {
+    return (
+    gymOutfit: AppLocalizations.t(context, 'cta_gym_outfit'),
+    planWorkout: AppLocalizations.t(context, 'cta_plan_workout'),
+    );
+  }
+
+  /// Get input field placeholder
+  String _getAskPlaceholder() {
+    return AppLocalizations.t(context, 'cta_ask_ahvi');
   }
 
   @override
@@ -2631,9 +2774,12 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
 
   /// Returns a context-aware headline + subtitle for the hero card,
   /// driven by upcoming occasions, weather, and time of day.
+  /// 🆕 Now uses localization for hero titles
   ({String headline, String emoji}) _heroHeadlineContent(
       _RecommendationContext ctx,
       ) {
+    // 🆕 Get localized hero title for morning greeting
+    final localizedHeroTitle = AppLocalizations.t(context, 'home_hero_title');
     final w = ctx.weather;
 
     // 📅 Occasion takes top priority — overrides everything else.
@@ -2659,7 +2805,8 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
 
     // 🕒 Time-of-day fallback
     if (ctx.isMorning) {
-      return (headline: 'Your Effortlessly\nPut-Together Day', emoji: '✨');
+      // 🆕 Use localized hero title which includes emoji: "Your Effortlessly Put-Together Day ✨"
+      return (headline: localizedHeroTitle, emoji: '');
     }
     if (ctx.isAfternoon) {
       return (headline: 'Keep The Momentum\nGoing', emoji: '🔥');
@@ -2740,7 +2887,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
           // px value — on wide/tablet cards this stops the photo from
           // ballooning and eating the text column; on narrow phones it stops
           // the photo from being squeezed to nothing.
-          final imageW = (cardW * 0.42).clamp(140.0, 220.0);
+          final imageW = (cardW * 0.34).clamp(112.0, 190.0);
           final fadeW = (imageW * 0.55).clamp(56.0, 96.0);
           // How much of the fade area text is allowed to sit under (keeps
           // the text block from looking cramped against the photo edge).
@@ -2790,7 +2937,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                     children: [
                       Positioned.fill(
                         child: Image.asset(
-                          'assets/images/hero_card.jpeg',
+                          'assets/images/hero_card.jpg',
                           fit: BoxFit.cover,
                           alignment: Alignment.topCenter,
                           filterQuality: FilterQuality.low,
@@ -3300,7 +3447,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                             children: [
                               Positioned.fill(
                                 child: Image.asset(
-                                  'assets/images/style_card.jpg',
+                                  'assets/images/style_card.jpeg',
                                   fit: BoxFit.cover,
                                   alignment: Alignment.topCenter,
                                   filterQuality: FilterQuality.low,
@@ -3491,26 +3638,30 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                                       ],
                                     ),
                                     padding: const EdgeInsets.symmetric(
-                                      horizontal: 12,
+                                      horizontal: 8,
                                       vertical: 6,
                                     ),
                                     child: Row(
                                       mainAxisAlignment: MainAxisAlignment.center,
+                                      mainAxisSize: MainAxisSize.min,
                                       children: [
                                         Flexible(
-                                          child: Text(
-                                            content.cta, // 🆕 dynamic CTA
-                                            style: TextStyle(
-                                              color: _onAccent,
-                                              fontSize: 11,
-                                              fontWeight: FontWeight.w600,
-                                              letterSpacing: 0.20,
+                                          child: FittedBox(
+                                            fit: BoxFit.scaleDown,
+                                            alignment: Alignment.centerLeft,
+                                            child: Text(
+                                              content.cta, // 🆕 dynamic CTA
+                                              style: TextStyle(
+                                                color: _onAccent,
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.w600,
+                                                letterSpacing: 0.20,
+                                              ),
+                                              maxLines: 1,
                                             ),
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
                                           ),
                                         ),
-                                        const SizedBox(width: 5),
+                                        const SizedBox(width: 4),
                                         Icon(
                                           Icons.arrow_forward_rounded,
                                           color: _onAccent,
@@ -3863,26 +4014,30 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                                       ],
                                     ),
                                     padding: const EdgeInsets.symmetric(
-                                      horizontal: 12,
+                                      horizontal: 8,
                                       vertical: 6,
                                     ),
                                     child: Row(
                                       mainAxisAlignment: MainAxisAlignment.center,
+                                      mainAxisSize: MainAxisSize.min,
                                       children: [
                                         Flexible(
-                                          child: Text(
-                                            ctaLabel,
-                                            style: TextStyle(
-                                              color: _onAccent,
-                                              fontSize: 11,
-                                              fontWeight: FontWeight.w600,
-                                              letterSpacing: 0.20,
+                                          child: FittedBox(
+                                            fit: BoxFit.scaleDown,
+                                            alignment: Alignment.centerLeft,
+                                            child: Text(
+                                              ctaLabel,
+                                              style: TextStyle(
+                                                color: _onAccent,
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.w600,
+                                                letterSpacing: 0.20,
+                                              ),
+                                              maxLines: 1,
                                             ),
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
                                           ),
                                         ),
-                                        const SizedBox(width: 5),
+                                        const SizedBox(width: 4),
                                         Icon(
                                           Icons.arrow_forward_rounded,
                                           color: _onAccent,
@@ -4280,10 +4435,8 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
   }
 
   Widget _buildBottomNav() {
-    // 🆕 Nav labels localized
-    final navLabelKeys = [
-      'nav_home', 'nav_chat', 'nav_wardrobe', 'nav_planner', 'nav_explore',
-    ];
+    // 🆕 Nav labels localized from constant keys defined at top of file
+    final navLabelKeys = _homeNavKeys;
     final items = _homeNavItems;
     final screenH = MediaQuery.of(context).size.height;
     final screenW = MediaQuery.of(context).size.width;

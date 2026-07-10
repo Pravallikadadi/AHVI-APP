@@ -115,7 +115,7 @@ class _MyAppState extends State<MyApp> {
           create: (_) => AppwriteService(),
         ),
         ProxyProvider<AppwriteService, BackendService>(
-          update: (_, appwrite, _) => BackendService(appwriteService: appwrite),
+          update: (_, appwrite, previous) => previous ?? BackendService(appwriteService: appwrite),
         ),
         ChangeNotifierProvider<ConnectivityWatcher>(
           create: (_) => ConnectivityWatcher()..init(),
@@ -268,7 +268,7 @@ class _MainNavigationShellState extends State<MainNavigationShell>
 
     _navRiseCtrls = List.generate(
       5,
-      (i) => AnimationController(vsync: this, duration: _A.normal, value: 0.0),
+          (i) => AnimationController(vsync: this, duration: _A.normal, value: 0.0),
     );
 
     // Home tab (index 0) active గా start చేయి
@@ -365,16 +365,16 @@ class _MainNavigationShellState extends State<MainNavigationShell>
     final navItems = <({IconData icon, String label})>[
       (icon: Icons.home_outlined, label: l?.translate('home') ?? 'Home'),
       (
-        icon: Icons.dry_cleaning_outlined,
-        label: l?.translate('wardrobe') ?? 'Wardrobe',
+      icon: Icons.dry_cleaning_outlined,
+      label: l?.translate('wardrobe') ?? 'Wardrobe',
       ),
       (
-        icon: Icons.grid_view_rounded,
-        label: l?.translate('planner') ?? 'Planner',
+      icon: Icons.grid_view_rounded,
+      label: l?.translate('planner') ?? 'Planner',
       ),
       (
-        icon: Icons.explore_outlined,
-        label: l?.translate('explore') ?? 'Explore',
+      icon: Icons.explore_outlined,
+      label: l?.translate('explore') ?? 'Explore',
       ),
     ];
 
@@ -417,7 +417,7 @@ class _MainNavigationShellState extends State<MainNavigationShell>
         canPop: false,
         onPopInvokedWithResult: (didPop, result) {
           if (didPop) return;
-          
+
           // ✅ FIX: Check if nested Navigator can pop FIRST
           // This prevents gesture conflicts when back-swiping from nested screens like Wardrobe
           try {
@@ -430,7 +430,7 @@ class _MainNavigationShellState extends State<MainNavigationShell>
           } catch (_) {
             // No nested Navigator found, continue with shell back
           }
-          
+
           // No nested routes, handle shell-level back (tab switch)
           _handleShellBackDeferred();
         },
@@ -538,31 +538,31 @@ class _MainNavigationShellState extends State<MainNavigationShell>
                                 height: 44,
                                 decoration: active
                                     ? BoxDecoration(
-                                        shape: BoxShape.circle,
-                                        gradient: LinearGradient(
-                                          begin: Alignment.topLeft,
-                                          end: Alignment.bottomRight,
-                                          colors: [
-                                            t.accent.primary,
-                                            t.accent.secondary,
-                                          ],
-                                        ),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: t.accent.primary.withValues(
-                                              alpha: 0.45,
-                                            ),
-                                            blurRadius: 16,
-                                            offset: const Offset(0, 4),
-                                          ),
-                                          BoxShadow(
-                                            color: t.accent.primary.withValues(
-                                              alpha: 0.25,
-                                            ),
-                                            blurRadius: 28,
-                                          ),
-                                        ],
-                                      )
+                                  shape: BoxShape.circle,
+                                  gradient: LinearGradient(
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                    colors: [
+                                      t.accent.primary,
+                                      t.accent.secondary,
+                                    ],
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: t.accent.primary.withValues(
+                                        alpha: 0.45,
+                                      ),
+                                      blurRadius: 16,
+                                      offset: const Offset(0, 4),
+                                    ),
+                                    BoxShadow(
+                                      color: t.accent.primary.withValues(
+                                        alpha: 0.25,
+                                      ),
+                                      blurRadius: 28,
+                                    ),
+                                  ],
+                                )
                                     : null,
                                 child: Icon(
                                   item.icon,
@@ -904,12 +904,12 @@ class _LensOptionState extends State<_LensOption> {
           boxShadow: _pressed
               ? []
               : [
-                  BoxShadow(
-                    color: widget.color.withValues(alpha: 0.07),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
+            BoxShadow(
+              color: widget.color.withValues(alpha: 0.07),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
         child: Row(
           children: [
@@ -1117,10 +1117,10 @@ class _NavPillPainter extends CustomPainter {
   @override
   bool shouldRepaint(_NavPillPainter old) =>
       old.activeIdx != activeIdx ||
-      old.bulgeT != bulgeT ||
-      old.fillColor != fillColor ||
-      old.glowColor != glowColor ||
-      old.borderColor != borderColor;
+          old.bulgeT != bulgeT ||
+          old.fillColor != fillColor ||
+          old.glowColor != glowColor ||
+          old.borderColor != borderColor;
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
