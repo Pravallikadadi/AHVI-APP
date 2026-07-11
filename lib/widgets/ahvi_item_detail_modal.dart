@@ -402,6 +402,26 @@ class _ItemDetailModal extends StatelessWidget {
     final BuildContext appContext = rootNav.context;
     rootNav.pop(); // close the item-detail dialog
 
+    await _performStyleRequest(appContext, item, mode: mode);
+  }
+
+  // ============================================================
+  // Shared style-request runner: shows the loading spinner, calls the
+  // backend, and routes the result to either the "insufficient wardrobe"
+  // alert or the normal result sheet.
+  //
+  // Assumes any modal that needed dismissing (the item-detail dialog) has
+  // already been popped by the caller — this lets it be called a second
+  // time directly from the insufficient-wardrobe alert's "Stylize Using
+  // Curated Assets" fallback without trying to pop anything extra.
+  // ============================================================
+  Future<void> _performStyleRequest(
+      BuildContext appContext,
+      WardrobeItem item, {
+        required String mode,
+      }) async {
+    final rootNav = Navigator.of(appContext, rootNavigator: true);
+
     // Loading state.
     showDialog<void>(
       context: appContext,
@@ -411,7 +431,7 @@ class _ItemDetailModal extends StatelessWidget {
       ),
     );
 
-    debugPrint('AHVI_MODAL_GUARD start flow=styleCta');
+    debugPrint('AHVI_MODAL_GUARD start flow=styleCta mode=$mode');
     Map<String, dynamic>? result;
     var timedOut = false;
     try {
@@ -449,7 +469,175 @@ class _ItemDetailModal extends StatelessWidget {
       );
       return;
     }
+
+    // DATA SUFFICIENCY CHECK — the backend couldn't assemble a real
+    // outfit/board from the user's own pieces. Surface a dedicated alert
+    // (with a one-tap fallback into curated-asset styling) instead of
+    // dropping the user into an empty/broken result sheet.
+    final bool insufficientWardrobe =
+        result?['intent'] == 'insufficient_wardrobe' || result?['alert'] == true;
+    if (insufficientWardrobe) {
+      _showInsufficientWardrobeAlert(appContext, item: item, result: result!);
+      return;
+    }
+
     _showStyleResultSheet(appContext, mode: mode, item: item, result: result);
+  }
+
+  // ============================================================
+  // INSUFFICIENT WARDROBE ALERT
+  // Shown when response['intent'] == 'insufficient_wardrobe' (or
+  // response['alert'] == true). Displays the backend's own explanation
+  // verbatim and offers:
+  //   - "Got it"                         -> dismiss
+  //   - "Stylize Using Curated Assets"   -> retry in 'style_this' mode,
+  //     which the backend answers from curated styling directions rather
+  //     than requiring real pairings from the user's own wardrobe.
+  // ============================================================
+  void _showInsufficientWardrobeAlert(
+      BuildContext appContext, {
+        required WardrobeItem item,
+        required Map<String, dynamic> result,
+      }) {
+    final String message =
+        (result['context'] ?? result['message'])?.toString() ??
+            AppLocalizations.t(
+              appContext,
+              'item_detail_insufficient_wardrobe_default',
+            );
+
+    showDialog<void>(
+      context: appContext,
+      builder: (dialogContext) {
+        final t = Theme.of(dialogContext).extension<AppThemeTokens>()!;
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.symmetric(horizontal: 32),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 380),
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        width: 36,
+                        height: 36,
+                        decoration: const BoxDecoration(
+                          color: Color(0x33A32D2D),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.info_outline,
+                          size: 18,
+                          color: _kDangerColor,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.only(top: 8),
+                          child: Text(
+                            AppLocalizations.t(
+                              dialogContext,
+                              'item_detail_wardrobe_alert_title',
+                            ),
+                            style: GoogleFonts.inter(
+                              fontSize: 17,
+                              fontWeight: FontWeight.w700,
+                              color: const Color(0xFF1A1A1A),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  Text(
+                    message,
+                    style: GoogleFonts.inter(
+                      fontSize: 14,
+                      height: 1.4,
+                      color: const Color(0xFF4A4A4A),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => Navigator.of(dialogContext).pop(),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 13),
+                            side: const BorderSide(color: Color(0xFFE5E5EA)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: Text(
+                            AppLocalizations.t(dialogContext, 'item_detail_wardrobe_alert_dismiss'),
+                            style: GoogleFonts.inter(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: const Color(0xFF1A1A1A),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: InkWell(
+                          onTap: () {
+                            Navigator.of(dialogContext).pop();
+                            // Fallback: retry as 'style_this', which the
+                            // backend can answer from curated assets
+                            // instead of the user's own wardrobe pairings.
+                            _performStyleRequest(appContext, item, mode: 'style_this');
+                          },
+                          borderRadius: BorderRadius.circular(12),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 13),
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(12),
+                              gradient: LinearGradient(
+                                colors: [t.accent.primary, t.accent.secondary],
+                                begin: Alignment.centerLeft,
+                                end: Alignment.centerRight,
+                              ),
+                            ),
+                            child: Text(
+                              AppLocalizations.t(
+                                dialogContext,
+                                'item_detail_wardrobe_alert_stylize',
+                              ),
+                              textAlign: TextAlign.center,
+                              style: GoogleFonts.inter(
+                                fontSize: 12.5,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
   }
 
   List<Map<String, dynamic>> _asMapList(dynamic value) {
@@ -489,66 +677,72 @@ class _ItemDetailModal extends StatelessWidget {
         minChildSize: 0.4,
         maxChildSize: 0.95,
         expand: false,
-        builder: (ctx, scrollCtrl) => Container(
-          decoration: BoxDecoration(
-            color: isAnchorBoard ? Colors.white : const Color(0xFF14110F),
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-          ),
-          padding: const EdgeInsets.fromLTRB(20, 14, 20, 24),
-          child: ListView(
-            controller: scrollCtrl,
-            children: [
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: isAnchorBoard
-                        ? const Color(0x1A000000)
-                        : Colors.white24,
-                    borderRadius: BorderRadius.circular(2),
+        builder: (ctx, scrollCtrl) {
+          // Theme-aware: follows the app's current light/dark mode instead
+          // of a palette hardcoded to the content type.
+          final colors = _ResultSheetColors.of(ctx);
+          return Container(
+            decoration: BoxDecoration(
+              color: colors.sheetBg,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+            ),
+            padding: const EdgeInsets.fromLTRB(20, 14, 20, 24),
+            child: ListView(
+              controller: scrollCtrl,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: colors.dragHandle,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                mode == 'style_this'
-                    ? AppLocalizations.t(ctx, 'item_detail_style_directions')
-                    : AppLocalizations.t(ctx, 'item_detail_build_outfit'),
-                style: TextStyle(
-                  color: isAnchorBoard
-                      ? const Color(0xFF1A1A1A)
-                      : Colors.white,
-                  fontSize: 22,
-                  fontWeight: FontWeight.w600,
+                const SizedBox(height: 16),
+                Text(
+                  mode == 'style_this'
+                      ? AppLocalizations.t(ctx, 'item_detail_style_directions')
+                      : AppLocalizations.t(ctx, 'item_detail_build_outfit'),
+                  style: TextStyle(
+                    color: colors.title,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                item.name,
-                style: TextStyle(
-                  color: isAnchorBoard
-                      ? const Color(0xFF8A8A8E)
-                      : Colors.white60,
-                  fontSize: 13,
+                const SizedBox(height: 2),
+                Text(
+                  item.name,
+                  style: TextStyle(
+                    color: colors.subtitle,
+                    fontSize: 13,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 16),
-              if (!ok || (message != null && message.isNotEmpty))
-                _StyleNotice(
-                  text: (message != null && message.isNotEmpty)
-                      ? message
-                      : AppLocalizations.t(ctx, 'item_detail_friendly_fail'),
-                ),
-              if (mode == 'style_this')
-                ...directions.map((d) => _StyleDirectionCard(direction: d)),
-              if (mode == 'build_outfit' && isAnchorBoard && outfit != null)
-                _AnchorOutfitBoardCard(outfit: outfit),
-              if (mode == 'build_outfit' && !isAnchorBoard && outfit != null)
-                _StyleDirectionCard(direction: outfit, reasonKey: 'reason'),
-            ],
-          ),
-        ),
+                const SizedBox(height: 16),
+                if (!ok || (message != null && message.isNotEmpty))
+                  _StyleNotice(
+                    text: (message != null && message.isNotEmpty)
+                        ? message
+                        : AppLocalizations.t(ctx, 'item_detail_friendly_fail'),
+                    colors: colors,
+                  ),
+                if (mode == 'style_this')
+                  ...directions.map(
+                        (d) => _StyleDirectionCard(direction: d, colors: colors),
+                  ),
+                if (mode == 'build_outfit' && isAnchorBoard && outfit != null)
+                  _AnchorOutfitBoardCard(outfit: outfit, colors: colors),
+                if (mode == 'build_outfit' && !isAnchorBoard && outfit != null)
+                  _StyleDirectionCard(
+                    direction: outfit,
+                    reasonKey: 'reason',
+                    colors: colors,
+                  ),
+              ],
+            ),
+          );
+        },
       ),
     );
   }
@@ -1469,10 +1663,124 @@ class _AllPairingsSheet extends StatelessWidget {
 
 // ============================================================
 // STYLE RESULT SHEET WIDGETS (Style This / Build Outfit)
+//
+// Theme-aware: these sheets used to be hardcoded to a fixed dark
+// palette (or fixed white, for the anchor board). They now follow the
+// app's ambient Theme brightness via _ResultSheetColors.of(context), so
+// the sheet matches whichever mode (light/dark) the rest of the app is
+// currently in.
 // ============================================================
+class _ResultSheetColors {
+  final bool isDark;
+  final Color sheetBg;
+  final Color dragHandle;
+  final Color title;
+  final Color subtitle;
+  final Color cardBg;
+  final Color cardBorder;
+  final Color cardTitle;
+  final Color cardBody;
+  final Color cardMuted;
+  final Color chipBg;
+  final Color chipBorder;
+  final Color chipText;
+  final Color chipAccentBg;
+  final Color chipAccentBorder;
+  final Color chipAccentText;
+  final Color noticeBg;
+  final Color noticeText;
+  // The flat-lay board canvas intentionally stays a light, neutral
+  // "photography backdrop" in both modes — the tiles use dark drop
+  // shadows that read correctly only against a light surface, and
+  // outfit-board UIs conventionally keep the image canvas light even
+  // inside a dark shell (Pinterest, Instagram, etc). Flip this if you'd
+  // rather the whole board go dark too.
+  final Color boardCanvasBg;
+  final Color anchorItemThumbBg;
+  final Color anchorItemName;
+
+  const _ResultSheetColors({
+    required this.isDark,
+    required this.sheetBg,
+    required this.dragHandle,
+    required this.title,
+    required this.subtitle,
+    required this.cardBg,
+    required this.cardBorder,
+    required this.cardTitle,
+    required this.cardBody,
+    required this.cardMuted,
+    required this.chipBg,
+    required this.chipBorder,
+    required this.chipText,
+    required this.chipAccentBg,
+    required this.chipAccentBorder,
+    required this.chipAccentText,
+    required this.noticeBg,
+    required this.noticeText,
+    required this.boardCanvasBg,
+    required this.anchorItemThumbBg,
+    required this.anchorItemName,
+  });
+
+  factory _ResultSheetColors.of(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return isDark ? _dark : _light;
+  }
+
+  static const _dark = _ResultSheetColors(
+    isDark: true,
+    sheetBg: Color(0xFF14110F),
+    dragHandle: Colors.white24,
+    title: Colors.white,
+    subtitle: Colors.white60,
+    cardBg: Color(0x0DFFFFFF), // Colors.white @ 5%
+    cardBorder: Colors.white12,
+    cardTitle: Colors.white,
+    cardBody: Colors.white60,
+    cardMuted: Colors.white38,
+    chipBg: Color(0x14FFFFFF), // Colors.white @ 8%
+    chipBorder: Colors.white12,
+    chipText: Colors.white,
+    chipAccentBg: Color(0x332E7D5B),
+    chipAccentBorder: Color(0x662E7D5B),
+    chipAccentText: Color(0xFF8FE3BE),
+    noticeBg: Color(0x33A32D2D),
+    noticeText: Colors.white70,
+    boardCanvasBg: Colors.white,
+    anchorItemThumbBg: Color(0xFFF7F4EE),
+    anchorItemName: Colors.white,
+  );
+
+  static const _light = _ResultSheetColors(
+    isDark: false,
+    sheetBg: Colors.white,
+    dragHandle: Color(0x1A000000),
+    title: Color(0xFF1A1A1A),
+    subtitle: Color(0xFF8A8A8E),
+    cardBg: Color(0xFFF7F7FA),
+    cardBorder: Color(0xFFEDEDF2),
+    cardTitle: Color(0xFF1A1A1A),
+    cardBody: Color(0xFF6B6B6B),
+    cardMuted: Color(0xFF8A8A8E),
+    chipBg: Color(0xFFF2F2F7),
+    chipBorder: Color(0xFFE5E5EA),
+    chipText: Color(0xFF1A1A1A),
+    chipAccentBg: Color(0x1A2E7D5B),
+    chipAccentBorder: Color(0x662E7D5B),
+    chipAccentText: Color(0xFF1F8F5F),
+    noticeBg: Color(0x1AA32D2D),
+    noticeText: Color(0xFF7A2323),
+    boardCanvasBg: Colors.white,
+    anchorItemThumbBg: Color(0xFFF7F4EE),
+    anchorItemName: Color(0xFF1A1A1A),
+  );
+}
+
 class _StyleNotice extends StatelessWidget {
   final String text;
-  const _StyleNotice({required this.text});
+  final _ResultSheetColors colors;
+  const _StyleNotice({required this.text, required this.colors});
 
   @override
   Widget build(BuildContext context) {
@@ -1480,12 +1788,12 @@ class _StyleNotice extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0x33A32D2D),
+        color: colors.noticeBg,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Text(
         text,
-        style: const TextStyle(color: Colors.white70, fontSize: 13, height: 1.35),
+        style: TextStyle(color: colors.noticeText, fontSize: 13, height: 1.35),
       ),
     );
   }
@@ -1494,8 +1802,10 @@ class _StyleNotice extends StatelessWidget {
 class _StyleDirectionCard extends StatelessWidget {
   final Map<String, dynamic> direction;
   final String reasonKey;
+  final _ResultSheetColors colors;
   const _StyleDirectionCard({
     required this.direction,
+    required this.colors,
     this.reasonKey = 'styling_note',
   });
 
@@ -1538,17 +1848,17 @@ class _StyleDirectionCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 14),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
+        color: colors.cardBg,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white12),
+        border: Border.all(color: colors.cardBorder),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             title,
-            style: const TextStyle(
-              color: Colors.white,
+            style: TextStyle(
+              color: colors.cardTitle,
               fontSize: 16,
               fontWeight: FontWeight.w600,
             ),
@@ -1557,8 +1867,8 @@ class _StyleDirectionCard extends StatelessWidget {
             const SizedBox(height: 6),
             Text(
               note,
-              style: const TextStyle(
-                color: Colors.white60,
+              style: TextStyle(
+                color: colors.cardBody,
                 fontSize: 13,
                 height: 1.35,
               ),
@@ -1568,8 +1878,8 @@ class _StyleDirectionCard extends StatelessWidget {
             const SizedBox(height: 12),
             Text(
               AppLocalizations.t(context, 'item_detail_wear_label'),
-              style: const TextStyle(
-                color: Colors.white38,
+              style: TextStyle(
+                color: colors.cardMuted,
                 fontSize: 11,
                 letterSpacing: 0.6,
               ),
@@ -1578,16 +1888,17 @@ class _StyleDirectionCard extends StatelessWidget {
             Wrap(
               spacing: 8,
               runSpacing: 8,
-              children:
-              items.map((n) => _StyleChip(label: n, accent: false)).toList(),
+              children: items
+                  .map((n) => _StyleChip(label: n, accent: false, colors: colors))
+                  .toList(),
             ),
           ],
           if (missing.isNotEmpty) ...[
             const SizedBox(height: 12),
             Text(
               AppLocalizations.t(context, 'item_detail_missing_shop_these'),
-              style: const TextStyle(
-                color: Colors.white38,
+              style: TextStyle(
+                color: colors.cardMuted,
                 fontSize: 11,
                 letterSpacing: 0.6,
               ),
@@ -1596,8 +1907,9 @@ class _StyleDirectionCard extends StatelessWidget {
             Wrap(
               spacing: 8,
               runSpacing: 8,
-              children:
-              missing.map((n) => _StyleChip(label: n, accent: true)).toList(),
+              children: missing
+                  .map((n) => _StyleChip(label: n, accent: true, colors: colors))
+                  .toList(),
             ),
           ],
         ],
@@ -1609,24 +1921,28 @@ class _StyleDirectionCard extends StatelessWidget {
 class _StyleChip extends StatelessWidget {
   final String label;
   final bool accent;
-  const _StyleChip({required this.label, required this.accent});
+  final _ResultSheetColors colors;
+  const _StyleChip({
+    required this.label,
+    required this.accent,
+    required this.colors,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
       decoration: BoxDecoration(
-        color:
-        accent ? const Color(0x332E7D5B) : Colors.white.withOpacity(0.08),
+        color: accent ? colors.chipAccentBg : colors.chipBg,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: accent ? const Color(0x662E7D5B) : Colors.white12,
+          color: accent ? colors.chipAccentBorder : colors.chipBorder,
         ),
       ),
       child: Text(
         label,
         style: TextStyle(
-          color: accent ? const Color(0xFF8FE3BE) : Colors.white,
+          color: accent ? colors.chipAccentText : colors.chipText,
           fontSize: 13,
         ),
       ),
@@ -1670,7 +1986,8 @@ BoardItemRole _anchorBoardRoleFromRaw(Map<String, dynamic> raw) {
 
 class _AnchorOutfitBoardCard extends StatelessWidget {
   final Map<String, dynamic> outfit;
-  const _AnchorOutfitBoardCard({required this.outfit});
+  final _ResultSheetColors colors;
+  const _AnchorOutfitBoardCard({required this.outfit, required this.colors});
 
   List<Map<String, dynamic>> _rawItems() {
     final v = outfit['board_items'] ?? outfit['items'];
@@ -1706,20 +2023,20 @@ class _AnchorOutfitBoardCard extends StatelessWidget {
           child: ClipRRect(
             borderRadius: BorderRadius.circular(16),
             child: Container(
-              color: Colors.white,
+              color: colors.boardCanvasBg,
               child: _AnchorBoardCanvas(items: rawItems),
             ),
           ),
         ),
         const SizedBox(height: 16),
         // item list with source badges
-        ...rawItems.map((raw) => _AnchorItemRow(raw: raw)),
+        ...rawItems.map((raw) => _AnchorItemRow(raw: raw, colors: colors)),
         if (stylingNote.isNotEmpty) ...[
           const SizedBox(height: 14),
           Text(
             stylingNote,
-            style: const TextStyle(
-              color: Color(0xFF3C3C43),
+            style: TextStyle(
+              color: colors.cardBody,
               fontSize: 13,
               height: 1.4,
             ),
@@ -1729,8 +2046,8 @@ class _AnchorOutfitBoardCard extends StatelessWidget {
           const SizedBox(height: 14),
           Text(
             AppLocalizations.t(context, 'item_detail_missing_shop_these'),
-            style: const TextStyle(
-              color: Color(0xFF8A8A8E),
+            style: TextStyle(
+              color: colors.cardMuted,
               fontSize: 11,
               letterSpacing: 0.6,
             ),
@@ -1742,7 +2059,7 @@ class _AnchorOutfitBoardCard extends StatelessWidget {
             children: missing.map((m) {
               final label =
               (m['label'] ?? m['name'] ?? '').toString().trim();
-              return _StyleChip(label: label, accent: true);
+              return _StyleChip(label: label, accent: true, colors: colors);
             }).toList(),
           ),
         ],
@@ -1754,7 +2071,8 @@ class _AnchorOutfitBoardCard extends StatelessWidget {
 
 class _AnchorItemRow extends StatelessWidget {
   final Map<String, dynamic> raw;
-  const _AnchorItemRow({required this.raw});
+  final _ResultSheetColors colors;
+  const _AnchorItemRow({required this.raw, required this.colors});
 
   @override
   Widget build(BuildContext context) {
@@ -1782,7 +2100,7 @@ class _AnchorItemRow extends StatelessWidget {
             child: Container(
               width: 44,
               height: 44,
-              color: const Color(0xFFF7F4EE),
+              color: colors.anchorItemThumbBg,
               child: imageUrl.isNotEmpty
                   ? Image.network(imageUrl, fit: BoxFit.contain)
                   : const Icon(Icons.checkroom, size: 20, color: Color(0xFFBFBFD6)),
@@ -1792,8 +2110,8 @@ class _AnchorItemRow extends StatelessWidget {
           Expanded(
             child: Text(
               name,
-              style: const TextStyle(
-                color: Color(0xFF1A1A1A),
+              style: TextStyle(
+                color: colors.anchorItemName,
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
               ),
