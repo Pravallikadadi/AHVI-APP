@@ -2830,28 +2830,28 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
         icon: Icons.checkroom_outlined,
         color: const Color(0xFF6B8FD4),
         label: AppLocalizations.t(context, 'hero_row_wear'),
-        value: summary.wear,
+        value: AppLocalizations.t(context, summary.wear),
         page: DailyWearScreen(),
       ),
       _HeroRowData(
         icon: Icons.directions_run_rounded,
         color: const Color(0xFF5BBF8A),
         label: AppLocalizations.t(context, 'hero_row_move'),
-        value: summary.move,
+        value: AppLocalizations.t(context, summary.move),
         page: WorkoutStudioScreen(),
       ),
       _HeroRowData(
         icon: Icons.restaurant_outlined,
         color: const Color(0xFFE8895A),
         label: AppLocalizations.t(context, 'hero_row_eat'),
-        value: summary.eat,
+        value: AppLocalizations.t(context, summary.eat),
         page: MainScreen(fromHome: true),
       ),
       _HeroRowData(
         icon: Icons.spa_outlined,
         color: const Color(0xFFB07FD4),
         label: AppLocalizations.t(context, 'hero_row_care'),
-        value: summary.care,
+        value: AppLocalizations.t(context, summary.care),
         page: SkincareScreen(),
       ),
     ];
@@ -2887,7 +2887,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
           // px value — on wide/tablet cards this stops the photo from
           // ballooning and eating the text column; on narrow phones it stops
           // the photo from being squeezed to nothing.
-          final imageW = (cardW * 0.34).clamp(112.0, 190.0);
+          final imageW = (cardW * 0.40).clamp(120.0, 220.0);
           final fadeW = (imageW * 0.55).clamp(56.0, 96.0);
           // How much of the fade area text is allowed to sit under (keeps
           // the text block from looking cramped against the photo edge).

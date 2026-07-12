@@ -59,6 +59,16 @@ class AppwriteService extends ChangeNotifier {
   }
 
   // =========================================================================
+  // PROFILE SYNC OPTIMIZATION: RETRY & CIRCUIT BREAKER
+  // =========================================================================
+
+  static const int _maxProfileSyncRetries = 2;
+  static const Duration _initialRetryDelay = Duration(milliseconds: 100);
+
+  /// Circuit breaker to prevent rapid-fire retry storms after repeated failures
+  late final _profileSyncCircuitBreaker = _ProfileSyncCircuitBreaker();
+
+  // =========================================================================
   // AUTHENTICATION METHODS
   // =========================================================================
 
@@ -203,54 +213,189 @@ class AppwriteService extends ChangeNotifier {
     }
   }
 
-  // ================= EMAIL OTP LOGIN (token-based, no password) ==========
+  // ================= EMAIL OTP LOGIN (FIXED - persists state) ==========
   // Appwrite's "email token" flow: createEmailToken() emails a 6-digit
-  // secret and returns a Token whose userId we must hang on to — the
-  // subsequent createSession() call needs BOTH the userId and the secret
-  // the user typed in, not just the email.
-  String? _otpUserId;
+  // secret and returns a Token whose userId we persist to SharedPreferences
+  // so it survives app restarts. The subsequent createSession() call needs
+  // BOTH the userId and the secret the user typed in, not just the email.
 
+  static const String _otpUserIdKey = 'ahvi_otp_user_id';
+  static const String _otpEmailKey = 'ahvi_otp_email';
+  static const String _otpTimestampKey = 'ahvi_otp_timestamp';
+  static const Duration _otpTimeout = Duration(minutes: 10);
+
+  /// Send OTP to user's email
+  ///
+  /// Appwrite's createEmailToken() sends a 6-digit code to the email.
+  /// We persist the userId so it survives app restarts.
   Future<void> sendOTP(String email) async {
     try {
+      // Normalize email
+      final normalizedEmail = email.toLowerCase().trim();
+
+      debugPrint('📧 Sending OTP to: $normalizedEmail');
+
+      // Create Appwrite email token (this sends the 6-digit code)
       final token = await account.createEmailToken(
         userId: ID.unique(),
-        email: email,
+        email: normalizedEmail,
       );
-      _otpUserId = token.userId;
+
+      // ✅ Persist to SharedPreferences (survives app restart!)
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_otpUserIdKey, token.userId);
+      await prefs.setString(_otpEmailKey, normalizedEmail);
+      await prefs.setInt(
+        _otpTimestampKey,
+        DateTime.now().millisecondsSinceEpoch,
+      );
+
+      debugPrint('✅ OTP sent & persisted: userId=${token.userId}');
     } catch (e) {
-      debugPrint("Send OTP error: $e");
+      debugPrint("❌ Send OTP error: $e");
       rethrow;
     }
   }
 
+  /// Verify OTP code entered by user
+  ///
+  /// Retrieves the persisted userId and validates the OTP.
+  /// Returns true on success, false on any validation failure.
   Future<bool> verifyOTP(String email, String otp) async {
-    final userId = _otpUserId;
-    if (userId == null) {
-      debugPrint("Verify OTP error: no pending OTP request for this email");
-      return false;
-    }
     try {
+      // Normalize email
+      final normalizedEmail = email.toLowerCase().trim();
+
+      debugPrint('🔐 Verifying OTP for: $normalizedEmail, code: ${otp.substring(0, 2)}***');
+
+      // ✅ Retrieve from persistent storage
+      final prefs = await SharedPreferences.getInstance();
+      final savedUserId = prefs.getString(_otpUserIdKey);
+      final savedEmail = prefs.getString(_otpEmailKey);
+      final savedTimestamp = prefs.getInt(_otpTimestampKey);
+
+      // Check if OTP request exists
+      if (savedUserId == null || savedEmail == null || savedTimestamp == null) {
+        debugPrint("❌ Verify OTP error: no pending OTP request for this email");
+        return false;
+      }
+
+      // Validate email consistency
+      if (normalizedEmail != savedEmail) {
+        debugPrint("❌ Verify OTP error: email mismatch (got: $normalizedEmail, expected: $savedEmail)");
+        await _clearOTPState();
+        return false;
+      }
+
+      // Check OTP expiry (10 minutes)
+      final otpAge = DateTime.now().difference(
+        DateTime.fromMillisecondsSinceEpoch(savedTimestamp),
+      );
+      if (otpAge > _otpTimeout) {
+        debugPrint("❌ Verify OTP error: OTP expired (${otpAge.inSeconds}s old, max ${_otpTimeout.inSeconds}s)");
+        await _clearOTPState();
+        return false;
+      }
+
+      // ✅ CRITICAL: Delete all existing sessions BEFORE creating new one
+      debugPrint('🔑 Deleting existing sessions before creating new one...');
+      try {
+        await account.deleteSessions();
+        debugPrint('✅ All sessions deleted');
+      } catch (e) {
+        debugPrint('⚠️  Could not delete all sessions, trying current: $e');
+        try {
+          await account.deleteSession(sessionId: 'current');
+          debugPrint('✅ Current session deleted');
+        } catch (e2) {
+          debugPrint('⚠️  Could not delete current session: $e2');
+          // Continue anyway, might still work
+        }
+      }
+
+      // Small delay to ensure session deletion is processed
+      await Future.delayed(Duration(milliseconds: 500));
+
+      // ✅ NOW create new session with the OTP secret
+      debugPrint('🔑 Creating new session with userId: $savedUserId');
+
       // Wipe any previous user's in-memory state before establishing the
       // new session — same rule as the password login path.
       clearUserCache();
 
-      await account.createSession(userId: userId, secret: otp);
+      await account.createSession(userId: savedUserId, secret: otp);
 
+      debugPrint('✅ Session created successfully');
+
+      // ✅ Success! Cache user and profile data
       await cacheCurrentUser();
       await ensureCurrentUserProfile();
       await refreshCurrentUserProfile();
 
+      // ✅ Clean up after successful verification
+      await _clearOTPState();
       notifyListeners();
+
+      debugPrint('✅ OTP verification successful!');
       return true;
     } catch (e) {
-      debugPrint("Verify OTP error: $e");
+      debugPrint("❌ Verify OTP error: $e");
+      // Don't clear state on Appwrite verification failure
+      // (user might retry with correct code)
       return false;
-    } finally {
-      // One-shot: a used or expired token can't be retried anyway.
-      _otpUserId = null;
     }
   }
-  // ================= EMAIL OTP LOGIN END ===================================
+
+  /// Clear OTP state (call after successful verification or when user cancels)
+  Future<void> _clearOTPState() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_otpUserIdKey);
+      await prefs.remove(_otpEmailKey);
+      await prefs.remove(_otpTimestampKey);
+      debugPrint('🗑️  OTP state cleared');
+    } catch (e) {
+      debugPrint('⚠️  Error clearing OTP state: $e');
+    }
+  }
+
+  /// Allow user to cancel the OTP request and request a new one
+  Future<void> cancelOTPRequest() async {
+    await _clearOTPState();
+    debugPrint('❌ OTP request cancelled by user');
+  }
+
+  /// Debug helper: Check current OTP state
+  Future<void> debugPrintOTPState() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final userId = prefs.getString(_otpUserIdKey);
+      final email = prefs.getString(_otpEmailKey);
+      final timestamp = prefs.getInt(_otpTimestampKey);
+
+      if (userId == null) {
+        debugPrint('🔍 OTP State: [EMPTY - No pending request]');
+        return;
+      }
+
+      final age = DateTime.now().difference(
+        DateTime.fromMillisecondsSinceEpoch(timestamp!),
+      );
+      final isExpired = age > _otpTimeout;
+
+      debugPrint('''
+🔍 OTP State:
+   userId: $userId
+   email: $email
+   age: ${age.inSeconds}s
+   expired: $isExpired
+   timeout: ${_otpTimeout.inMinutes}m
+''');
+    } catch (e) {
+      debugPrint('🔍 OTP State: Error reading - $e');
+    }
+  }
+  // ================= EMAIL OTP LOGIN END (FIXED) ======================
 
   Future<User> registerEmailPassword(
       String email,
@@ -358,9 +503,13 @@ class AppwriteService extends ChangeNotifier {
   // =========================================================================
 
   bool _userProfileSyncInFlight = false;
+  bool _userProfileSyncInFlight2 = false; // Secondary guard for profile sync
 
   String _safeUsernameFromUser(dynamic user) {
-    final emailPrefix = user.email.toString().split('@').first;
+    // ✅ SAFE: Handle email without @ symbol
+    final emailPrefix = user.email.toString().contains('@')
+        ? user.email.toString().split('@').first
+        : user.email.toString();
     final raw =
     (user.name.toString().trim().isNotEmpty
         ? user.name.toString()
@@ -490,6 +639,8 @@ class AppwriteService extends ChangeNotifier {
       'onboarding1',
       'onboarding2',
       'onboarding3',
+      // ✅ REMOVED: updatedAt and createdAt - Appwrite manages these as system fields ($updatedAt, $createdAt)
+      // Never send these manually to the database
     };
     final out = <String, dynamic>{};
     for (final entry in data.entries) {
@@ -582,6 +733,103 @@ class AppwriteService extends ChangeNotifier {
     }
   }
 
+  /// ✅ NEW: Retry wrapper with exponential backoff and max retry limit
+  Future<Document> _updateProfileDocumentWithFallbackRetry({
+    required String usersCollectionId,
+    required String documentId,
+    required Map<String, dynamic> payload,
+    int retryCount = 0,
+  }) async {
+    // Circuit breaker check: if too many failures, fail fast
+    if (!_profileSyncCircuitBreaker.canRetry()) {
+      debugPrint(
+        '⚠️ Profile sync circuit breaker OPEN. Too many failures. Skipping retry.',
+      );
+      throw Exception('Profile sync circuit breaker is open');
+    }
+
+    try {
+      final result = await _updateProfileDocumentWithFallback(
+        usersCollectionId: usersCollectionId,
+        documentId: documentId,
+        payload: payload,
+      );
+      _profileSyncCircuitBreaker.recordSuccess();
+      return result;
+    } catch (e) {
+      _profileSyncCircuitBreaker.recordFailure();
+
+      if (retryCount < _maxProfileSyncRetries) {
+        // Exponential backoff: 100ms, 200ms, etc.
+        final delay = _initialRetryDelay * (retryCount + 1);
+        debugPrint(
+          'AHVI_PROFILE_UPDATE_RETRY attempt=${retryCount + 1} '
+              'delay=${delay.inMilliseconds}ms error=$e',
+        );
+        await Future.delayed(delay);
+        return _updateProfileDocumentWithFallbackRetry(
+          usersCollectionId: usersCollectionId,
+          documentId: documentId,
+          payload: payload,
+          retryCount: retryCount + 1,
+        );
+      }
+
+      debugPrint(
+        '❌ Profile update failed after $_maxProfileSyncRetries retries: $e',
+      );
+      rethrow;
+    }
+  }
+
+  /// ✅ NEW: Retry wrapper for document creation
+  Future<Document> _createProfileDocumentWithFallbackRetry({
+    required String usersCollectionId,
+    required String documentId,
+    required Map<String, dynamic> payload,
+    int retryCount = 0,
+  }) async {
+    // Circuit breaker check
+    if (!_profileSyncCircuitBreaker.canRetry()) {
+      debugPrint(
+        '⚠️ Profile sync circuit breaker OPEN. Too many failures. Skipping retry.',
+      );
+      throw Exception('Profile sync circuit breaker is open');
+    }
+
+    try {
+      final result = await _createProfileDocumentWithFallback(
+        usersCollectionId: usersCollectionId,
+        documentId: documentId,
+        payload: payload,
+      );
+      _profileSyncCircuitBreaker.recordSuccess();
+      return result;
+    } catch (e) {
+      _profileSyncCircuitBreaker.recordFailure();
+
+      if (retryCount < _maxProfileSyncRetries) {
+        final delay = _initialRetryDelay * (retryCount + 1);
+        debugPrint(
+          'AHVI_PROFILE_CREATE_RETRY attempt=${retryCount + 1} '
+              'delay=${delay.inMilliseconds}ms error=$e',
+        );
+        await Future.delayed(delay);
+        return _createProfileDocumentWithFallbackRetry(
+          usersCollectionId: usersCollectionId,
+          documentId: documentId,
+          payload: payload,
+          retryCount: retryCount + 1,
+        );
+      }
+
+      debugPrint(
+        '❌ Profile create failed after $_maxProfileSyncRetries retries: $e',
+      );
+      rethrow;
+    }
+  }
+
   Future<void> updateCurrentUserProfileFields(Map<String, dynamic> data) async {
     try {
       final user = await getCurrentUser();
@@ -596,10 +844,12 @@ class AppwriteService extends ChangeNotifier {
 
       await ensureCurrentUserProfile();
 
-      final updated = await _updateProfileDocumentWithFallback(
+      // ✅ NOW USES RETRY WRAPPER INSTEAD OF DIRECT CALL
+      // ✅ REMOVED: 'updatedAt' - Appwrite manages this as $updatedAt system field
+      final updated = await _updateProfileDocumentWithFallbackRetry(
         usersCollectionId: usersCollectionId,
         documentId: user.$id,
-        payload: {...data, 'updatedAt': DateTime.now().toIso8601String()},
+        payload: data,  // Don't add updatedAt - let Appwrite handle it
       );
 
       _cachedUserProfileData = Map<String, dynamic>.from(updated.data);
@@ -614,7 +864,11 @@ class AppwriteService extends ChangeNotifier {
   }
 
   Future<Document?> ensureCurrentUserProfile() async {
-    if (_userProfileSyncInFlight) return null;
+    // ✅ IMPROVED: Dual guard system to prevent any re-entry
+    if (_userProfileSyncInFlight || _userProfileSyncInFlight2) {
+      debugPrint('⚠️ Profile sync already in flight, skipping duplicate call');
+      return null;
+    }
 
     final usersCollectionId = Env.usersCollection.trim();
     if (usersCollectionId.isEmpty) {
@@ -625,6 +879,7 @@ class AppwriteService extends ChangeNotifier {
     }
 
     _userProfileSyncInFlight = true;
+    _userProfileSyncInFlight2 = true;
 
     try {
       final user = await account.get();
@@ -632,8 +887,9 @@ class AppwriteService extends ChangeNotifier {
 
       final displayName = user.name.toString().trim().isNotEmpty
           ? user.name.toString().trim()
-          : user.email.toString().split('@').first;
-      final now = DateTime.now().toIso8601String();
+          : (user.email.toString().contains('@')
+          ? user.email.toString().split('@').first
+          : user.email.toString());
 
       final createData = <String, dynamic>{
         'name': displayName,
@@ -651,8 +907,7 @@ class AppwriteService extends ChangeNotifier {
         'shopPrefs': <String>[],
         'dob': '',
         'phone': '',
-        'createdAt': now,
-        'updatedAt': now,
+        // ✅ REMOVED: createdAt and updatedAt - Appwrite manages these as $createdAt and $updatedAt
       };
 
       try {
@@ -665,14 +920,15 @@ class AppwriteService extends ChangeNotifier {
 
         // IMPORTANT: Do not overwrite onboarding/profile answers on relogin.
         // Only refresh identity fields that come from Appwrite Auth.
-        final updated = await _updateProfileDocumentWithFallback(
+        // ✅ NOW USES RETRY WRAPPER
+        final updated = await _updateProfileDocumentWithFallbackRetry(
           usersCollectionId: usersCollectionId,
           documentId: user.$id,
           payload: {
             'name': displayName,
             'username': _safeUsernameFromUser(user),
             'email': user.email,
-            'updatedAt': now,
+            // ✅ REMOVED: 'updatedAt' - Appwrite manages this as $updatedAt
           },
         );
 
@@ -686,7 +942,8 @@ class AppwriteService extends ChangeNotifier {
       } on AppwriteException catch (e) {
         if (e.code == 404) {
           debugPrint('AHVI_PROFILE_CREATE_START userId=${user.$id}');
-          final created = await _createProfileDocumentWithFallback(
+          // ✅ NOW USES RETRY WRAPPER
+          final created = await _createProfileDocumentWithFallbackRetry(
             usersCollectionId: usersCollectionId,
             documentId: user.$id,
             payload: createData,
@@ -711,6 +968,7 @@ class AppwriteService extends ChangeNotifier {
       rethrow;
     } finally {
       _userProfileSyncInFlight = false;
+      _userProfileSyncInFlight2 = false;
     }
   }
 
@@ -982,7 +1240,7 @@ class AppwriteService extends ChangeNotifier {
         'outfitDescription': outfitDescription.trim(),
         'thumbnailUrl': cleanImageUrl,
         'emoji': (emoji ?? '').trim().isEmpty ? '✨' : emoji!.trim(),
-        'createdAt': nowIso,
+        // ✅ REMOVED: 'createdAt' - Appwrite manages this as $createdAt
       };
       if (outfitItems.isNotEmpty) richData['outfitItems'] = outfitItems;
       if (items.isNotEmpty) richData['items'] = items;
@@ -1028,7 +1286,7 @@ class AppwriteService extends ChangeNotifier {
               'prompt': richData['prompt'],
               'outfitDescription': richData['outfitDescription'],
               'emoji': richData['emoji'],
-              'createdAt': nowIso,
+              // ✅ REMOVED: 'createdAt' - Appwrite manages this as $createdAt
               'board_payload': jsonPayload,
             },
           );
@@ -1623,5 +1881,42 @@ class AppwriteService extends ChangeNotifier {
       debugPrint("Error deleting life goal: $e");
       rethrow;
     }
+  }
+}
+
+/// ✅ NEW: Circuit breaker pattern to prevent rapid-fire retry storms
+class _ProfileSyncCircuitBreaker {
+  int _failureCount = 0;
+  DateTime? _failureResetTime;
+
+  static const int _maxConsecutiveFailures = 5;
+  static const Duration _circuitBreakerReset = Duration(seconds: 30);
+
+  /// Returns true if we can attempt another retry
+  bool canRetry() {
+    if (_failureCount >= _maxConsecutiveFailures) {
+      final now = DateTime.now();
+      if (_failureResetTime != null &&
+          now.difference(_failureResetTime!) > _circuitBreakerReset) {
+        debugPrint('🔄 Profile sync circuit breaker RESET after cooldown');
+        _failureCount = 0;
+        _failureResetTime = null;
+        return true;
+      }
+      return false;
+    }
+    return true;
+  }
+
+  void recordFailure() {
+    _failureCount++;
+    _failureResetTime = DateTime.now();
+    debugPrint('❌ Profile sync failure recorded ($_failureCount/$_maxConsecutiveFailures)');
+  }
+
+  void recordSuccess() {
+    _failureCount = 0;
+    _failureResetTime = null;
+    debugPrint('✅ Profile sync success, circuit breaker reset');
   }
 }

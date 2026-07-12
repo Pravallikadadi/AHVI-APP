@@ -25,6 +25,7 @@ import 'package:myapp/style_board/board_models.dart';
 import 'package:myapp/style_board/board_renderer.dart';
 import 'package:myapp/style_board/board_layout_engine.dart';
 import 'package:myapp/app_localizations.dart'; // 🆕 Localization
+import 'style_boards.dart'; // 🆕 STYLE BOARDS INTEGRATION (consolidated, same folder)
 import 'pairing_engine.dart';
 
 // ============================================================
@@ -381,7 +382,24 @@ class _ItemDetailModal extends StatelessWidget {
   // Both show a loading spinner, then a result sheet, and never dead-end.
   // ============================================================
   void _onStyleThis(BuildContext context, WardrobeItem item) {
-    _runStyleCta(context, item, mode: 'style_this');
+    // 🆕 STYLE BOARDS INTEGRATION
+    // Open style boards bottom sheet instead of chat
+    showStyleBoardsSheet(
+      context,
+      selectedItem: item,
+      allItems: allItems,
+      onStyleSelected: () {
+        debugPrint('Style applied for: ${item.name}');
+        // Optional: Add additional logic here
+        // - Show success message
+        // - Update recommendations
+        // - Navigate to outfit builder
+      },
+      onItemReplaced: () {
+        debugPrint('Item replaced in style board');
+        // Handle replacement logic if needed
+      },
+    );
   }
 
   void _onBuildOutfit(BuildContext context, WardrobeItem item) {

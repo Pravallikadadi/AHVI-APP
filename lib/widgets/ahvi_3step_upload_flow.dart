@@ -15,9 +15,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:myapp/theme/theme_tokens.dart';
-// TODO: Import your localization helper
-// import 'package:myapp/l10n/app_localizations.dart';
-// or use: import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:myapp/app_localizations.dart'; // ✅ FIXED: Localization import
 
 // ============================================================
 // UI-ONLY DTO
@@ -77,6 +75,13 @@ class UploadPreviewItem {
   String? get statusLabelKey {
     if (isNeedsReview) return 'upload_status_needs_review';
     if (isRejected) return 'upload_status_rejected';
+    return null;
+  }
+
+  // ✅ FIXED: Get translated status label instead of key
+  String? getStatusLabel(BuildContext context) {
+    if (isNeedsReview) return AppLocalizations.t(context, 'upload_status_needs_review');
+    if (isRejected) return AppLocalizations.t(context, 'upload_status_rejected');
     return null;
   }
 }
@@ -177,33 +182,33 @@ class _Ahvi3StepUploadModalState extends State<Ahvi3StepUploadModal> {
     final result = await showDialog<Map<String, dynamic>>(
       context: context,
       builder: (dialogContext) {
-        // TODO: Replace hardcoded strings with loc.getString() calls
+        // ✅ All strings now use localization
         return AlertDialog(
-          title: const Text('upload_edit_dialog_title'), // Replace with localization
+          title: Text(AppLocalizations.t(context, 'upload_edit_dialog_title')),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 TextField(
                   controller: nameCtrl,
-                  decoration: const InputDecoration(labelText: 'upload_label_field'), // Replace
+                  decoration: InputDecoration(labelText: AppLocalizations.t(context, 'upload_label_field')),
                   textInputAction: TextInputAction.next,
                 ),
                 TextField(
                   controller: categoryCtrl,
-                  decoration: const InputDecoration(labelText: 'upload_category_field'), // Replace
+                  decoration: InputDecoration(labelText: AppLocalizations.t(context, 'upload_category_field')),
                   textInputAction: TextInputAction.next,
                 ),
                 TextField(
                   controller: styleCtrl,
-                  decoration: const InputDecoration(labelText: 'upload_subcategory_field'), // Replace
+                  decoration: InputDecoration(labelText: AppLocalizations.t(context, 'upload_subcategory_field')),
                   textInputAction: TextInputAction.next,
                 ),
                 TextField(
                   controller: occasionCtrl,
                   decoration: InputDecoration(
-                    labelText: 'upload_tags_field', // Replace
-                    hintText: 'upload_tags_hint', // Replace
+                    labelText: AppLocalizations.t(context, 'upload_tags_field'),
+                    hintText: AppLocalizations.t(context, 'upload_tags_hint'),
                   ),
                 ),
               ],
@@ -212,7 +217,7 @@ class _Ahvi3StepUploadModalState extends State<Ahvi3StepUploadModal> {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text('upload_cancel_button'), // Replace
+              child: Text(AppLocalizations.t(context, 'upload_cancel_button')),
             ),
             FilledButton(
               onPressed: () {
@@ -227,7 +232,7 @@ class _Ahvi3StepUploadModalState extends State<Ahvi3StepUploadModal> {
                       .toList(),
                 });
               },
-              child: const Text('upload_save_button'), // Replace
+              child: Text(AppLocalizations.t(context, 'upload_save_button')),
             ),
           ],
         );
@@ -387,7 +392,7 @@ class _Ahvi3StepUploadModalState extends State<Ahvi3StepUploadModal> {
                 const _AnimatingSparkle(),
                 const SizedBox(height: 24),
                 Text(
-                  'upload_understanding_title', // TODO: Replace with loc.getString()
+                  AppLocalizations.t(context, 'upload_understanding_title'),
                   textAlign: TextAlign.center,
                   style: GoogleFonts.inter(
                     fontSize: 18,
@@ -425,7 +430,7 @@ class _Ahvi3StepUploadModalState extends State<Ahvi3StepUploadModal> {
                           ),
                           const SizedBox(width: 12),
                           Text(
-                            _detectionCheckKeys[index], // TODO: Replace with loc.getString()
+                            AppLocalizations.t(context, _detectionCheckKeys[index]), // ✅ FIXED: Translate key
                             style: GoogleFonts.inter(
                               fontSize: 13,
                               color: onSurfaceMuted,
@@ -438,7 +443,7 @@ class _Ahvi3StepUploadModalState extends State<Ahvi3StepUploadModal> {
                 ),
                 const SizedBox(height: 32),
                 Text(
-                  'upload_analyzing', // TODO: Replace with loc.getString()
+                  AppLocalizations.t(context, 'upload_analyzing'),
                   style: GoogleFonts.inter(
                     fontSize: 12,
                     color: onSurfaceFaint,
@@ -560,7 +565,7 @@ class _Ahvi3StepUploadModalState extends State<Ahvi3StepUploadModal> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
-                          'upload_next_button', // TODO: Replace with loc.getString()
+                          AppLocalizations.t(context, 'upload_next_button'),
                           style: GoogleFonts.inter(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
@@ -642,13 +647,13 @@ class _Ahvi3StepUploadModalState extends State<Ahvi3StepUploadModal> {
                 TextButton.icon(
                   onPressed: () => _editItem(item),
                   icon: const Icon(Icons.edit_rounded, size: 16),
-                  label: const Text('upload_edit_label_tags'), // TODO: Replace with loc.getString()
+                  label: Text(AppLocalizations.t(context, 'upload_edit_label_tags')),
                 ),
-                if (item.statusLabelKey != null) ...[
+                if (item.getStatusLabel(context) != null) ...[
                   const SizedBox(height: 2),
                   Text(
                     [
-                      item.statusLabelKey!, // TODO: Replace with loc.getString()
+                      item.getStatusLabel(context)!, // ✅ FIXED: Now shows translated label
                       if ((item.rejectionReason ?? '').trim().isNotEmpty)
                         item.rejectionReason!.trim(),
                     ].join(' · '),
@@ -786,7 +791,7 @@ class _Ahvi3StepUploadModalState extends State<Ahvi3StepUploadModal> {
                           const _AnimatingSparkle(size: 18),
                           const SizedBox(width: 8),
                           Text(
-                            'upload_insight_title', // TODO: Replace with loc.getString()
+                            AppLocalizations.t(context, 'upload_insight_title'),
                             style: GoogleFonts.inter(
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
@@ -798,7 +803,7 @@ class _Ahvi3StepUploadModalState extends State<Ahvi3StepUploadModal> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'upload_insight_subtitle', // TODO: Replace with loc.getString()
+                        AppLocalizations.t(context, 'upload_insight_subtitle'),
                         style: GoogleFonts.inter(
                           fontSize: 12,
                           color: t.mutedText,
@@ -909,7 +914,7 @@ class _Ahvi3StepUploadModalState extends State<Ahvi3StepUploadModal> {
                 ),
                 const SizedBox(width: 6),
                 Text(
-                  'upload_privacy_note', // TODO: Replace with loc.getString()
+                  AppLocalizations.t(context, 'upload_privacy_note'),
                   style: GoogleFonts.inter(
                     fontSize: 10,
                     color: t.mutedText,
@@ -933,11 +938,11 @@ class _Ahvi3StepUploadModalState extends State<Ahvi3StepUploadModal> {
     return outlined
         ? OutlinedButton(
       onPressed: onPressed,
-      child: Text(label),
+      child: Text(AppLocalizations.t(context, label)), // ✅ FIXED: Translate label
     )
         : FilledButton(
       onPressed: onPressed,
-      child: Text(label),
+      child: Text(AppLocalizations.t(context, label)), // ✅ FIXED: Translate label
     );
   }
 
@@ -966,10 +971,10 @@ class _Ahvi3StepUploadModalState extends State<Ahvi3StepUploadModal> {
     );
   }
 
-  Widget _sectionLabel(String keyOrText) {
+  Widget _sectionLabel(String localizationKey) {
     final t = Theme.of(context).extension<AppThemeTokens>()!;
     return Text(
-      keyOrText,
+      AppLocalizations.t(context, localizationKey), // ✅ FIXED: Translate the key
       style: GoogleFonts.inter(
         fontSize: 12,
         fontWeight: FontWeight.w600,
