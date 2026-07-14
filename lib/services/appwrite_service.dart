@@ -24,6 +24,11 @@ class AppwriteService extends ChangeNotifier {
 
   Map<String, dynamic>? get cachedUserProfileData => _cachedUserProfileData;
 
+  /// Synchronous getter for the cached user ID.
+  /// Returns null if the user has not been fetched yet — call
+  /// [getCurrentUser] or [cacheCurrentUser] first (both auth paths already do this).
+  String? get currentUserId => _cachedUser?.$id;
+
   // Wardrobe TTL cache — cuts redundant listDocuments calls from planner pages.
   List<Map<String, dynamic>>? _wardrobeCache;
   DateTime? _wardrobeCacheAt;
@@ -1057,11 +1062,51 @@ class AppwriteService extends ChangeNotifier {
           "masked_url": doc.data['masked_url'],
           "normalized_url": doc.data['normalized_url'],
           "raw_url": doc.data['raw_url'],
+          // ── Favourite / like flags ────────────────────────────────────────
+          // Exposed so FavouritesScreen can filter liked wardrobe items
+          // without a separate query. Both keys are checked because the
+          // field name may vary by collection schema version.
+          "isLiked": doc.data['isLiked'] ?? doc.data['isFavourite'] ?? false,
+          "isFavourite": doc.data['isFavourite'] ?? doc.data['isLiked'] ?? false,
+          "imageUrl": doc.data['imageUrl'] ??
+              doc.data['normalized_url'] ??
+              doc.data['masked_url'] ??
+              doc.data['image_url'] ??
+              doc.data['raw_url'],
         };
       }).toList();
     } catch (e) {
       debugPrint("👕 Error fetching wardrobe items: $e");
       return [];
+    }
+  }
+
+  /// ✅ NEW: Update a wardrobe item (e.g., toggle isLiked/isFavourite flag)
+  Future<Document> updateWardrobeItem(
+      String itemId,
+      Map<String, dynamic> updates,
+      ) async {
+    try {
+      final user = await getCurrentUser();
+      if (user == null) throw Exception("User not authenticated");
+
+      debugPrint("📝 Updating wardrobe item: $itemId with $updates");
+
+      final doc = await databases.updateDocument(
+        databaseId: Env.appwriteDatabaseId,
+        collectionId: Env.outfitsCollection,
+        documentId: itemId,
+        data: updates,
+      );
+
+      // Invalidate cache so next fetch gets fresh data
+      invalidateWardrobeCache();
+
+      debugPrint("✅ Wardrobe item updated: $itemId");
+      return doc;
+    } catch (e) {
+      debugPrint("❌ Error updating wardrobe item: $e");
+      rethrow;
     }
   }
 
@@ -1410,6 +1455,100 @@ class AppwriteService extends ChangeNotifier {
     } catch (e) {
       debugPrint("Error deleting board: $e");
       throw Exception("Failed to delete board");
+    }
+  }
+
+  // =========================================================================
+  // FAVOURITES DB METHODS (for Saved Boards)
+  // =========================================================================
+
+  /// Fetch all favourite saved boards for the current user
+  Future<List<Document>> getFavouriteSavedBoards() async {
+    try {
+      final user = await getCurrentUser();
+      if (user == null) throw Exception("User not authenticated");
+
+      final result = await databases.listDocuments(
+        databaseId: Env.appwriteDatabaseId,
+        collectionId: Env.savedBoardsCollection,
+        queries: [
+          Query.equal('userId', user.$id),
+          Query.equal('isFavourite', true),
+          Query.orderDesc('\$createdAt'),
+        ],
+      );
+      return result.documents;
+    } catch (e) {
+      debugPrint("Error fetching favourite boards: $e");
+      return [];
+    }
+  }
+
+  /// Add a saved board to favourites
+  Future<void> addFavouriteSavedBoard(String documentId) async {
+    try {
+      await databases.updateDocument(
+        databaseId: Env.appwriteDatabaseId,
+        collectionId: Env.savedBoardsCollection,
+        documentId: documentId,
+        data: {
+          'isFavourite': true,
+          'favouriteAddedAt': DateTime.now().toIso8601String(),
+        },
+      );
+      debugPrint("Board added to favourites: $documentId");
+    } catch (e) {
+      debugPrint("Error adding board to favourites: $e");
+      throw Exception("Failed to add board to favourites");
+    }
+  }
+
+  /// Remove a saved board from favourites
+  Future<void> removeFavouriteSavedBoard(String documentId) async {
+    try {
+      await databases.updateDocument(
+        databaseId: Env.appwriteDatabaseId,
+        collectionId: Env.savedBoardsCollection,
+        documentId: documentId,
+        data: {
+          'isFavourite': false,
+          'favouriteAddedAt': null,
+        },
+      );
+      debugPrint("Board removed from favourites: $documentId");
+    } catch (e) {
+      debugPrint("Error removing board from favourites: $e");
+      throw Exception("Failed to remove board from favourites");
+    }
+  }
+
+  /// Check if a board is in favourites
+  Future<bool> isBoardFavourite(String documentId) async {
+    try {
+      final result = await databases.getDocument(
+        databaseId: Env.appwriteDatabaseId,
+        collectionId: Env.savedBoardsCollection,
+        documentId: documentId,
+      );
+      return (result.data['isFavourite'] ?? false) == true;
+    } catch (e) {
+      debugPrint("Error checking if board is favourite: $e");
+      return false;
+    }
+  }
+
+  /// Toggle favourite status of a board
+  Future<void> toggleBoardFavourite(String documentId) async {
+    try {
+      final isFav = await isBoardFavourite(documentId);
+      if (isFav) {
+        await removeFavouriteSavedBoard(documentId);
+      } else {
+        await addFavouriteSavedBoard(documentId);
+      }
+    } catch (e) {
+      debugPrint("Error toggling board favourite: $e");
+      throw Exception("Failed to toggle favourite");
     }
   }
 

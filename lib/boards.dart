@@ -251,7 +251,7 @@ class _BoardsScreenState extends State<BoardsScreen>
 
   bool _isLifeTab = true;
   bool _hasStartedAnimations =
-      false; // <-- FIX: Tracks if entry animations fired
+  false; // <-- FIX: Tracks if entry animations fired
   bool _tabSwitching = false;
   final List<String> _customBoardNames = [];
   final TextEditingController _createBoardController = TextEditingController();
@@ -411,7 +411,7 @@ class _BoardsScreenState extends State<BoardsScreen>
     }
 
     final alreadyExists = _customBoardNames.any(
-      (name) => name.toLowerCase() == trimmed.toLowerCase(),
+          (name) => name.toLowerCase() == trimmed.toLowerCase(),
     );
     if (alreadyExists) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -560,10 +560,10 @@ class _BoardsScreenState extends State<BoardsScreen>
   }
 
   Widget _buildBoardCard(
-    _BoardCardConfig config, {
-    required bool fullWidth,
-    required int delayMs,
-  }) {
+      _BoardCardConfig config, {
+        required bool fullWidth,
+        required int delayMs,
+      }) {
     return _StaggeredCard(
       delay: Duration(milliseconds: delayMs),
       child: Stack(
@@ -626,9 +626,9 @@ class _BoardsScreenState extends State<BoardsScreen>
   }
 
   Widget _buildTwoColumnBoardGrid(
-    List<_BoardCardConfig> cards, {
-    int startDelayMs = 80,
-  }) {
+      List<_BoardCardConfig> cards, {
+        int startDelayMs = 80,
+      }) {
     if (cards.isEmpty) return const SizedBox.shrink();
 
     final rows = <Widget>[];
@@ -1095,6 +1095,27 @@ class _BoardsScreenState extends State<BoardsScreen>
             onTap: () => _push(const everything_else.EverythingElseScreen()),
           ),
         ),
+        const SizedBox(height: _S.md),
+        _StaggeredCard(
+          delay: const Duration(milliseconds: 400),
+          child: _FavouritesCard(
+            gradientStart: const Color(0xFFFF8FAB),
+            gradientEnd: const Color(0xFFFF5C87),
+            cardColor: _card,
+            textColor: Colors.white,
+            iconColor: _cardIconColor,
+            panelColor: _panel,
+            shellColor: _shell,
+            onTap: () => _push(
+              OccasionBoard(
+                occasion: 'Favourites',
+                titleKey: 'boards_favourites',
+                subtitleKey: 'boards_favourites_sub',
+                emptyEmoji: '❤️',
+              ),
+            ),
+          ),
+        ),
       ],
     );
   }
@@ -1197,12 +1218,12 @@ class _ToggleButtonState extends State<_ToggleButton>
           borderRadius: BorderRadius.circular(20),
           boxShadow: widget.isActive
               ? [
-                  BoxShadow(
-                    color: widget.accentColor.withValues(alpha: 0.28),
-                    blurRadius: 16,
-                    offset: const Offset(0, 4),
-                  ),
-                ]
+            BoxShadow(
+              color: widget.accentColor.withValues(alpha: 0.28),
+              blurRadius: 16,
+              offset: const Offset(0, 4),
+            ),
+          ]
               : null,
         ),
         child: ScaleTransition(
@@ -1608,6 +1629,161 @@ class _EverythingElseCardState extends State<_EverythingElseCard> {
                     Text(
                       AppLocalizations.t(context, 'boards_everything_else_sub'),
                       style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 11.5,
+                        color: Colors.white,
+                        height: 1.4,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              AnimatedContainer(
+                duration: _A.medium,
+                curve: _A.spring,
+                width: 22,
+                height: 22,
+                transform: Matrix4.translationValues(
+                  _isHovered ? 2.0 : 0.0,
+                  0.0,
+                  0.0,
+                ),
+                decoration: BoxDecoration(
+                  color: _isHovered ? widget.shellColor : widget.cardColor,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Center(
+                  child: Icon(
+                    Icons.chevron_right_rounded,
+                    size: 14,
+                    color: _isHovered
+                        ? context.themeTokens.textPrimary
+                        : widget.iconColor,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Favourites Card ───────────────────────────────────────────────────────────
+class _FavouritesCard extends StatefulWidget {
+  final Color gradientStart;
+  final Color gradientEnd;
+  final Color cardColor;
+  final Color textColor;
+  final Color iconColor;
+  final Color panelColor;
+  final Color shellColor;
+  final VoidCallback? onTap;
+
+  const _FavouritesCard({
+    required this.gradientStart,
+    required this.gradientEnd,
+    required this.cardColor,
+    required this.textColor,
+    required this.iconColor,
+    required this.panelColor,
+    required this.shellColor,
+    this.onTap,
+  });
+
+  @override
+  State<_FavouritesCard> createState() => _FavouritesCardState();
+}
+
+class _FavouritesCardState extends State<_FavouritesCard> {
+  bool _isHovered = false;
+  bool _isPressed = false;
+
+  double get _scale {
+    if (_isPressed) return 0.97;
+    if (_isHovered) return 1.02;
+    return 1.0;
+  }
+
+  double get _yOffset => _isHovered && !_isPressed ? -4.0 : 0.0;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() {
+        _isHovered = false;
+        _isPressed = false;
+      }),
+      child: GestureDetector(
+        onTap: widget.onTap,
+        onTapDown: (_) => setState(() => _isPressed = true),
+        onTapUp: (_) => setState(() => _isPressed = false),
+        onTapCancel: () => setState(() => _isPressed = false),
+        child: AnimatedContainer(
+          duration: _A.normal,
+          curve: _A.spring,
+          transform: _scaleTranslate(_scale, _yOffset),
+          transformAlignment: Alignment.center,
+          constraints: const BoxConstraints(minHeight: 110),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [widget.gradientStart, widget.gradientEnd],
+            ),
+            borderRadius: BorderRadius.circular(22),
+            boxShadow: [
+              BoxShadow(
+                color: widget.gradientEnd.withValues(alpha: 0.30),
+                blurRadius: _isHovered ? 46 : 28,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          padding: const EdgeInsets.fromLTRB(
+            _S.base,
+            _S.base + _S.xs,
+            _S.base,
+            _S.base,
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: widget.cardColor,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Center(
+                  child: Icon(
+                    Icons.favorite_rounded,
+                    size: 26,
+                    color: widget.iconColor,
+                  ),
+                ),
+              ),
+              const SizedBox(width: _S.base),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      AppLocalizations.t(context, 'boards_favourites'),
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: widget.textColor,
+                        letterSpacing: -0.2,
+                      ),
+                    ),
+                    const SizedBox(height: _S.xs - 1),
+                    Text(
+                      AppLocalizations.t(context, 'boards_favourites_sub'),
+                      style: const TextStyle(
                         fontFamily: 'Inter',
                         fontSize: 11.5,
                         color: Colors.white,

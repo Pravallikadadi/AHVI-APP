@@ -2,18 +2,33 @@
 // lib/widgets/style_boards.dart
 // Style Boards – FULLY OPTIMIZED for large wardrobes
 //
-// Original improvements:
-//  • Dynamic sizing for left column based on item count
-//  • Board history items match main board layout structure
-//  • Consistent grid sizing between left and right
-//  • Always display tops & bottoms on left, accessories on right
+// AI FLOW UPDATE (per AHVI "Style This" spec):
+//   Step 1: selected item = fixed ANCHOR.
+//   Step 2: search wardrobe for compatible items (category/slot,
+//           color harmony, style/occasion signals). See ItemAttributes
+//           + StyleCompatibility.
+//   Step 3: rank candidates per slot, keep the highest scorer.
+//           See StyleBoardAIService._buildBoardForOccasion.
+//   Step 4: assemble the board (anchor + 6-8 items). Missing slots are
+//           filled with a clearly-marked AI-recommended placeholder
+//           instead of leaving the slot empty.
+//   Bonus: 3 variations generated per tap — Casual / Office / Evening —
+//          surfaced as tabs above the grid instead of a single board.
 //
-// NEW optimizations (performance):
-//  • OutfitGenerator class with smart category-based filtering
-//  • MAX_SHUFFLE_ITEMS = 100 (memory optimization)
-//  • 32x faster outfit generation for large wardrobes
-//  • Intelligent item suggestions (no random mismatches)
-//  • Real-time history tracking with actual timestamps
+// Board generation is now async (StyleBoardAIService.generateStyleBoards)
+// to model a real "fetch from the styling AI" call. Today it's a local
+// scoring heuristic + a simulated delay; swap the body of that one
+// method for a real network call later without touching the rest of
+// the screen.
+//
+// GRID LAYOUT CHANGES:
+//   - Occasion tabs (Casual/Office/Evening) above the board.
+//   - "From Your Wardrobe" vs "AI Recommended" legend + per-card badge.
+//   - AI-recommended cards without an image show a distinct icon + slot
+//     label instead of the generic hanger icon, so they never look like
+//     a broken photo.
+//   - Loading state while boards are generated; simple error state with
+//     retry if generation fails.
 // ============================================================
 
 import 'package:flutter/material.dart';
@@ -47,18 +62,86 @@ void showStyleBoardsSheet(
 }
 
 // ============================================================
+// BOARD DISPLAY ITEM
+// A style-board slot is either a real wardrobe item, or (when the
+// wardrobe has no compatible piece) an AI-recommended placeholder.
+// Both expose the same fields so the grid/layout code never needs to
+// know which one it's rendering.
+// ============================================================
+abstract class BoardDisplayItem {
+  String get id;
+  String get name;
+  String get cat;
+  String? get displayUrl;
+  bool get isAiRecommended;
+  double get matchScore;
+  WardrobeItem? get wardrobeItem;
+}
+
+class WardrobeBoardItem implements BoardDisplayItem {
+  final WardrobeItem item;
+  @override
+  final double matchScore;
+
+  WardrobeBoardItem(this.item, {this.matchScore = 0});
+
+  @override
+  String get id => item.id;
+  @override
+  String get name => item.name ?? '';
+  @override
+  String get cat => item.cat;
+  @override
+  String? get displayUrl => item.displayUrl;
+  @override
+  bool get isAiRecommended => false;
+  @override
+  WardrobeItem? get wardrobeItem => item;
+}
+
+class AiRecommendedBoardItem implements BoardDisplayItem {
+  @override
+  final String id;
+  @override
+  final String name;
+  @override
+  final String cat;
+  @override
+  final String? displayUrl;
+  @override
+  final double matchScore;
+  final String reason;
+
+  AiRecommendedBoardItem({
+    required this.id,
+    required this.name,
+    required this.cat,
+    this.displayUrl,
+    this.matchScore = 0,
+    this.reason = '',
+  });
+
+  @override
+  bool get isAiRecommended => true;
+  @override
+  WardrobeItem? get wardrobeItem => null;
+}
+
+// ============================================================
 // MODEL CLASSES
 // ============================================================
 class StyleBoard {
   final String id;
   final String name;
-  final List<WardrobeItem> items;
+  final String occasion; // 'casual' | 'office' | 'evening'
+  final List<BoardDisplayItem> items;
   final String thumbnail;
   final DateTime createdAt;
 
   StyleBoard({
     required this.id,
     required this.name,
+    required this.occasion,
     required this.items,
     required this.thumbnail,
     DateTime? createdAt,
@@ -67,7 +150,7 @@ class StyleBoard {
 
 class BoardHistory {
   final String id;
-  final List<WardrobeItem> items;
+  final List<BoardDisplayItem> items;
   final DateTime createdAt;
 
   BoardHistory({
@@ -94,117 +177,266 @@ class BoardHistory {
 }
 
 // ============================================================
-// CATEGORIZATION MODEL (for consistent layout logic)
+// ITEM CLASSIFICATION (slot / color / occasion signals)
+// Heuristic, name+category based — same spirit as the previous
+// keyword-matching approach, extended so the AI flow has something
+// real to score against. Swap for real tagged wardrobe metadata
+// (color, season, occasion fields on WardrobeItem) when available.
 // ============================================================
-class CategorizedItems {
-  final List<WardrobeItem> topsBottoms;
-  final List<WardrobeItem> accessoriesShoes;
+enum ClothingSlot { top, bottom, dress, outerwear, footwear, bag, accessory, other }
 
-  CategorizedItems({
-    required this.topsBottoms,
-    required this.accessoriesShoes,
+class ItemAttributes {
+  final ClothingSlot slot;
+  final Set<String> colors;
+  final Set<String> occasionTags;
+
+  ItemAttributes({
+    required this.slot,
+    required this.colors,
+    required this.occasionTags,
   });
 
-  static CategorizedItems from(List<WardrobeItem> items) {
-    final topsBottoms = <WardrobeItem>[];
-    final accessoriesShoes = <WardrobeItem>[];
+  static const List<String> _knownColors = [
+    'black', 'white', 'grey', 'gray', 'navy', 'blue', 'red', 'pink',
+    'green', 'yellow', 'beige', 'brown', 'tan', 'cream', 'maroon',
+    'purple', 'orange', 'gold', 'silver', 'olive',
+  ];
 
-    for (final item in items) {
-      final name = item.name?.toLowerCase() ?? '';
+  static const Map<String, List<String>> _occasionKeywords = {
+    'casual': ['casual', 'denim', 'tshirt', 't-shirt', 'sneaker', 'hoodie', 'jeans', 'everyday'],
+    'office': ['formal', 'office', 'blazer', 'trouser', 'shirt', 'pencil', 'loafer', 'work'],
+    'evening': ['evening', 'party', 'gown', 'heel', 'silk', 'sequin', 'cocktail', 'dress'],
+  };
 
-      // Tops & Bottoms detection by NAME
-      if (name.contains('shirt') ||
-          name.contains('blouse') ||
-          name.contains('top') ||
-          name.contains('jacket') ||
-          name.contains('blazer') ||
-          name.contains('sweater') ||
-          name.contains('tshirt') ||
-          name.contains('t-shirt') ||
-          name.contains('pant') ||
-          name.contains('trouser') ||
-          name.contains('jeans') ||
-          name.contains('skirt') ||
-          name.contains('dress') ||
-          name.contains('coat')) {
-        topsBottoms.add(item);
-      } else {
-        // Shoes, Accessories, etc.
-        accessoriesShoes.add(item);
-      }
+  static ItemAttributes analyze(String? rawName, String rawCat) {
+    final text = '${(rawName ?? '').toLowerCase()} ${rawCat.toLowerCase()}';
+
+    final ClothingSlot slot;
+    if (text.contains('dress') || text.contains('gown') || text.contains('jumpsuit')) {
+      slot = ClothingSlot.dress;
+    } else if (text.contains('shirt') ||
+        text.contains('blouse') ||
+        text.contains('top') ||
+        text.contains('tshirt') ||
+        text.contains('t-shirt') ||
+        text.contains('sweater') ||
+        text.contains('kurta') ||
+        text.contains('tunic')) {
+      slot = ClothingSlot.top;
+    } else if (text.contains('pant') ||
+        text.contains('trouser') ||
+        text.contains('jeans') ||
+        text.contains('skirt') ||
+        text.contains('short') ||
+        text.contains('legging')) {
+      slot = ClothingSlot.bottom;
+    } else if (text.contains('jacket') ||
+        text.contains('blazer') ||
+        text.contains('coat') ||
+        text.contains('cardigan')) {
+      slot = ClothingSlot.outerwear;
+    } else if (text.contains('shoe') ||
+        text.contains('heel') ||
+        text.contains('sneaker') ||
+        text.contains('sandal') ||
+        text.contains('boot') ||
+        text.contains('footwear')) {
+      slot = ClothingSlot.footwear;
+    } else if (text.contains('bag') ||
+        text.contains('purse') ||
+        text.contains('clutch') ||
+        text.contains('tote')) {
+      slot = ClothingSlot.bag;
+    } else if (text.contains('watch') ||
+        text.contains('necklace') ||
+        text.contains('earring') ||
+        text.contains('bracelet') ||
+        text.contains('belt') ||
+        text.contains('scarf') ||
+        text.contains('sunglasses')) {
+      slot = ClothingSlot.accessory;
+    } else {
+      slot = ClothingSlot.other;
     }
 
-    return CategorizedItems(
-      topsBottoms: topsBottoms,
-      accessoriesShoes: accessoriesShoes,
-    );
+    final colors = _knownColors.where((c) => text.contains(c)).toSet();
+
+    final occasionTags = <String>{};
+    _occasionKeywords.forEach((occasion, keywords) {
+      if (keywords.any((k) => text.contains(k))) occasionTags.add(occasion);
+    });
+
+    return ItemAttributes(slot: slot, colors: colors, occasionTags: occasionTags);
+  }
+}
+
+/// Step 2 + Step 3 of the AI flow: compatibility search + ranking.
+class StyleCompatibility {
+  static const Set<String> _neutrals = {
+    'black', 'white', 'grey', 'gray', 'navy', 'beige', 'tan', 'cream', 'brown'
+  };
+
+  static double colorHarmonyScore(Set<String> a, Set<String> b) {
+    if (a.isEmpty || b.isEmpty) return 0.5; // unknown colors — stay neutral
+    if (a.any(_neutrals.contains) || b.any(_neutrals.contains)) return 1.0;
+    if (a.intersection(b).isNotEmpty) return 0.9;
+    return 0.6; // two different accent colors — still wearable, lower bonus
+  }
+
+  static double occasionScore(Set<String> tags, String targetOccasion) {
+    if (tags.isEmpty) return 0.5; // no signal either way
+    return tags.contains(targetOccasion) ? 1.0 : 0.3;
+  }
+
+  static double scoreCandidate({
+    required ItemAttributes anchor,
+    required ItemAttributes candidate,
+    required String targetOccasion,
+  }) {
+    final color = colorHarmonyScore(anchor.colors, candidate.colors);
+    final occasion = occasionScore(candidate.occasionTags, targetOccasion);
+    return color * 0.5 + occasion * 0.5;
   }
 }
 
 // ============================================================
-// OUTFIT GENERATOR - OPTIMIZED FOR LARGE WARDROBES
+// AI STYLING SERVICE
+// Owns Steps 1-4 of the "Style This" flow described in the AHVI spec.
+// The public method is async and stands in for a real backend/model
+// call — replace the body with an actual API request when one exists;
+// the return type and call site stay the same.
 // ============================================================
-class OutfitGenerator {
-  static const int MAX_SHUFFLE_ITEMS = 100; // Memory optimization
-  static const int TOPS_BOTTOMS_PER_BOARD = 3;
-  static const int ACCESSORIES_PER_BOARD = 4;
-  static const int TOTAL_ITEMS_PER_BOARD = 8;
+class StyleBoardAIService {
+  static const List<String> occasions = ['casual', 'office', 'evening'];
 
-  /// Generate outfit items with smart category-based selection
-  static List<WardrobeItem> generateSmartOutfit(
-      WardrobeItem selectedItem,
-      List<WardrobeItem> allItems,
-      ) {
-    final categorized = CategorizedItems.from(allItems);
+  static const Map<String, List<ClothingSlot>> _slotPlan = {
+    'casual': [ClothingSlot.top, ClothingSlot.bottom, ClothingSlot.footwear, ClothingSlot.bag, ClothingSlot.accessory],
+    'office': [ClothingSlot.top, ClothingSlot.bottom, ClothingSlot.outerwear, ClothingSlot.footwear, ClothingSlot.bag],
+    'evening': [ClothingSlot.dress, ClothingSlot.footwear, ClothingSlot.bag, ClothingSlot.accessory],
+  };
 
-    // Remove selected item from pools
-    final availableTopsBottoms = categorized.topsBottoms
-        .where((i) => i.id != selectedItem.id)
-        .toList();
+  static const int minItemsPerBoard = 6;
+  static const int maxItemsPerBoard = 8;
 
-    final availableAccessories = categorized.accessoriesShoes.toList();
+  /// Step 1-4, run once per occasion, three occasions per tap.
+  /// [boardNameFor] resolves the localized tab/title text for an
+  /// occasion key ('casual' | 'office' | 'evening').
+  static Future<List<StyleBoard>> generateStyleBoards({
+    required WardrobeItem anchorItem,
+    required List<WardrobeItem> wardrobe,
+    required String Function(String occasion) boardNameFor,
+  }) async {
+    // Stand-in for network/model latency so the UI has a real
+    // "fetching" state to show instead of an instant local shuffle.
+    await Future.delayed(const Duration(milliseconds: 650));
 
-    // Limit shuffle range to avoid memory issues
-    final topsBottomsPool = availableTopsBottoms.length > MAX_SHUFFLE_ITEMS
-        ? (availableTopsBottoms..shuffle()).take(MAX_SHUFFLE_ITEMS).toList()
-        : availableTopsBottoms;
+    final anchorAttrs = ItemAttributes.analyze(anchorItem.name, anchorItem.cat);
+    final pool = wardrobe.where((i) => i.id != anchorItem.id).toList();
 
-    final accessoriesPool = availableAccessories.length > MAX_SHUFFLE_ITEMS
-        ? (availableAccessories..shuffle()).take(MAX_SHUFFLE_ITEMS).toList()
-        : availableAccessories;
-
-    // Shuffle only limited pools
-    topsBottomsPool.shuffle();
-    accessoriesPool.shuffle();
-
-    // Build outfit: selected item + matched items
-    final outfit = <WardrobeItem>[selectedItem];
-
-    // Add tops/bottoms
-    outfit.addAll(topsBottomsPool.take(TOPS_BOTTOMS_PER_BOARD));
-
-    // Add accessories
-    outfit.addAll(accessoriesPool.take(ACCESSORIES_PER_BOARD));
-
-    return outfit;
+    return [
+      for (final occasion in occasions)
+        _buildBoardForOccasion(
+          occasion: occasion,
+          anchorItem: anchorItem,
+          anchorAttrs: anchorAttrs,
+          pool: pool,
+          name: boardNameFor(occasion),
+        ),
+    ];
   }
 
-  /// Generate outfit with RANDOM items (fallback, for variety)
-  static List<WardrobeItem> generateRandomOutfit(
-      WardrobeItem selectedItem,
-      List<WardrobeItem> allItems,
-      ) {
-    final others = allItems
-        .where((i) => i.id != selectedItem.id)
-        .toList();
+  static StyleBoard _buildBoardForOccasion({
+    required String occasion,
+    required WardrobeItem anchorItem,
+    required ItemAttributes anchorAttrs,
+    required List<WardrobeItem> pool,
+    required String name,
+  }) {
+    final neededSlots = List<ClothingSlot>.from(_slotPlan[occasion]!);
+    neededSlots.remove(anchorAttrs.slot); // anchor already fills its own slot
 
-    // Limit before shuffle
-    final itemsPool = others.length > MAX_SHUFFLE_ITEMS
-        ? (others..shuffle()).take(MAX_SHUFFLE_ITEMS).toList()
-        : others;
+    final entries = <BoardDisplayItem>[WardrobeBoardItem(anchorItem, matchScore: 1.0)];
+    final usedIds = <String>{anchorItem.id};
 
-    itemsPool.shuffle();
-    return [selectedItem, ...itemsPool.take(7)];
+    // Step 2 (search) + Step 3 (rank) per remaining slot.
+    for (final slot in neededSlots) {
+      if (entries.length >= maxItemsPerBoard) break;
+
+      final ranked = pool
+          .where((i) => !usedIds.contains(i.id))
+          .where((i) => ItemAttributes.analyze(i.name, i.cat).slot == slot)
+          .map((i) => MapEntry(
+        i,
+        StyleCompatibility.scoreCandidate(
+          anchor: anchorAttrs,
+          candidate: ItemAttributes.analyze(i.name, i.cat),
+          targetOccasion: occasion,
+        ),
+      ))
+          .toList()
+        ..sort((a, b) => b.value.compareTo(a.value));
+
+      if (ranked.isNotEmpty) {
+        final best = ranked.first;
+        entries.add(WardrobeBoardItem(best.key, matchScore: best.value));
+        usedIds.add(best.key.id);
+      } else {
+        // Step 4 (missing-item handling): fill the gap, clearly tagged.
+        entries.add(_aiFillFor(slot, occasion));
+      }
+    }
+
+    // Keep boards within the 6-8 item cap; top up with any remaining
+    // wardrobe pieces if a board is short (e.g. very few slots planned).
+    while (entries.length < minItemsPerBoard) {
+      final leftover = pool.where((i) => !usedIds.contains(i.id)).toList();
+      if (leftover.isEmpty) break;
+      leftover.shuffle();
+      final pick = leftover.first;
+      entries.add(WardrobeBoardItem(pick, matchScore: 0.5));
+      usedIds.add(pick.id);
+    }
+
+    return StyleBoard(
+      id: occasion,
+      name: name,
+      occasion: occasion,
+      items: entries.take(maxItemsPerBoard).toList(),
+      thumbnail: anchorItem.displayUrl ?? '',
+    );
+  }
+
+  static AiRecommendedBoardItem _aiFillFor(ClothingSlot slot, String occasion) {
+    final label = _slotLabel(slot);
+    return AiRecommendedBoardItem(
+      id: 'ai_${occasion}_${slot.name}_${DateTime.now().microsecondsSinceEpoch}',
+      name: '$label pick',
+      cat: label,
+      displayUrl: null,
+      matchScore: 0.5,
+      reason: 'No matching $label in your wardrobe for this look',
+    );
+  }
+
+  static String _slotLabel(ClothingSlot slot) {
+    switch (slot) {
+      case ClothingSlot.top:
+        return 'Top';
+      case ClothingSlot.bottom:
+        return 'Bottom';
+      case ClothingSlot.dress:
+        return 'Dress';
+      case ClothingSlot.outerwear:
+        return 'Outerwear';
+      case ClothingSlot.footwear:
+        return 'Footwear';
+      case ClothingSlot.bag:
+        return 'Bag';
+      case ClothingSlot.accessory:
+        return 'Accessory';
+      case ClothingSlot.other:
+        return 'Item';
+    }
   }
 }
 
@@ -229,12 +461,14 @@ class StyleBoardsScreen extends StatefulWidget {
 }
 
 class _StyleBoardsScreenState extends State<StyleBoardsScreen> {
-  late List<StyleBoard> styleBoards;
-  late List<BoardHistory> boardHistory;
+  List<StyleBoard> styleBoards = [];
+  List<BoardHistory> boardHistory = [];
   int selectedBoardIndex = 0;
   String? selectedItemId;
   Set<String> lockedItemIds = {};
   bool _boardsInitialized = false;
+  bool _isLoading = true;
+  String? _loadError;
 
   @override
   void initState() {
@@ -246,62 +480,70 @@ class _StyleBoardsScreenState extends State<StyleBoardsScreen> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     if (!_boardsInitialized) {
-      _generateStyleBoards();
-      _generateBoardHistory();
       _boardsInitialized = true;
+      _loadStyleBoards();
     }
   }
 
-  // ── Data generators ──────────────────────────────────────────
-
-  void _generateStyleBoards() {
-    styleBoards = [
-      StyleBoard(
-        id: '1',
-        name: AppLocalizations.t(context, 'style_boards_board_name_1'),
-        items: _generateOutfitItems(),
-        thumbnail: widget.selectedItem.displayUrl ?? '',
-      ),
-      StyleBoard(
-        id: '2',
-        name: AppLocalizations.t(context, 'style_boards_board_name_2'),
-        items: _generateOutfitItems(),
-        thumbnail: widget.selectedItem.displayUrl ?? '',
-      ),
-      StyleBoard(
-        id: '3',
-        name: AppLocalizations.t(context, 'style_boards_board_name_3'),
-        items: _generateOutfitItems(),
-        thumbnail: widget.selectedItem.displayUrl ?? '',
-      ),
-    ];
+  /// Small helper so brand-new UI strings never crash if a
+  /// localization key hasn't been added yet — falls back to the
+  /// given English text. Existing keys keep using AppLocalizations.t
+  /// directly, unchanged.
+  String _tr(BuildContext context, String key, String fallback) {
+    try {
+      final value = AppLocalizations.t(context, key);
+      return value.isNotEmpty ? value : fallback;
+    } catch (_) {
+      return fallback;
+    }
   }
 
-  // History starts with just ONE real entry — the board that's actually
-  // on screen right now, stamped with the real moment it was generated.
-  // No more fake "2 min ago / 6 min ago" placeholders.
-  //
-  // New entries get appended live (with real DateTime.now()) every time
-  // a new variation is actually generated — see _shuffleUnlockedPieces().
-  // Each entry's "ago" text then comes for free from getTimeAgo(), which
-  // was already correct — it was just being fed fake timestamps before.
-  void _generateBoardHistory() {
-    boardHistory = [
-      BoardHistory(
-        id: 'h_${DateTime.now().millisecondsSinceEpoch}',
-        items: styleBoards[selectedBoardIndex].items,
-        createdAt: DateTime.now(),
-      ),
-    ];
-  }
+  // ── Data fetching (AI flow) ──────────────────────────────────
 
-  /// Generate outfit items using optimized smart category-based selection
-  /// This replaces the old random shuffle with intelligent outfit generation
-  List<WardrobeItem> _generateOutfitItems() {
-    return OutfitGenerator.generateSmartOutfit(
-      widget.selectedItem,
-      widget.allItems,
-    );
+  Future<void> _loadStyleBoards() async {
+    setState(() {
+      _isLoading = true;
+      _loadError = null;
+    });
+
+    try {
+      final boards = await StyleBoardAIService.generateStyleBoards(
+        anchorItem: widget.selectedItem,
+        wardrobe: widget.allItems,
+        boardNameFor: (occasion) {
+          switch (occasion) {
+            case 'casual':
+              return _tr(context, 'style_boards_board_name_1', 'Casual');
+            case 'office':
+              return _tr(context, 'style_boards_board_name_2', 'Office');
+            default:
+              return _tr(context, 'style_boards_board_name_3', 'Evening');
+          }
+        },
+      );
+
+      if (!mounted) return;
+      setState(() {
+        styleBoards = boards;
+        selectedBoardIndex = 0;
+        lockedItemIds.clear();
+        boardHistory = [
+          BoardHistory(
+            id: 'h_${DateTime.now().millisecondsSinceEpoch}',
+            items: boards.first.items,
+            createdAt: DateTime.now(),
+          ),
+        ];
+        _isLoading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _loadError = _tr(context, 'style_boards_load_error',
+            'Could not generate style boards. Please try again.');
+        _isLoading = false;
+      });
+    }
   }
 
   // ── State mutations ──────────────────────────────────────────
@@ -314,18 +556,43 @@ class _StyleBoardsScreenState extends State<StyleBoardsScreen> {
     });
   }
 
+  /// Re-ranks unlocked, same-slot candidates against the anchor instead
+  /// of shuffling purely at random — keeps a shoe slot a shoe, etc.
   void _shuffleUnlockedPieces() {
     setState(() {
       final board = styleBoards[selectedBoardIndex];
-      final unlocked =
-      board.items.where((i) => !lockedItemIds.contains(i.id)).toList()
-        ..shuffle();
+      final anchorAttrs =
+      ItemAttributes.analyze(widget.selectedItem.name, widget.selectedItem.cat);
+      final usedIds = board.items.map((e) => e.id).toSet();
+      final pool = widget.allItems.where((i) => i.id != widget.selectedItem.id).toList();
 
-      if (unlocked.isEmpty) return;
+      final updated = board.items.map((entry) {
+        if (lockedItemIds.contains(entry.id)) return entry;
+        if (entry.id == widget.selectedItem.id) return entry; // never touch the anchor
 
-      int ui = 0;
-      final updated = board.items.map((item) {
-        return lockedItemIds.contains(item.id) ? item : unlocked[ui++];
+        final slot = ItemAttributes.analyze(entry.name, entry.cat).slot;
+        final ranked = pool
+            .where((i) => !usedIds.contains(i.id))
+            .where((i) => ItemAttributes.analyze(i.name, i.cat).slot == slot)
+            .map((i) => MapEntry(
+          i,
+          StyleCompatibility.scoreCandidate(
+            anchor: anchorAttrs,
+            candidate: ItemAttributes.analyze(i.name, i.cat),
+            targetOccasion: board.occasion,
+          ),
+        ))
+            .toList()
+          ..sort((a, b) => b.value.compareTo(a.value));
+
+        if (ranked.isEmpty) return entry; // nothing else fits this slot
+
+        final topPicks = ranked.take(3).toList()..shuffle();
+        final picked = topPicks.first;
+        usedIds
+          ..remove(entry.id)
+          ..add(picked.key.id);
+        return WardrobeBoardItem(picked.key, matchScore: picked.value);
       }).toList();
 
       final now = DateTime.now();
@@ -333,14 +600,12 @@ class _StyleBoardsScreenState extends State<StyleBoardsScreen> {
       styleBoards[selectedBoardIndex] = StyleBoard(
         id: board.id,
         name: board.name,
+        occasion: board.occasion,
         items: updated,
         thumbnail: board.thumbnail,
         createdAt: now,
       );
 
-      // Real generation event just happened — log it at the front of
-      // history with the actual timestamp. Older entries are untouched,
-      // so their "ago" text keeps advancing correctly on its own.
       boardHistory.insert(
         0,
         BoardHistory(
@@ -354,19 +619,23 @@ class _StyleBoardsScreenState extends State<StyleBoardsScreen> {
 
   void _unlockAll() => setState(() => lockedItemIds.clear());
 
+  /// Restores a history snapshot into the currently-selected occasion
+  /// board (Casual/Office/Evening), instead of always overwriting the
+  /// first board regardless of which tab is open.
   void _switchBoard(int historyIndex) {
     setState(() {
       final h = boardHistory[historyIndex];
-      styleBoards.add(StyleBoard(
-        id: 'history_${h.id}',
-        name: historyIndex == 0
-            ? AppLocalizations.t(context, 'style_boards_history_current')
-            : h.getTimeAgo(context),
+      final board = styleBoards[selectedBoardIndex];
+
+      styleBoards[selectedBoardIndex] = StyleBoard(
+        id: board.id,
+        name: board.name,
+        occasion: board.occasion,
         items: h.items,
         thumbnail: h.items.isNotEmpty ? (h.items.first.displayUrl ?? '') : '',
         createdAt: h.createdAt,
-      ));
-      selectedBoardIndex = styleBoards.length - 1;
+      );
+
       lockedItemIds.clear();
     });
   }
@@ -401,18 +670,19 @@ class _StyleBoardsScreenState extends State<StyleBoardsScreen> {
     );
   }
 
-  void _replaceItem(String oldId, WardrobeItem newItem) {
+  void _replaceItem(String oldId, BoardDisplayItem newItem) {
     setState(() {
       final board = styleBoards[selectedBoardIndex];
       final idx = board.items.indexWhere((i) => i.id == oldId);
       if (idx == -1) return;
 
-      final updated = List<WardrobeItem>.from(board.items)..[idx] = newItem;
+      final updated = List<BoardDisplayItem>.from(board.items)..[idx] = newItem;
       lockedItemIds.remove(oldId);
 
       styleBoards[selectedBoardIndex] = StyleBoard(
         id: board.id,
         name: board.name,
+        occasion: board.occasion,
         items: updated,
         thumbnail: board.thumbnail,
         createdAt: board.createdAt,
@@ -423,11 +693,9 @@ class _StyleBoardsScreenState extends State<StyleBoardsScreen> {
     widget.onItemReplaced?.call();
   }
 
-  void _openItemPicker(WardrobeItem current, {required bool similarOnly}) {
-    final usedIds =
-    styleBoards[selectedBoardIndex].items.map((i) => i.id).toSet();
-    var candidates =
-    widget.allItems.where((i) => !usedIds.contains(i.id)).toList();
+  void _openItemPicker(BoardDisplayItem current, {required bool similarOnly}) {
+    final usedIds = styleBoards[selectedBoardIndex].items.map((i) => i.id).toSet();
+    var candidates = widget.allItems.where((i) => !usedIds.contains(i.id)).toList();
     if (similarOnly) {
       candidates = candidates.where((i) => i.cat == current.cat).toList();
     }
@@ -437,11 +705,13 @@ class _StyleBoardsScreenState extends State<StyleBoardsScreen> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) => _ItemPickerSheet(
-        title: similarOnly ? 'Find Similar' : 'Replace This Item',
+        title: similarOnly
+            ? _tr(context, 'style_boards_find_similar_title', 'Find Similar')
+            : _tr(context, 'style_boards_replace_title', 'Replace This Item'),
         candidates: candidates,
         onPicked: (picked) {
           Navigator.pop(ctx);
-          _replaceItem(current.id, picked);
+          _replaceItem(current.id, WardrobeBoardItem(picked));
         },
       ),
     );
@@ -457,7 +727,11 @@ class _StyleBoardsScreenState extends State<StyleBoardsScreen> {
     return Scaffold(
       backgroundColor: t.backgroundPrimary,
       appBar: _buildAppBar(context, t),
-      body: SingleChildScrollView(
+      body: _isLoading
+          ? _buildLoadingState(context, t)
+          : _loadError != null
+          ? _buildErrorState(context, t)
+          : SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -465,13 +739,21 @@ class _StyleBoardsScreenState extends State<StyleBoardsScreen> {
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
               child: Column(
                 children: [
+                  _buildOccasionTabs(context, t),
+                  const SizedBox(height: 12),
                   Container(
                     decoration: BoxDecoration(
                       border: Border.all(color: t.cardBorder, width: 1.0),
                       borderRadius: BorderRadius.circular(16),
                     ),
                     padding: const EdgeInsets.all(10),
-                    child: _buildUnifiedGrid(context, t),
+                    child: Column(
+                      children: [
+                        _buildSourceLegend(context, t),
+                        _buildUnifiedGrid(
+                            context, t, styleBoards[selectedBoardIndex].items),
+                      ],
+                    ),
                   ),
                   const SizedBox(height: 20),
                   _buildControlButtons(context, t),
@@ -509,7 +791,9 @@ class _StyleBoardsScreenState extends State<StyleBoardsScreen> {
             ),
           ),
           Text(
-            styleBoards[selectedBoardIndex].name,
+            _isLoading || _loadError != null || styleBoards.isEmpty
+                ? ''
+                : styleBoards[selectedBoardIndex].name,
             style: GoogleFonts.inter(
               fontSize: 12,
               fontWeight: FontWeight.w400,
@@ -530,576 +814,714 @@ class _StyleBoardsScreenState extends State<StyleBoardsScreen> {
     );
   }
 
-  // ============================================================
-  // IMPROVED UNIFIED GRID
-  // 1-2 items: plain grid, every cell the same size.
-  // Exactly 3 items: 2 stacked on the left, 1 vertically centered on the
-  //   right (staggered, matches the reference layout).
-  // 4+ items: LEFT = 2 Tops & Bottoms (featured), RIGHT = the rest (grid).
-  // ============================================================
-  Widget _buildUnifiedGrid(BuildContext context, AppThemeTokens t) {
-    final items = styleBoards[selectedBoardIndex].items;
-    if (items.isEmpty) return const SizedBox.shrink();
+  // ── Loading / error states ────────────────────────────────────
 
-    const double gap = 10.0;
+  Widget _buildLoadingState(BuildContext context, AppThemeTokens t) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          CircularProgressIndicator(color: t.accent.primary),
+          const SizedBox(height: 16),
+          Text(
+            _tr(context, 'style_boards_loading', 'Styling your outfit…'),
+            style: GoogleFonts.inter(fontSize: 13, color: t.mutedText),
+          ),
+        ],
+      ),
+    );
+  }
 
-    // 1-2 items: plain grid, every cell the same size.
-    if (items.length <= 2) {
-      return GridView.builder(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: items.length,
-          crossAxisSpacing: gap,
-          mainAxisSpacing: gap,
-          childAspectRatio: 0.95,
-        ),
-        itemCount: items.length,
-        itemBuilder: (_, i) => _buildItemCard(context, items[i], t),
-      );
-    }
-
-    // Exactly 3 items: left column = 2 items stacked; right column = the
-    // 3rd item, vertically centered against that stack (starts below the
-    // top edge, ends above the bottom edge) rather than pinned to the top
-    // like a normal grid cell — matches the reference layout.
-    if (items.length == 3) {
-      final categorized = CategorizedItems.from(items);
-      final leftItems = categorized.topsBottoms.isNotEmpty
-          ? categorized.topsBottoms.take(2).toList()
-          : items.take(2).toList();
-      final rightItems =
-      items.where((i) => !leftItems.contains(i)).take(1).toList();
-
-      return LayoutBuilder(builder: (context, box) {
-        final colW = (box.maxWidth - gap) / 2;
-        final cellH = colW / 0.85;
-        final stackH = cellH * 2 + gap;
-
-        return Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildErrorState(BuildContext context, AppThemeTokens t) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            SizedBox(
-              width: colW,
-              child: Column(
-                children: [
-                  if (leftItems.isNotEmpty)
-                    SizedBox(
-                      height: cellH,
-                      child: _buildItemCard(context, leftItems[0], t),
-                    ),
-                  if (leftItems.length > 1) ...[
-                    const SizedBox(height: gap),
-                    SizedBox(
-                      height: cellH,
-                      child: _buildItemCard(context, leftItems[1], t),
-                    ),
-                  ],
-                ],
-              ),
+            Icon(Icons.error_outline, color: t.mutedText, size: 32),
+            const SizedBox(height: 12),
+            Text(
+              _loadError ?? '',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.inter(fontSize: 13, color: t.mutedText),
             ),
-            const SizedBox(width: gap),
-            if (rightItems.isNotEmpty)
-              SizedBox(
-                width: colW,
-                height: stackH,
-                child: Center(
-                  child: SizedBox(
-                    height: cellH,
-                    child: _buildItemCard(context, rightItems[0], t),
+            const SizedBox(height: 16),
+            InkWell(
+              onTap: _loadStyleBoards,
+              borderRadius: BorderRadius.circular(8),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Text(
+                  _tr(context, 'style_boards_retry', 'Retry'),
+                  style: GoogleFonts.inter(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: t.accent.primary,
                   ),
                 ),
               ),
-          ],
-        );
-      });
-    }
-
-    final categorized = CategorizedItems.from(items);
-
-    return LayoutBuilder(builder: (context, box) {
-      final totalW = box.maxWidth;
-      final leftW = totalW * 0.28;
-
-      // Left column: Always show exactly 2 items
-      final leftItems = categorized.topsBottoms.take(2).toList();
-
-      // Right column: Show remaining items (tops/bottoms + all accessories/shoes)
-      final rightItems = [
-        ...categorized.topsBottoms.skip(2),
-        ...categorized.accessoriesShoes,
-      ];
-
-      // Featured card sizing for left column
-      final featuredCardH = leftW / 0.85;
-
-      // Grid columns based on right-side item count.
-      // Now that the right area always fills the remaining width (see
-      // below), a single column for 2-4 items would stack them into one
-      // very tall column instead of actually using the width — so spread
-      // them across 2 columns instead.
-      int gridColumns = 2;
-      if (rightItems.isEmpty) {
-        gridColumns = 0;
-      } else if (rightItems.length == 1) {
-        gridColumns = 1; // one item — let it fill the width on its own
-      } else if (rightItems.length <= 4) {
-        gridColumns = 2;
-      } else {
-        gridColumns = 3;
-      }
-
-      return Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // ── LEFT COLUMN: ALWAYS 2 TOPS & BOTTOMS (Featured, Highlighted) ──
-          SizedBox(
-            width: leftW,
-            child: Column(
-              children: [
-                // Featured 1 (First top/bottom)
-                if (leftItems.isNotEmpty)
-                  SizedBox(
-                    height: featuredCardH,
-                    child: _buildItemCard(context, leftItems[0], t),
-                  ),
-
-                // Featured 2 (Second top/bottom)
-                if (leftItems.length > 1) ...[
-                  const SizedBox(height: gap),
-                  SizedBox(
-                    height: featuredCardH,
-                    child: _buildItemCard(context, leftItems[1], t),
-                  ),
-                ],
-              ],
             ),
-          ),
-
-          const SizedBox(width: gap),
-
-          // ── RIGHT AREA: REMAINING ITEMS (Grid) ──
-          // Always expand into whatever space is left, regardless of item
-          // count. Constraining this to leftW when there were only 1-3
-          // items used to leave most of the screen blank on the right.
-          Expanded(
-            child: rightItems.isEmpty
-                ? const SizedBox.shrink()
-                : _buildRightGrid(rightItems, gridColumns, gap, context, t),
-          ),
-        ],
-      );
-    });
+          ],
+        ),
+      ),
+    );
   }
 
-  // ── Right grid builder helper ──
-  Widget _buildRightGrid(
-      List<WardrobeItem> items,
-      int columns,
-      double gap,
-      BuildContext context,
-      AppThemeTokens t,
-      ) {
+  // ── Occasion tabs (bonus feature: 3 variations) ────────────────
+
+  Widget _buildOccasionTabs(BuildContext context, AppThemeTokens t) {
+    return Row(
+      children: List.generate(styleBoards.length, (i) {
+        final isSelected = i == selectedBoardIndex;
+        return Expanded(
+          child: Padding(
+            padding: EdgeInsets.only(right: i == styleBoards.length - 1 ? 0 : 8),
+            child: GestureDetector(
+              onTap: () => setState(() {
+                selectedBoardIndex = i;
+                lockedItemIds.clear();
+              }),
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                decoration: BoxDecoration(
+                  color: isSelected ? t.accent.primary : t.backgroundSecondary,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: isSelected ? t.accent.primary : t.cardBorder,
+                  ),
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  styleBoards[i].name,
+                  style: GoogleFonts.inter(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: isSelected ? Colors.white : t.textPrimary,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      }),
+    );
+  }
+
+  // ── Wardrobe vs AI-recommended legend ───────────────────────────
+
+  Widget _buildSourceLegend(BuildContext context, AppThemeTokens t) {
+    final hasAiItems = styleBoards[selectedBoardIndex].items.any((i) => i.isAiRecommended);
+    if (!hasAiItems) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(4, 0, 4, 10),
+      child: Row(
+        children: [
+          _legendDot(t.accent.primary),
+          const SizedBox(width: 6),
+          Text(
+            _tr(context, 'style_boards_legend_wardrobe', 'From Your Wardrobe'),
+            style: GoogleFonts.inter(fontSize: 11, color: t.mutedText),
+          ),
+          const SizedBox(width: 16),
+          _legendDot(Colors.amber),
+          const SizedBox(width: 6),
+          Text(
+            _tr(context, 'style_boards_legend_ai', 'AI Recommended'),
+            style: GoogleFonts.inter(fontSize: 11, color: t.mutedText),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _legendDot(Color c) => Container(
+    width: 8,
+    height: 8,
+    decoration: BoxDecoration(color: c, shape: BoxShape.circle),
+  );
+
+  // ============================================================
+  // LAYOUT DISPATCHER
+  // Picks the exact sketch layout based on item count (3–8).
+  // ============================================================
+
+  static const double _kGap = 10.0;
+
+  Widget _buildUnifiedGrid(
+      BuildContext context, AppThemeTokens t, List<BoardDisplayItem> items) {
+    if (items.isEmpty) return const SizedBox.shrink();
+
+    switch (items.length) {
+      case 1:
+      case 2:
+        return _layoutSmall(context, t, items);
+      case 3:
+        return _layout3(context, t, items);
+      case 4:
+        return _layout4(context, t, items);
+      case 5:
+        return _layout5(context, t, items);
+      case 6:
+        return _layout6(context, t, items);
+      case 7:
+        return _layout7(context, t, items);
+      default:
+        return _layout8(context, t, items.take(8).toList());
+    }
+  }
+
+  // ─── 1–2 items: equal columns ─────────────────────────────────────────
+  Widget _layoutSmall(
+      BuildContext context, AppThemeTokens t, List<BoardDisplayItem> items) {
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: columns,
-        crossAxisSpacing: gap,
-        mainAxisSpacing: gap,
-        childAspectRatio: 0.95,
+        crossAxisCount: items.length,
+        crossAxisSpacing: _kGap,
+        mainAxisSpacing: _kGap,
+        childAspectRatio: 0.85,
       ),
       itemCount: items.length,
       itemBuilder: (_, i) => _buildItemCard(context, items[i], t),
     );
   }
 
-  // ============================================================
-  // ITEM CARD (with lock state visualization)
-  // ============================================================
-  Widget _buildItemCard(
-      BuildContext context,
-      WardrobeItem item,
-      AppThemeTokens t,
-      ) {
-    final locked = lockedItemIds.contains(item.id);
+  // ─── 3 items ──────────────────────────────────────────────────────────
+  Widget _layout3(
+      BuildContext context, AppThemeTokens t, List<BoardDisplayItem> items) {
+    return LayoutBuilder(builder: (_, box) {
+      final w = box.maxWidth;
+      const double g = _kGap;
+
+      final lw = w * 0.52 - g / 2; // left col 52 %
+      final rw = w - lw - g;        // right col rest
+
+      final ih = lw * 0.95;          // each left item ≈ square
+      final totalH = ih * 2 + g;
+
+      return SizedBox(
+        height: totalH,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            SizedBox(
+              width: lw,
+              child: Column(
+                children: [
+                  SizedBox(height: ih, child: _buildItemCard(context, items[0], t)),
+                  SizedBox(height: g),
+                  SizedBox(height: ih, child: _buildItemCard(context, items[1], t)),
+                ],
+              ),
+            ),
+            SizedBox(width: g),
+            SizedBox(
+              width: rw,
+              height: totalH,
+              child: _buildItemCard(context, items[2], t),
+            ),
+          ],
+        ),
+      );
+    });
+  }
+
+  // ─── 4 items ──────────────────────────────────────────────────────────
+  Widget _layout4(
+      BuildContext context, AppThemeTokens t, List<BoardDisplayItem> items) {
+    return LayoutBuilder(builder: (_, box) {
+      final w = box.maxWidth;
+      const double g = _kGap;
+
+      final cw = (w - g) / 2;
+      final ih = cw;
+
+      return Column(
+        children: [
+          _row2(context, t, items[0], items[1], cw, ih),
+          SizedBox(height: g),
+          _row2(context, t, items[2], items[3], cw, ih),
+        ],
+      );
+    });
+  }
+
+  // ─── 5 items ──────────────────────────────────────────────────────────
+  Widget _layout5(
+      BuildContext context, AppThemeTokens t, List<BoardDisplayItem> items) {
+    return LayoutBuilder(builder: (_, box) {
+      final w = box.maxWidth;
+      const double g = _kGap;
+
+      final tlw = w * 0.42 - g / 2;
+      final topH = tlw / 0.65;
+
+      final biw = (w - 2 * g) / 3;
+      final bih = biw;
+
+      return Column(
+        children: [
+          SizedBox(
+            height: topH,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                SizedBox(width: tlw, child: _buildItemCard(context, items[0], t)),
+                SizedBox(width: g),
+                Expanded(child: _buildItemCard(context, items[1], t)),
+              ],
+            ),
+          ),
+          SizedBox(height: g),
+          Row(
+            children: [
+              SizedBox(width: biw, height: bih, child: _buildItemCard(context, items[2], t)),
+              SizedBox(width: g),
+              SizedBox(width: biw, height: bih, child: _buildItemCard(context, items[3], t)),
+              SizedBox(width: g),
+              SizedBox(width: biw, height: bih, child: _buildItemCard(context, items[4], t)),
+            ],
+          ),
+        ],
+      );
+    });
+  }
+
+  // ─── 6 items ──────────────────────────────────────────────────────────
+  Widget _layout6(
+      BuildContext context, AppThemeTokens t, List<BoardDisplayItem> items) {
+    return LayoutBuilder(builder: (_, box) {
+      final w = box.maxWidth;
+      const double g = _kGap;
+
+      final cw = (w - 2 * g) / 3;
+      final ih = cw;
+
+      return Column(
+        children: [
+          _row3(context, t, items.sublist(0, 3), cw, ih),
+          SizedBox(height: g),
+          _row3(context, t, items.sublist(3, 6), cw, ih),
+        ],
+      );
+    });
+  }
+
+  // ─── 7 items ──────────────────────────────────────────────────────────
+  Widget _layout7(
+      BuildContext context, AppThemeTokens t, List<BoardDisplayItem> items) {
+    return LayoutBuilder(builder: (_, box) {
+      final w = box.maxWidth;
+      const double g = _kGap;
+
+      final cw = (w - 2 * g) / 3;
+      final bigH = cw / 0.80;
+      final totalH = bigH * 2 + g;
+      final smlH = (totalH - 2 * g) / 3;
+
+      return SizedBox(
+        height: totalH,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(
+              width: cw,
+              child: Column(
+                children: [
+                  SizedBox(height: bigH, child: _buildItemCard(context, items[0], t)),
+                  SizedBox(height: g),
+                  SizedBox(height: bigH, child: _buildItemCard(context, items[1], t)),
+                ],
+              ),
+            ),
+            SizedBox(width: g),
+            SizedBox(
+              width: cw,
+              child: Column(
+                children: [
+                  SizedBox(height: bigH, child: _buildItemCard(context, items[2], t)),
+                  SizedBox(height: g),
+                  SizedBox(height: bigH, child: _buildItemCard(context, items[3], t)),
+                ],
+              ),
+            ),
+            SizedBox(width: g),
+            SizedBox(
+              width: cw,
+              child: Column(
+                children: [
+                  SizedBox(height: smlH, child: _buildItemCard(context, items[4], t)),
+                  SizedBox(height: g),
+                  SizedBox(height: smlH, child: _buildItemCard(context, items[5], t)),
+                  SizedBox(height: g),
+                  SizedBox(height: smlH, child: _buildItemCard(context, items[6], t)),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    });
+  }
+
+  // ─── 8 items ──────────────────────────────────────────────────────────
+  Widget _layout8(
+      BuildContext context, AppThemeTokens t, List<BoardDisplayItem> items) {
+    return LayoutBuilder(builder: (_, box) {
+      final w = box.maxWidth;
+      const double g = _kGap;
+
+      final tLW = w * 0.30 - g * 2 / 3;
+      final tCW = w * 0.42 - g * 2 / 3;
+      final tRW = w - tLW - tCW - 2 * g;
+      final topH = tCW;
+
+      final bLW = tLW;
+      final bItemW = (w - bLW - 3 * g) / 3;
+      final botH = bItemW;
+
+      return Column(
+        children: [
+          SizedBox(
+            height: topH,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                SizedBox(width: tLW, child: _buildItemCard(context, items[0], t)),
+                SizedBox(width: g),
+                SizedBox(width: tCW, child: _buildItemCard(context, items[1], t)),
+                SizedBox(width: g),
+                SizedBox(
+                  width: tRW,
+                  child: Column(
+                    children: [
+                      Expanded(child: _buildItemCard(context, items[2], t)),
+                      SizedBox(height: g),
+                      Expanded(child: _buildItemCard(context, items[3], t)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(height: g),
+          SizedBox(
+            height: botH,
+            child: Row(
+              children: [
+                SizedBox(width: bLW, child: _buildItemCard(context, items[4], t)),
+                SizedBox(width: g),
+                SizedBox(width: bItemW, child: _buildItemCard(context, items[5], t)),
+                SizedBox(width: g),
+                SizedBox(width: bItemW, child: _buildItemCard(context, items[6], t)),
+                SizedBox(width: g),
+                SizedBox(width: bItemW, child: _buildItemCard(context, items[7], t)),
+              ],
+            ),
+          ),
+        ],
+      );
+    });
+  }
+
+  // ─── Row helpers ───────────────────────────────────────────────────────
+
+  Widget _row2(BuildContext context, AppThemeTokens t,
+      BoardDisplayItem a, BoardDisplayItem b, double cw, double ih) {
+    return Row(
+      children: [
+        SizedBox(width: cw, height: ih, child: _buildItemCard(context, a, t)),
+        SizedBox(width: _kGap),
+        SizedBox(width: cw, height: ih, child: _buildItemCard(context, b, t)),
+      ],
+    );
+  }
+
+  Widget _row3(BuildContext context, AppThemeTokens t,
+      List<BoardDisplayItem> row, double cw, double ih) {
+    return Row(
+      children: [
+        SizedBox(width: cw, height: ih, child: _buildItemCard(context, row[0], t)),
+        SizedBox(width: _kGap),
+        SizedBox(width: cw, height: ih, child: _buildItemCard(context, row[1], t)),
+        SizedBox(width: _kGap),
+        SizedBox(width: cw, height: ih, child: _buildItemCard(context, row[2], t)),
+      ],
+    );
+  }
+
+  Widget _buildItemCard(BuildContext context, BoardDisplayItem item, AppThemeTokens t) {
+    final isSelected = selectedItemId == item.id;
+    final isLocked = lockedItemIds.contains(item.id);
 
     return GestureDetector(
       onTap: () => _selectItem(item.id),
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          // ── Card body ──
-          Container(
-            decoration: BoxDecoration(
-              border: locked
-                  ? Border.all(color: t.accent.primary, width: 2.0)
-                  : null,
-              borderRadius: BorderRadius.circular(10),
-              color: t.backgroundPrimary,
-            ),
-            clipBehavior: Clip.antiAlias,
-            child: item.displayUrl != null
-                ? Image.network(
-              item.displayUrl!,
-              fit: BoxFit.contain,
-              width: double.infinity,
-              height: double.infinity,
-            )
-                : Icon(Icons.checkroom, color: t.mutedText, size: 28),
+      child: Container(
+        decoration: BoxDecoration(
+          border: Border.all(
+            color: isSelected ? t.accent.primary : t.cardBorder,
+            width: isSelected ? 2 : 1,
           ),
-
-          // ── Lock icon badge (top-right) ──
-          Positioned(
-            top: 6,
-            right: 6,
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: () => _toggleItemLock(item.id),
-              child: Container(
-                width: 28,
-                height: 28,
-                decoration: BoxDecoration(
-                  color: locked
-                      ? t.accent.primary
-                      : Colors.white.withValues(alpha: 0.92),
-                  borderRadius: BorderRadius.circular(6),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.12),
-                      blurRadius: 4,
-                      offset: const Offset(0, 2),
+          borderRadius: BorderRadius.circular(8),
+          color: t.backgroundSecondary,
+        ),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            item.displayUrl != null
+                ? ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: Image.network(
+                item.displayUrl!,
+                fit: BoxFit.cover,
+              ),
+            )
+                : Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    item.isAiRecommended ? Icons.auto_awesome : Icons.checkroom,
+                    color: item.isAiRecommended ? Colors.amber : t.mutedText,
+                    size: 28,
+                  ),
+                  if (item.isAiRecommended) ...[
+                    const SizedBox(height: 4),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      child: Text(
+                        item.cat,
+                        textAlign: TextAlign.center,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.inter(fontSize: 9, color: t.mutedText),
+                      ),
                     ),
                   ],
-                ),
-                child: Icon(
-                  locked ? Icons.lock : Icons.lock_open,
-                  size: 14,
-                  color: locked ? Colors.white : t.mutedText,
-                ),
+                ],
               ),
             ),
-          ),
-
-          // ── "Locked" pill (bottom-left) ──
-          if (locked)
-            Positioned(
-              bottom: 6,
-              left: 6,
-              child: Container(
-                padding:
-                const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-                decoration: BoxDecoration(
-                  color: t.accent.primary,
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Text(
-                  AppLocalizations.t(context, 'style_boards_locked_badge'),
-                  style: GoogleFonts.inter(
-                    fontSize: 9,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white,
-                    letterSpacing: 0.2,
+            if (item.isAiRecommended)
+              Positioned(
+                top: 6,
+                left: 6,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: Colors.amber.withOpacity(0.95),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    _tr(context, 'style_boards_ai_pick_badge', 'AI Pick'),
+                    style: GoogleFonts.inter(
+                      fontSize: 9,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.black87,
+                    ),
                   ),
                 ),
               ),
-            ),
-        ],
+            if (isLocked)
+              Positioned(
+                bottom: 8,
+                right: 8,
+                child: Icon(Icons.lock, color: t.accent.primary, size: 16),
+              ),
+          ],
+        ),
       ),
     );
   }
 
-  // ============================================================
-  // CONTROL BUTTONS
-  // ============================================================
+  // ── Control buttons ──────────────────────────────────────────
+
   Widget _buildControlButtons(BuildContext context, AppThemeTokens t) {
-    final board = styleBoards[selectedBoardIndex];
-    final lockedCount = lockedItemIds.length;
-    final totalCount = board.items.length;
-
-    return Column(
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
-        Row(
-          children: [
-            // Shuffle button
-            Expanded(
-              flex: lockedCount > 0 ? 56 : 1,
-              child: FilledButton.icon(
-                onPressed: _shuffleUnlockedPieces,
-                icon: const Icon(Icons.shuffle, size: 18),
-                label: Text(
-                  AppLocalizations.t(
-                      context, 'style_boards_shuffle_button'),
-                ),
-                style: FilledButton.styleFrom(
-                  backgroundColor: t.textPrimary,
-                  foregroundColor: t.backgroundPrimary,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(24),
-                  ),
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 20, vertical: 12),
-                ),
-              ),
-            ),
-
-            if (lockedCount > 0) ...[
-              const SizedBox(width: 10),
-              Expanded(
-                flex: 44,
-                child: FilledButton.icon(
-                  onPressed: _unlockAll,
-                  icon: const Icon(Icons.lock_open, size: 18),
-                  label: Text(
-                    AppLocalizations.t(context, 'style_boards_unlock_all')
-                        .replaceAll('{count}', lockedCount.toString()),
-                  ),
-                  style: FilledButton.styleFrom(
-                    backgroundColor: t.textPrimary,
-                    foregroundColor: t.backgroundPrimary,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(24),
-                    ),
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 20, vertical: 12),
-                  ),
-                ),
-              ),
-            ],
-          ],
+        _buildActionButton(
+          context,
+          icon: Icons.repeat,
+          label: AppLocalizations.t(context, 'style_boards_button_shuffle'),
+          onTap: _shuffleUnlockedPieces,
+          t: t,
+          isPrimary: true,
         ),
-
-        const SizedBox(height: 10),
-
-        Text(
-          AppLocalizations.t(context, 'style_boards_items_locked')
-              .replaceAll('{locked}', lockedCount.toString())
-              .replaceAll('{total}', totalCount.toString()),
-          style: GoogleFonts.inter(
-            fontSize: 12,
-            fontWeight: FontWeight.w500,
-            color: t.mutedText,
-          ),
-          textAlign: TextAlign.center,
+        _buildActionButton(
+          context,
+          icon: Icons.lock_open,
+          label: AppLocalizations.t(context, 'style_boards_button_unlock_all'),
+          onTap: _unlockAll,
+          t: t,
         ),
       ],
     );
   }
 
-  // ============================================================
-  // BOARD HISTORY SECTION (IMPROVED LAYOUT)
-  // Left: Always exactly 2 tops/bottoms
-  // Right: Remaining items in grid
-  // ============================================================
-  Widget _buildBoardHistorySection(BuildContext context, AppThemeTokens t) {
-    final currentLabel =
-    AppLocalizations.t(context, 'style_boards_history_current');
-    // Newest real entry always sits at index 0 (see _generateBoardHistory
-    // and _shuffleUnlockedPieces, which insert new entries at the front).
-    const currentHistoryIndex = 0;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Header
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
+  Widget _buildActionButton(
+      BuildContext context, {
+        required IconData icon,
+        required String label,
+        required VoidCallback onTap,
+        required AppThemeTokens t,
+        bool isPrimary = false,
+      }) {
+    return Expanded(
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 12),
           child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text(
-                AppLocalizations.t(context, 'style_boards_history_title'),
-                style: GoogleFonts.inter(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                  color: t.mutedText,
-                  letterSpacing: 0.8,
+              Icon(icon,
+                  color: isPrimary ? t.accent.primary : t.textPrimary, size: 18),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  label,
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.inter(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: isPrimary ? t.accent.primary : t.textPrimary,
+                  ),
                 ),
               ),
-              const SizedBox(width: 6),
-              Icon(Icons.info_outline, size: 13, color: t.mutedText),
             ],
           ),
         ),
-        const SizedBox(height: 10),
+      ),
+    );
+  }
 
-        // Horizontal scroll with improved layout
-        SizedBox(
-          height: 165,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            itemCount: boardHistory.length,
-            itemBuilder: (_, index) {
-              final h = boardHistory[index];
-              final isCurrent = selectedBoardIndex < styleBoards.length &&
-                  styleBoards[selectedBoardIndex].id == 'history_${h.id}';
+  // ── Board history section ────────────────────────────────────
 
-              final categorized = CategorizedItems.from(h.items);
+  Widget _buildBoardHistorySection(BuildContext context, AppThemeTokens t) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            AppLocalizations.t(context, 'style_boards_history_title'),
+            style: GoogleFonts.inter(
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              color: t.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 12),
+          if (boardHistory.isEmpty)
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Text(
+                'No history yet.',
+                style: GoogleFonts.inter(
+                  fontSize: 13,
+                  color: t.mutedText,
+                ),
+              ),
+            )
+          else
+            ListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: boardHistory.length,
+              itemBuilder: (_, i) {
+                final h = boardHistory[i];
+                final isCurrent = i == 0;
 
-              // Always take exactly 2 items from left (tops/bottoms)
-              final leftItems = categorized.topsBottoms.take(2).toList();
-
-              // Remaining items go to right (take only 1 for history preview to show 3 total)
-              final allRightItems = [
-                ...categorized.topsBottoms.skip(2),
-                ...categorized.accessoriesShoes,
-              ];
-              final rightItems = allRightItems.take(1).toList();
-
-              return Padding(
-                padding: const EdgeInsets.only(right: 10),
-                child: GestureDetector(
-                  onTap: () => _switchBoard(index),
-                  child: Container(
-                    width: 130,
-                    decoration: BoxDecoration(
-                      border: Border.all(
-                        color:
-                        isCurrent ? t.accent.primary : t.cardBorder,
-                        width: isCurrent ? 2 : 1,
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: GestureDetector(
+                    onTap: () => _switchBoard(i),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        border: Border.all(
+                          color: isCurrent ? t.accent.primary : t.cardBorder,
+                          width: isCurrent ? 1.5 : 1,
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                        color: isCurrent ? t.accent.primary.withOpacity(0.05) : null,
                       ),
-                      borderRadius: BorderRadius.circular(8),
-                      color: isCurrent
-                          ? t.accent.primary.withValues(alpha: 0.05)
-                          : t.backgroundPrimary,
-                    ),
-                    child: Column(
-                      children: [
-                        // Mini grid preview - matching main board structure
-                        // Left: 2 items tall, Right: grid
-                        Expanded(
-                          child: Padding(
-                            padding: const EdgeInsets.all(6),
-                            child: Row(
+                      padding: const EdgeInsets.all(12),
+                      child: Row(
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: h.items.isNotEmpty
+                                ? Image.network(
+                              h.items.first.displayUrl ?? '',
+                              width: 50,
+                              height: 50,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => Container(
+                                width: 50,
+                                height: 50,
+                                color: t.backgroundSecondary,
+                                child: Icon(Icons.checkroom, color: t.mutedText),
+                              ),
+                            )
+                                : Container(
+                              width: 50,
+                              height: 50,
+                              color: t.backgroundSecondary,
+                              child: Icon(Icons.checkroom, color: t.mutedText),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                // Left column (exactly 2 tops/bottoms)
-                                Expanded(
-                                  flex: 1,
-                                  child: Column(
-                                    children: [
-                                      // Top item
-                                      if (leftItems.isNotEmpty)
-                                        Expanded(
-                                          child: ClipRRect(
-                                            borderRadius: BorderRadius.circular(3),
-                                            child: Container(
-                                              color: t.backgroundSecondary,
-                                              child: leftItems[0].displayUrl != null
-                                                  ? Image.network(
-                                                leftItems[0].displayUrl!,
-                                                fit: BoxFit.cover,
-                                              )
-                                                  : Icon(
-                                                Icons.checkroom,
-                                                size: 14,
-                                                color: t.mutedText,
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                      const SizedBox(height: 3),
-                                      // Bottom item
-                                      if (leftItems.length > 1)
-                                        Expanded(
-                                          child: ClipRRect(
-                                            borderRadius: BorderRadius.circular(3),
-                                            child: Container(
-                                              color: t.backgroundSecondary,
-                                              child: leftItems[1].displayUrl != null
-                                                  ? Image.network(
-                                                leftItems[1].displayUrl!,
-                                                fit: BoxFit.cover,
-                                              )
-                                                  : Icon(
-                                                Icons.checkroom,
-                                                size: 14,
-                                                color: t.mutedText,
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                    ],
+                                Text(
+                                  isCurrent
+                                      ? AppLocalizations.t(
+                                      context, 'style_boards_history_current')
+                                      : h.getTimeAgo(context),
+                                  style: GoogleFonts.inter(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    color: t.textPrimary,
                                   ),
                                 ),
-                                const SizedBox(width: 3),
-                                // Right column (only 1 item for 3-item preview)
-                                Expanded(
-                                  flex: 1,
-                                  child: ClipRRect(
-                                    borderRadius:
-                                    BorderRadius.circular(2),
-                                    child: Container(
-                                      color: t.backgroundSecondary,
-                                      child: rightItems.isNotEmpty
-                                          ? (rightItems[0].displayUrl != null
-                                          ? Image.network(
-                                        rightItems[0].displayUrl!,
-                                        fit: BoxFit.cover,
-                                      )
-                                          : Icon(
-                                        Icons.checkroom,
-                                        size: 12,
-                                        color: t.mutedText,
-                                      ))
-                                          : Icon(
-                                        Icons.checkroom,
-                                        size: 12,
-                                        color: t.mutedText,
-                                      ),
-                                    ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  '${h.items.length} items',
+                                  style: GoogleFonts.inter(
+                                    fontSize: 12,
+                                    color: t.mutedText,
                                   ),
                                 ),
                               ],
                             ),
                           ),
-                        ),
-                        // Time label
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 4, vertical: 5),
-                          decoration: BoxDecoration(
-                            border: Border(
-                              top: BorderSide(
-                                color: isCurrent
-                                    ? t.accent.primary
-                                    : t.cardBorder,
-                                width: 0.8,
-                              ),
-                            ),
-                          ),
-                          child: Text(
-                            index == currentHistoryIndex
-                                ? currentLabel
-                                : h.getTimeAgo(context),
-                            textAlign: TextAlign.center,
-                            style: GoogleFonts.inter(
-                              fontSize: 9,
-                              fontWeight: FontWeight.w600,
-                              color: isCurrent
-                                  ? t.accent.primary
-                                  : t.textPrimary,
-                            ),
-                          ),
-                        ),
-                      ],
+                          if (isCurrent)
+                            Icon(Icons.check_circle,
+                                color: t.accent.primary, size: 20),
+                        ],
+                      ),
                     ),
                   ),
-                ),
-              );
-            },
-          ),
-        ),
-      ],
+                );
+              },
+            ),
+        ],
+      ),
     );
   }
 }
 
 // ============================================================
-// SELECTED ITEM DETAILS PANEL
+// ITEM DETAILS PANEL
 // ============================================================
 class _SelectedItemPanel extends StatelessWidget {
-  final WardrobeItem item;
+  final BoardDisplayItem item;
   final bool isLocked;
   final VoidCallback onToggleLock;
   final VoidCallback onReplace;
@@ -1116,116 +1538,149 @@ class _SelectedItemPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context).extension<AppThemeTokens>()!;
-    final height = MediaQuery.of(context).size.height;
 
-    return Align(
-      alignment: Alignment.bottomCenter,
-      child: Container(
-        height: height * 0.85,
-        decoration: BoxDecoration(
-          color: t.backgroundPrimary,
-          borderRadius:
-          const BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        child: Stack(
+    return SizedBox(
+      height: MediaQuery.of(context).size.height * 0.7,
+      child: Material(
+        color: t.backgroundPrimary,
+        child: Column(
           children: [
-            SingleChildScrollView(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          AppLocalizations.t(
-                              context, 'style_boards_item_details_title'),
-                          style: GoogleFonts.inter(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
-                            color: t.textPrimary,
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: t.cardBorder,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            Expanded(
+              child: SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            AppLocalizations.t(
+                                context, 'style_boards_item_details_title'),
+                            style: GoogleFonts.inter(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              color: t.textPrimary,
+                            ),
                           ),
-                        ),
-                        IconButton(
-                          icon: Icon(Icons.close, color: t.textPrimary),
-                          onPressed: () => Navigator.pop(context),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    Container(
-                      width: double.infinity,
-                      height: 280,
-                      decoration: BoxDecoration(
-                        color: t.backgroundSecondary,
-                        borderRadius: BorderRadius.circular(12),
+                          IconButton(
+                            icon: Icon(Icons.close, color: t.textPrimary),
+                            onPressed: () => Navigator.pop(context),
+                          ),
+                        ],
                       ),
-                      padding: const EdgeInsets.all(12),
-                      child: item.displayUrl != null
-                          ? ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: Image.network(
-                          item.displayUrl!,
-                          fit: BoxFit.contain,
-                          width: double.infinity,
-                          height: double.infinity,
+                      const SizedBox(height: 16),
+                      Container(
+                        width: double.infinity,
+                        height: 280,
+                        decoration: BoxDecoration(
+                          color: t.backgroundSecondary,
+                          borderRadius: BorderRadius.circular(12),
                         ),
-                      )
-                          : Icon(Icons.checkroom,
-                          color: t.mutedText, size: 48),
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      item.name,
-                      style: GoogleFonts.inter(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        color: t.textPrimary,
+                        padding: const EdgeInsets.all(12),
+                        child: item.displayUrl != null
+                            ? ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Image.network(
+                            item.displayUrl!,
+                            fit: BoxFit.contain,
+                            width: double.infinity,
+                            height: double.infinity,
+                          ),
+                        )
+                            : Icon(
+                          item.isAiRecommended ? Icons.auto_awesome : Icons.checkroom,
+                          color: item.isAiRecommended ? Colors.amber : t.mutedText,
+                          size: 48,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      item.cat,
-                      style: GoogleFonts.inter(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
-                        color: t.mutedText,
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              item.name.isNotEmpty ? item.name : item.cat,
+                              style: GoogleFonts.inter(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
+                                color: t.textPrimary,
+                              ),
+                            ),
+                          ),
+                          if (item.isAiRecommended)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: Colors.amber.withOpacity(0.95),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                'AI Pick',
+                                style: GoogleFonts.inter(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.black87,
+                                ),
+                              ),
+                            ),
+                        ],
                       ),
-                    ),
-                    const SizedBox(height: 16),
-                    _action(
-                      context,
-                      icon: Icons.lock,
-                      label: isLocked
-                          ? AppLocalizations.t(
-                          context, 'style_boards_item_unlock')
-                          : AppLocalizations.t(
-                          context, 'style_boards_item_lock'),
-                      onTap: onToggleLock,
-                      t: t,
-                      isPrimary: true,
-                    ),
-                    const SizedBox(height: 8),
-                    _action(
-                      context,
-                      icon: Icons.repeat,
-                      label: AppLocalizations.t(
-                          context, 'style_boards_item_replace'),
-                      onTap: onReplace,
-                      t: t,
-                    ),
-                    const SizedBox(height: 8),
-                    _action(
-                      context,
-                      icon: Icons.search,
-                      label: AppLocalizations.t(
-                          context, 'style_boards_item_find_similar'),
-                      onTap: onFindSimilar ?? () {},
-                      t: t,
-                    ),
-                    const SizedBox(height: 24),
-                  ],
+                      const SizedBox(height: 4),
+                      Text(
+                        item.cat,
+                        style: GoogleFonts.inter(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                          color: t.mutedText,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      _action(
+                        context,
+                        icon: Icons.lock,
+                        label: isLocked
+                            ? AppLocalizations.t(
+                            context, 'style_boards_item_unlock')
+                            : AppLocalizations.t(
+                            context, 'style_boards_item_lock'),
+                        onTap: onToggleLock,
+                        t: t,
+                        isPrimary: true,
+                      ),
+                      const SizedBox(height: 8),
+                      _action(
+                        context,
+                        icon: Icons.repeat,
+                        label: AppLocalizations.t(
+                            context, 'style_boards_item_replace'),
+                        onTap: onReplace,
+                        t: t,
+                      ),
+                      const SizedBox(height: 8),
+                      _action(
+                        context,
+                        icon: Icons.search,
+                        label: AppLocalizations.t(
+                            context, 'style_boards_item_find_similar'),
+                        onTap: onFindSimilar ?? () {},
+                        t: t,
+                      ),
+                      const SizedBox(height: 24),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -1272,6 +1727,8 @@ class _SelectedItemPanel extends StatelessWidget {
 
 // ============================================================
 // ITEM PICKER SHEET (Replace / Find Similar)
+// Operates on real wardrobe items only — picking one always
+// produces a WardrobeBoardItem back on the board.
 // ============================================================
 class _ItemPickerSheet extends StatelessWidget {
   final String title;

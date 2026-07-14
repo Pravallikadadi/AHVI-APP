@@ -4,25 +4,261 @@ import 'package:myapp/app_routes.dart';
 import 'package:myapp/profile.dart';
 import 'package:myapp/services/appwrite_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
+import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
+import 'package:image/image.dart' as img;
 
 void main() {
-  runApp(const MaterialApp(debugShowCheckedModeBanner: false, home: Screen3()));
+  runApp(MaterialApp(
+    debugShowCheckedModeBanner: false,
+    themeMode: ThemeMode.system,
+    theme: ThemeData(
+      brightness: Brightness.light,
+      scaffoldBackgroundColor: AppColors.light.bg2,
+      extensions: const [AppColors.light],
+    ),
+    darkTheme: ThemeData(
+      brightness: Brightness.dark,
+      scaffoldBackgroundColor: AppColors.dark.bg2,
+      extensions: const [AppColors.dark],
+    ),
+    home: const Screen3(),
+  ));
 }
 
-// ── Color constants (Light Mode) ───────────────────────────────────────────────
-const Color _bg = Color(0xFFEEF3FF);
-const Color _bg2 = Color(0xFFFFFFFF);
-const Color _panel = Color(0xA8FFFFFF); // rgba(255,255,255,.66)
-const Color _panel2 = Color(0x33C5CDED); // soft blue-grey tint
-const Color _card = Color(0xE0FFFFFF); // rgba(255,255,255,.88)
-const Color _cardBorder = Color(0xFFE5E9F7);
-const Color _text = Color(0xFF1A1D26);
-const Color _muted = Color(0xFF66708A);
+// ── Theme-aware color tokens ────────────────────────────────────────────────
+// All colors used across this screen live here as a ThemeExtension so every
+// widget can pick up the right palette for light/dark mode via
+// `context.colors` instead of hardcoded constants.
+@immutable
+class AppColors extends ThemeExtension<AppColors> {
+  final Color bg;
+  final Color bg2;
+  final Color panel;
+  final Color panel2;
+  final Color card;
+  final Color cardBorder;
+  final Color text;
+  final Color muted;
+  final Color accent1;
+  final Color accent2;
+  final Color accent3;
+  final Color accent4;
+  final Color danger;
+  final Color warning;
+  final Color statusPurple;
+  final Color statusPink;
+  final Color onAccent;
+  final Color recommendationBg;
+  final Color recommendationBorder;
+  final Color recommendationTitle;
+  final Color uploadedBg;
+  final Color privacyTint;
+  final Color dotInactive;
 
-const Color _accent1 = Color(0xFF6B91FF); // blue
-const Color _accent2 = Color(0xFF8D7DFF); // purple
-const Color _accent3 = Color(0xFF04D7C8); // teal
-const Color _accent4 = Color(0xFF14CACD); // teal-alt
+  const AppColors({
+    required this.bg,
+    required this.bg2,
+    required this.panel,
+    required this.panel2,
+    required this.card,
+    required this.cardBorder,
+    required this.text,
+    required this.muted,
+    required this.accent1,
+    required this.accent2,
+    required this.accent3,
+    required this.accent4,
+    required this.danger,
+    required this.warning,
+    required this.statusPurple,
+    required this.statusPink,
+    required this.onAccent,
+    required this.recommendationBg,
+    required this.recommendationBorder,
+    required this.recommendationTitle,
+    required this.uploadedBg,
+    required this.privacyTint,
+    required this.dotInactive,
+  });
+
+  // ── Light Mode ──────────────────────────────────────────────────────────
+  static const light = AppColors(
+    bg: Color(0xFFEEF3FF),
+    bg2: Color(0xFFFFFFFF),
+    panel: Color(0xA8FFFFFF),
+    panel2: Color(0x33C5CDED),
+    card: Color(0xE0FFFFFF),
+    cardBorder: Color(0xFFE5E9F7),
+    text: Color(0xFF1A1D26),
+    muted: Color(0xFF66708A),
+    accent1: Color(0xFF6B91FF),
+    accent2: Color(0xFF8D7DFF),
+    accent3: Color(0xFF04D7C8),
+    accent4: Color(0xFF14CACD),
+    danger: Color(0xFFE5484D),
+    warning: Color(0xFFF5A524),
+    statusPurple: Color(0xFF8B5CF6),
+    statusPink: Color(0xFFEC4899),
+    onAccent: Color(0xFFFFFFFF),
+    recommendationBg: Color(0xFFFFF8E8),
+    recommendationBorder: Color(0xFFFFE5B4),
+    recommendationTitle: Color(0xFFD97706),
+    uploadedBg: Color(0xFFE8F5FF),
+    privacyTint: Color(0x1204D7C8),
+    dotInactive: Color(0x608D7DFF),
+  );
+
+  // ── Dark Mode ───────────────────────────────────────────────────────────
+  static const dark = AppColors(
+    bg: Color(0xFF0A0E17),
+    bg2: Color(0xFF0B0F19),
+    panel: Color(0xA8232838),
+    panel2: Color(0x3336405C),
+    card: Color(0xE0161B28),
+    cardBorder: Color(0xFF2A3142),
+    text: Color(0xFFF2F4FA),
+    muted: Color(0xFF9AA3BD),
+    accent1: Color(0xFF7DA3FF),
+    accent2: Color(0xFF9C8CFF),
+    accent3: Color(0xFF1FE6D6),
+    accent4: Color(0xFF2DD9DB),
+    danger: Color(0xFFFF6B6E),
+    warning: Color(0xFFFFC94D),
+    statusPurple: Color(0xFFA78BFA),
+    statusPink: Color(0xFFF472B6),
+    onAccent: Color(0xFFFFFFFF),
+    recommendationBg: Color(0xFF3A2E12),
+    recommendationBorder: Color(0xFF5C4720),
+    recommendationTitle: Color(0xFFFFC66D),
+    uploadedBg: Color(0xFF163333),
+    privacyTint: Color(0x1F1FE6D6),
+    dotInactive: Color(0x609C8CFF),
+  );
+
+  @override
+  AppColors copyWith({
+    Color? bg,
+    Color? bg2,
+    Color? panel,
+    Color? panel2,
+    Color? card,
+    Color? cardBorder,
+    Color? text,
+    Color? muted,
+    Color? accent1,
+    Color? accent2,
+    Color? accent3,
+    Color? accent4,
+    Color? danger,
+    Color? warning,
+    Color? statusPurple,
+    Color? statusPink,
+    Color? onAccent,
+    Color? recommendationBg,
+    Color? recommendationBorder,
+    Color? recommendationTitle,
+    Color? uploadedBg,
+    Color? privacyTint,
+    Color? dotInactive,
+  }) {
+    return AppColors(
+      bg: bg ?? this.bg,
+      bg2: bg2 ?? this.bg2,
+      panel: panel ?? this.panel,
+      panel2: panel2 ?? this.panel2,
+      card: card ?? this.card,
+      cardBorder: cardBorder ?? this.cardBorder,
+      text: text ?? this.text,
+      muted: muted ?? this.muted,
+      accent1: accent1 ?? this.accent1,
+      accent2: accent2 ?? this.accent2,
+      accent3: accent3 ?? this.accent3,
+      accent4: accent4 ?? this.accent4,
+      danger: danger ?? this.danger,
+      warning: warning ?? this.warning,
+      statusPurple: statusPurple ?? this.statusPurple,
+      statusPink: statusPink ?? this.statusPink,
+      onAccent: onAccent ?? this.onAccent,
+      recommendationBg: recommendationBg ?? this.recommendationBg,
+      recommendationBorder: recommendationBorder ?? this.recommendationBorder,
+      recommendationTitle: recommendationTitle ?? this.recommendationTitle,
+      uploadedBg: uploadedBg ?? this.uploadedBg,
+      privacyTint: privacyTint ?? this.privacyTint,
+      dotInactive: dotInactive ?? this.dotInactive,
+    );
+  }
+
+  @override
+  AppColors lerp(ThemeExtension<AppColors>? other, double t) {
+    if (other is! AppColors) return this;
+    return AppColors(
+      bg: Color.lerp(bg, other.bg, t)!,
+      bg2: Color.lerp(bg2, other.bg2, t)!,
+      panel: Color.lerp(panel, other.panel, t)!,
+      panel2: Color.lerp(panel2, other.panel2, t)!,
+      card: Color.lerp(card, other.card, t)!,
+      cardBorder: Color.lerp(cardBorder, other.cardBorder, t)!,
+      text: Color.lerp(text, other.text, t)!,
+      muted: Color.lerp(muted, other.muted, t)!,
+      accent1: Color.lerp(accent1, other.accent1, t)!,
+      accent2: Color.lerp(accent2, other.accent2, t)!,
+      accent3: Color.lerp(accent3, other.accent3, t)!,
+      accent4: Color.lerp(accent4, other.accent4, t)!,
+      danger: Color.lerp(danger, other.danger, t)!,
+      warning: Color.lerp(warning, other.warning, t)!,
+      statusPurple: Color.lerp(statusPurple, other.statusPurple, t)!,
+      statusPink: Color.lerp(statusPink, other.statusPink, t)!,
+      onAccent: Color.lerp(onAccent, other.onAccent, t)!,
+      recommendationBg: Color.lerp(recommendationBg, other.recommendationBg, t)!,
+      recommendationBorder: Color.lerp(recommendationBorder, other.recommendationBorder, t)!,
+      recommendationTitle: Color.lerp(recommendationTitle, other.recommendationTitle, t)!,
+      uploadedBg: Color.lerp(uploadedBg, other.uploadedBg, t)!,
+      privacyTint: Color.lerp(privacyTint, other.privacyTint, t)!,
+      dotInactive: Color.lerp(dotInactive, other.dotInactive, t)!,
+    );
+  }
+}
+
+/// Shortcut so any widget can just call `context.colors.text`, etc.
+extension AppColorsX on BuildContext {
+  AppColors get colors =>
+      Theme.of(this).extension<AppColors>() ?? AppColors.light;
+}
+
+// ── Facial Analysis Data Model ───────────────────────────────────
+class FaceAnalysisData {
+  final bool faceDetected;
+  final String skinTone;
+  final double skinQuality;
+  final bool acneDetected;
+  final int acneSeverity; // 0-100
+  final bool pigmentationDetected;
+  final double pigmentationIntensity; // 0-1
+  final String eyeShape;
+  final double eyeSize; // 0-1
+  final String lipColor;
+  final double lipFullness; // 0-1
+  final bool darkerCircles; // Under eye
+  final List<String> recommendations;
+
+  FaceAnalysisData({
+    required this.faceDetected,
+    required this.skinTone,
+    required this.skinQuality,
+    required this.acneDetected,
+    required this.acneSeverity,
+    required this.pigmentationDetected,
+    required this.pigmentationIntensity,
+    required this.eyeShape,
+    required this.eyeSize,
+    required this.lipColor,
+    required this.lipFullness,
+    required this.darkerCircles,
+    required this.recommendations,
+  });
+}
 
 class Screen3 extends StatefulWidget {
   const Screen3({super.key});
@@ -36,16 +272,420 @@ class _Screen3State extends State<Screen3> {
   bool _faceUploaded = false;
   bool _bodyUploaded = false;
   int _activeTab = 3;
+  final ImagePicker _picker = ImagePicker();
+
+  // Face analysis related
+  late FaceDetector _faceDetector;
+  FaceAnalysisData? _faceAnalysisData;
+  bool _isAnalyzingFace = false;
+  File? _selectedFaceImage;
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeFaceDetector();
+  }
+
+  void _initializeFaceDetector() {
+    final options = FaceDetectorOptions(
+      enableLandmarks: true,
+      enableClassification: true,
+    );
+    _faceDetector = FaceDetector(options: options);
+  }
+
+  @override
+  void dispose() {
+    _faceDetector.close();
+    super.dispose();
+  }
 
   bool get _isValid {
     if (!_personalizationEnabled) return true;
     return _faceUploaded && _bodyUploaded;
   }
 
+  // ── Advanced Face Analysis Function ────────────────────────────
+  Future<void> _analyzeFaceAdvanced(File imageFile) async {
+    setState(() => _isAnalyzingFace = true);
+
+    try {
+      final inputImage = InputImage.fromFile(imageFile);
+      final faces = await _faceDetector.processImage(inputImage);
+
+      if (faces.isEmpty) {
+        _showValidationError('No face detected. Please capture a clear face photo.');
+        setState(() => _isAnalyzingFace = false);
+        return;
+      }
+
+      // Read image for color analysis
+      final imageBytes = await imageFile.readAsBytes();
+      final decodedImage = img.decodeImage(imageBytes);
+
+      if (decodedImage == null) {
+        _showValidationError('Failed to process image.');
+        setState(() => _isAnalyzingFace = false);
+        return;
+      }
+
+      final face = faces.first;
+
+      // Extract facial features
+      final skinTone = _extractSkinTone(decodedImage, face);
+      final skinQuality = _calculateSkinQuality(decodedImage, face);
+      final acneData = _detectAcne(decodedImage, face);
+      final pigmentationData = _detectPigmentation(decodedImage, face);
+      final eyeShapeData = _analyzeEyeShape(face);
+      final lipColorData = _analyzeLipColor(decodedImage, face);
+      final darkerCircles = _detectDarkCircles(decodedImage, face);
+
+      final recommendations = _generateRecommendations(
+        skinTone,
+        acneData['detected'] as bool,
+        pigmentationData['detected'] as bool,
+        eyeShapeData,
+        darkerCircles,
+      );
+
+      final analysisData = FaceAnalysisData(
+        faceDetected: true,
+        skinTone: skinTone,
+        skinQuality: skinQuality,
+        acneDetected: acneData['detected'] as bool,
+        acneSeverity: acneData['severity'] as int,
+        pigmentationDetected: pigmentationData['detected'] as bool,
+        pigmentationIntensity: pigmentationData['intensity'] as double,
+        eyeShape: eyeShapeData,
+        eyeSize: _calculateEyeSize(face),
+        lipColor: lipColorData,
+        lipFullness: _calculateLipFullness(face),
+        darkerCircles: darkerCircles,
+        recommendations: recommendations,
+      );
+
+      setState(() {
+        _faceAnalysisData = analysisData;
+        _faceUploaded = true;
+        _selectedFaceImage = imageFile;
+        _isAnalyzingFace = false;
+      });
+
+      debugPrint('Advanced Face Analysis Complete');
+    } catch (e) {
+      debugPrint('Face analysis error: $e');
+      _showValidationError('Failed to analyze face. Try again.');
+      setState(() => _isAnalyzingFace = false);
+    }
+  }
+
+  // ── Skin Tone Extraction ───────────────────────────────────────
+  String _extractSkinTone(img.Image image, Face face) {
+    try {
+      final centerX = (face.boundingBox.center.dx * image.width).toInt();
+      final centerY = (face.boundingBox.center.dy * image.height).toInt();
+
+      if (centerX < 0 || centerX >= image.width || centerY < 0 || centerY >= image.height) {
+        return 'Medium';
+      }
+
+      final pixel = image.getPixelSafe(centerX, centerY);
+      final r = pixel.r.toInt();
+      final g = pixel.g.toInt();
+      final b = pixel.b.toInt();
+
+      final brightness = (r + g + b) / 3;
+
+      // Determine skin tone based on brightness and color values
+      if (brightness > 200) {
+        return 'Very Fair';
+      } else if (brightness > 170) {
+        return 'Fair';
+      } else if (brightness > 140) {
+        return 'Light Medium';
+      } else if (brightness > 110) {
+        return 'Medium';
+      } else if (brightness > 80) {
+        return 'Medium Deep';
+      } else if (brightness > 60) {
+        return 'Deep';
+      } else {
+        return 'Very Deep';
+      }
+    } catch (e) {
+      return 'Medium';
+    }
+  }
+
+  // ── Acne Detection ─────────────────────────────────────────────
+  Map<String, dynamic> _detectAcne(img.Image image, Face face) {
+    try {
+      final bbox = face.boundingBox;
+      final width = (bbox.width * image.width).toInt();
+      final height = (bbox.height * image.height).toInt();
+      final startX = (bbox.left * image.width).toInt().clamp(0, image.width - 1);
+      final startY = (bbox.top * image.height).toInt().clamp(0, image.height - 1);
+
+      int irregularPixels = 0;
+      int totalPixels = 0;
+
+      final regionWidth = (width * 0.8).toInt();
+      final regionHeight = (height * 0.7).toInt();
+
+      for (int x = startX; x < startX + regionWidth && x < image.width; x++) {
+        for (int y = startY; y < startY + regionHeight && y < image.height; y++) {
+          totalPixels++;
+          final pixel = image.getPixelSafe(x, y);
+          final r = pixel.r.toInt();
+          final g = pixel.g.toInt();
+          final b = pixel.b.toInt();
+
+          // Detect red spots (potential acne)
+          if (r > g + 30 && r > b + 30) {
+            irregularPixels++;
+          }
+        }
+      }
+
+      final acnePercentage = totalPixels > 0 ? (irregularPixels / totalPixels * 100).toInt() : 0;
+      final detected = acnePercentage > 5;
+      final severity = acnePercentage.clamp(0, 100);
+
+      return {
+        'detected': detected,
+        'severity': severity,
+      };
+    } catch (e) {
+      return {'detected': false, 'severity': 0};
+    }
+  }
+
+  // ── Pigmentation Detection ─────────────────────────────────────
+  Map<String, dynamic> _detectPigmentation(img.Image image, Face face) {
+    try {
+      final bbox = face.boundingBox;
+      final width = (bbox.width * image.width).toInt();
+      final height = (bbox.height * image.height).toInt();
+      final startX = (bbox.left * image.width).toInt().clamp(0, image.width - 1);
+      final startY = (bbox.top * image.height).toInt().clamp(0, image.height - 1);
+
+      double totalColorVariance = 0;
+      int sampleCount = 0;
+
+      for (int x = startX; x < startX + width && x < image.width; x += 5) {
+        for (int y = startY; y < startY + height && y < image.height; y += 5) {
+          sampleCount++;
+          final pixel = image.getPixelSafe(x, y);
+          final r = pixel.r.toDouble();
+          final g = pixel.g.toDouble();
+          final b = pixel.b.toDouble();
+
+          final variance = ((r - g).abs() + (g - b).abs() + (r - b).abs()) / 3;
+          totalColorVariance += variance;
+        }
+      }
+
+      final avgVariance = sampleCount > 0 ? totalColorVariance / sampleCount : 0;
+      final intensity = (avgVariance / 100).clamp(0.0, 1.0);
+      final detected = intensity > 0.3;
+
+      return {
+        'detected': detected,
+        'intensity': intensity,
+      };
+    } catch (e) {
+      return {'detected': false, 'intensity': 0.0};
+    }
+  }
+
+  // ── Eye Shape Analysis ────────────────────────────────────────
+  String _analyzeEyeShape(Face face) {
+    try {
+      if (face.landmarks.isEmpty) return 'Standard';
+
+      // Analyze eye landmarks
+      final leftEye = face.landmarks.firstWhere(
+            (lm) => lm.type == FaceLandmarkType.leftEye,
+        orElse: () => face.landmarks.first,
+      );
+
+      final position = leftEye.position;
+      // Simple heuristic based on eye position relative to face
+      if (position.dy < face.boundingBox.top + face.boundingBox.height * 0.4) {
+        return 'Almond';
+      } else if (position.dy > face.boundingBox.top + face.boundingBox.height * 0.45) {
+        return 'Hooded';
+      } else {
+        return 'Round';
+      }
+    } catch (e) {
+      return 'Standard';
+    }
+  }
+
+  // ── Eye Size Calculation ──────────────────────────────────────
+  double _calculateEyeSize(Face face) {
+    try {
+      if (face.landmarks.isEmpty) return 0.5;
+
+      final eyeWidth = face.boundingBox.width * 0.15;
+      return (eyeWidth / (face.boundingBox.width * 0.3)).clamp(0.0, 1.0);
+    } catch (e) {
+      return 0.5;
+    }
+  }
+
+  // ── Lip Color Analysis ────────────────────────────────────────
+  String _analyzeLipColor(img.Image image, Face face) {
+    try {
+      final bbox = face.boundingBox;
+      final centerX = (bbox.center.dx * image.width).toInt();
+      final centerY = (bbox.bottom * image.height * 0.95).toInt();
+
+      if (centerX < 0 || centerX >= image.width || centerY < 0 || centerY >= image.height) {
+        return 'Natural';
+      }
+
+      final pixel = image.getPixelSafe(centerX, centerY);
+      final r = pixel.r.toInt();
+      final g = pixel.g.toInt();
+      final b = pixel.b.toInt();
+
+      if (r > g + 20 && r > b + 20) {
+        return 'Deep Red/Pink';
+      } else if (r > g && r > b) {
+        return 'Warm Tone';
+      } else if (b > r && b > g) {
+        return 'Cool Tone';
+      } else {
+        return 'Natural';
+      }
+    } catch (e) {
+      return 'Natural';
+    }
+  }
+
+  // ── Lip Fullness Calculation ──────────────────────────────────
+  double _calculateLipFullness(Face face) {
+    try {
+      final lipsHeight = face.boundingBox.height * 0.08;
+      return (lipsHeight / (face.boundingBox.height * 0.15)).clamp(0.0, 1.0);
+    } catch (e) {
+      return 0.5;
+    }
+  }
+
+  // ── Dark Circles Detection ────────────────────────────────────
+  bool _detectDarkCircles(img.Image image, Face face) {
+    try {
+      final bbox = face.boundingBox;
+      // Sample area under eyes
+      final underEyeY = (bbox.top + bbox.height * 0.5).toInt();
+      final sampleX = (bbox.center.dx * image.width).toInt();
+
+      if (sampleX < 0 || sampleX >= image.width || underEyeY < 0 || underEyeY >= image.height) {
+        return false;
+      }
+
+      final pixel = image.getPixelSafe(sampleX, underEyeY);
+      final brightness = (pixel.r.toInt() + pixel.g.toInt() + pixel.b.toInt()) / 3;
+
+      return brightness < 100;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  // ── Skin Quality Calculation ──────────────────────────────────
+  double _calculateSkinQuality(img.Image image, Face face) {
+    try {
+      // Based on acne and pigmentation
+      final acneData = _detectAcne(image, face);
+      final pigmentationData = _detectPigmentation(image, face);
+
+      double quality = 100.0;
+      quality -= (acneData['severity'] as int) * 0.5;
+      quality -= ((pigmentationData['intensity'] as double) * 100) * 0.3;
+
+      return quality.clamp(0.0, 100.0);
+    } catch (e) {
+      return 75.0;
+    }
+  }
+
+  // ── Generate Recommendations ──────────────────────────────────
+  List<String> _generateRecommendations(
+      String skinTone,
+      bool hasAcne,
+      bool hasPigmentation,
+      String eyeShape,
+      bool darkCircles,
+      ) {
+    final recommendations = <String>[];
+
+    if (hasAcne) {
+      recommendations.add('Try acne-fighting products with salicylic acid');
+    }
+
+    if (hasPigmentation) {
+      recommendations.add('Consider vitamin C serums for brightening');
+    }
+
+    if (darkCircles) {
+      recommendations.add('Use eye creams with caffeine to reduce puffiness');
+    }
+
+    if (eyeShape == 'Hooded') {
+      recommendations.add('Highlight inner corner for wider eye appearance');
+    }
+
+    recommendations.add('Stay hydrated for healthy, glowing skin');
+
+    if (recommendations.isEmpty) {
+      recommendations.add('Your skin looks great! Maintain current routine');
+    }
+
+    return recommendations;
+  }
+
   void _showValidationError(String message) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
+  }
+
+  Future<void> _captureFacePhoto() async {
+    try {
+      final XFile? photo = await _picker.pickImage(
+        source: ImageSource.camera,
+        preferredCameraDevice: CameraDevice.front,
+      );
+
+      if (photo != null) {
+        debugPrint('Face photo captured: ${photo.path}');
+        await _analyzeFaceAdvanced(File(photo.path));
+      }
+    } catch (e) {
+      debugPrint('Error capturing face photo: $e');
+      _showValidationError('Failed to capture face photo');
+    }
+  }
+
+  Future<void> _captureBodyPhoto() async {
+    try {
+      final XFile? photo = await _picker.pickImage(
+        source: ImageSource.camera,
+        preferredCameraDevice: CameraDevice.rear,
+      );
+
+      if (photo != null) {
+        debugPrint('Body photo captured: ${photo.path}');
+        setState(() => _bodyUploaded = true);
+      }
+    } catch (e) {
+      debugPrint('Error capturing body photo: $e');
+      _showValidationError('Failed to capture body photo');
+    }
   }
 
   Future<void> _onSkip() async {
@@ -62,9 +702,7 @@ class _Screen3State extends State<Screen3> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('onboardingComplete', true);
     if (!mounted) return;
-    Navigator.of(
-      context,
-    ).pushNamedAndRemoveUntil(AppRoutes.main, (route) => false);
+    Navigator.of(context).pushNamedAndRemoveUntil(AppRoutes.main, (route) => false);
   }
 
   Future<void> _onSaveContinue() async {
@@ -77,7 +715,6 @@ class _Screen3State extends State<Screen3> {
       faceUploaded: _faceUploaded,
       bodyUploaded: _bodyUploaded,
     );
-    // Mark onboarding as fully complete — ONLY here, after all 3 screens done
     debugPrint('AHVI_ONBOARDING3_SAVE onboarding3=true');
     await context.read<AppwriteService>().updateCurrentUserProfileFields({
       'onboarding3': true,
@@ -86,98 +723,73 @@ class _Screen3State extends State<Screen3> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('onboardingComplete', true);
     if (!mounted) return;
-    Navigator.of(
-      context,
-    ).pushNamedAndRemoveUntil(AppRoutes.main, (route) => false);
+    Navigator.of(context).pushNamedAndRemoveUntil(AppRoutes.main, (route) => false);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _bg2,
+      backgroundColor: context.colors.bg2,
       body: Stack(
         children: [
-          // ── Atmospheric background ──────────────────────────
           const _AtmosphericBackground(),
 
-          // ── Main content ────────────────────────────────────
           SafeArea(
             child: Column(
               children: [
                 Expanded(
                   child: SingleChildScrollView(
                     physics: const BouncingScrollPhysics(),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 0,
-                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 0),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Header
                         _Header(),
-
-                        // Tab Bar
                         _TabBar(
                           activeTab: _activeTab,
                           onTabSelected: (i) => setState(() => _activeTab = i),
                         ),
                         const SizedBox(height: 32),
-
-                        // Section Divider
                         _SectionDivider(),
                         const SizedBox(height: 16),
-
-                        // Intro Card
                         _IntroCard(),
                         const SizedBox(height: 16),
-
-                        // Toggle Card
                         _ToggleCard(
                           enabled: _personalizationEnabled,
-                          onChanged: (v) =>
-                              setState(() => _personalizationEnabled = v),
+                          onChanged: (v) => setState(() => _personalizationEnabled = v),
                         ),
                         const SizedBox(height: 16),
-
-                        // Optional Badge
                         _OptionalBadge(),
                         const SizedBox(height: 14),
-
-                        // Upload Section
                         _UploadSection(
                           enabled: _personalizationEnabled,
                           faceUploaded: _faceUploaded,
                           bodyUploaded: _bodyUploaded,
-                          onFaceTap: () =>
-                              setState(() => _faceUploaded = !_faceUploaded),
-                          onBodyTap: () =>
-                              setState(() => _bodyUploaded = !_bodyUploaded),
+                          onFaceTap: _captureFacePhoto,
+                          onBodyTap: _captureBodyPhoto,
+                          isAnalyzing: _isAnalyzingFace,
                         ),
-                        const SizedBox(height: 24),
 
-                        // Privacy Block
+                        // Show detailed face analysis results
+                        if (_faceAnalysisData != null) ...[
+                          const SizedBox(height: 24),
+                          _FaceAnalysisPreview(data: _faceAnalysisData!),
+                        ],
+
+                        const SizedBox(height: 24),
                         _PrivacyBlock(),
                         const SizedBox(height: 32),
-
-                        // CTA Section
                         _CtaSection(
                           onBack: () => Navigator.of(context).pop(),
                           onSaveContinue: _onSaveContinue,
                         ),
-
-                        // Skip row
                         _SkipRow(onSkip: _onSkip),
-
-                        // Progress dots
                         _ProgressDots(),
                         const SizedBox(height: 20),
                       ],
                     ),
                   ),
                 ),
-
-                // Home indicator
                 _HomeIndicator(),
               ],
             ),
@@ -188,61 +800,270 @@ class _Screen3State extends State<Screen3> {
   }
 }
 
+// ── Face Analysis Preview Widget ───────────────────────────────
+class _FaceAnalysisPreview extends StatelessWidget {
+  final FaceAnalysisData data;
+
+  const _FaceAnalysisPreview({required this.data});
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: c.card,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: c.cardBorder, width: 1),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header
+          Text(
+            '✨ Face Analysis Results',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              color: c.text,
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Skin Analysis Section
+          _AnalysisSection(
+            title: '🎨 Skin Profile',
+            items: [
+              _AnalysisItem(
+                label: 'Skin Tone',
+                value: data.skinTone,
+                icon: '🌿',
+                color: c.accent3,
+              ),
+              _AnalysisItem(
+                label: 'Skin Quality',
+                value: '${data.skinQuality.toStringAsFixed(0)}%',
+                icon: '✨',
+                color: c.accent1,
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+
+          // Acne & Pigmentation Section
+          _AnalysisSection(
+            title: '🔍 Skin Conditions',
+            items: [
+              _AnalysisItem(
+                label: 'Acne Status',
+                value: data.acneDetected ? 'Detected (${data.acneSeverity}%)' : 'Clear',
+                icon: data.acneDetected ? '⚠️' : '✅',
+                color: data.acneDetected ? c.danger : c.accent3,
+              ),
+              _AnalysisItem(
+                label: 'Pigmentation',
+                value: data.pigmentationDetected ? 'Present' : 'Even',
+                icon: data.pigmentationDetected ? '⚠️' : '✅',
+                color: data.pigmentationDetected ? c.warning : c.accent3,
+              ),
+              if (data.darkerCircles)
+                _AnalysisItem(
+                  label: 'Dark Circles',
+                  value: 'Detected',
+                  icon: '👁️',
+                  color: c.statusPurple,
+                ),
+            ],
+          ),
+          const SizedBox(height: 14),
+
+          // Eye & Lip Section
+          _AnalysisSection(
+            title: '👁️ Facial Features',
+            items: [
+              _AnalysisItem(
+                label: 'Eye Shape',
+                value: data.eyeShape,
+                icon: '👁️',
+                color: c.accent2,
+              ),
+              _AnalysisItem(
+                label: 'Eye Size',
+                value: _getSizeLabel(data.eyeSize),
+                icon: '💫',
+                color: c.accent2,
+              ),
+              _AnalysisItem(
+                label: 'Lip Color',
+                value: data.lipColor,
+                icon: '💋',
+                color: c.statusPink,
+              ),
+              _AnalysisItem(
+                label: 'Lip Fullness',
+                value: _getSizeLabel(data.lipFullness),
+                icon: '✨',
+                color: c.statusPink,
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // Recommendations Section
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: c.recommendationBg,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: c.recommendationBorder, width: 1),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '💡 Personalized Recommendations',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: c.recommendationTitle,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                ...data.recommendations.map((rec) => Padding(
+                  padding: const EdgeInsets.only(bottom: 6),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('• ', style: TextStyle(color: c.muted)),
+                      Expanded(
+                        child: Text(
+                          rec,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: c.muted,
+                            height: 1.4,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                )),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _getSizeLabel(double size) {
+    if (size < 0.3) return 'Small';
+    if (size < 0.6) return 'Medium';
+    if (size < 0.8) return 'Large';
+    return 'Very Large';
+  }
+}
+
+// ── Analysis Section Widget ────────────────────────────────────
+class _AnalysisSection extends StatelessWidget {
+  final String title;
+  final List<_AnalysisItem> items;
+
+  const _AnalysisSection({
+    required this.title,
+    required this.items,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: TextStyle(
+            fontSize: 12.5,
+            fontWeight: FontWeight.w600,
+            color: c.muted,
+            letterSpacing: 0.3,
+          ),
+        ),
+        const SizedBox(height: 8),
+        ...items.map((item) => Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Row(
+                  children: [
+                    Text(item.icon, style: const TextStyle(fontSize: 16)),
+                    const SizedBox(width: 8),
+                    Text(
+                      item.label,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: c.text,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: item.color.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  item.value,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: item.color,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        )),
+      ],
+    );
+  }
+}
+
+class _AnalysisItem {
+  final String label;
+  final String value;
+  final String icon;
+  final Color color;
+
+  _AnalysisItem({
+    required this.label,
+    required this.value,
+    required this.icon,
+    required this.color,
+  });
+}
+
 // ── Atmospheric Background ─────────────────────────────────────
 class _AtmosphericBackground extends StatelessWidget {
   const _AtmosphericBackground();
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     return Positioned.fill(
       child: Container(
-        decoration: const BoxDecoration(
-          color: _bg,
+        decoration: BoxDecoration(
+          color: c.bg,
           gradient: RadialGradient(
-            center: Alignment(-1.1, -1.0),
+            center: const Alignment(-1.1, -1.0),
             radius: 1.4,
-            colors: [Color(0x256B91FF), Color(0x006B91FF)],
+            colors: [c.accent1.withOpacity(0.145), c.accent1.withOpacity(0)],
           ),
-        ),
-        child: Stack(
-          children: [
-            // Top-right purple
-            Positioned.fill(
-              child: Container(
-                decoration: const BoxDecoration(
-                  gradient: RadialGradient(
-                    center: Alignment(1.16, -1.0),
-                    radius: 1.3,
-                    colors: [Color(0x228D7DFF), Color(0x008D7DFF)],
-                  ),
-                ),
-              ),
-            ),
-            // Bottom-left teal
-            Positioned.fill(
-              child: Container(
-                decoration: const BoxDecoration(
-                  gradient: RadialGradient(
-                    center: Alignment(-1.08, 1.1),
-                    radius: 1.4,
-                    colors: [Color(0x1814CACD), Color(0x0014CACD)],
-                  ),
-                ),
-              ),
-            ),
-            // Bottom-right blue
-            Positioned.fill(
-              child: Container(
-                decoration: const BoxDecoration(
-                  gradient: RadialGradient(
-                    center: Alignment(1.16, 1.1),
-                    radius: 1.3,
-                    colors: [Color(0x1A6B91FF), Color(0x006B91FF)],
-                  ),
-                ),
-              ),
-            ),
-          ],
         ),
       ),
     );
@@ -253,86 +1074,29 @@ class _AtmosphericBackground extends StatelessWidget {
 class _Header extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     return Padding(
-      padding: const EdgeInsets.only(top: 20, bottom: 24),
+      padding: const EdgeInsets.only(top: 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Brand tag
-          Container(
-            margin: const EdgeInsets.only(bottom: 16),
-            padding: const EdgeInsets.fromLTRB(9, 5, 14, 5),
-            decoration: BoxDecoration(
-              color: _panel,
-              borderRadius: BorderRadius.circular(100),
-              border: Border.all(color: _cardBorder, width: 1),
-              boxShadow: const [
-                BoxShadow(
-                  color: Color(0x126B91FF),
-                  blurRadius: 24,
-                  offset: Offset(0, 6),
-                ),
-                BoxShadow(
-                  color: Color(0x22FFFFFF),
-                  blurRadius: 0,
-                  spreadRadius: 0,
-                  offset: Offset(0, 1),
-                ),
-              ],
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 7,
-                  height: 7,
-                  decoration: const BoxDecoration(
-                    color: _accent4,
-                    shape: BoxShape.circle,
-                  ),
-                ),
-                const SizedBox(width: 7),
-                const Text(
-                  'AHVI',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: _accent4,
-                    letterSpacing: 1.1,
-                  ),
-                ),
-              ],
+          Text(
+            'Personalize Your Fit',
+            style: TextStyle(
+              fontSize: 32,
+              fontWeight: FontWeight.w700,
+              color: c.text,
+              letterSpacing: -0.5,
             ),
           ),
-          // Page title
-          RichText(
-            text: const TextSpan(
-              style: TextStyle(
-                fontFamily: 'PlayfairDisplay',
-                fontSize: 34,
-                fontWeight: FontWeight.w400,
-                color: _text,
-                height: 1.08,
-              ),
-              children: [
-                TextSpan(text: 'Virtual '),
-                TextSpan(
-                  text: 'Try-On',
-                  style: TextStyle(
-                    fontStyle: FontStyle.italic,
-                    color: _accent2,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 10),
-          const Text(
-            'Personalize your fit experience with a few photos.',
+          const SizedBox(height: 8),
+          Text(
+            'Get better recommendations with advanced face analysis',
             style: TextStyle(
               fontSize: 15,
-              color: _muted,
+              color: c.muted,
               fontWeight: FontWeight.w400,
+              height: 1.5,
             ),
           ),
         ],
@@ -341,457 +1105,147 @@ class _Header extends StatelessWidget {
   }
 }
 
-// ── Tab Bar ─────────────────────────────────────────────────────
+// ── Tab Bar ────────────────────────────────────────────────────
 class _TabBar extends StatelessWidget {
   final int activeTab;
-  final ValueChanged<int> onTabSelected;
+  final Function(int) onTabSelected;
+
   const _TabBar({required this.activeTab, required this.onTabSelected});
 
   @override
   Widget build(BuildContext context) {
-    const tabs = ['Basics', 'Style', 'Try-On'];
-    return Container(
-      padding: const EdgeInsets.all(5),
-      decoration: BoxDecoration(
-        color: _panel,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: _cardBorder, width: 1),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x126B91FF),
-            blurRadius: 24,
-            offset: Offset(0, 6),
-          ),
-        ],
-      ),
+    final c = context.colors;
+    return Padding(
+      padding: const EdgeInsets.only(top: 24),
       child: Row(
-        children: List.generate(tabs.length, (i) {
-          final isActive = i == activeTab;
-          final isTryOn = i == 2;
-          return Expanded(
-            child: GestureDetector(
-              onTap: () => onTabSelected(i),
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  vertical: 10,
-                  horizontal: 4,
-                ),
-                decoration: (isActive || isTryOn)
-                    ? BoxDecoration(
-                  gradient: isTryOn
-                      ? const LinearGradient(
-                    colors: [Color(0xFF6B91FF), Color(0xFF8D7DFF)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  )
-                      : null,
-                  color: isTryOn ? null : const Color(0xFFEDF0FF),
-                  borderRadius: BorderRadius.circular(11),
-                  boxShadow: [
-                    BoxShadow(
-                      color: isTryOn
-                          ? const Color(0x336B91FF)
-                          : const Color(0x1A6B91FF),
-                      blurRadius: isTryOn ? 14 : 8,
-                      offset: Offset(0, isTryOn ? 4 : 2),
-                    ),
-                    if (!isTryOn)
-                      const BoxShadow(
-                        color: Color(0x22FFFFFF),
-                        blurRadius: 0,
-                        offset: Offset(0, 1),
-                      ),
-                  ],
-                )
-                    : null,
-                child: Text(
-                  tabs[i],
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: (isActive || isTryOn)
-                        ? FontWeight.w600
-                        : FontWeight.w500,
-                    color: isTryOn
-                        ? Colors.white
-                        : (isActive ? _accent1 : _muted),
-                    letterSpacing: 0.065,
+        children: [
+          for (int i = 1; i <= 3; i++)
+            Expanded(
+              child: GestureDetector(
+                onTap: () => onTabSelected(i),
+                child: Container(
+                  height: 3,
+                  decoration: BoxDecoration(
+                    color: activeTab >= i ? c.accent1 : c.cardBorder,
+                    borderRadius: BorderRadius.circular(2),
                   ),
                 ),
               ),
             ),
-          );
-        }),
+          if (activeTab < 3) const SizedBox(width: 8),
+        ],
       ),
     );
   }
 }
 
-// ── Section Divider ─────────────────────────────────────────────
 class _SectionDivider extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        const Text(
-          'VIRTUAL TRY-ON',
-          style: TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w600,
-            color: _muted,
-            letterSpacing: 1.1,
-          ),
+    final c = context.colors;
+    return Container(
+      height: 1,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Colors.transparent, c.cardBorder, Colors.transparent],
         ),
-        const SizedBox(width: 10),
-        Expanded(child: Container(height: 1, color: _cardBorder)),
-      ],
+      ),
     );
   }
 }
 
-// ── Intro Card ──────────────────────────────────────────────────
 class _IntroCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     return Container(
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: _card,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: _cardBorder, width: 1),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x148D7DFF),
-            blurRadius: 24,
-            offset: Offset(0, 6),
-          ),
-          BoxShadow(
-            color: Color(0x0A000000),
-            blurRadius: 4,
-            offset: Offset(0, 1),
-          ),
-        ],
+        color: c.card,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: c.cardBorder, width: 1),
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(22),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Shimmer top strip
-            Container(
-              height: 1.5,
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    Colors.transparent,
-                    Color(0x608D7DFF),
-                    Color(0x3814CACD),
-                    Colors.transparent,
-                  ],
-                  stops: [0.0, 0.35, 0.65, 1.0],
-                ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 18, 20, 16),
-              child: Column(
-                children: [
-                  // Intro header
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Try-on icon
-                      Container(
-                        width: 56,
-                        height: 56,
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            begin: Alignment(-0.6, -0.8),
-                            end: Alignment(0.6, 0.8),
-                            colors: [Color(0x188D7DFF), Color(0x146B91FF)],
-                          ),
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: const Color(0x2A8D7DFF),
-                            width: 1,
-                          ),
-                          boxShadow: const [
-                            BoxShadow(
-                              color: Color(0x148D7DFF),
-                              blurRadius: 8,
-                              offset: Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: const Center(
-                          child: Icon(
-                            Icons.person_outline,
-                            color: _accent2,
-                            size: 24,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 14),
-                      // Text block
-                      Expanded(
-                        child: Padding(
-                          padding: const EdgeInsets.only(top: 2),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: const [
-                              Text(
-                                'Personalized Fit Preview',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                  color: _text,
-                                  letterSpacing: -0.16,
-                                ),
-                              ),
-                              SizedBox(height: 5),
-                              Text(
-                                'Upload photos to improve fit accuracy and how outfits look on your body type.',
-                                style: TextStyle(
-                                  fontSize: 13.5,
-                                  color: _muted,
-                                  fontWeight: FontWeight.w300,
-                                  height: 1.55,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  // Trust strip
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 9,
-                    ),
-                    decoration: BoxDecoration(
-                      color: const Color(0x0A04D7C8),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                        color: const Color(0x2204D7C8),
-                        width: 1,
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(
-                          Icons.lock_outline,
-                          color: _accent3,
-                          size: 14,
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: RichText(
-                            text: const TextSpan(
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: _accent3,
-                                letterSpacing: 0.12,
-                              ),
-                              children: [
-                                TextSpan(text: 'Photos are '),
-                                TextSpan(
-                                  text: 'end-to-end encrypted',
-                                  style: TextStyle(fontWeight: FontWeight.w600),
-                                ),
-                                TextSpan(text: ' and never shared.'),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
+      child: Text(
+        'Upload a clear face photo to unlock personalized skin analysis, makeup recommendations, and facial feature insights.',
+        style: TextStyle(
+          fontSize: 13,
+          color: c.text,
+          height: 1.6,
+          fontWeight: FontWeight.w500,
         ),
       ),
     );
   }
 }
 
-// ── Toggle Card ─────────────────────────────────────────────────
 class _ToggleCard extends StatelessWidget {
   final bool enabled;
-  final ValueChanged<bool> onChanged;
+  final Function(bool) onChanged;
+
   const _ToggleCard({required this.enabled, required this.onChanged});
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () => onChanged(!enabled),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-        decoration: BoxDecoration(
-          color: _card,
-          borderRadius: BorderRadius.circular(22),
-          border: Border.all(color: _cardBorder, width: 1),
-          boxShadow: const [
-            BoxShadow(
-              color: Color(0x148D7DFF),
-              blurRadius: 24,
-              offset: Offset(0, 6),
+    final c = context.colors;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: c.card,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: c.cardBorder, width: 1),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            'Enable Personalization',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: c.text,
             ),
-            BoxShadow(
-              color: Color(0x0A000000),
-              blurRadius: 4,
-              offset: Offset(0, 1),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
-                  Text(
-                    'Enable try-on personalization',
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                      color: _text,
-                      letterSpacing: -0.15,
-                    ),
-                  ),
-                  SizedBox(height: 3),
-                  Text(
-                    'You can use AHVI without this.',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: _muted,
-                      fontWeight: FontWeight.w300,
-                      height: 1.4,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 16),
-            // iOS-style toggle
-            GestureDetector(
-              onTap: () => onChanged(!enabled),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 220),
-                width: 51,
-                height: 31,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(100),
-                  color: enabled ? _accent2 : const Color(0xFFDDE2F0),
-                  boxShadow: enabled
-                      ? const [
-                    BoxShadow(
-                      color: Color(0x288D7DFF),
-                      blurRadius: 0,
-                      spreadRadius: 3,
-                    ),
-                  ]
-                      : null,
-                  border: enabled ? null : Border.all(color: _cardBorder),
-                ),
-                child: Stack(
-                  children: [
-                    AnimatedPositioned(
-                      duration: const Duration(milliseconds: 200),
-                      curve: Curves.easeInOut,
-                      top: 3,
-                      left: enabled ? 23 : 3,
-                      child: Container(
-                        width: 25,
-                        height: 25,
-                        decoration: const BoxDecoration(
-                          color: Colors.white,
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: Color(0x33000000),
-                              blurRadius: 6,
-                              offset: Offset(0, 2),
-                            ),
-                            BoxShadow(
-                              color: Color(0x22000000),
-                              blurRadius: 2,
-                              offset: Offset(0, 1),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
+          ),
+          Switch(
+            value: enabled,
+            onChanged: onChanged,
+            activeColor: c.accent1,
+          ),
+        ],
       ),
     );
   }
 }
 
-// ── Optional Badge ──────────────────────────────────────────────
 class _OptionalBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: _panel,
+        color: c.panel2,
         borderRadius: BorderRadius.circular(100),
-        border: Border.all(color: _cardBorder, width: 1),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x12000000),
-            blurRadius: 6,
-            offset: Offset(0, 1),
-          ),
-        ],
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 4,
-            height: 4,
-            decoration: BoxDecoration(
-              color: _muted.withValues(alpha: 0.4),
-              shape: BoxShape.circle,
-            ),
-          ),
-          const SizedBox(width: 6),
-          const Text(
-            'Both uploads are optional',
-            style: TextStyle(fontSize: 11, color: _muted, letterSpacing: 0.385),
-          ),
-          const SizedBox(width: 6),
-          Container(
-            width: 4,
-            height: 4,
-            decoration: BoxDecoration(
-              color: _muted.withValues(alpha: 0.4),
-              shape: BoxShape.circle,
-            ),
-          ),
-        ],
+      child: Text(
+        'Optional Step',
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+          color: c.accent1,
+          letterSpacing: 0.3,
+        ),
       ),
     );
   }
 }
 
-// ── Upload Section ──────────────────────────────────────────────
 class _UploadSection extends StatelessWidget {
   final bool enabled;
   final bool faceUploaded;
   final bool bodyUploaded;
   final VoidCallback onFaceTap;
   final VoidCallback onBodyTap;
+  final bool isAnalyzing;
 
   const _UploadSection({
     required this.enabled,
@@ -799,208 +1253,143 @@ class _UploadSection extends StatelessWidget {
     required this.bodyUploaded,
     required this.onFaceTap,
     required this.onBodyTap,
+    this.isAnalyzing = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedOpacity(
-      duration: const Duration(milliseconds: 320),
-      opacity: enabled ? 1.0 : 0.32,
-      child: Column(
-        children: [
-          _UploadRow(
-            title: 'Add a face photo',
-            subtitle: 'Used only to enhance facial fit and styling.',
-            uploaded: faceUploaded,
-            isFace: true,
-            onTap: enabled ? onFaceTap : null,
-          ),
-          const SizedBox(height: 12),
-          _UploadRow(
-            title: 'Add a full body photo',
-            subtitle: 'Improves outfit proportion accuracy.',
-            uploaded: bodyUploaded,
-            isFace: false,
-            onTap: enabled ? onBodyTap : null,
-          ),
-        ],
-      ),
+    return Column(
+      children: [
+        _UploadCard(
+          title: 'Face Photo',
+          description: 'Clear frontal face photo (well-lit)',
+          icon: Icons.face_outlined,
+          uploaded: faceUploaded,
+          enabled: enabled,
+          onTap: isAnalyzing ? null : onFaceTap,
+          isLoading: isAnalyzing,
+        ),
+        const SizedBox(height: 12),
+        _UploadCard(
+          title: 'Body Photo',
+          description: 'Full body in fitted clothes',
+          icon: Icons.accessibility_outlined,
+          uploaded: bodyUploaded,
+          enabled: enabled,
+          onTap: onBodyTap,
+        ),
+      ],
     );
   }
 }
 
-class _UploadRow extends StatelessWidget {
+class _UploadCard extends StatelessWidget {
   final String title;
-  final String subtitle;
+  final String description;
+  final IconData icon;
   final bool uploaded;
-  final bool isFace;
+  final bool enabled;
   final VoidCallback? onTap;
+  final bool isLoading;
 
-  const _UploadRow({
+  const _UploadCard({
     required this.title,
-    required this.subtitle,
+    required this.description,
+    required this.icon,
     required this.uploaded,
-    required this.isFace,
-    this.onTap,
+    required this.enabled,
+    required this.onTap,
+    this.isLoading = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    final borderColor = uploaded ? const Color(0x448D7DFF) : _cardBorder;
-    final bgColor = uploaded ? const Color(0xFFF4F2FF) : _card;
-    final iconBgColor = uploaded ? const Color(0x128D7DFF) : _panel;
-    final iconBorderColor = uploaded ? const Color(0x338D7DFF) : _cardBorder;
-
-    // Thumb gradient
-    final thumbGradient = isFace
-        ? const LinearGradient(
-      begin: Alignment.topLeft,
-      end: Alignment.bottomRight,
-      colors: [Color(0x208D7DFF), Color(0x146B91FF)],
-    )
-        : const LinearGradient(
-      begin: Alignment.topLeft,
-      end: Alignment.bottomRight,
-      colors: [Color(0x1A04D7C8), Color(0x146B91FF)],
-    );
-
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
-        decoration: BoxDecoration(
-          color: bgColor,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: borderColor, width: 1),
-          boxShadow: uploaded
-              ? const [
-            BoxShadow(
-              color: Color(0x188D7DFF),
-              blurRadius: 20,
-              offset: Offset(0, 5),
+    final c = context.colors;
+    return Opacity(
+      opacity: enabled ? 1 : 0.5,
+      child: GestureDetector(
+        onTap: enabled && !isLoading ? onTap : null,
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: uploaded ? c.uploadedBg : c.card,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: uploaded ? c.accent3 : c.cardBorder,
+              width: 1,
             ),
-            BoxShadow(
-              color: Color(0x0A000000),
-              blurRadius: 4,
-              offset: Offset(0, 1),
-            ),
-          ]
-              : const [
-            BoxShadow(
-              color: Color(0x0E8D7DFF),
-              blurRadius: 10,
-              offset: Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            // Icon wrap
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              width: 46,
-              height: 46,
-              decoration: BoxDecoration(
-                color: iconBgColor,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: iconBorderColor, width: 1),
-                gradient: uploaded ? thumbGradient : null,
-              ),
-              child: Center(
-                child: Icon(
-                  isFace
-                      ? Icons.person_outline
-                      : Icons.accessibility_new_outlined,
-                  color: uploaded ? _accent2 : _muted,
-                  size: 20,
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: uploaded ? c.accent3 : c.accent1,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Center(
+                  child: isLoading
+                      ? SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation(c.onAccent),
+                    ),
+                  )
+                      : Icon(
+                    uploaded ? Icons.check : icon,
+                    color: c.onAccent,
+                    size: 24,
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(width: 14),
-            // Text
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: _text,
-                      letterSpacing: -0.14,
-                    ),
-                  ),
-                  const SizedBox(height: 3),
-                  if (!uploaded)
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
                     Text(
-                      subtitle,
-                      style: const TextStyle(
-                        fontSize: 12.5,
-                        color: _muted,
-                        fontWeight: FontWeight.w300,
-                        height: 1.4,
+                      title,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: c.text,
                       ),
                     ),
-                  if (uploaded)
-                    Row(
-                      children: const [
-                        Icon(Icons.check, color: _accent3, size: 12),
-                        SizedBox(width: 5),
-                        Text(
-                          'Photo added · encrypted',
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: _accent3,
-                            fontWeight: FontWeight.w500,
-                            letterSpacing: 0.22,
-                          ),
-                        ),
-                      ],
+                    const SizedBox(height: 4),
+                    Text(
+                      uploaded ? '✓ Analysis complete' : description,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: uploaded ? c.accent3 : c.muted,
+                        fontWeight: uploaded ? FontWeight.w500 : FontWeight.w400,
+                      ),
                     ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 8),
-            // Row action
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              width: 30,
-              height: 30,
-              decoration: BoxDecoration(
-                color: uploaded ? const Color(0x188D7DFF) : _panel,
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: uploaded ? const Color(0x338D7DFF) : _cardBorder,
-                  width: 1,
+                  ],
                 ),
               ),
-              child: Center(
-                child: Icon(
-                  uploaded ? Icons.check : Icons.chevron_right,
-                  color: uploaded ? _accent2 : _muted,
-                  size: 13,
-                ),
-              ),
-            ),
-          ],
+              if (enabled && !uploaded)
+                Icon(Icons.arrow_forward, color: c.muted, size: 18),
+            ],
+          ),
         ),
       ),
     );
   }
 }
 
-// ── Privacy Block ───────────────────────────────────────────────
 class _PrivacyBlock extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0x0A04D7C8),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0x2204D7C8), width: 1),
+        color: c.privacyTint,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: c.cardBorder, width: 1),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1009,11 +1398,11 @@ class _PrivacyBlock extends StatelessWidget {
             width: 34,
             height: 34,
             decoration: BoxDecoration(
-              color: const Color(0x1204D7C8),
+              color: c.privacyTint,
               borderRadius: BorderRadius.circular(10),
             ),
-            child: const Center(
-              child: Icon(Icons.shield_outlined, color: _accent3, size: 17),
+            child: Center(
+              child: Icon(Icons.shield_outlined, color: c.accent3, size: 17),
             ),
           ),
           const SizedBox(width: 14),
@@ -1021,38 +1410,37 @@ class _PrivacyBlock extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'Your Privacy is Protected',
                   style: TextStyle(
                     fontSize: 12.5,
                     fontWeight: FontWeight.w600,
-                    color: _accent3,
+                    color: c.accent3,
                     letterSpacing: 0.25,
                   ),
                 ),
                 const SizedBox(height: 4),
                 RichText(
-                  text: const TextSpan(
+                  text: TextSpan(
                     style: TextStyle(
                       fontSize: 12,
-                      color: _muted,
+                      color: c.muted,
                       fontWeight: FontWeight.w300,
                       height: 1.55,
                     ),
                     children: [
-                      TextSpan(
-                        text:
-                        'Photos are used solely for fit modeling and are ',
+                      const TextSpan(
+                        text: 'Photos are analyzed on your device (not uploaded). Data is ',
                       ),
                       TextSpan(
                         text: 'deleted on request',
                         style: TextStyle(
-                          color: _text,
+                          color: c.text,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
-                      TextSpan(
-                        text: '. AHVI does not sell or share personal data.',
+                      const TextSpan(
+                        text: '. AHVI never stores or shares personal data.',
                       ),
                     ],
                   ),
@@ -1066,7 +1454,6 @@ class _PrivacyBlock extends StatelessWidget {
   }
 }
 
-// ── CTA Section ─────────────────────────────────────────────────
 class _CtaSection extends StatelessWidget {
   final VoidCallback onBack;
   final VoidCallback onSaveContinue;
@@ -1075,55 +1462,35 @@ class _CtaSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     return Row(
       children: [
-        // Back button
         GestureDetector(
           onTap: onBack,
           child: Container(
             width: 54,
             height: 54,
             decoration: BoxDecoration(
-              color: _card,
+              color: c.card,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: _cardBorder, width: 1),
-              boxShadow: const [
-                BoxShadow(
-                  color: Color(0x126B91FF),
-                  blurRadius: 24,
-                  offset: Offset(0, 6),
-                ),
-              ],
+              border: Border.all(color: c.cardBorder, width: 1),
             ),
-            child: const Center(
-              child: Icon(Icons.chevron_left, color: _muted, size: 22),
+            child: Center(
+              child: Icon(Icons.chevron_left, color: c.muted, size: 22),
             ),
           ),
         ),
         const SizedBox(width: 12),
-        // Save button
         Expanded(
           child: Container(
             height: 54,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(16),
-              gradient: const LinearGradient(
+              gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [Color(0xFF14CACD), Color(0xFF8D7DFF)],
+                colors: [c.accent4, c.accent2],
               ),
-              boxShadow: const [
-                BoxShadow(
-                  color: Color(0x3314CACD),
-                  blurRadius: 24,
-                  offset: Offset(0, 8),
-                ),
-                BoxShadow(
-                  color: Color(0x288D7DFF),
-                  blurRadius: 10,
-                  offset: Offset(0, 3),
-                ),
-              ],
             ),
             child: Material(
               color: Colors.transparent,
@@ -1132,18 +1499,17 @@ class _CtaSection extends StatelessWidget {
                 onTap: onSaveContinue,
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
-                  children: const [
+                  children: [
                     Text(
                       'Save & Continue',
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
-                        color: Colors.white,
-                        letterSpacing: 0.15,
+                        color: c.onAccent,
                       ),
                     ),
-                    SizedBox(width: 8),
-                    Icon(Icons.arrow_forward, color: Colors.white, size: 16),
+                    const SizedBox(width: 8),
+                    Icon(Icons.arrow_forward, color: c.onAccent, size: 16),
                   ],
                 ),
               ),
@@ -1155,7 +1521,6 @@ class _CtaSection extends StatelessWidget {
   }
 }
 
-// ── Skip Row ────────────────────────────────────────────────────
 class _SkipRow extends StatelessWidget {
   final VoidCallback onSkip;
 
@@ -1163,23 +1528,19 @@ class _SkipRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     return Padding(
       padding: const EdgeInsets.only(top: 16),
       child: Center(
         child: GestureDetector(
           onTap: onSkip,
-          child: Container(
-            decoration: const BoxDecoration(
-              border: Border(bottom: BorderSide(color: _cardBorder, width: 1)),
-            ),
-            padding: const EdgeInsets.only(bottom: 1),
-            child: const Text(
-              'Skip for now — set up later in Settings',
-              style: TextStyle(
-                fontSize: 12.5,
-                color: _muted,
-                letterSpacing: 0.2,
-              ),
+          child: Text(
+            'Skip for now — set up later in Settings',
+            style: TextStyle(
+              fontSize: 12.5,
+              color: c.muted,
+              letterSpacing: 0.2,
+              decoration: TextDecoration.underline,
             ),
           ),
         ),
@@ -1188,49 +1549,39 @@ class _SkipRow extends StatelessWidget {
   }
 }
 
-// ── Progress Dots ───────────────────────────────────────────────
 class _ProgressDots extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     return Padding(
       padding: const EdgeInsets.only(top: 20),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // done dot
           Container(
             width: 6,
             height: 6,
-            decoration: const BoxDecoration(
-              color: Color(0x608D7DFF),
+            decoration: BoxDecoration(
+              color: c.dotInactive,
               shape: BoxShape.circle,
             ),
           ),
           const SizedBox(width: 8),
-          // done dot
           Container(
             width: 6,
             height: 6,
-            decoration: const BoxDecoration(
-              color: Color(0x608D7DFF),
+            decoration: BoxDecoration(
+              color: c.dotInactive,
               shape: BoxShape.circle,
             ),
           ),
           const SizedBox(width: 8),
-          // active dot (pill)
           Container(
             width: 22,
             height: 6,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(3),
-              gradient: const LinearGradient(colors: [_accent2, _accent4]),
-              boxShadow: const [
-                BoxShadow(
-                  color: Color(0x408D7DFF),
-                  blurRadius: 6,
-                  offset: Offset(0, 2),
-                ),
-              ],
+              gradient: LinearGradient(colors: [c.accent2, c.accent4]),
             ),
           ),
         ],
@@ -1239,10 +1590,10 @@ class _ProgressDots extends StatelessWidget {
   }
 }
 
-// ── Home Indicator ──────────────────────────────────────────────
 class _HomeIndicator extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     return Padding(
       padding: const EdgeInsets.only(top: 10, bottom: 14),
       child: Center(
@@ -1250,7 +1601,7 @@ class _HomeIndicator extends StatelessWidget {
           width: 134,
           height: 5,
           decoration: BoxDecoration(
-            color: _cardBorder,
+            color: c.cardBorder,
             borderRadius: BorderRadius.circular(100),
           ),
         ),

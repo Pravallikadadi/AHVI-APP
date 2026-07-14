@@ -27,6 +27,7 @@ import 'package:myapp/style_board/board_layout_engine.dart';
 import 'package:myapp/app_localizations.dart'; // 🆕 Localization
 import 'style_boards.dart'; // 🆕 STYLE BOARDS INTEGRATION (consolidated, same folder)
 import 'pairing_engine.dart';
+import 'build_outfit_screen.dart'; // 🆕 BUILD OUTFIT SCREEN
 
 // ============================================================
 // SEMANTIC COLORS
@@ -403,12 +404,13 @@ class _ItemDetailModal extends StatelessWidget {
   }
 
   void _onBuildOutfit(BuildContext context, WardrobeItem item) {
-    if (onBuildOutfit != null) {
-      Navigator.of(context).pop();
-      onBuildOutfit!.call();
-      return;
-    }
-    _runStyleCta(context, item, mode: 'build_outfit');
+    Navigator.of(context).pop(); // item detail modal close చేయి
+    showBuildOutfitSheet(
+      context,
+      initialItem: item,
+      allItems: allItems,
+      onOutfitCreated: onBuildOutfit, // optional callback (caller provided అయితే trigger అవుతుంది)
+    );
   }
 
   Future<void> _runStyleCta(

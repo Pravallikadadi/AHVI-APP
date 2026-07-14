@@ -2466,8 +2466,8 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
         });
       },
       child: Container(
-        width: 40,
-        height: 40,
+        width: 44,
+        height: 44,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           color: _panel,
@@ -2482,33 +2482,31 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
         ),
         clipBehavior: Clip.antiAlias,
         child: avatarPath != null && avatarPath.isNotEmpty
-            ? Align(
-          alignment: Alignment.center,
+            ? Center(
           child: Image.file(
             File(avatarPath),
-            width: 40,
-            height: 40,
+            width: 44,
+            height: 44,
             fit: BoxFit.cover,
             errorBuilder: (_, __, ___) => Icon(
               Icons.person_rounded,
-              size: 22,
+              size: 24,
               color: _accent.withValues(alpha: 0.7),
             ),
           ),
         )
             : _avatarBytes != null
-            ? Align(
-          alignment: Alignment.center,
+            ? Center(
           child: Image.memory(
             _avatarBytes!,
-            width: 40,
-            height: 40,
+            width: 44,
+            height: 44,
             fit: BoxFit.cover,
           ),
         )
             : Icon(
           Icons.person_rounded,
-          size: 22,
+          size: 24,
           color: _accent.withValues(alpha: 0.7),
         ),
       ),
@@ -2549,30 +2547,32 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                   letterSpacing: 0.1,
                 ),
               ),
-              const SizedBox(height: 3.0),
+              const SizedBox(height: 4.0),
               RichText(
                 text: TextSpan(
                   style: TextStyle(
                     fontSize: greetFontSize,
-                    fontWeight: FontWeight.w400,
+                    fontWeight: FontWeight.w500,
                     color: _textHeading,
-                    letterSpacing: -0.56,
-                    height: 1.1,
+                    letterSpacing: -0.5,
+                    height: 1.15,
                   ),
                   children: [
                     if (displayName.isNotEmpty) ...[
-                      TextSpan(text: '$greetingText, '), // 🆕 translated
+                      TextSpan(text: '$greetingText, '),
                       WidgetSpan(
+                        alignment: PlaceholderAlignment.middle,
                         child: _GradientText(
                           '$displayName.',
                           fontSize: greetFontSize,
-                          fontWeight: FontWeight.w400,
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
                     ] else
-                      TextSpan(text: '$greetingText.'), // login కాలేదు — name లేదు
+                      TextSpan(text: '$greetingText.'),
                   ],
                 ),
+                textAlign: TextAlign.left,
               ),
               const SizedBox(height: 6.0),
               ValueListenableBuilder<_SuggestionState>(
@@ -2944,39 +2944,6 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                           errorBuilder: (_, __, ___) => const SizedBox.shrink(),
                         ),
                       ),
-                      // Left fade — blends smoothly into card surface
-                      Positioned(
-                        left: 0,
-                        top: 0,
-                        bottom: 0,
-                        width: fadeW,
-                        child: Container(
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.centerLeft,
-                              end: Alignment.centerRight,
-                              colors: [cardBg, cardBg.withValues(alpha: 0.0)],
-                              stops: const [0.55, 1.0],
-                            ),
-                          ),
-                        ),
-                      ),
-                      // Bottom fade — blends into card bottom
-                      Positioned(
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        height: 40,
-                        child: Container(
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topCenter,
-                              end: Alignment.bottomCenter,
-                              colors: [cardBg.withValues(alpha: 0.0), cardBg],
-                            ),
-                          ),
-                        ),
-                      ),
                     ],
                   ),
                 ),
@@ -3328,34 +3295,299 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
   }
 
   Widget _buildSecondaryRow() {
-    final screenH = MediaQuery.of(context).size.height;
-    final screenW = MediaQuery.of(context).size.width;
-    final prep = _prepCardContent(); // 🆕 context-aware
     return Row(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // ── Card 1: Style (image panel separated from hero card) ─────────
+        // ── Card 1: Style ─────────────────────────────────────────────────
         Expanded(
-          child: _buildStyleCard(),
+          child: _buildStaticSecCard(
+            icon: Icons.checkroom_outlined,
+            title: 'Style',
+            subtitle: 'Build today\'s look from your wardrobe.',
+            ctaLabel: 'Style Me',
+            assetImage: 'assets/images/style_card.jpeg',
+            intent: 'style',
+            prompt: 'Plan a complete outfit for me today.',
+          ),
         ),
         const SizedBox(width: 12),
-        // ── Card 2: Plan & Prep (combined) ───────────────────────────────
+        // ── Card 2: Prep & Plan ───────────────────────────────────────────
         Expanded(
-          child: _buildSecCard(
-            icon: prep.icon,
-            title: prep.title,
-            subtitle: prep.subtitle,
-            ctaLabel: prep.cta,
-            intent: 'organize',
-            prompt: prep.prompt,
+          child: _buildStaticSecCard(
+            icon: Icons.calendar_month_outlined,
+            title: 'Prep & Plan',
+            subtitle: 'Plan outfits, meals & goals for the week ahead.',
+            ctaLabel: 'Plan My Week',
             assetImage: 'assets/images/plan_card.jpg',
+            intent: 'organize',
+            prompt: 'Help me plan my week: outfits, meals, and goals.',
           ),
         ),
       ],
     );
   }
 
-  Widget _buildStyleCard() {
+  // ── Static secondary card ────────────────────────────────────────────────
+  // Matches the reference design: icon top-left, large image right side,
+  // static title + subtitle, full-width gradient CTA pill at bottom.
+  Widget _buildStaticSecCard({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required String ctaLabel,
+    required String intent,
+    String? prompt,
+    String? assetImage,
+    String? imageUrl,
+  }) {
+    return RepaintBoundary(
+      child: AnimatedBuilder(
+        animation: Listenable.merge([_shimmerCtrl, _breatheCtrl]),
+        builder: (context, _) {
+          final accentColor = context.themeTokens.accent.primary;
+          final accentTertiary = context.themeTokens.accent.tertiary;
+          final breatheOpacity = 0.10 + 0.10 * _breatheCtrl.value;
+
+          return _CardPressable(
+            onTap: () => prompt != null
+                ? _openChatWithPrompt(prompt)
+                : _openModuleChat(intent),
+            builder: (isHovered) {
+              return LayoutBuilder(
+                builder: (context, cardConstraints) {
+                  final cardW = cardConstraints.maxWidth.isFinite
+                      ? cardConstraints.maxWidth
+                      : 160.0;
+                  final imageW = (cardW * 0.40).clamp(70.0, 130.0);
+                  final fadeW = (imageW * 0.50).clamp(32.0, 56.0);
+
+                  return Container(
+                    height: double.infinity,
+                    decoration: BoxDecoration(
+                      color: _surface,
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(
+                        color: accentColor.withValues(alpha: 0.18),
+                        width: 1,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: _shadowMedium,
+                          blurRadius: isHovered ? 52 : 28,
+                          offset: const Offset(0, 8),
+                        ),
+                        BoxShadow(
+                          color: accentColor.withValues(
+                            alpha: isHovered ? 0.14 : 0.07,
+                          ),
+                          blurRadius: 20,
+                        ),
+                      ],
+                    ),
+                    clipBehavior: Clip.antiAlias,
+                    child: Stack(
+                      children: [
+                        // ── Subtle radial glow ────────────────────────────
+                        Positioned.fill(
+                          child: Container(
+                            decoration: BoxDecoration(
+                              gradient: RadialGradient(
+                                center: const Alignment(0.85, -0.6),
+                                radius: 1.3,
+                                colors: [
+                                  accentColor.withValues(alpha: 0.14),
+                                  _transparent,
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                        // ── Image — right side with left fade ─────────────
+                        if (assetImage != null || imageUrl != null)
+                          Positioned(
+                            right: 0,
+                            top: 0,
+                            bottom: 0,
+                            width: imageW,
+                            child: Stack(
+                              children: [
+                                Positioned.fill(
+                                  child: assetImage != null
+                                      ? Image.asset(
+                                    assetImage,
+                                    fit: BoxFit.cover,
+                                    alignment: Alignment.topCenter,
+                                    filterQuality: FilterQuality.low,
+                                    errorBuilder: (_, __, ___) =>
+                                    const SizedBox.shrink(),
+                                  )
+                                      : Image.network(
+                                    imageUrl!,
+                                    fit: BoxFit.cover,
+                                    alignment: Alignment.topCenter,
+                                    filterQuality: FilterQuality.low,
+                                    errorBuilder: (_, __, ___) =>
+                                    const SizedBox.shrink(),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        // ── Breathing border overlay ───────────────────────
+                        Positioned.fill(
+                          child: IgnorePointer(
+                            child: Container(
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(18),
+                                border: Border.all(
+                                  color: accentColor.withValues(
+                                      alpha: breatheOpacity),
+                                  width: 1,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        // ── Content: icon, title, subtitle, CTA ───────────
+                        Positioned.fill(
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                // Icon box — improved styling for prep&plan
+                                AnimatedContainer(
+                                  duration: const Duration(milliseconds: 200),
+                                  width: 38,
+                                  height: 38,
+                                  decoration: BoxDecoration(
+                                    color: accentColor.withValues(
+                                      alpha: isHovered ? 0.18 : 0.11,
+                                    ),
+                                    borderRadius: BorderRadius.circular(11),
+                                    border: Border.all(
+                                      color:
+                                      accentColor.withValues(alpha: 0.22),
+                                      width: 1.2,
+                                    ),
+                                  ),
+                                  child: Icon(
+                                    icon,
+                                    color: isHovered ? accentColor : _textHeading,
+                                    size: 18,
+                                  ),
+                                ),
+                                // Title + subtitle — improved spacing
+                                Flexible(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        title,
+                                        style: TextStyle(
+                                          color: _textHeading,
+                                          fontSize: 15.5,
+                                          fontWeight: FontWeight.w700,
+                                          letterSpacing: -0.2,
+                                          height: 1.1,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      const SizedBox(height: 6),
+                                      Text(
+                                        subtitle,
+                                        style: TextStyle(
+                                          color: _textMuted,
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w400,
+                                          height: 1.4,
+                                        ),
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                // CTA button — full-width teal pill with better spacing
+                                Flexible(
+                                  child: _AnimatedPressable(
+                                    liftY: -2.0,
+                                    scalePressed: 0.95,
+                                    onTap: () => prompt != null
+                                        ? _openChatWithPrompt(prompt)
+                                        : _openModuleChat(intent),
+                                    child: Container(
+                                      width: double.infinity,
+                                      decoration: BoxDecoration(
+                                        gradient: LinearGradient(
+                                          begin: Alignment.topLeft,
+                                          end: Alignment.bottomRight,
+                                          colors: [accentColor, accentTertiary],
+                                        ),
+                                        borderRadius: BorderRadius.circular(100),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: accentColor.withValues(
+                                                alpha: 0.36),
+                                            blurRadius: 14,
+                                            offset: const Offset(0, 4),
+                                          ),
+                                        ],
+                                      ),
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 12,
+                                        vertical: 8,
+                                      ),
+                                      child: Row(
+                                        mainAxisAlignment:
+                                        MainAxisAlignment.center,
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Flexible(
+                                            child: Text(
+                                              ctaLabel,
+                                              style: TextStyle(
+                                                color: _onAccent,
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.w600,
+                                                letterSpacing: 0.2,
+                                              ),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 6),
+                                          Icon(
+                                            Icons.arrow_forward_rounded,
+                                            color: _onAccent,
+                                            size: 13,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+
+  // ── Legacy _buildStyleCard kept for reference but no longer used ──────────
+  Widget _buildStyleCard_UNUSED() {
     final content = _styleCardContent(); // 🆕 context-aware
     return RepaintBoundary(
       child: AnimatedBuilder(
@@ -3687,13 +3919,14 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
     );
   }
 
-  Widget _buildSecCard({
+  // ignore: unused_element
+  Widget _buildSecCard_UNUSED({
     required IconData icon,
     required String title,
     required String subtitle,
-    required String ctaLabel,  // 🆕 direct label (not a localization key)
+    required String ctaLabel,
     required String intent,
-    String? prompt,            // 🆕 optional direct prompt; falls back to _openModuleChat
+    String? prompt,
     String? imageUrl,
     String? assetImage,
   }) {
