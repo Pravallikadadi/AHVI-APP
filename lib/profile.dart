@@ -10,6 +10,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:image_cropper/image_cropper.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
+import 'package:image/image.dart' as img;
 import 'package:provider/provider.dart';
 import 'package:myapp/theme/theme_controller.dart';
 import 'package:myapp/theme/profile_theme.dart';
@@ -69,6 +72,7 @@ class ProfileState {
   String dob;
   String gender;
   int skinTone;
+  String faceShape;
   String bodyShape;
   Set<String> styles;
   Set<String> shopPrefs;
@@ -86,6 +90,7 @@ class ProfileState {
     this.dob = '',
     this.gender = 'Female',
     this.skinTone = 3,
+    this.faceShape = 'Oval',
     this.bodyShape = 'Rectangle',
     Set<String>? styles,
     Set<String>? shopPrefs,
@@ -105,6 +110,7 @@ class ProfileState {
     String? dob,
     String? gender,
     int? skinTone,
+    String? faceShape,
     String? bodyShape,
     Set<String>? styles,
     Set<String>? shopPrefs,
@@ -123,6 +129,7 @@ class ProfileState {
       dob: dob ?? this.dob,
       gender: gender ?? this.gender,
       skinTone: skinTone ?? this.skinTone,
+      faceShape: faceShape ?? this.faceShape,
       bodyShape: bodyShape ?? this.bodyShape,
       styles: styles ?? Set.from(this.styles),
       shopPrefs: shopPrefs ?? Set.from(this.shopPrefs),
@@ -183,6 +190,7 @@ class AppStrings {
   final String gender;
   final String skinTone;
   final String shopPreferences;
+  final String faceShape;
   final String bodyShape;
   final String chooseStyles;
   final String tapToSelect;
@@ -245,6 +253,7 @@ class AppStrings {
     required this.gender,
     required this.skinTone,
     required this.shopPreferences,
+    required this.faceShape,
     required this.bodyShape,
     required this.chooseStyles,
     required this.tapToSelect,
@@ -313,6 +322,7 @@ class AppStrings {
       gender: 'Gender',
       skinTone: 'Skin Tone',
       shopPreferences: 'Shop Preferences',
+      faceShape: 'Face Shape',
       bodyShape: 'Body Shape',
       chooseStyles: 'Choose styles that match your vibe ✨',
       tapToSelect: 'Tap to select multiple',
@@ -380,6 +390,7 @@ class AppStrings {
       gender: 'लिंग',
       skinTone: 'त्वचा का रंग',
       shopPreferences: 'शॉप प्राथमिकताएँ',
+      faceShape: 'चेहरे का आकार',
       bodyShape: 'शरीर का आकार',
       chooseStyles: 'अपनी पसंद की स्टाइल चुनें ✨',
       tapToSelect: 'कई चुनने के लिए टैप करें',
@@ -446,6 +457,7 @@ class AppStrings {
       gender: 'பாலினம்',
       skinTone: 'தோல் நிறம்',
       shopPreferences: 'கடை விருப்பங்கள்',
+      faceShape: 'முக வடிவம்',
       bodyShape: 'உடல் வடிவம்',
       chooseStyles: 'உங்கள் விருப்பமான பாணிகளை தேர்ந்தெடுக்கவும் ✨',
       tapToSelect: 'பலவற்றை தேர்ந்தெடுக்க தட்டவும்',
@@ -512,6 +524,7 @@ class AppStrings {
       gender: 'లింగం',
       skinTone: 'చర్మం రంగు',
       shopPreferences: 'షాప్ ప్రాధాన్యతలు',
+      faceShape: 'ముఖ ఆకారం',
       bodyShape: 'శరీర ఆకారం',
       chooseStyles: 'మీ అభిరుచికి సరిపడే స్టైల్స్ ఎంచుకోండి ✨',
       tapToSelect: 'అనేకం ఎంచుకోవడానికి నొక్కండి',
@@ -578,6 +591,7 @@ class AppStrings {
       gender: 'ಲಿಂಗ',
       skinTone: 'ಚರ್ಮದ ಬಣ್ಣ',
       shopPreferences: 'ಅಂಗಡಿ ಆದ್ಯತೆಗಳು',
+      faceShape: 'ಮುಖದ ಆಕಾರ',
       bodyShape: 'ದೇಹದ ಆಕಾರ',
       chooseStyles: 'ನಿಮ್ಮ ಅಭಿರುಚಿಗೆ ತಕ್ಕ ಶೈಲಿಗಳನ್ನು ಆಯ್ಕೆ ಮಾಡಿ ✨',
       tapToSelect: 'ಹಲವು ಆಯ್ಕೆ ಮಾಡಲು ಟ್ಯಾಪ್ ಮಾಡಿ',
@@ -642,6 +656,7 @@ class AppStrings {
       gender: 'ലിംഗം',
       skinTone: 'ചർമ്മ നിറം',
       shopPreferences: 'ഷോപ്പ് മുൻഗണനകൾ',
+      faceShape: 'മുഖാകൃതി',
       bodyShape: 'ശരീരാകൃതി',
       chooseStyles: 'നിങ്ങളുടെ ഇഷ്ടത്തിന് ചേർന്ന ശൈലികൾ തിരഞ്ഞെടുക്കുക ✨',
       tapToSelect: 'ഒന്നിലധികം തിരഞ്ഞെടുക്കാൻ ടാപ്പ് ചെയ്യുക',
@@ -709,6 +724,7 @@ class AppStrings {
       gender: 'লিঙ্গ',
       skinTone: 'ত্বকের রঙ',
       shopPreferences: 'শপ পছন্দ',
+      faceShape: 'মুখের আকৃতি',
       bodyShape: 'শরীরের আকৃতি',
       chooseStyles: 'আপনার পছন্দের স্টাইল বেছে নিন ✨',
       tapToSelect: 'একাধিক বাছাই করতে ট্যাপ করুন',
@@ -774,6 +790,7 @@ class AppStrings {
       gender: 'लिंग',
       skinTone: 'त्वचेचा रंग',
       shopPreferences: 'खरेदी प्राधान्ये',
+      faceShape: 'चेहऱ्याचा आकार',
       bodyShape: 'शरीराचा आकार',
       chooseStyles: 'तुमच्या आवडीच्या स्टाइल्स निवडा ✨',
       tapToSelect: 'अनेक निवडण्यासाठी टॅप करा',
@@ -838,6 +855,7 @@ class AppStrings {
       gender: 'Genre',
       skinTone: 'Teinte de Peau',
       shopPreferences: 'Préférences Boutique',
+      faceShape: 'Forme du Visage',
       bodyShape: 'Forme Corporelle',
       chooseStyles: 'Choisissez les styles qui vous correspondent ✨',
       tapToSelect: 'Appuyez pour sélectionner plusieurs',
@@ -905,6 +923,7 @@ class AppStrings {
       gender: 'Género',
       skinTone: 'Tono de Piel',
       shopPreferences: 'Preferencias de Tienda',
+      faceShape: 'Forma del Rostro',
       bodyShape: 'Forma Corporal',
       chooseStyles: 'Elige los estilos que van contigo ✨',
       tapToSelect: 'Toca para seleccionar varios',
@@ -972,6 +991,7 @@ class AppStrings {
       gender: 'Geschlecht',
       skinTone: 'Hautton',
       shopPreferences: 'Shop-Präferenzen',
+      faceShape: 'Gesichtsform',
       bodyShape: 'Körperform',
       chooseStyles: 'Wählen Sie Stile, die zu Ihnen passen ✨',
       tapToSelect: 'Tippen, um mehrere auszuwählen',
@@ -1039,6 +1059,7 @@ class AppStrings {
       gender: 'الجنس',
       skinTone: 'لون البشرة',
       shopPreferences: 'تفضيلات التسوق',
+      faceShape: 'شكل الوجه',
       bodyShape: 'شكل الجسم',
       chooseStyles: 'اختر الأساليب التي تناسبك ✨',
       tapToSelect: 'اضغط لاختيار أكثر من واحد',
@@ -1105,6 +1126,7 @@ class AppStrings {
       gender: '性別',
       skinTone: '肌のトーン',
       shopPreferences: 'ショップ設定',
+      faceShape: '顔の形',
       bodyShape: '体型',
       chooseStyles: 'あなたに合うスタイルを選んでください ✨',
       tapToSelect: 'タップして複数選択',
@@ -1173,6 +1195,15 @@ const List<Map<String, String>> kShopPrefs = [
   {'label': 'Ethnic', 'gender': 'both', 'img': 'assets/shop/ethnic.jpg'},
 ];
 
+const List<Map<String, String>> kFaceShapes = [
+  {'name': 'Oval', 'img': 'assets/face_shapes/oval.jpeg'},
+  {'name': 'Round', 'img': 'assets/face_shapes/round.jpeg'},
+  {'name': 'Square', 'img': 'assets/face_shapes/square.jpeg'},
+  {'name': 'Heart', 'img': 'assets/face_shapes/heart.jpeg'},
+  {'name': 'Diamond', 'img': 'assets/face_shapes/diamond.jpeg'},
+  {'name': 'Oblong', 'img': 'assets/face_shapes/oblong.jpeg'},
+];
+
 const Map<String, List<Map<String, String>>> kBodyShapes = {
   'women': [
     {'name': 'Hourglass', 'img': 'assets/body_shapes/women_hourglass.jpeg'},
@@ -1221,6 +1252,7 @@ class ProfileController extends ChangeNotifier {
     String? dob,
     String? gender,
     int? skinTone,
+    String? faceShape,
     String? bodyShape,
     Set<String>? shopPrefs,
     String? lang,
@@ -1234,6 +1266,7 @@ class ProfileController extends ChangeNotifier {
       dob: dob,
       gender: gender,
       skinTone: skinTone,
+      faceShape: faceShape,
       bodyShape: bodyShape,
       shopPrefs: shopPrefs,
       lang: lang,
@@ -2031,17 +2064,65 @@ class _ProfileView extends StatelessWidget {
               context,
               listen: false,
             );
-            // deleteAccount() deletes all sessions (signs out everywhere)
-            await appwrite.deleteAccount();
-          } catch (_) {}
-          // Clear onboardingComplete flag
-          final prefs = await SharedPreferences.getInstance();
-          await prefs.setBool('onboardingComplete', false);
-          // Navigate to SignIn, clear entire stack
-          if (context.mounted) {
-            Navigator.of(
-              context,
-            ).pushNamedAndRemoveUntil(AppRoutes.signin, (route) => false);
+
+            // STEP 2: Call the FastAPI backend to wipe the account, wardrobe,
+            // and style history from the server.  Throws on failure so we
+            // can show an error and abort before touching local state.
+            final userId = appwrite.currentUserId ?? '';
+            if (userId.isNotEmpty) {
+              await appwrite.deleteAccountFromBackend(userId);
+            }
+
+            // STEP 2b: Tear down Appwrite sessions on all devices.
+            try {
+              await appwrite.deleteAccount();
+            } catch (_) {
+              // Fallback: at minimum kill the current session
+              try {
+                await appwrite.account.deleteSession(sessionId: 'current');
+              } catch (_) {}
+            }
+
+            // STEP 3: Wipe ALL local storage so this device has zero memory
+            // of onboarding, Style DNA, cached user identity, OTP state, etc.
+            // A re-signup on this device will be treated as brand-new.
+            final prefs = await SharedPreferences.getInstance();
+            await prefs.clear();
+
+            // STEP 4: Clear in-memory Provider / app state.
+            if (context.mounted) {
+              Provider.of<ProfileController>(context, listen: false).reset();
+              appwrite.clearUserCache();
+              await appwrite.clearCachedUserIdentity();
+            }
+
+            // STEP 5: Navigate to SignIn, clear entire back-stack.
+            if (context.mounted) {
+              Navigator.of(
+                context,
+              ).pushNamedAndRemoveUntil(AppRoutes.signin, (route) => false);
+            }
+          } catch (e) {
+            debugPrint('AHVI_DELETE_ACCOUNT_ERROR: $e');
+            // Surface the failure so the user knows deletion did not complete.
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    'Could not delete account. Please try again.',
+                    style: TextStyle(
+                      color: textPrimary,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  backgroundColor: bg2,
+                  shape: const StadiumBorder(),
+                  behavior: SnackBarBehavior.floating,
+                  duration: const Duration(milliseconds: 3000),
+                ),
+              );
+            }
           }
         },
         onCancel: () => Navigator.pop(context),
@@ -2097,6 +2178,11 @@ class _EditViewState extends State<_EditView>
   bool _tryOnEnabled = false;
   String _bodyGender =
       'women'; // tracks which gender tab is selected in Body Shape
+
+  // ── Face analyser (mirrors onboarding3) ──
+  late FaceDetector _faceDetector;
+  bool _isAnalyzingFace = false;
+  final ImagePicker _facePicker = ImagePicker();
 
   // ── Country code picker state (mirrors onboarding1) ──
   String _selectedCountryCode = '+91';
@@ -2162,6 +2248,7 @@ class _EditViewState extends State<_EditView>
     _tabController = TabController(length: 3, vsync: this);
     _faceUploaded = false;
     _bodyUploaded = false;
+    _initializeFaceDetector();
     _draft = widget.state.copyWith();
     _nameCtrl = TextEditingController(text: widget.state.name);
     _emailCtrl = TextEditingController(text: widget.state.email);
@@ -2218,10 +2305,330 @@ class _EditViewState extends State<_EditView>
     _emailCtrl.dispose();
     _phoneCtrl.dispose();
     _dobCtrl.dispose();
+    _faceDetector.close();
     super.dispose();
   }
 
   void _markDirty() => setState(() => _isDirty = true);
+
+  // ─────────────────────────────────────────────────────────────────────
+  // FACE ANALYSER (mirrors onboarding3.dart) — real camera capture + ML
+  // Kit face detection, used to auto-fill Face Shape and Skin Tone below.
+  // ─────────────────────────────────────────────────────────────────────
+
+  void _initializeFaceDetector() {
+    _faceDetector = FaceDetector(
+      options: FaceDetectorOptions(
+        enableLandmarks: true,
+        enableClassification: true,
+        enableContours: true,
+      ),
+    );
+  }
+
+  Future<void> _captureAndAnalyzeFacePhoto() async {
+    if (_isAnalyzingFace) return;
+
+    final status = await Permission.camera.request();
+    if (status.isPermanentlyDenied) {
+      widget.onToast('Camera permission denied. Please enable it in Settings.');
+      await openAppSettings();
+      return;
+    }
+    if (!status.isGranted) {
+      widget.onToast('Camera permission is required for face scan.');
+      return;
+    }
+
+    XFile? photo;
+    try {
+      photo = await _facePicker.pickImage(
+        source: ImageSource.camera,
+        preferredCameraDevice: CameraDevice.front,
+      );
+    } catch (e) {
+      debugPrint('Face capture error: $e');
+      widget.onToast('Failed to capture face photo.');
+      return;
+    }
+    if (photo == null) return;
+
+    setState(() => _isAnalyzingFace = true);
+
+    try {
+      final imageFile = File(photo.path);
+      final inputImage = InputImage.fromFile(imageFile);
+      final faces = await _faceDetector.processImage(inputImage);
+
+      if (faces.isEmpty) {
+        widget.onToast('No face detected. Please try a clear, front-facing photo.');
+        setState(() => _isAnalyzingFace = false);
+        return;
+      }
+
+      final imageBytes = await imageFile.readAsBytes();
+      final decodedImage = img.decodeImage(imageBytes);
+      if (decodedImage == null) {
+        widget.onToast('Failed to process image.');
+        setState(() => _isAnalyzingFace = false);
+        return;
+      }
+
+      final face = faces.first;
+      final faceShape = _analyzeFaceShape(face);
+      final skinToneData = _extractSkinTone(decodedImage, face);
+      final skinToneColor = skinToneData['color'] as Color;
+      final skinToneIndex = _nearestSkinToneIndex(skinToneColor);
+
+      setState(() {
+        _faceUploaded = true;
+        _draft = _draft.copyWith(
+          faceShape: faceShape,
+          skinTone: skinToneIndex,
+          avatarPath: _draft.avatarPath ?? imageFile.path,
+        );
+        _isAnalyzingFace = false;
+        _isDirty = true;
+      });
+
+      widget.onToast('Detected: $faceShape face shape');
+    } catch (e) {
+      debugPrint('Face analysis error: $e');
+      widget.onToast('Failed to analyze face. Please try again.');
+      setState(() => _isAnalyzingFace = false);
+    }
+  }
+
+  // ── Face Shape Analysis ─────────────────────────────────────────
+  // Uses the ML Kit face oval contour to compare forehead, cheekbone,
+  // and jaw widths against overall face length for a heuristic
+  // classification, matching the values in kFaceShapes.
+  String _analyzeFaceShape(Face face) {
+    try {
+      final faceContour = face.contours[FaceContourType.face];
+      final points = faceContour?.points;
+
+      if (points == null || points.length < 8) {
+        return _analyzeFaceShapeFromBoundingBox(face);
+      }
+
+      double minX = points.first.x.toDouble();
+      double maxX = points.first.x.toDouble();
+      double minY = points.first.y.toDouble();
+      double maxY = points.first.y.toDouble();
+
+      for (final p in points) {
+        final x = p.x.toDouble();
+        final y = p.y.toDouble();
+        if (x < minX) minX = x;
+        if (x > maxX) maxX = x;
+        if (y < minY) minY = y;
+        if (y > maxY) maxY = y;
+      }
+
+      final faceLength = maxY - minY;
+      final faceWidth = maxX - minX;
+      if (faceWidth <= 0 || faceLength <= 0) return 'Oval';
+
+      final topThird = minY + faceLength * 0.33;
+      final bottomThird = minY + faceLength * 0.66;
+
+      double foreheadMinX = double.infinity, foreheadMaxX = -double.infinity;
+      double cheekMinX = double.infinity, cheekMaxX = -double.infinity;
+      double jawMinX = double.infinity, jawMaxX = -double.infinity;
+
+      for (final p in points) {
+        final x = p.x.toDouble();
+        final y = p.y.toDouble();
+        if (y <= topThird) {
+          if (x < foreheadMinX) foreheadMinX = x;
+          if (x > foreheadMaxX) foreheadMaxX = x;
+        } else if (y <= bottomThird) {
+          if (x < cheekMinX) cheekMinX = x;
+          if (x > cheekMaxX) cheekMaxX = x;
+        } else {
+          if (x < jawMinX) jawMinX = x;
+          if (x > jawMaxX) jawMaxX = x;
+        }
+      }
+
+      final foreheadWidth = (foreheadMaxX > foreheadMinX) ? foreheadMaxX - foreheadMinX : faceWidth;
+      final cheekWidth = (cheekMaxX > cheekMinX) ? cheekMaxX - cheekMinX : faceWidth;
+      final jawWidth = (jawMaxX > jawMinX) ? jawMaxX - jawMinX : faceWidth;
+
+      final lengthToWidthRatio = faceLength / faceWidth;
+      final jawToCheekRatio = jawWidth / cheekWidth;
+      final foreheadToJawRatio = foreheadWidth / jawWidth;
+
+      if (lengthToWidthRatio > 1.55) {
+        return 'Oblong';
+      } else if (foreheadToJawRatio > 1.15 && jawToCheekRatio < 0.85) {
+        return 'Heart';
+      } else if (cheekWidth > foreheadWidth * 1.08 && cheekWidth > jawWidth * 1.08) {
+        return 'Diamond';
+      } else if (jawToCheekRatio > 0.92 && foreheadWidth > cheekWidth * 0.92 && lengthToWidthRatio < 1.15) {
+        return 'Square';
+      } else if (jawToCheekRatio > 0.85 && lengthToWidthRatio < 1.3) {
+        return 'Round';
+      } else {
+        return 'Oval';
+      }
+    } catch (e) {
+      return _analyzeFaceShapeFromBoundingBox(face);
+    }
+  }
+
+  String _analyzeFaceShapeFromBoundingBox(Face face) {
+    try {
+      final ratio = face.boundingBox.height / face.boundingBox.width;
+      if (ratio > 1.4) return 'Oblong';
+      if (ratio < 1.15) return 'Round';
+      return 'Oval';
+    } catch (e) {
+      return 'Oval';
+    }
+  }
+
+  // ── Skin Tone Extraction (actual sampled color) ─────────────────
+  // Samples the forehead and both cheeks and averages them for a
+  // representative reading, returning the actual Color.
+  Map<String, dynamic> _extractSkinTone(img.Image image, Face face) {
+    const fallback = {'label': 'Medium', 'color': Color(0xFFC68863)};
+    try {
+      final bbox = face.boundingBox;
+
+      final samplePoints = <List<double>>[
+        [bbox.center.dx, bbox.top + bbox.height * 0.28], // forehead
+        [bbox.left + bbox.width * 0.28, bbox.top + bbox.height * 0.58], // left cheek
+        [bbox.right - bbox.width * 0.28, bbox.top + bbox.height * 0.58], // right cheek
+      ];
+
+      int rSum = 0, gSum = 0, bSum = 0, samples = 0;
+
+      for (final point in samplePoints) {
+        final x = (point[0] * image.width).toInt();
+        final y = (point[1] * image.height).toInt();
+        if (x < 0 || x >= image.width || y < 0 || y >= image.height) continue;
+
+        final pixel = image.getPixelSafe(x, y);
+        rSum += pixel.r.toInt();
+        gSum += pixel.g.toInt();
+        bSum += pixel.b.toInt();
+        samples++;
+      }
+
+      if (samples == 0) return fallback;
+
+      final avgR = (rSum / samples).round().clamp(0, 255);
+      final avgG = (gSum / samples).round().clamp(0, 255);
+      final avgB = (bSum / samples).round().clamp(0, 255);
+      final skinColor = Color.fromARGB(255, avgR, avgG, avgB);
+      final brightness = (avgR + avgG + avgB) / 3;
+
+      String label;
+      if (brightness > 200) {
+        label = 'Very Fair';
+      } else if (brightness > 170) {
+        label = 'Fair';
+      } else if (brightness > 140) {
+        label = 'Light Medium';
+      } else if (brightness > 110) {
+        label = 'Medium';
+      } else if (brightness > 80) {
+        label = 'Medium Deep';
+      } else if (brightness > 60) {
+        label = 'Deep';
+      } else {
+        label = 'Very Deep';
+      }
+
+      return {'label': label, 'color': skinColor};
+    } catch (e) {
+      return fallback;
+    }
+  }
+
+  // Maps a sampled skin color to the closest swatch in kSkinTones so it
+  // can populate ProfileState.skinTone (a 1-based index into that list).
+  int _nearestSkinToneIndex(Color sampled) {
+    int bestIndex = 0;
+    double bestDistance = double.infinity;
+
+    for (int i = 0; i < kSkinTones.length; i++) {
+      final swatch = kSkinTones[i];
+      final dr = sampled.red - swatch.red;
+      final dg = sampled.green - swatch.green;
+      final db = sampled.blue - swatch.blue;
+      final distance = (dr * dr + dg * dg + db * db).toDouble();
+      if (distance < bestDistance) {
+        bestDistance = distance;
+        bestIndex = i;
+      }
+    }
+    return bestIndex + 1; // matches the 1-based convention used elsewhere
+  }
+
+  Widget _buildFaceShapeCard(
+      Map<String, String> shape,
+      bool isActive,
+      ThemeColors colors,
+      ) {
+    return GestureDetector(
+      onTap: () => setState(() {
+        _draft = _draft.copyWith(faceShape: shape['name']!);
+        _markDirty();
+      }),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: isActive ? colors.accent1 : _cardBorder,
+            width: isActive ? 2 : 1,
+          ),
+          color: isActive ? colors.accent1.withOpacity(0.1) : _panel,
+        ),
+        child: Column(
+          children: [
+            Expanded(
+              child: ClipRRect(
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(13),
+                ),
+                child: Image.asset(
+                  shape['img']!,
+                  fit: BoxFit.cover,
+                  width: double.infinity,
+                  errorBuilder: (_, _, _) =>
+                      Container(
+                        color: _card,
+                        child: Center(
+                          child: Icon(
+                            Icons.face_outlined,
+                            color: _textMuted,
+                            size: 36,
+                          ),
+                        ),
+                      ),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 6),
+              child: Text(
+                shape['name']!,
+                style: TextStyle(
+                  color: isActive ? colors.accent1 : _textMuted,
+                  fontSize: 11,
+                  fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
   Widget _buildBodyShapeCard(
       Map<String, String> shape,
@@ -2254,8 +2661,19 @@ class _EditViewState extends State<_EditView>
                   shape['img']!,
                   fit: BoxFit.cover,
                   width: double.infinity,
+                  // ✅ FIX: Changed from filled Icons.person to outline version
+                  // and wrapped in Container with proper centering
                   errorBuilder: (_, _, _) =>
-                      Icon(Icons.person, color: _textMuted, size: 36),
+                      Container(
+                        color: _card,
+                        child: Center(
+                          child: Icon(
+                            Icons.person_outline,
+                            color: _textMuted,
+                            size: 36,
+                          ),
+                        ),
+                      ),
                 ),
               ),
             ),
@@ -2512,7 +2930,12 @@ class _EditViewState extends State<_EditView>
     }
   }
 
-  void _save() {
+  bool _saving = false;
+
+  Future<void> _save() async {
+    if (_saving) return;
+    setState(() => _saving = true);
+
     final name = _nameCtrl.text.trim().isEmpty
         ? 'New User'
         : _nameCtrl.text.trim();
@@ -2525,14 +2948,56 @@ class _EditViewState extends State<_EditView>
     final dob = (_dobDay != null && _dobMonth != null && _dobYear != null)
         ? '$_dobDay $_dobMonth $_dobYear'
         : _dobCtrl.text.trim();
-    widget.onSave(
-      _draft.copyWith(
-        name: name,
-        email: _emailCtrl.text.trim(),
-        phone: phone,
-        dob: dob,
-      ),
+
+    final updatedDraft = _draft.copyWith(
+      name: name,
+      email: _emailCtrl.text.trim(),
+      phone: phone,
+      dob: dob,
     );
+
+    // ── STEP 1: Sync to Appwrite DB ─────────────────────────────────────────
+    try {
+      final appwrite = Provider.of<AppwriteService>(context, listen: false);
+      await appwrite.updateCurrentUserProfileFields({
+        'name': name,
+        'email': updatedDraft.email,
+        'phone': phone,
+        'dob': dob,
+        'gender': updatedDraft.gender,
+        'skinTone': updatedDraft.skinTone,
+        'faceShape': updatedDraft.faceShape,
+        'bodyShape': updatedDraft.bodyShape,
+        'stylePreferences': updatedDraft.styles.toList(),
+        'shopPrefs': updatedDraft.shopPrefs.toList(),
+      });
+      // Also update the Appwrite Auth account name so account.get() stays fresh
+      await appwrite.account.updateName(name: name);
+    } catch (e) {
+      debugPrint('AHVI_PROFILE_SAVE_APPWRITE_ERROR: $e');
+      // Don't block the UI — fall through to update local state anyway
+    }
+
+    // ── STEP 2: Overwrite SharedPreferences cache ────────────────────────────
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('userName', name);
+      await prefs.setString('userEmail', updatedDraft.email);
+      await prefs.setString('userPhone', phone);
+      await prefs.setString('userDob', dob);
+      await prefs.setString('userGender', updatedDraft.gender);
+      await prefs.setInt('userSkinTone', updatedDraft.skinTone);
+      await prefs.setString('userFaceShape', updatedDraft.faceShape);
+      await prefs.setString('userBodyShape', updatedDraft.bodyShape);
+      await prefs.setStringList('userStyles', updatedDraft.styles.toList());
+      await prefs.setStringList('userShopPrefs', updatedDraft.shopPrefs.toList());
+    } catch (e) {
+      debugPrint('AHVI_PROFILE_SAVE_PREFS_ERROR: $e');
+    }
+
+    // ── STEP 3: Update Provider state → instant UI refresh ──────────────────
+    if (mounted) setState(() => _saving = false);
+    widget.onSave(updatedDraft);
   }
 
   void _showDiscardModal() {
@@ -2895,6 +3360,23 @@ class _EditViewState extends State<_EditView>
                             ),
                           );
                         }),
+                      ),
+                      const SizedBox(height: 14),
+
+                      // ── Face Shape ──
+                      _FieldLabel(text: _t.faceShape, textMuted: _textMuted),
+                      const SizedBox(height: 6),
+                      GridView.count(
+                        crossAxisCount: 3,
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        crossAxisSpacing: 10,
+                        mainAxisSpacing: 10,
+                        childAspectRatio: 0.65,
+                        children: kFaceShapes.map((shape) {
+                          final isActive = _draft.faceShape == shape['name'];
+                          return _buildFaceShapeCard(shape, isActive, c);
+                        }).toList(),
                       ),
                       const SizedBox(height: 14),
 
@@ -3405,6 +3887,10 @@ class _EditViewState extends State<_EditView>
                         subtitle:
                         'Used only to enhance facial fit and styling.',
                         uploaded: _faceUploaded,
+                        isAnalyzing: _isAnalyzingFace,
+                        resultLabel: _faceUploaded
+                            ? '${_draft.faceShape} face detected'
+                            : null,
                         isFace: true,
                         colors: c,
                         card: _card,
@@ -3412,10 +3898,7 @@ class _EditViewState extends State<_EditView>
                         panel: _panel,
                         textPrimary: _textPrimary,
                         textMuted: _textMuted,
-                        onTap: () => setState(() {
-                          _faceUploaded = !_faceUploaded;
-                          _markDirty();
-                        }),
+                        onTap: _captureAndAnalyzeFacePhoto,
                       ),
                       const SizedBox(height: 12),
 
@@ -3516,7 +3999,7 @@ class _EditViewState extends State<_EditView>
                   : tab == 1
                   ? '${_t.tryOn}  →'
                   : _t.profileUpdated.replaceAll('✓ ', '');
-              final canTap = isLastTab ? _isDirty : true;
+              final canTap = isLastTab ? (_isDirty && !_saving) : true;
               return Padding(
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                 child: GestureDetector(
@@ -3553,7 +4036,17 @@ class _EditViewState extends State<_EditView>
                       alignment: Alignment.center,
                       child: AnimatedSwitcher(
                         duration: const Duration(milliseconds: 220),
-                        child: Text(
+                        child: (_saving && isLastTab)
+                            ? SizedBox(
+                          key: const ValueKey('saving'),
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.2,
+                            color: _textPrimary,
+                          ),
+                        )
+                            : Text(
                           label,
                           key: ValueKey(tab),
                           style: TextStyle(
@@ -4365,6 +4858,8 @@ class _TryOnUploadRow extends StatelessWidget {
   final String subtitle;
   final bool uploaded;
   final bool isFace;
+  final bool isAnalyzing;
+  final String? resultLabel;
   final ThemeColors colors;
   final Color card, cardBorder, panel, textPrimary, textMuted;
   final VoidCallback onTap;
@@ -4374,6 +4869,8 @@ class _TryOnUploadRow extends StatelessWidget {
     required this.subtitle,
     required this.uploaded,
     required this.isFace,
+    this.isAnalyzing = false,
+    this.resultLabel,
     required this.colors,
     required this.card,
     required this.cardBorder,
@@ -4431,7 +4928,16 @@ class _TryOnUploadRow extends StatelessWidget {
                       : cardBorder,
                 ),
               ),
-              child: Icon(
+              child: isAnalyzing
+                  ? SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: colors.accent1,
+                ),
+              )
+                  : Icon(
                 isFace
                     ? Icons.person_outline
                     : Icons.accessibility_new_outlined,
@@ -4455,7 +4961,16 @@ class _TryOnUploadRow extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 3),
-                  if (!uploaded)
+                  if (isAnalyzing)
+                    Text(
+                      'Analyzing…',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: colors.accent1,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    )
+                  else if (!uploaded)
                     Text(
                       subtitle,
                       style: TextStyle(
@@ -4465,13 +4980,13 @@ class _TryOnUploadRow extends StatelessWidget {
                         height: 1.4,
                       ),
                     ),
-                  if (uploaded)
+                  if (uploaded && !isAnalyzing)
                     Row(
                       children: [
                         Icon(Icons.check, color: colors.accent2, size: 12),
                         const SizedBox(width: 5),
                         Text(
-                          'Photo added · encrypted',
+                          resultLabel ?? 'Photo added · encrypted',
                           style: TextStyle(
                             fontSize: 11,
                             color: colors.accent2,

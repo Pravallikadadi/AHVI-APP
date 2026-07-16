@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:appwrite/appwrite.dart';
 import 'package:appwrite/models.dart';
 import 'package:appwrite/enums.dart';
@@ -494,6 +495,47 @@ class AppwriteService extends ChangeNotifier {
         notifyListeners();
       } catch (_) {}
     }
+  }
+
+  /// Calls the FastAPI backend to wipe the user's account, wardrobe, and
+  /// style history from the server.  Throws on any non-200 response so the
+  /// caller can show an error and abort the local teardown.
+  ///
+  /// TODO: replace Env.appwriteEndpoint with Env.backendUrl once that key
+  /// is added to config/env.dart.
+  Future<void> deleteAccountFromBackend(String userId) async {
+    // Retrieve a fresh session JWT to authorise the request.
+    // account.createJWT() returns a short-lived token without needing extras.
+    String jwt = '';
+    try {
+      final token = await account.createJWT();
+      jwt = token.jwt;
+    } catch (e) {
+      debugPrint('AHVI_DELETE_BACKEND_JWT_ERROR: $e');
+      // If JWT creation fails we still send the request; the backend can
+      // fall back to validating the Appwrite session cookie.
+    }
+
+    final uri = Uri.parse('${Env.appwriteEndpoint}/api/user/delete-account');
+    final response = await http.delete(
+      uri,
+      headers: {
+        'Content-Type': 'application/json',
+        if (jwt.isNotEmpty) 'Authorization': 'Bearer $jwt',
+      },
+      body: jsonEncode({'user_id': userId}),
+    );
+
+    if (response.statusCode != 200) {
+      debugPrint(
+        'AHVI_DELETE_BACKEND_FAIL status=${response.statusCode} body=${response.body}',
+      );
+      throw Exception(
+        'Backend returned ${response.statusCode} — account not deleted from server.',
+      );
+    }
+
+    debugPrint('AHVI_DELETE_BACKEND_OK userId=$userId');
   }
 
   Future<Uint8List?> getUserAvatar(String name) async {

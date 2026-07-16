@@ -5,6 +5,7 @@ import 'package:myapp/profile.dart';
 import 'package:myapp/services/appwrite_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'dart:io';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 import 'package:image/image.dart' as img;
@@ -230,7 +231,9 @@ extension AppColorsX on BuildContext {
 // ── Facial Analysis Data Model ───────────────────────────────────
 class FaceAnalysisData {
   final bool faceDetected;
+  final String faceShape;
   final String skinTone;
+  final Color skinToneColor;
   final double skinQuality;
   final bool acneDetected;
   final int acneSeverity; // 0-100
@@ -245,7 +248,9 @@ class FaceAnalysisData {
 
   FaceAnalysisData({
     required this.faceDetected,
+    required this.faceShape,
     required this.skinTone,
+    required this.skinToneColor,
     required this.skinQuality,
     required this.acneDetected,
     required this.acneSeverity,
@@ -290,6 +295,7 @@ class _Screen3State extends State<Screen3> {
     final options = FaceDetectorOptions(
       enableLandmarks: true,
       enableClassification: true,
+      enableContours: true,
     );
     _faceDetector = FaceDetector(options: options);
   }
@@ -332,7 +338,10 @@ class _Screen3State extends State<Screen3> {
       final face = faces.first;
 
       // Extract facial features
-      final skinTone = _extractSkinTone(decodedImage, face);
+      final faceShape = _analyzeFaceShape(face);
+      final skinToneData = _extractSkinTone(decodedImage, face);
+      final skinTone = skinToneData['label'] as String;
+      final skinToneColor = skinToneData['color'] as Color;
       final skinQuality = _calculateSkinQuality(decodedImage, face);
       final acneData = _detectAcne(decodedImage, face);
       final pigmentationData = _detectPigmentation(decodedImage, face);
@@ -346,11 +355,14 @@ class _Screen3State extends State<Screen3> {
         pigmentationData['detected'] as bool,
         eyeShapeData,
         darkerCircles,
+        faceShape,
       );
 
       final analysisData = FaceAnalysisData(
         faceDetected: true,
+        faceShape: faceShape,
         skinTone: skinTone,
+        skinToneColor: skinToneColor,
         skinQuality: skinQuality,
         acneDetected: acneData['detected'] as bool,
         acneSeverity: acneData['severity'] as int,
@@ -379,41 +391,64 @@ class _Screen3State extends State<Screen3> {
     }
   }
 
-  // ── Skin Tone Extraction ───────────────────────────────────────
-  String _extractSkinTone(img.Image image, Face face) {
+  // ── Skin Tone Extraction (label + actual sampled color) ────────
+  // Samples the forehead and both cheeks (rather than a single pixel)
+  // and averages them for a more representative reading, then returns
+  // both a human-readable label and the actual Color for a UI swatch.
+  Map<String, dynamic> _extractSkinTone(img.Image image, Face face) {
+    const fallback = {'label': 'Medium', 'color': Color(0xFFC68863)};
     try {
-      final centerX = (face.boundingBox.center.dx * image.width).toInt();
-      final centerY = (face.boundingBox.center.dy * image.height).toInt();
+      final bbox = face.boundingBox;
 
-      if (centerX < 0 || centerX >= image.width || centerY < 0 || centerY >= image.height) {
-        return 'Medium';
+      final samplePoints = <List<double>>[
+        [bbox.center.dx, bbox.top + bbox.height * 0.28], // forehead
+        [bbox.left + bbox.width * 0.28, bbox.top + bbox.height * 0.58], // left cheek
+        [bbox.right - bbox.width * 0.28, bbox.top + bbox.height * 0.58], // right cheek
+      ];
+
+      int rSum = 0, gSum = 0, bSum = 0, samples = 0;
+
+      for (final point in samplePoints) {
+        final x = (point[0] * image.width).toInt();
+        final y = (point[1] * image.height).toInt();
+        if (x < 0 || x >= image.width || y < 0 || y >= image.height) continue;
+
+        final pixel = image.getPixelSafe(x, y);
+        rSum += pixel.r.toInt();
+        gSum += pixel.g.toInt();
+        bSum += pixel.b.toInt();
+        samples++;
       }
 
-      final pixel = image.getPixelSafe(centerX, centerY);
-      final r = pixel.r.toInt();
-      final g = pixel.g.toInt();
-      final b = pixel.b.toInt();
+      if (samples == 0) return fallback;
 
-      final brightness = (r + g + b) / 3;
+      final avgR = (rSum / samples).round().clamp(0, 255);
+      final avgG = (gSum / samples).round().clamp(0, 255);
+      final avgB = (bSum / samples).round().clamp(0, 255);
+      final skinColor = Color.fromARGB(255, avgR, avgG, avgB);
+      final brightness = (avgR + avgG + avgB) / 3;
 
-      // Determine skin tone based on brightness and color values
+      // Determine skin tone label based on brightness
+      String label;
       if (brightness > 200) {
-        return 'Very Fair';
+        label = 'Very Fair';
       } else if (brightness > 170) {
-        return 'Fair';
+        label = 'Fair';
       } else if (brightness > 140) {
-        return 'Light Medium';
+        label = 'Light Medium';
       } else if (brightness > 110) {
-        return 'Medium';
+        label = 'Medium';
       } else if (brightness > 80) {
-        return 'Medium Deep';
+        label = 'Medium Deep';
       } else if (brightness > 60) {
-        return 'Deep';
+        label = 'Deep';
       } else {
-        return 'Very Deep';
+        label = 'Very Deep';
       }
+
+      return {'label': label, 'color': skinColor};
     } catch (e) {
-      return 'Medium';
+      return fallback;
     }
   }
 
@@ -503,23 +538,122 @@ class _Screen3State extends State<Screen3> {
     try {
       if (face.landmarks.isEmpty) return 'Standard';
 
-      // Analyze eye landmarks
-      final leftEye = face.landmarks.firstWhere(
-            (lm) => lm.type == FaceLandmarkType.leftEye,
-        orElse: () => face.landmarks.first,
+      // Analyze eye landmarks (landmarks is a Map, use .values)
+      final leftEyeLandmark = face.landmarks.values.firstWhere(
+            (lm) => lm?.type == FaceLandmarkType.leftEye,
+        orElse: () => null,
       );
 
-      final position = leftEye.position;
+      // Null check before accessing position
+      if (leftEyeLandmark == null) return 'Standard';
+
+      final position = leftEyeLandmark.position;
       // Simple heuristic based on eye position relative to face
-      if (position.dy < face.boundingBox.top + face.boundingBox.height * 0.4) {
+      // Use .y instead of .dy for Point<int>
+      if (position.y < face.boundingBox.top + face.boundingBox.height * 0.4) {
         return 'Almond';
-      } else if (position.dy > face.boundingBox.top + face.boundingBox.height * 0.45) {
+      } else if (position.y > face.boundingBox.top + face.boundingBox.height * 0.45) {
         return 'Hooded';
       } else {
         return 'Round';
       }
     } catch (e) {
       return 'Standard';
+    }
+  }
+
+  // ── Face Shape Analysis ─────────────────────────────────────────
+  // Uses the ML Kit face oval contour to compare forehead, cheekbone,
+  // and jaw widths against overall face length for a heuristic
+  // classification (Oval, Round, Square, Heart, Diamond, Oblong).
+  String _analyzeFaceShape(Face face) {
+    try {
+      final faceContour = face.contours[FaceContourType.face];
+      final points = faceContour?.points;
+
+      if (points == null || points.length < 8) {
+        return _analyzeFaceShapeFromBoundingBox(face);
+      }
+
+      double minX = points.first.x.toDouble();
+      double maxX = points.first.x.toDouble();
+      double minY = points.first.y.toDouble();
+      double maxY = points.first.y.toDouble();
+
+      for (final p in points) {
+        final x = p.x.toDouble();
+        final y = p.y.toDouble();
+        if (x < minX) minX = x;
+        if (x > maxX) maxX = x;
+        if (y < minY) minY = y;
+        if (y > maxY) maxY = y;
+      }
+
+      final faceLength = maxY - minY;
+      final faceWidth = maxX - minX;
+      if (faceWidth <= 0 || faceLength <= 0) return 'Oval';
+
+      // Bucket contour points into thirds by vertical position to
+      // approximate forehead / cheekbone / jaw band widths.
+      final topThird = minY + faceLength * 0.33;
+      final bottomThird = minY + faceLength * 0.66;
+
+      double foreheadMinX = double.infinity, foreheadMaxX = -double.infinity;
+      double cheekMinX = double.infinity, cheekMaxX = -double.infinity;
+      double jawMinX = double.infinity, jawMaxX = -double.infinity;
+
+      for (final p in points) {
+        final x = p.x.toDouble();
+        final y = p.y.toDouble();
+        if (y <= topThird) {
+          if (x < foreheadMinX) foreheadMinX = x;
+          if (x > foreheadMaxX) foreheadMaxX = x;
+        } else if (y <= bottomThird) {
+          if (x < cheekMinX) cheekMinX = x;
+          if (x > cheekMaxX) cheekMaxX = x;
+        } else {
+          if (x < jawMinX) jawMinX = x;
+          if (x > jawMaxX) jawMaxX = x;
+        }
+      }
+
+      // If any band had no points, fall back to overall face width.
+      final foreheadWidth = (foreheadMaxX > foreheadMinX) ? foreheadMaxX - foreheadMinX : faceWidth;
+      final cheekWidth = (cheekMaxX > cheekMinX) ? cheekMaxX - cheekMinX : faceWidth;
+      final jawWidth = (jawMaxX > jawMinX) ? jawMaxX - jawMinX : faceWidth;
+
+      final lengthToWidthRatio = faceLength / faceWidth;
+      final jawToCheekRatio = jawWidth / cheekWidth;
+      final foreheadToJawRatio = foreheadWidth / jawWidth;
+
+      if (lengthToWidthRatio > 1.55) {
+        return 'Oblong';
+      } else if (foreheadToJawRatio > 1.15 && jawToCheekRatio < 0.85) {
+        return 'Heart';
+      } else if (cheekWidth > foreheadWidth * 1.08 && cheekWidth > jawWidth * 1.08) {
+        return 'Diamond';
+      } else if (jawToCheekRatio > 0.92 && foreheadWidth > cheekWidth * 0.92 && lengthToWidthRatio < 1.15) {
+        return 'Square';
+      } else if (jawToCheekRatio > 0.85 && lengthToWidthRatio < 1.3) {
+        return 'Round';
+      } else {
+        return 'Oval';
+      }
+    } catch (e) {
+      return _analyzeFaceShapeFromBoundingBox(face);
+    }
+  }
+
+  // Rough fallback when contour points aren't available — uses the
+  // overall bounding-box aspect ratio only.
+  String _analyzeFaceShapeFromBoundingBox(Face face) {
+    try {
+      final ratio = face.boundingBox.height / face.boundingBox.width;
+      if (ratio > 1.4) return 'Oblong';
+      if (ratio < 1.15) return 'Round';
+      return 'Oval';
+    } catch (e) {
+      return 'Oval';
     }
   }
 
@@ -620,6 +754,7 @@ class _Screen3State extends State<Screen3> {
       bool hasPigmentation,
       String eyeShape,
       bool darkCircles,
+      String faceShape,
       ) {
     final recommendations = <String>[];
 
@@ -639,6 +774,26 @@ class _Screen3State extends State<Screen3> {
       recommendations.add('Highlight inner corner for wider eye appearance');
     }
 
+    switch (faceShape) {
+      case 'Round':
+        recommendations.add('Contour cheeks softly to add definition');
+        break;
+      case 'Square':
+        recommendations.add('Soften angles with rounded blush placement');
+        break;
+      case 'Heart':
+        recommendations.add('Balance a wider forehead with soft, side-swept styling');
+        break;
+      case 'Oblong':
+        recommendations.add('Add visual width with horizontal blush placement');
+        break;
+      case 'Diamond':
+        recommendations.add('Highlight cheekbones — your strongest feature');
+        break;
+      default:
+        recommendations.add('Your balanced face shape suits most styles');
+    }
+
     recommendations.add('Stay hydrated for healthy, glowing skin');
 
     if (recommendations.isEmpty) {
@@ -655,6 +810,20 @@ class _Screen3State extends State<Screen3> {
   }
 
   Future<void> _captureFacePhoto() async {
+    // ── Request camera permission before opening camera ──────────
+    final status = await Permission.camera.request();
+
+    if (status.isPermanentlyDenied) {
+      _showValidationError('Camera permission denied. Please enable it in Settings.');
+      await openAppSettings();
+      return;
+    }
+
+    if (!status.isGranted) {
+      _showValidationError('Camera permission is required for face scan.');
+      return;
+    }
+
     try {
       final XFile? photo = await _picker.pickImage(
         source: ImageSource.camera,
@@ -672,10 +841,24 @@ class _Screen3State extends State<Screen3> {
   }
 
   Future<void> _captureBodyPhoto() async {
+    // ── Request camera permission before opening camera ──────────
+    final status = await Permission.camera.request();
+
+    if (status.isPermanentlyDenied) {
+      _showValidationError('Camera permission denied. Please enable it in Settings.');
+      await openAppSettings();
+      return;
+    }
+
+    if (!status.isGranted) {
+      _showValidationError('Camera permission is required for body photo.');
+      return;
+    }
+
     try {
       final XFile? photo = await _picker.pickImage(
         source: ImageSource.camera,
-        preferredCameraDevice: CameraDevice.rear,
+        preferredCameraDevice: CameraDevice.rear,   // Rear camera for full body
       );
 
       if (photo != null) {
@@ -839,6 +1022,7 @@ class _FaceAnalysisPreview extends StatelessWidget {
                 value: data.skinTone,
                 icon: '🌿',
                 color: c.accent3,
+                swatchColor: data.skinToneColor,
               ),
               _AnalysisItem(
                 label: 'Skin Quality',
@@ -881,6 +1065,12 @@ class _FaceAnalysisPreview extends StatelessWidget {
           _AnalysisSection(
             title: '👁️ Facial Features',
             items: [
+              _AnalysisItem(
+                label: 'Face Shape',
+                value: data.faceShape,
+                icon: '🧑',
+                color: c.accent1,
+              ),
               _AnalysisItem(
                 label: 'Eye Shape',
                 value: data.eyeShape,
@@ -1008,6 +1198,18 @@ class _AnalysisSection extends StatelessWidget {
                         fontWeight: FontWeight.w500,
                       ),
                     ),
+                    if (item.swatchColor != null) ...[
+                      const SizedBox(width: 8),
+                      Container(
+                        width: 14,
+                        height: 14,
+                        decoration: BoxDecoration(
+                          color: item.swatchColor,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: c.cardBorder, width: 1),
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -1039,12 +1241,14 @@ class _AnalysisItem {
   final String value;
   final String icon;
   final Color color;
+  final Color? swatchColor; // Optional actual color dot (e.g. skin tone)
 
   _AnalysisItem({
     required this.label,
     required this.value,
     required this.icon,
     required this.color,
+    this.swatchColor,
   });
 }
 

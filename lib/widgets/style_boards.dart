@@ -150,11 +150,13 @@ class StyleBoard {
 
 class BoardHistory {
   final String id;
+  final String occasion; // which occasion tab this belongs to
   final List<BoardDisplayItem> items;
   final DateTime createdAt;
 
   BoardHistory({
     required this.id,
+    required this.occasion,
     required this.items,
     required this.createdAt,
   });
@@ -321,10 +323,19 @@ class StyleBoardAIService {
   /// Step 1-4, run once per occasion, three occasions per tap.
   /// [boardNameFor] resolves the localized tab/title text for an
   /// occasion key ('casual' | 'office' | 'evening').
+  /// [slotLabelFor] resolves the localized display label for a
+  /// [ClothingSlot] (Top/Bottom/Dress/…) — used as the placeholder
+  /// item's category and to compose its AI-pick name/reason below.
+  /// [aiFillNameFor] / [aiFillReasonFor] resolve the localized name
+  /// and reason text for an AI-recommended placeholder item, given
+  /// its already-localized slot label.
   static Future<List<StyleBoard>> generateStyleBoards({
     required WardrobeItem anchorItem,
     required List<WardrobeItem> wardrobe,
     required String Function(String occasion) boardNameFor,
+    required String Function(ClothingSlot slot) slotLabelFor,
+    required String Function(String label) aiFillNameFor,
+    required String Function(String label) aiFillReasonFor,
   }) async {
     // Stand-in for network/model latency so the UI has a real
     // "fetching" state to show instead of an instant local shuffle.
@@ -341,6 +352,9 @@ class StyleBoardAIService {
           anchorAttrs: anchorAttrs,
           pool: pool,
           name: boardNameFor(occasion),
+          slotLabelFor: slotLabelFor,
+          aiFillNameFor: aiFillNameFor,
+          aiFillReasonFor: aiFillReasonFor,
         ),
     ];
   }
@@ -351,6 +365,9 @@ class StyleBoardAIService {
     required ItemAttributes anchorAttrs,
     required List<WardrobeItem> pool,
     required String name,
+    required String Function(ClothingSlot slot) slotLabelFor,
+    required String Function(String label) aiFillNameFor,
+    required String Function(String label) aiFillReasonFor,
   }) {
     final neededSlots = List<ClothingSlot>.from(_slotPlan[occasion]!);
     neededSlots.remove(anchorAttrs.slot); // anchor already fills its own slot
@@ -382,7 +399,13 @@ class StyleBoardAIService {
         usedIds.add(best.key.id);
       } else {
         // Step 4 (missing-item handling): fill the gap, clearly tagged.
-        entries.add(_aiFillFor(slot, occasion));
+        entries.add(_aiFillFor(
+          slot,
+          occasion,
+          slotLabelFor: slotLabelFor,
+          aiFillNameFor: aiFillNameFor,
+          aiFillReasonFor: aiFillReasonFor,
+        ));
       }
     }
 
@@ -406,37 +429,22 @@ class StyleBoardAIService {
     );
   }
 
-  static AiRecommendedBoardItem _aiFillFor(ClothingSlot slot, String occasion) {
-    final label = _slotLabel(slot);
+  static AiRecommendedBoardItem _aiFillFor(
+      ClothingSlot slot,
+      String occasion, {
+        required String Function(ClothingSlot slot) slotLabelFor,
+        required String Function(String label) aiFillNameFor,
+        required String Function(String label) aiFillReasonFor,
+      }) {
+    final label = slotLabelFor(slot);
     return AiRecommendedBoardItem(
       id: 'ai_${occasion}_${slot.name}_${DateTime.now().microsecondsSinceEpoch}',
-      name: '$label pick',
+      name: aiFillNameFor(label),
       cat: label,
       displayUrl: null,
       matchScore: 0.5,
-      reason: 'No matching $label in your wardrobe for this look',
+      reason: aiFillReasonFor(label),
     );
-  }
-
-  static String _slotLabel(ClothingSlot slot) {
-    switch (slot) {
-      case ClothingSlot.top:
-        return 'Top';
-      case ClothingSlot.bottom:
-        return 'Bottom';
-      case ClothingSlot.dress:
-        return 'Dress';
-      case ClothingSlot.outerwear:
-        return 'Outerwear';
-      case ClothingSlot.footwear:
-        return 'Footwear';
-      case ClothingSlot.bag:
-        return 'Bag';
-      case ClothingSlot.accessory:
-        return 'Accessory';
-      case ClothingSlot.other:
-        return 'Item';
-    }
   }
 }
 
@@ -485,17 +493,43 @@ class _StyleBoardsScreenState extends State<StyleBoardsScreen> {
     }
   }
 
-  /// Small helper so brand-new UI strings never crash if a
-  /// localization key hasn't been added yet — falls back to the
-  /// given English text. Existing keys keep using AppLocalizations.t
-  /// directly, unchanged.
-  String _tr(BuildContext context, String key, String fallback) {
-    try {
-      final value = AppLocalizations.t(context, key);
-      return value.isNotEmpty ? value : fallback;
-    } catch (_) {
-      return fallback;
+  /// Localized display label for a [ClothingSlot] — reuses the same
+  /// `clothingSlot*` keys already used elsewhere in the app for this
+  /// enum (wardrobe category filters, etc.) so the AI-recommended
+  /// placeholder cards ("Top", "Bag", …) stay consistent app-wide.
+  String _slotLabelFor(BuildContext context, ClothingSlot slot) {
+    switch (slot) {
+      case ClothingSlot.top:
+        return AppLocalizations.t(context, 'clothingSlotTop');
+      case ClothingSlot.bottom:
+        return AppLocalizations.t(context, 'clothingSlotBottom');
+      case ClothingSlot.dress:
+        return AppLocalizations.t(context, 'clothingSlotDress');
+      case ClothingSlot.outerwear:
+        return AppLocalizations.t(context, 'clothingSlotOuterwear');
+      case ClothingSlot.footwear:
+        return AppLocalizations.t(context, 'clothingSlotFootwear');
+      case ClothingSlot.bag:
+        return AppLocalizations.t(context, 'clothingSlotBag');
+      case ClothingSlot.accessory:
+        return AppLocalizations.t(context, 'clothingSlotAccessory');
+      case ClothingSlot.other:
+        return AppLocalizations.t(context, 'clothingSlotOther');
     }
+  }
+
+  /// Localized name for an AI-recommended placeholder card, e.g.
+  /// "Top pick" — [label] is the already-localized slot label.
+  String _aiFillNameFor(BuildContext context, String label) {
+    return AppLocalizations.t(context, 'style_boards_ai_fill_name')
+        .replaceAll('{slot}', label);
+  }
+
+  /// Localized reason text for an AI-recommended placeholder card,
+  /// e.g. "No matching Top in your wardrobe for this look".
+  String _aiFillReasonFor(BuildContext context, String label) {
+    return AppLocalizations.t(context, 'style_boards_ai_fill_reason')
+        .replaceAll('{slot}', label);
   }
 
   // ── Data fetching (AI flow) ──────────────────────────────────
@@ -513,13 +547,16 @@ class _StyleBoardsScreenState extends State<StyleBoardsScreen> {
         boardNameFor: (occasion) {
           switch (occasion) {
             case 'casual':
-              return _tr(context, 'style_boards_board_name_1', 'Casual');
+              return AppLocalizations.t(context, 'style_boards_board_name_1');
             case 'office':
-              return _tr(context, 'style_boards_board_name_2', 'Office');
+              return AppLocalizations.t(context, 'style_boards_board_name_2');
             default:
-              return _tr(context, 'style_boards_board_name_3', 'Evening');
+              return AppLocalizations.t(context, 'style_boards_board_name_3');
           }
         },
+        slotLabelFor: (slot) => _slotLabelFor(context, slot),
+        aiFillNameFor: (label) => _aiFillNameFor(context, label),
+        aiFillReasonFor: (label) => _aiFillReasonFor(context, label),
       );
 
       if (!mounted) return;
@@ -527,20 +564,20 @@ class _StyleBoardsScreenState extends State<StyleBoardsScreen> {
         styleBoards = boards;
         selectedBoardIndex = 0;
         lockedItemIds.clear();
-        boardHistory = [
-          BoardHistory(
-            id: 'h_${DateTime.now().millisecondsSinceEpoch}',
-            items: boards.first.items,
-            createdAt: DateTime.now(),
-          ),
-        ];
+        boardHistory = boards
+            .map((b) => BoardHistory(
+          id: 'h_${b.occasion}_${DateTime.now().millisecondsSinceEpoch}',
+          occasion: b.occasion,
+          items: b.items,
+          createdAt: DateTime.now(),
+        ))
+            .toList();
         _isLoading = false;
       });
     } catch (_) {
       if (!mounted) return;
       setState(() {
-        _loadError = _tr(context, 'style_boards_load_error',
-            'Could not generate style boards. Please try again.');
+        _loadError = AppLocalizations.t(context, 'style_boards_load_error');
         _isLoading = false;
       });
     }
@@ -610,6 +647,7 @@ class _StyleBoardsScreenState extends State<StyleBoardsScreen> {
         0,
         BoardHistory(
           id: 'h_${now.millisecondsSinceEpoch}',
+          occasion: board.occasion,
           items: updated,
           createdAt: now,
         ),
@@ -654,18 +692,23 @@ class _StyleBoardsScreenState extends State<StyleBoardsScreen> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (ctx) => _SelectedItemPanel(
-        item: item,
-        isLocked: lockedItemIds.contains(selectedItemId),
-        onToggleLock: () => _toggleItemLock(selectedItemId!),
-        onReplace: () {
-          Navigator.pop(ctx);
-          _openItemPicker(item, similarOnly: false);
-        },
-        onFindSimilar: () {
-          Navigator.pop(ctx);
-          _openItemPicker(item, similarOnly: true);
-        },
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setModalState) => _SelectedItemPanel(
+          item: item,
+          isLocked: lockedItemIds.contains(selectedItemId),
+          onToggleLock: () {
+            _toggleItemLock(selectedItemId!);
+            setModalState(() {});
+          },
+          onReplace: () {
+            Navigator.pop(ctx);
+            _openItemPicker(item, similarOnly: false);
+          },
+          onFindSimilar: () {
+            Navigator.pop(ctx);
+            _openItemPicker(item, similarOnly: true);
+          },
+        ),
       ),
     );
   }
@@ -679,6 +722,8 @@ class _StyleBoardsScreenState extends State<StyleBoardsScreen> {
       final updated = List<BoardDisplayItem>.from(board.items)..[idx] = newItem;
       lockedItemIds.remove(oldId);
 
+      final now = DateTime.now();
+
       styleBoards[selectedBoardIndex] = StyleBoard(
         id: board.id,
         name: board.name,
@@ -686,6 +731,16 @@ class _StyleBoardsScreenState extends State<StyleBoardsScreen> {
         items: updated,
         thumbnail: board.thumbnail,
         createdAt: board.createdAt,
+      );
+
+      boardHistory.insert(
+        0,
+        BoardHistory(
+          id: 'h_${now.millisecondsSinceEpoch}',
+          occasion: board.occasion,
+          items: updated,
+          createdAt: now,
+        ),
       );
 
       if (selectedItemId == oldId) selectedItemId = newItem.id;
@@ -706,8 +761,8 @@ class _StyleBoardsScreenState extends State<StyleBoardsScreen> {
       backgroundColor: Colors.transparent,
       builder: (ctx) => _ItemPickerSheet(
         title: similarOnly
-            ? _tr(context, 'style_boards_find_similar_title', 'Find Similar')
-            : _tr(context, 'style_boards_replace_title', 'Replace This Item'),
+            ? AppLocalizations.t(context, 'style_boards_find_similar_title')
+            : AppLocalizations.t(context, 'style_boards_replace_title'),
         candidates: candidates,
         onPicked: (picked) {
           Navigator.pop(ctx);
@@ -824,7 +879,7 @@ class _StyleBoardsScreenState extends State<StyleBoardsScreen> {
           CircularProgressIndicator(color: t.accent.primary),
           const SizedBox(height: 16),
           Text(
-            _tr(context, 'style_boards_loading', 'Styling your outfit…'),
+            AppLocalizations.t(context, 'style_boards_loading'),
             style: GoogleFonts.inter(fontSize: 13, color: t.mutedText),
           ),
         ],
@@ -853,7 +908,7 @@ class _StyleBoardsScreenState extends State<StyleBoardsScreen> {
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 child: Text(
-                  _tr(context, 'style_boards_retry', 'Retry'),
+                  AppLocalizations.t(context, 'style_boards_retry'),
                   style: GoogleFonts.inter(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
@@ -921,14 +976,14 @@ class _StyleBoardsScreenState extends State<StyleBoardsScreen> {
           _legendDot(t.accent.primary),
           const SizedBox(width: 6),
           Text(
-            _tr(context, 'style_boards_legend_wardrobe', 'From Your Wardrobe'),
+            AppLocalizations.t(context, 'style_boards_legend_wardrobe'),
             style: GoogleFonts.inter(fontSize: 11, color: t.mutedText),
           ),
           const SizedBox(width: 16),
           _legendDot(Colors.amber),
           const SizedBox(width: 6),
           Text(
-            _tr(context, 'style_boards_legend_ai', 'AI Recommended'),
+            AppLocalizations.t(context, 'style_boards_legend_ai'),
             style: GoogleFonts.inter(fontSize: 11, color: t.mutedText),
           ),
         ],
@@ -948,6 +1003,18 @@ class _StyleBoardsScreenState extends State<StyleBoardsScreen> {
   // ============================================================
 
   static const double _kGap = 10.0;
+
+  // Caps how large any single grid cell in the 1/2/3/4-item layouts can
+  // grow. Those layouts use half-width (or bigger) cells, which made
+  // boards with only a few items look oversized on typical phone
+  // widths. 5/6/7/8-item layouts already divide into three columns and
+  // stay compact on their own, so they're left as-is.
+  static const double _kMaxCardExtent = 140.0;
+
+  double _cappedCellWidth(double totalWidth, double gap, int columns) {
+    final raw = (totalWidth - gap * (columns - 1)) / columns;
+    return raw < _kMaxCardExtent ? raw : _kMaxCardExtent;
+  }
 
   Widget _buildUnifiedGrid(
       BuildContext context, AppThemeTokens t, List<BoardDisplayItem> items) {
@@ -975,55 +1042,75 @@ class _StyleBoardsScreenState extends State<StyleBoardsScreen> {
   // ─── 1–2 items: equal columns ─────────────────────────────────────────
   Widget _layoutSmall(
       BuildContext context, AppThemeTokens t, List<BoardDisplayItem> items) {
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: items.length,
-        crossAxisSpacing: _kGap,
-        mainAxisSpacing: _kGap,
-        childAspectRatio: 0.85,
-      ),
-      itemCount: items.length,
-      itemBuilder: (_, i) => _buildItemCard(context, items[i], t),
-    );
+    return LayoutBuilder(builder: (_, box) {
+      final n = items.length;
+      final cw = _cappedCellWidth(box.maxWidth, _kGap, n);
+      final gridWidth = cw * n + _kGap * (n - 1);
+
+      return Center(
+        child: SizedBox(
+          width: gridWidth,
+          child: GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: n,
+              crossAxisSpacing: _kGap,
+              mainAxisSpacing: _kGap,
+              childAspectRatio: 1.15,
+            ),
+            itemCount: n,
+            itemBuilder: (_, i) => _buildItemCard(context, items[i], t),
+          ),
+        ),
+      );
+    });
   }
 
   // ─── 3 items ──────────────────────────────────────────────────────────
+  // Left col:  one large item spanning the full height (cw × (cw*2+g)).
+  // Right col: two square items (cw × cw each) vertically centred so
+  //            item[1] starts at ~50% and item[2] ends at ~50% of the
+  //            left item's height. Both columns are equal width.
   Widget _layout3(
       BuildContext context, AppThemeTokens t, List<BoardDisplayItem> items) {
     return LayoutBuilder(builder: (_, box) {
       final w = box.maxWidth;
       const double g = _kGap;
 
-      final lw = w * 0.52 - g / 2; // left col 52 %
-      final rw = w - lw - g;        // right col rest
+      final cw = _cappedCellWidth(w, g, 2); // equal-width columns, capped
+      final totalH = cw * 2 + g;       // left item fills this height
+      final vPad = (totalH - 2 * cw - g) / 2; // top/bottom padding to centre right col
 
-      final ih = lw * 0.95;          // each left item ≈ square
-      final totalH = ih * 2 + g;
-
-      return SizedBox(
-        height: totalH,
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            SizedBox(
-              width: lw,
-              child: Column(
-                children: [
-                  SizedBox(height: ih, child: _buildItemCard(context, items[0], t)),
-                  SizedBox(height: g),
-                  SizedBox(height: ih, child: _buildItemCard(context, items[1], t)),
-                ],
+      return Center(
+        child: SizedBox(
+          width: cw * 2 + g,
+          height: totalH,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Left: one tall item
+              SizedBox(
+                width: cw,
+                height: totalH,
+                child: _buildItemCard(context, items[0], t),
               ),
-            ),
-            SizedBox(width: g),
-            SizedBox(
-              width: rw,
-              height: totalH,
-              child: _buildItemCard(context, items[2], t),
-            ),
-          ],
+              SizedBox(width: g),
+              // Right: two square items, vertically centred
+              SizedBox(
+                width: cw,
+                child: Column(
+                  children: [
+                    SizedBox(height: vPad),
+                    SizedBox(height: cw, child: _buildItemCard(context, items[1], t)),
+                    SizedBox(height: g),
+                    SizedBox(height: cw, child: _buildItemCard(context, items[2], t)),
+                    SizedBox(height: vPad),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       );
     });
@@ -1036,15 +1123,20 @@ class _StyleBoardsScreenState extends State<StyleBoardsScreen> {
       final w = box.maxWidth;
       const double g = _kGap;
 
-      final cw = (w - g) / 2;
+      final cw = _cappedCellWidth(w, g, 2);
       final ih = cw;
 
-      return Column(
-        children: [
-          _row2(context, t, items[0], items[1], cw, ih),
-          SizedBox(height: g),
-          _row2(context, t, items[2], items[3], cw, ih),
-        ],
+      return Center(
+        child: SizedBox(
+          width: cw * 2 + g,
+          child: Column(
+            children: [
+              _row2(context, t, items[0], items[1], cw, ih),
+              SizedBox(height: g),
+              _row2(context, t, items[2], items[3], cw, ih),
+            ],
+          ),
+        ),
       );
     });
   }
@@ -1056,8 +1148,20 @@ class _StyleBoardsScreenState extends State<StyleBoardsScreen> {
       final w = box.maxWidth;
       const double g = _kGap;
 
+      // Left (shirt/anchor): kept at the wider 0.72 width:height aspect
+      // (so BoxFit.cover doesn't crop the sides), but the overall tile
+      // footprint is dialed back down from the previous 0.54 share.
       final tlw = w * 0.42 - g / 2;
-      final topH = tlw / 0.65;
+      final topH = tlw / 0.72;
+
+      // Right (secondary item, e.g. pant): explicitly smaller instead
+      // of Expanded to fill all remaining width — it's a secondary
+      // piece next to the anchor, so both its width and height are
+      // scaled down and it's centred in the space left over.
+      final remainingW = w - tlw - g;
+      final trw = remainingW * 0.72;
+      final trh = topH * 0.88;
+      final trVPad = (topH - trh) / 2;
 
       final biw = (w - 2 * g) / 3;
       final bih = biw;
@@ -1067,11 +1171,23 @@ class _StyleBoardsScreenState extends State<StyleBoardsScreen> {
           SizedBox(
             height: topH,
             child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 SizedBox(width: tlw, child: _buildItemCard(context, items[0], t)),
                 SizedBox(width: g),
-                Expanded(child: _buildItemCard(context, items[1], t)),
+                SizedBox(
+                  width: remainingW,
+                  child: Column(
+                    children: [
+                      SizedBox(height: trVPad),
+                      SizedBox(
+                        width: trw,
+                        height: trh,
+                        child: _buildItemCard(context, items[1], t),
+                      ),
+                    ],
+                  ),
+                ),
               ],
             ),
           ),
@@ -1111,16 +1227,18 @@ class _StyleBoardsScreenState extends State<StyleBoardsScreen> {
   }
 
   // ─── 7 items ──────────────────────────────────────────────────────────
+  // All items share the same cell size (cw × cw).
+  // Left/middle cols: 2 items stacked → total height = cw*2 + g.
+  // Right col: 3 items stacked at the same cw height → total height = cw*3 + 2*g.
+  // The overall SizedBox uses the taller right column so nothing is clipped.
   Widget _layout7(
       BuildContext context, AppThemeTokens t, List<BoardDisplayItem> items) {
     return LayoutBuilder(builder: (_, box) {
       final w = box.maxWidth;
       const double g = _kGap;
 
-      final cw = (w - 2 * g) / 3;
-      final bigH = cw / 0.80;
-      final totalH = bigH * 2 + g;
-      final smlH = (totalH - 2 * g) / 3;
+      final cw = (w - 2 * g) / 3; // equal-width columns
+      final totalH = cw * 3 + 2 * g; // right col drives the height
 
       return SizedBox(
         height: totalH,
@@ -1131,9 +1249,9 @@ class _StyleBoardsScreenState extends State<StyleBoardsScreen> {
               width: cw,
               child: Column(
                 children: [
-                  SizedBox(height: bigH, child: _buildItemCard(context, items[0], t)),
+                  SizedBox(height: cw, child: _buildItemCard(context, items[0], t)),
                   SizedBox(height: g),
-                  SizedBox(height: bigH, child: _buildItemCard(context, items[1], t)),
+                  SizedBox(height: cw, child: _buildItemCard(context, items[1], t)),
                 ],
               ),
             ),
@@ -1142,9 +1260,9 @@ class _StyleBoardsScreenState extends State<StyleBoardsScreen> {
               width: cw,
               child: Column(
                 children: [
-                  SizedBox(height: bigH, child: _buildItemCard(context, items[2], t)),
+                  SizedBox(height: cw, child: _buildItemCard(context, items[2], t)),
                   SizedBox(height: g),
-                  SizedBox(height: bigH, child: _buildItemCard(context, items[3], t)),
+                  SizedBox(height: cw, child: _buildItemCard(context, items[3], t)),
                 ],
               ),
             ),
@@ -1153,11 +1271,11 @@ class _StyleBoardsScreenState extends State<StyleBoardsScreen> {
               width: cw,
               child: Column(
                 children: [
-                  SizedBox(height: smlH, child: _buildItemCard(context, items[4], t)),
+                  SizedBox(height: cw, child: _buildItemCard(context, items[4], t)),
                   SizedBox(height: g),
-                  SizedBox(height: smlH, child: _buildItemCard(context, items[5], t)),
+                  SizedBox(height: cw, child: _buildItemCard(context, items[5], t)),
                   SizedBox(height: g),
-                  SizedBox(height: smlH, child: _buildItemCard(context, items[6], t)),
+                  SizedBox(height: cw, child: _buildItemCard(context, items[6], t)),
                 ],
               ),
             ),
@@ -1254,17 +1372,18 @@ class _StyleBoardsScreenState extends State<StyleBoardsScreen> {
   }
 
   Widget _buildItemCard(BuildContext context, BoardDisplayItem item, AppThemeTokens t) {
-    final isSelected = selectedItemId == item.id;
     final isLocked = lockedItemIds.contains(item.id);
+
+    // Border is only shown when item is locked
+    final showBorder = isLocked;
 
     return GestureDetector(
       onTap: () => _selectItem(item.id),
       child: Container(
         decoration: BoxDecoration(
-          border: Border.all(
-            color: isSelected ? t.accent.primary : t.cardBorder,
-            width: isSelected ? 2 : 1,
-          ),
+          border: showBorder
+              ? Border.all(color: t.accent.primary, width: 2)
+              : Border.all(color: Colors.transparent, width: 2),
           borderRadius: BorderRadius.circular(8),
           color: t.backgroundSecondary,
         ),
@@ -1273,10 +1392,10 @@ class _StyleBoardsScreenState extends State<StyleBoardsScreen> {
           children: [
             item.displayUrl != null
                 ? ClipRRect(
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(7),
               child: Image.network(
                 item.displayUrl!,
-                fit: BoxFit.cover,
+                fit: BoxFit.contain,
               ),
             )
                 : Center(
@@ -1315,7 +1434,7 @@ class _StyleBoardsScreenState extends State<StyleBoardsScreen> {
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text(
-                    _tr(context, 'style_boards_ai_pick_badge', 'AI Pick'),
+                    AppLocalizations.t(context, 'style_boards_ai_pick_badge'),
                     style: GoogleFonts.inter(
                       fontSize: 9,
                       fontWeight: FontWeight.w700,
@@ -1324,11 +1443,57 @@ class _StyleBoardsScreenState extends State<StyleBoardsScreen> {
                   ),
                 ),
               ),
+            // Lock icon: always visible. Unlocked by default (light
+            // circle + open padlock); switches to the locked look
+            // (accent-filled circle + closed padlock) only once the
+            // item is actually locked. Tapping it toggles the state.
+            Positioned(
+              top: 6,
+              right: 6,
+              child: GestureDetector(
+                onTap: () => _toggleItemLock(item.id),
+                behavior: HitTestBehavior.opaque,
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: isLocked
+                        ? t.accent.primary.withOpacity(0.90)
+                        : Colors.white.withOpacity(0.90),
+                    shape: BoxShape.circle,
+                    border: isLocked
+                        ? null
+                        : Border.all(color: t.cardBorder, width: 1),
+                  ),
+                  child: Icon(
+                    isLocked ? Icons.lock : Icons.lock_open,
+                    color: isLocked ? Colors.white : t.mutedText,
+                    size: 12,
+                  ),
+                ),
+              ),
+            ),
+            // "Locked" badge: only shown once an item is locked, so it
+            // never competes visually with the always-on icon above.
             if (isLocked)
               Positioned(
-                bottom: 8,
-                right: 8,
-                child: Icon(Icons.lock, color: t.accent.primary, size: 16),
+                bottom: 6,
+                left: 6,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 6, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: t.accent.primary.withOpacity(0.95),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    AppLocalizations.t(context, 'style_boards_locked_badge'),
+                    style: GoogleFonts.inter(
+                      fontSize: 9,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
               ),
           ],
         ),
@@ -1402,109 +1567,143 @@ class _StyleBoardsScreenState extends State<StyleBoardsScreen> {
   // ── Board history section ────────────────────────────────────
 
   Widget _buildBoardHistorySection(BuildContext context, AppThemeTokens t) {
+    // Show only history entries that match the currently selected occasion tab
+    final currentOccasion = styleBoards.isNotEmpty
+        ? styleBoards[selectedBoardIndex].occasion
+        : '';
+    final filteredHistory = boardHistory
+        .where((h) => h.occasion == currentOccasion)
+        .toList();
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // "BOARD HISTORY" header — matches screenshot style (bold uppercase)
           Text(
             AppLocalizations.t(context, 'style_boards_history_title'),
             style: GoogleFonts.inter(
-              fontSize: 16,
+              fontSize: 14,
               fontWeight: FontWeight.w700,
+              letterSpacing: 0.8,
               color: t.textPrimary,
             ),
           ),
           const SizedBox(height: 12),
-          if (boardHistory.isEmpty)
-            Padding(
+          if (filteredHistory.isEmpty)
+          // Empty state wrapped in the same bordered container
+            Container(
+              decoration: BoxDecoration(
+                border: Border.all(color: t.cardBorder, width: 1.0),
+                borderRadius: BorderRadius.circular(16),
+              ),
               padding: const EdgeInsets.all(16),
               child: Text(
-                'No history yet.',
-                style: GoogleFonts.inter(
-                  fontSize: 13,
-                  color: t.mutedText,
-                ),
+                AppLocalizations.t(context, 'style_boards_no_history'),
+                style: GoogleFonts.inter(fontSize: 13, color: t.mutedText),
               ),
             )
           else
             ListView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              itemCount: boardHistory.length,
+              itemCount: filteredHistory.length,
               itemBuilder: (_, i) {
-                final h = boardHistory[i];
+                final h = filteredHistory[i];
                 final isCurrent = i == 0;
 
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 12),
-                  child: GestureDetector(
-                    onTap: () => _switchBoard(i),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        border: Border.all(
-                          color: isCurrent ? t.accent.primary : t.cardBorder,
-                          width: isCurrent ? 1.5 : 1,
-                        ),
-                        borderRadius: BorderRadius.circular(12),
-                        color: isCurrent ? t.accent.primary.withOpacity(0.05) : null,
-                      ),
-                      padding: const EdgeInsets.all(12),
-                      child: Row(
-                        children: [
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
-                            child: h.items.isNotEmpty
-                                ? Image.network(
-                              h.items.first.displayUrl ?? '',
-                              width: 50,
-                              height: 50,
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) => Container(
-                                width: 50,
-                                height: 50,
-                                color: t.backgroundSecondary,
-                                child: Icon(Icons.checkroom, color: t.mutedText),
+                  // Board History cards are intentionally capped to a
+                  // fixed max width — smaller than the main board's
+                  // container — so they always read as compact
+                  // previews, regardless of item count or layout.
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: ConstrainedBox(
+                      constraints:
+                      const BoxConstraints(maxWidth: _kHistoryCardMaxWidth),
+                      child: GestureDetector(
+                        onTap: () {
+                          final realIndex = boardHistory.indexOf(h);
+                          _switchBoard(realIndex);
+                        },
+                        child: Container(
+                          decoration: BoxDecoration(
+                            border: Border.all(
+                              color: isCurrent ? t.accent.primary : t.cardBorder,
+                              width: 1.0,
+                            ),
+                            borderRadius: BorderRadius.circular(16),
+                            color: isCurrent
+                                ? t.accent.primary.withOpacity(0.04)
+                                : null,
+                          ),
+                          padding: const EdgeInsets.all(8),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Header row: timestamp label + current indicator
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                      CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          isCurrent
+                                              ? AppLocalizations.t(
+                                              context,
+                                              'style_boards_history_current')
+                                              : h.getTimeAgo(context),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: GoogleFonts.inter(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w600,
+                                            color: t.textPrimary,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          '${h.items.length} ${AppLocalizations.t(context, 'style_boards_history_items_count')}',
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: GoogleFonts.inter(
+                                            fontSize: 10,
+                                            color: t.mutedText,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  // Current indicator — matching screenshot's blue check circle
+                                  if (isCurrent)
+                                    Container(
+                                      width: 20,
+                                      height: 20,
+                                      decoration: BoxDecoration(
+                                        color: t.accent.primary,
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: const Icon(
+                                        Icons.check,
+                                        color: Colors.white,
+                                        size: 12,
+                                      ),
+                                    ),
+                                ],
                               ),
-                            )
-                                : Container(
-                              width: 50,
-                              height: 50,
-                              color: t.backgroundSecondary,
-                              child: Icon(Icons.checkroom, color: t.mutedText),
-                            ),
+                              const SizedBox(height: 8),
+                              // Mini-grid: same layout as the main board, non-interactive
+                              IgnorePointer(
+                                child: _buildHistoryGrid(context, t, h.items),
+                              ),
+                            ],
                           ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  isCurrent
-                                      ? AppLocalizations.t(
-                                      context, 'style_boards_history_current')
-                                      : h.getTimeAgo(context),
-                                  style: GoogleFonts.inter(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w600,
-                                    color: t.textPrimary,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  '${h.items.length} items',
-                                  style: GoogleFonts.inter(
-                                    fontSize: 12,
-                                    color: t.mutedText,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          if (isCurrent)
-                            Icon(Icons.check_circle,
-                                color: t.accent.primary, size: 20),
-                        ],
+                        ),
                       ),
                     ),
                   ),
@@ -1513,6 +1712,334 @@ class _StyleBoardsScreenState extends State<StyleBoardsScreen> {
             ),
         ],
       ),
+    );
+  }
+
+  // ── History mini-grid ────────────────────────────────────────
+  // Renders the same layout as the main board but with cards that
+  // have no interactive chrome (no lock icon, no AI badge tap).
+  // Uses a FractionallySizedBox to constrain the grid to a compact
+  // preview height without hard-coding pixel values.
+
+  Widget _buildHistoryGrid(
+      BuildContext context, AppThemeTokens t, List<BoardDisplayItem> items) {
+    if (items.isEmpty) return const SizedBox.shrink();
+
+    // Scale factor: history cards are rendered at ~55% the width of
+    // the main board area (accounting for the outer 16px side padding
+    // and the card's own 10px internal padding on both sides).
+    // Rather than re-computing exact pixel widths, we use a
+    // LayoutBuilder inside each layout — the same _buildUnifiedGrid
+    // family already does this — so we simply call it with a wrapper
+    // that makes the widget non-interactive and visually quiet.
+    return _buildHistoryUnifiedGrid(context, t, items);
+  }
+
+  Widget _buildHistoryUnifiedGrid(
+      BuildContext context, AppThemeTokens t, List<BoardDisplayItem> items) {
+    if (items.isEmpty) return const SizedBox.shrink();
+
+    switch (items.length) {
+      case 1:
+      case 2:
+        return _historyLayoutSmall(context, t, items);
+      case 3:
+        return _historyLayout3(context, t, items);
+      case 4:
+        return _historyLayout4(context, t, items);
+      case 5:
+        return _historyLayout5(context, t, items);
+      case 6:
+        return _historyLayout6(context, t, items);
+      case 7:
+        return _historyLayout7(context, t, items);
+      default:
+        return _historyLayout8(context, t, items.take(8).toList());
+    }
+  }
+
+  static const double _kHGap = 6.0; // tighter gap for the mini preview
+
+  // Board History cards are always rendered smaller than the main
+  // board — this caps their overall width regardless of layout (A, B,
+  // or otherwise), so they read as compact previews rather than
+  // full-size boards.
+  static const double _kHistoryCardMaxWidth = 150.0;
+
+  Widget _buildHistoryItemCard(
+      BuildContext context, BoardDisplayItem item, AppThemeTokens t) {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(6),
+        color: t.backgroundSecondary,
+      ),
+      child: item.displayUrl != null
+          ? ClipRRect(
+        borderRadius: BorderRadius.circular(6),
+        child: Image.network(
+          item.displayUrl!,
+          fit: BoxFit.contain,
+          errorBuilder: (_, __, ___) => Center(
+            child: Icon(Icons.checkroom, color: t.mutedText, size: 14),
+          ),
+        ),
+      )
+          : Center(
+        child: Icon(
+          item.isAiRecommended ? Icons.auto_awesome : Icons.checkroom,
+          color: item.isAiRecommended ? Colors.amber : t.mutedText,
+          size: 14,
+        ),
+      ),
+    );
+  }
+
+  Widget _historyLayoutSmall(
+      BuildContext context, AppThemeTokens t, List<BoardDisplayItem> items) {
+    return LayoutBuilder(builder: (_, box) {
+      final w = box.maxWidth;
+      const double g = _kHGap;
+      final cw = items.length == 1 ? w : (w - g) / 2;
+      final ih = cw * 0.85;
+      return SizedBox(
+        height: ih,
+        child: Row(
+          children: [
+            for (int i = 0; i < items.length; i++) ...[
+              if (i > 0) SizedBox(width: g),
+              SizedBox(width: cw, child: _buildHistoryItemCard(context, items[i], t)),
+            ],
+          ],
+        ),
+      );
+    });
+  }
+
+  Widget _historyLayout3(
+      BuildContext context, AppThemeTokens t, List<BoardDisplayItem> items) {
+    return LayoutBuilder(builder: (_, box) {
+      final w = box.maxWidth;
+      const double g = _kHGap;
+      final cw = (w - g) / 2;
+      final totalH = cw * 2 + g;
+      final vPad = (totalH - 2 * cw - g) / 2;
+      return SizedBox(
+        height: totalH,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(width: cw, height: totalH, child: _buildHistoryItemCard(context, items[0], t)),
+            SizedBox(width: g),
+            SizedBox(
+              width: cw,
+              child: Column(
+                children: [
+                  SizedBox(height: vPad),
+                  SizedBox(height: cw, child: _buildHistoryItemCard(context, items[1], t)),
+                  SizedBox(height: g),
+                  SizedBox(height: cw, child: _buildHistoryItemCard(context, items[2], t)),
+                  SizedBox(height: vPad),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    });
+  }
+
+  Widget _historyLayout4(
+      BuildContext context, AppThemeTokens t, List<BoardDisplayItem> items) {
+    return LayoutBuilder(builder: (_, box) {
+      final w = box.maxWidth;
+      const double g = _kHGap;
+      final cw = (w - g) / 2;
+      final ih = cw * 0.85;
+      return Column(
+        children: [
+          _historyRow2(context, t, items[0], items[1], cw, ih),
+          SizedBox(height: g),
+          _historyRow2(context, t, items[2], items[3], cw, ih),
+        ],
+      );
+    });
+  }
+
+  Widget _historyLayout5(
+      BuildContext context, AppThemeTokens t, List<BoardDisplayItem> items) {
+    return LayoutBuilder(builder: (_, box) {
+      final w = box.maxWidth;
+      const double g = _kHGap;
+      final tlw = w * 0.42 - g / 2;
+      final topH = tlw / 0.65;
+      final biw = (w - 2 * g) / 3;
+      final bih = biw;
+      return Column(
+        children: [
+          SizedBox(
+            height: topH,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                SizedBox(width: tlw, child: _buildHistoryItemCard(context, items[0], t)),
+                SizedBox(width: g),
+                Expanded(child: _buildHistoryItemCard(context, items[1], t)),
+              ],
+            ),
+          ),
+          SizedBox(height: g),
+          Row(
+            children: [
+              SizedBox(width: biw, height: bih, child: _buildHistoryItemCard(context, items[2], t)),
+              SizedBox(width: g),
+              SizedBox(width: biw, height: bih, child: _buildHistoryItemCard(context, items[3], t)),
+              SizedBox(width: g),
+              SizedBox(width: biw, height: bih, child: _buildHistoryItemCard(context, items[4], t)),
+            ],
+          ),
+        ],
+      );
+    });
+  }
+
+  Widget _historyLayout6(
+      BuildContext context, AppThemeTokens t, List<BoardDisplayItem> items) {
+    return LayoutBuilder(builder: (_, box) {
+      final w = box.maxWidth;
+      const double g = _kHGap;
+      final cw = (w - 2 * g) / 3;
+      final ih = cw;
+      return Column(
+        children: [
+          _historyRow3(context, t, items.sublist(0, 3), cw, ih),
+          SizedBox(height: g),
+          _historyRow3(context, t, items.sublist(3, 6), cw, ih),
+        ],
+      );
+    });
+  }
+
+  Widget _historyLayout7(
+      BuildContext context, AppThemeTokens t, List<BoardDisplayItem> items) {
+    return LayoutBuilder(builder: (_, box) {
+      final w = box.maxWidth;
+      const double g = _kHGap;
+      final cw = (w - 2 * g) / 3;
+      final totalH = cw * 3 + 2 * g;
+      return SizedBox(
+        height: totalH,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(
+              width: cw,
+              child: Column(children: [
+                SizedBox(height: cw, child: _buildHistoryItemCard(context, items[0], t)),
+                SizedBox(height: g),
+                SizedBox(height: cw, child: _buildHistoryItemCard(context, items[1], t)),
+              ]),
+            ),
+            SizedBox(width: g),
+            SizedBox(
+              width: cw,
+              child: Column(children: [
+                SizedBox(height: cw, child: _buildHistoryItemCard(context, items[2], t)),
+                SizedBox(height: g),
+                SizedBox(height: cw, child: _buildHistoryItemCard(context, items[3], t)),
+              ]),
+            ),
+            SizedBox(width: g),
+            SizedBox(
+              width: cw,
+              child: Column(children: [
+                SizedBox(height: cw, child: _buildHistoryItemCard(context, items[4], t)),
+                SizedBox(height: g),
+                SizedBox(height: cw, child: _buildHistoryItemCard(context, items[5], t)),
+                SizedBox(height: g),
+                SizedBox(height: cw, child: _buildHistoryItemCard(context, items[6], t)),
+              ]),
+            ),
+          ],
+        ),
+      );
+    });
+  }
+
+  Widget _historyLayout8(
+      BuildContext context, AppThemeTokens t, List<BoardDisplayItem> items) {
+    return LayoutBuilder(builder: (_, box) {
+      final w = box.maxWidth;
+      const double g = _kHGap;
+      final tLW = w * 0.30 - g * 2 / 3;
+      final tCW = w * 0.42 - g * 2 / 3;
+      final tRW = w - tLW - tCW - 2 * g;
+      final topH = tCW;
+      final bLW = tLW;
+      final bItemW = (w - bLW - 3 * g) / 3;
+      final botH = bItemW;
+      return Column(
+        children: [
+          SizedBox(
+            height: topH,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                SizedBox(width: tLW, child: _buildHistoryItemCard(context, items[0], t)),
+                SizedBox(width: g),
+                SizedBox(width: tCW, child: _buildHistoryItemCard(context, items[1], t)),
+                SizedBox(width: g),
+                SizedBox(
+                  width: tRW,
+                  child: Column(children: [
+                    Expanded(child: _buildHistoryItemCard(context, items[2], t)),
+                    SizedBox(height: g),
+                    Expanded(child: _buildHistoryItemCard(context, items[3], t)),
+                  ]),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(height: g),
+          SizedBox(
+            height: botH,
+            child: Row(
+              children: [
+                SizedBox(width: bLW, child: _buildHistoryItemCard(context, items[4], t)),
+                SizedBox(width: g),
+                SizedBox(width: bItemW, child: _buildHistoryItemCard(context, items[5], t)),
+                SizedBox(width: g),
+                SizedBox(width: bItemW, child: _buildHistoryItemCard(context, items[6], t)),
+                SizedBox(width: g),
+                SizedBox(width: bItemW, child: _buildHistoryItemCard(context, items[7], t)),
+              ],
+            ),
+          ),
+        ],
+      );
+    });
+  }
+
+  Widget _historyRow2(BuildContext context, AppThemeTokens t,
+      BoardDisplayItem a, BoardDisplayItem b, double cw, double ih) {
+    return Row(
+      children: [
+        SizedBox(width: cw, height: ih, child: _buildHistoryItemCard(context, a, t)),
+        const SizedBox(width: _kHGap),
+        SizedBox(width: cw, height: ih, child: _buildHistoryItemCard(context, b, t)),
+      ],
+    );
+  }
+
+  Widget _historyRow3(BuildContext context, AppThemeTokens t,
+      List<BoardDisplayItem> row, double cw, double ih) {
+    return Row(
+      children: [
+        SizedBox(width: cw, height: ih, child: _buildHistoryItemCard(context, row[0], t)),
+        const SizedBox(width: _kHGap),
+        SizedBox(width: cw, height: ih, child: _buildHistoryItemCard(context, row[1], t)),
+        const SizedBox(width: _kHGap),
+        SizedBox(width: cw, height: ih, child: _buildHistoryItemCard(context, row[2], t)),
+      ],
     );
   }
 }
@@ -1628,7 +2155,7 @@ class _SelectedItemPanel extends StatelessWidget {
                                 borderRadius: BorderRadius.circular(6),
                               ),
                               child: Text(
-                                'AI Pick',
+                                AppLocalizations.t(context, 'style_boards_ai_pick_badge'),
                                 style: GoogleFonts.inter(
                                   fontSize: 10,
                                   fontWeight: FontWeight.w700,
@@ -1650,7 +2177,7 @@ class _SelectedItemPanel extends StatelessWidget {
                       const SizedBox(height: 16),
                       _action(
                         context,
-                        icon: Icons.lock,
+                        icon: isLocked ? Icons.lock : Icons.lock_open,
                         label: isLocked
                             ? AppLocalizations.t(
                             context, 'style_boards_item_unlock')
@@ -1792,7 +2319,7 @@ class _ItemPickerSheet extends StatelessWidget {
               child: Padding(
                 padding: const EdgeInsets.all(24),
                 child: Text(
-                  'No other items available to swap in.',
+                  AppLocalizations.t(context, 'style_boards_no_items_to_swap'),
                   textAlign: TextAlign.center,
                   style: GoogleFonts.inter(
                       fontSize: 13, color: t.mutedText),
@@ -1806,7 +2333,7 @@ class _ItemPickerSheet extends StatelessWidget {
                 crossAxisCount: 3,
                 crossAxisSpacing: 12,
                 mainAxisSpacing: 12,
-                childAspectRatio: 0.8,
+                childAspectRatio: 1.0,
               ),
               itemCount: candidates.length,
               itemBuilder: (_, i) {

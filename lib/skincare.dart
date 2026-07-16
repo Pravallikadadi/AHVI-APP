@@ -419,9 +419,13 @@ class _SkincareScreenState extends State<SkincareScreen>
   }
 
   void _markStep(int index) {
-    if (_completedSteps.contains(index)) return;
     setState(() {
-      final updated = Set<int>.from(_completedSteps)..add(index);
+      final updated = Set<int>.from(_completedSteps);
+      if (updated.contains(index)) {
+        updated.remove(index);
+      } else {
+        updated.add(index);
+      }
       _completedSteps = updated;
     });
     _saveSkincareProfile();

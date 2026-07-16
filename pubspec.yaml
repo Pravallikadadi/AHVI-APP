@@ -18,7 +18,7 @@ dependencies:
   image_picker: ^1.1.2
   image_cropper: ^12.2.1
   image: ^4.1.0  # ✅ added for face analysis image processing
-  google_mlkit_face_detection: ^0.8.0  # ✅ added for face detection
+  google_mlkit_face_detection: ^0.13.1 #added for face detection
   provider: ^6.1.2
   shared_preferences: ^2.3.2
   intl: 0.20.2

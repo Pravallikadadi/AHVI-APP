@@ -19,13 +19,15 @@ import 'package:myapp/services/appwrite_service.dart';
 import 'package:myapp/services/backend_service.dart';
 import 'package:myapp/widgets/ahvi_stylist_chat.dart'; // AhVi single chat implementation
 import 'package:myapp/app_localizations.dart'; // 🆕 Localization
-import 'package:myapp/services/ahvi_response_parser.dart';
 import 'package:myapp/daily_wear.dart';
 import 'package:myapp/diet_fitness.dart';
 import 'package:myapp/fitness_page.dart';
 import 'package:myapp/diet_page.dart';
 import 'package:myapp/skincare.dart';
 import 'package:myapp/home_card_summary_provider.dart';
+// skincare & medicine state now merged into HomeCardSummaryProvider
+import 'package:myapp/medi_tracker.dart';
+import 'package:http/http.dart' as http;
 
 /// ═══════════════════════════════════════════════════════════════════════════
 /// 🎯 AHVI HOME SCREEN - COMPLETE LOCALIZATION
@@ -94,6 +96,63 @@ import 'package:myapp/home_card_summary_provider.dart';
 //   'home_greeting_morning', 'home_greeting_afternoon', 'home_greeting_evening'
 // CTA Keys:
 //   'cta_gym_outfit', 'cta_plan_workout', 'cta_ask_ahvi'
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 🆕 WEATHER SERVICE - Open Meteo API Integration
+// ═══════════════════════════════════════════════════════════════════════════
+class _WeatherService {
+  static const String openMeteoUrl = 'https://api.open-meteo.com/v1/forecast';
+
+  /// Fetch temperature from Open Meteo API (Hyderabad default)
+  static Future<Map<String, dynamic>> fetchWeather({
+    double latitude = 17.3850,
+    double longitude = 78.4867,
+  }) async {
+    try {
+      final uri = Uri.parse(openMeteoUrl).replace(
+        queryParameters: {
+          'latitude': latitude.toString(),
+          'longitude': longitude.toString(),
+          'current': 'temperature_2m,weather_code,is_day',
+          'temperature_unit': 'celsius',
+          'timezone': 'auto',
+        },
+      );
+
+      final response = await http.get(uri).timeout(const Duration(seconds: 8));
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final current = data['current'] ?? {};
+        final rawIsDay = current['is_day'];
+        return {
+          'temperature': current['temperature_2m'] ?? 28.0,
+          'weather_code': current['weather_code'] ?? 0,
+          // Open-Meteo returns is_day as an int (1/0), not a bool — normalize it.
+          'is_day': rawIsDay is bool ? rawIsDay : (rawIsDay == 1 || rawIsDay == null),
+          'success': true,
+        };
+      }
+      return {'success': false, 'temperature': 28.0};
+    } catch (e) {
+      debugPrint('weather_api_error: $e');
+      return {'success': false, 'temperature': 28.0};
+    }
+  }
+
+  /// Map weather code to description - returns localization key
+  static String getWeatherDescription(int code, {bool isDay = true}) {
+    if (code == 0) return 'weather_clear';
+    if (code == 1 || code == 2) return 'weather_partly_cloudy';
+    if (code == 3) return 'weather_overcast';
+    if ([45, 48].contains(code)) return 'weather_foggy';
+    if ([51, 53, 55, 61, 63, 65, 80, 81, 82].contains(code)) return 'weather_rainy';
+    if ([71, 73, 75, 77, 85, 86].contains(code)) return 'weather_snowy';
+    if ([80, 81, 82].contains(code)) return 'weather_showers';
+    if (code == 95 || code == 96 || code == 99) return 'weather_thunderstorm';
+    return 'weather_partly_cloudy';
+  }
+}
 
 // 🆕 Nav items are now built dynamically in _buildBottomNav() using localization
 // _homeNavItems icons only — labels come from JSON
@@ -742,10 +801,10 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
   Color get _card => _t.card;
   Color get _phoneShell => _t.phoneShell;
   Color get _tileText => _t.tileText;
-  Color get _shadowStrong => _bgPrimary.withValues(alpha: 0.35);
-  Color get _shadowMedium => _bgPrimary.withValues(alpha: 0.20);
-  Color get _shadowLight => _bgPrimary.withValues(alpha: 0.12);
-  Color get _transparent => _bgPrimary.withValues(alpha: 0.0);
+  Color get _shadowStrong => _bgPrimary.withOpacity(0.35);
+  Color get _shadowMedium => _bgPrimary.withOpacity(0.20);
+  Color get _shadowLight => _bgPrimary.withOpacity(0.12);
+  Color get _transparent => _bgPrimary.withOpacity(0.0);
   Color get _onAccent => Theme.of(context).colorScheme.onPrimary;
   Color get _border => _t.cardBorder;
   LinearGradient get _accentGradient => LinearGradient(
@@ -858,28 +917,38 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
   // ── Signal fetchers ────────────────────────────────────────────────────────
 
   /// Fetches weather for the user's device locale via open-meteo (no API key).
-  Future<void> _fetchWeatherSignal() async {
+  /// Retries once on transient network failure so a slow connection right
+  /// at app-launch doesn't leave the chip stuck on "--°" for the session.
+  Future<void> _fetchWeatherSignal({bool isRetryAttempt = false}) async {
+    // Hyderabad default (matches app's primary market); swap for device GPS
+    // via geolocator if/when that package is added to the project.
+    const lat = 17.385;
+    const lon = 78.486;
+    final uri = Uri.parse(
+      'https://api.open-meteo.com/v1/forecast'
+          '?latitude=$lat&longitude=$lon'
+          '&current=temperature_2m,weather_code'
+          '&timezone=auto',
+    );
+
+    HttpClient? client;
     try {
-      // Use a free, no-key geocoding + weather API.
-      // Falls back gracefully — never throws to caller.
-      const lat = 17.385; // Hyderabad default; replace with device GPS if available
-      const lon = 78.486;
-      final uri = Uri.parse(
-        'https://api.open-meteo.com/v1/forecast'
-            '?latitude=$lat&longitude=$lon'
-            '&current=temperature_2m,weathercode'
-            '&timezone=auto',
-      );
-      final client = HttpClient();
-      final req = await client.getUrl(uri);
-      final res = await req.close();
+      client = HttpClient()
+        ..connectionTimeout = const Duration(seconds: 8);
+      final req = await client.getUrl(uri).timeout(const Duration(seconds: 8));
+      final res = await req.close().timeout(const Duration(seconds: 8));
+
       if (res.statusCode == 200) {
         final body = await res.transform(const Utf8Decoder()).join();
         final json = jsonDecode(body) as Map<String, dynamic>;
         final current = json['current'] as Map<String, dynamic>?;
         if (current != null) {
           final temp = (current['temperature_2m'] as num?)?.toDouble();
-          final code = (current['weathercode'] as num?)?.toInt() ?? 0;
+          // API migrated `weathercode` → `weather_code`; accept either key
+          // so older/newer response shapes both work.
+          final code = (current['weather_code'] as num?)?.toInt() ??
+              (current['weathercode'] as num?)?.toInt() ??
+              0;
           final condition = _wmoCodeToCondition(code);
           final desc = _wmoCodeToDescription(code);
           if (mounted) {
@@ -893,10 +962,19 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
             });
           }
         }
+      } else {
+        debugPrint('🌦️ _fetchWeatherSignal HTTP ${res.statusCode}');
       }
-      client.close();
-    } catch (_) {
-      // Weather fetch is best-effort — fail silently.
+    } catch (e) {
+      debugPrint('🌦️ _fetchWeatherSignal error: $e');
+      // One quiet retry — covers the common case of the very first request
+      // racing the device's network interface coming up after cold start.
+      if (!isRetryAttempt) {
+        await Future.delayed(const Duration(seconds: 3));
+        if (mounted) await _fetchWeatherSignal(isRetryAttempt: true);
+      }
+    } finally {
+      client?.close();
     }
   }
 
@@ -928,7 +1006,10 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
   Future<void> _fetchCalendarSignal() async {
     try {
       final backend = Provider.of<BackendService>(context, listen: false);
-      final raw = await backend.getTodayCalendarEvents();
+      final raw = await backend.getTodayCalendarEvents().timeout(
+        const Duration(seconds: 8),
+        onTimeout: () => [],
+      );
 
       final events = raw.map<_CalendarEvent>((e) {
         // Parse start_time — ISO-8601 string from the backend.
@@ -975,8 +1056,8 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
         });
       }
     } catch (e) {
-      debugPrint('📅 _fetchCalendarSignal error: $e');
-      // Leave _calendarEvents unchanged — engine degrades gracefully.
+      debugPrint('📅 Calendar fetch error: $e');
+      // Leave _calendarEvents unchanged — app continues normally
     }
   }
 
@@ -1143,8 +1224,16 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
   void _preloadHomeImages() {
     try {
       final imagesToPreload = [
+        // Style card outfit photos — ONLY the 2 gendered variants.
+        // No generic/neutral fallback image anymore: whichever one
+        // _userGender resolves to ('women' or 'men') is already warm
+        // in the image cache by the time the card first paints, and if
+        // gender can't be resolved yet, _userGender's own default
+        // ('women') is used as the fallback — not a 3rd image.
+        'assets/images/style_card_women.jpeg',
+        'assets/images/style_card_men.jpeg',
+        // Prep & Plan decorative backdrop
         'assets/images/plan_card.jpg',
-        // Add other critical asset images here to preload after animation
       ];
 
       for (final asset in imagesToPreload) {
@@ -1215,19 +1304,60 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
     }
   }
 
-  /// Extracts a human-readable workout label from a free-text string.
+  /// 🆕 Fetch weather from Open Meteo API (improved version)
+  Future<void> _fetchWeatherSignalImproved() async {
+    try {
+      final weather = await _WeatherService.fetchWeather();
+      final temp = (weather['temperature'] as num?)?.toDouble() ?? 28.0;
+      final rawIsDay = weather['is_day'];
+      final isDay = rawIsDay is bool ? rawIsDay : (rawIsDay == null ? true : rawIsDay == 1);
+      final description = _WeatherService.getWeatherDescription(
+        weather['weather_code'] as int? ?? 0,
+        isDay: isDay,
+      );
+
+      if (mounted) {
+        setState(() {
+          _weatherSignal = _WeatherSignal(
+            tempCelsius: temp,
+            description: description.toLowerCase(),
+          );
+          _invalidateSuggestionCache();
+        });
+      }
+    } catch (e) {
+      debugPrint('🌦️ Weather fetch error: $e');
+      if (mounted) {
+        setState(() {
+          _weatherSignal = _WeatherSignal(
+            tempCelsius: 28.0,
+            description: 'partly cloudy',
+          );
+        });
+      }
+    }
+  }
+
+  /// Extracts a workout localization key from a free-text string.
+  /// Returns key that should be localized with AppLocalizations.t(context, key)
   static String _extractWorkoutLabel(String text) {
-    if (text.contains('leg'))    return 'Leg Day';
-    if (text.contains('chest'))  return 'Chest Day';
-    if (text.contains('back'))   return 'Back Day';
-    if (text.contains('arm') || text.contains('bicep') || text.contains('tricep')) return 'Arm Day';
-    if (text.contains('cardio') || text.contains('run') || text.contains('jog'))   return 'Cardio';
-    if (text.contains('yoga'))   return 'Yoga';
-    if (text.contains('hiit'))   return 'HIIT';
-    if (text.contains('full body') || text.contains('fullbody')) return 'Full Body';
-    if (text.contains('stretch') || text.contains('mobility'))  return 'Mobility';
+    if (text.contains('leg'))    return 'workout_leg_day';
+    if (text.contains('chest'))  return 'workout_chest_day';
+    if (text.contains('back'))   return 'workout_back_day';
+    if (text.contains('arm') || text.contains('bicep') || text.contains('tricep')) return 'workout_arm_day';
+    if (text.contains('cardio') || text.contains('run') || text.contains('jog'))   return 'workout_cardio';
+    if (text.contains('yoga'))   return 'workout_yoga';
+    if (text.contains('hiit'))   return 'workout_hiit';
+    if (text.contains('full body') || text.contains('fullbody')) return 'workout_full_body';
+    if (text.contains('stretch') || text.contains('mobility'))  return 'workout_mobility';
     if (text.contains('rest'))   return '';
     return '';
+  }
+
+  /// 🆕 Get workout label from fitness signal or default
+  String get _workoutLabel {
+    final fit = _fitnessSignal;
+    return fit.nextWorkoutLabel.isNotEmpty ? fit.nextWorkoutLabel : 'Mobility day';
   }
 
   /// Public method called by external code to inject a calendar event
@@ -1274,6 +1404,9 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
 
   String _userName = '';
   Uint8List? _avatarBytes;
+  // 🆕 Onboarding-driven gender ('women' | 'men') — selects which outfit
+  // photo shows on the Style card. Defaults to 'women' until profile loads.
+  String _userGender = 'women';
 
   Future<void> _savePrepareExactToBoard({
     required String boardId,
@@ -1466,7 +1599,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
     // ── 🌦️📅👗🏃 Kick off all context signal fetches ─────────────────────────
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      _fetchWeatherSignal();
+      _fetchWeatherSignalImproved(); // 🆕 Use improved weather fetch
       _fetchCalendarSignal();
       _fetchWardrobeSignal();
       _syncFitnessSignal();
@@ -1506,14 +1639,56 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
         avatarBytes = await appwrite.getUserAvatar(rawName);
       } catch (_) {}
 
+      // 🆕 Best-effort gender read (drives which outfit photo shows on the
+      // Style card). Uses dynamic access so this keeps compiling even if
+      // ProfileState doesn't expose one of these field names.
+      final resolvedGender = _resolveGenderFromProfile(profileCtrl.state);
+
       if (mounted) {
         setState(() {
           _userName = firstName;
           _avatarBytes = avatarBytes;
+          _userGender = resolvedGender;
           _invalidateSuggestionCache(); // name changed → rescore
         });
       }
     }
+  }
+
+  /// Best-effort read of the onboarding gender preference from
+  /// [profile.ProfileController]'s state. Tries several common field names
+  /// dynamically (so it never breaks compilation even if the real
+  /// ProfileState uses a different name) and falls back to the current
+  /// value if nothing matches.
+  ///
+  /// 🔧 If your ProfileState exposes gender under a different getter name,
+  /// just add it to the `candidates` list below.
+  String _resolveGenderFromProfile(Object? state) {
+    if (state == null) return _userGender;
+    final dynamic s = state;
+    final candidates = <dynamic Function()>[
+          () => s.gender,
+          () => s.sex,
+          () => s.userGender,
+          () => s.genderPreference,
+          () => s.onboardingGender,
+    ];
+    for (final read in candidates) {
+      try {
+        final raw = read();
+        if (raw == null) continue;
+        final v = raw.toString().toLowerCase();
+        if (v.contains('women') || v.contains('female') || v == 'w' || v == 'f') {
+          return 'women';
+        }
+        if (v.contains('men') || v.contains('male') || v == 'm') {
+          return 'men';
+        }
+      } catch (_) {
+        // That field doesn't exist on this ProfileState — try the next one.
+      }
+    }
+    return _userGender;
   }
 
   void _updateClock() {
@@ -1858,7 +2033,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
       useRootNavigator: true,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      barrierColor: _bgPrimary.withValues(alpha: 0.30),
+      barrierColor: _bgPrimary.withOpacity(0.30),
       builder: (sheetContext) => _buildPickSheet(
         name: name,
         tag: tag,
@@ -2179,10 +2354,6 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                 builder: (context, constraints) {
                   final screenH = constraints.maxHeight;
 
-                  const navBarH = 86.0; // nav bar total height (pillH + maxBulge + safeBottom)
-                  const topSectionH = 170.0;
-                  const spacing = 18.0;
-
                   // Placeholder height — _buildFixedLogoBar తో exact match:
                   // SafeArea.top (statusBarH) + topPad + logoFontSize + botPad
                   // Chat _ChatLogoHeader కూడా same values use చేస్తోంది
@@ -2192,23 +2363,52 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                   final double statusBarH = MediaQuery.paddingOf(context).top;
                   final double topBarPlaceholderH = statusBarH + topPad + logoFontSizeH + botPad;
 
-                  // Available height after fixed sections
-                  const chatBarH = 64.0;
-                  const navBarH2 = 86.0;
-                  const bottomReserve = 10 + chatBarH + navBarH2;
-                  final availableH = screenH - topBarPlaceholderH - topSectionH - bottomReserve - spacing;
-                  // Hero gets 62%, secondary gets 38% of available space
-                  final heroFlex = 62;
-                  final secFlex  = 38;
-
-                  // On tablets / large-screen phones (foldables, landscape,
-                  // etc.) cap the content width and center it instead of
-                  // letting the hero card and text stretch edge-to-edge.
-                  const maxContentWidth = 640.0;
+                  // 🆕 RESPONSIVE DESIGN - Adapt to all screen sizes
+                  // Small phones: 280-360dp (minimal padding, compact spacing)
+                  // Standard: 360-480dp (normal padding)
+                  // Large: 480-640dp (increased spacing, larger cards)
+                  // Tablets: 640+dp (centered, max width)
                   final screenW = constraints.maxWidth;
-                  final horizontalPad = screenW > maxContentWidth
-                      ? (screenW - maxContentWidth) / 2 + 20.0
-                      : 20.0;
+                  final double horizontalPad;
+                  final double maxContentWidth;
+                  final double cardSpacing;
+                  final double topSpacing;
+
+                  // Fixed page-spacing values (consistent across all screen sizes):
+                  //   Chips → Hero: 10px ✏️ Reduced from 12px, Hero → Routine / Routine → Prep: 8px ✏️ Reduced from 10px
+                  cardSpacing = 8.0;
+                  topSpacing = 10.0;
+
+                  if (screenW < 360) {
+                    // Very small phones (iPhone SE, Galaxy A12) - 280-360dp
+                    horizontalPad = 12.0;
+                    maxContentWidth = screenW - 24.0;
+                  } else if (screenW < 480) {
+                    // Small/Standard phones (iPhone 11, Pixel 5) - 360-480dp
+                    horizontalPad = 16.0;
+                    maxContentWidth = screenW - 32.0;
+                  } else if (screenW < 640) {
+                    // Large phones (iPhone 14 Pro Max, Pixel 7 Pro) - 480-640dp
+                    horizontalPad = 20.0;
+                    maxContentWidth = screenW - 40.0;
+                  } else {
+                    // Tablets and large devices (iPad, foldables) - 640+dp
+                    maxContentWidth = 620.0;
+                    horizontalPad = (screenW - maxContentWidth) / 2;
+                  }
+
+                  // ── Bottom reserve: chat bar + nav bar + safe bottom ──────────
+                  // Now ACTUALLY applied (previously computed but unused) as the
+                  // Prep & Plan card's bottom clearance below, so the card's
+                  // visible area always stops above the floating prompt bar —
+                  // on every screen size, with zero RenderFlex overflow risk,
+                  // since it's applied inside an Expanded (which can never
+                  // request more space than its parent has to give).
+                  final safeBottom = MediaQuery.paddingOf(context).bottom;
+                  const promptBarH = 62.0;              // Prompt bar visual height
+                  const promptBarBottomOffset = 84.0;   // matches `navBarTotalH` (safeB + 84) used below for the floating prompt bar
+                  const breathingGap = 8.0;             // small clearance above the prompt bar
+                  final bottomReserved = safeBottom + promptBarBottomOffset + promptBarH + breathingGap;
 
                   return SizedBox(
                     height: constraints.maxHeight,
@@ -2216,38 +2416,82 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                       padding: EdgeInsets.only(left: horizontalPad, right: horizontalPad),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
+                        // Must be max so Expanded can fill remaining height.
+                        mainAxisSize: MainAxisSize.max,
                         children: [
-                          // Space reserved for fixed logo overlay (not animated)
+                          // ── FIXED: logo bar placeholder ────────────────────
                           SizedBox(height: topBarPlaceholderH),
-                          // Greeting + suggestion ticker — re-renders on signal change
+
+                          // ── FIXED: Date · Greeting · Mobility/Temp/Meeting chips ──
+                          // These three elements NEVER scroll.
                           ValueListenableBuilder<int>(
                             valueListenable: _cardContextVersion,
                             builder: (context, _, __) => _buildGreetingBlock(),
                           ),
-                          // Hero card — grows with screen
+                          SizedBox(height: topSpacing),
+
+                          // ── SINGLE SCREEN LAYOUT: No scrolling ──
+                          // All content must fit within the remaining height
                           Expanded(
-                            flex: heroFlex,
-                            child: Padding(
-                              padding: const EdgeInsets.only(bottom: 8.0),
-                              child: ValueListenableBuilder<int>(
-                                valueListenable: _cardContextVersion,
-                                builder: (context, _, __) => _buildHeroCard(),
-                              ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.max,
+                              children: [
+                                // Style Card — Responsive height based on screen size
+                                // ✅ OPTIMIZED: Increased to maximum — uses all freed space
+                                // Now uses the freed spacing (12px from chips/progress) to expand hero prominence
+                                // ✏️ +12px total: reclaimed from tracker→cards gap
+                                // (−6px across three passes) and routine card top
+                                // padding (−6px across three passes) below.
+                                SizedBox(
+                                  height: screenH < 700
+                                      ? (screenH * 0.22).clamp(110.0, 172.0) + 12
+                                      : (screenH * 0.22).clamp(130.0, 197.0) + 12,
+                                  child: ValueListenableBuilder<int>(
+                                    valueListenable: _cardContextVersion,
+                                    builder: (context, _, __) => _buildHeroCard(),
+                                  ),
+                                ),
+                                SizedBox(height: cardSpacing),
+
+                                // Routine cards — Responsive with better overflow handling
+                                // ✅ FIX: Reduced from 0.25/0.27 to 0.22 to match Hero card
+                                // and free up space for Prep & Plan section.
+                                // The clamp ensures cards have enough height for their
+                                // icon + label + description + status stack.
+                                SizedBox(
+                                  // ✏️ −10px per spec (routine cards: 130→120px range)
+                                  height: screenH < 700
+                                      ? (screenH * 0.22).clamp(106.0, 119.0)
+                                      : (screenH * 0.22).clamp(118.0, 149.0),
+                                  child: ValueListenableBuilder<int>(
+                                    valueListenable: _cardContextVersion,
+                                    builder: (context, _, __) =>
+                                        _buildRoutineCardsSection(),
+                                  ),
+                                ),
+                                SizedBox(height: cardSpacing),
+
+                                // Prep & Plan card — back to Expanded (fills whatever space
+                                // is actually left) instead of a fixed pixel height, so it
+                                // adapts to any screen size with ZERO overflow risk — Expanded
+                                // can never claim more space than its parent Column has to
+                                // give. `bottomReserved` (computed above from the real safe
+                                // area + nav bar + prompt bar dimensions) keeps the visible
+                                // card clear of the floating prompt bar on every device.
+                                Expanded(
+                                  child: Padding(
+                                    padding: EdgeInsets.only(bottom: bottomReserved),
+                                    child: ValueListenableBuilder<int>(
+                                      valueListenable: _cardContextVersion,
+                                      builder: (context, _, __) =>
+                                          _buildPrepPlanCard(screenH: screenH),
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                          // Style & Prep cards — re-render when any context signal changes
-                          Expanded(
-                            flex: secFlex,
-                            child: Padding(
-                              padding: const EdgeInsets.only(bottom: 8.0),
-                              child: ValueListenableBuilder<int>(
-                                valueListenable: _cardContextVersion,
-                                builder: (context, _, __) => _buildSecondaryRow(),
-                              ),
-                            ),
-                          ),
-                          // Space reserved for floating prompt bar + nav bar (Positioned in Stack)
-                          const SizedBox(height: 10 + 64 + navBarH),
                         ],
                       ),
                     ),
@@ -2276,7 +2520,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
             Builder(
               builder: (context) {
                 final keyboardH = MediaQuery.of(context).viewInsets.bottom;
-                final chipsBottom = keyboardH > 0 ? keyboardH + 72 : (MediaQuery.of(context).size.height * 0.23).clamp(160.0, 210.0);
+                final chipsBottom = keyboardH > 0 ? keyboardH + 60 : (MediaQuery.of(context).size.height * 0.23).clamp(160.0, 210.0);
                 return Positioned(
                   left: 0,
                   right: 0,
@@ -2297,8 +2541,13 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
               // didChangeMetrics triggers a rebuild via setState anyway.
               final kbH = MediaQuery.of(ctx).viewInsets.bottom;
               final safeB = MediaQuery.paddingOf(ctx).bottom;
-              final navBarTotalH = safeB + 86.0 + 8.0;
-              final promptBottom = kbH > 0 ? kbH + 8.0 : navBarTotalH;
+              final navBarTotalH = safeB + 70.0 - 6.0 + 20.0;  // ✏️ moved prompt bar UP 20px more to close the gap below the Prep & Plan card
+              // ✏️ Nav bar totalH was reduced (58 -> 50), so its top edge sits at
+              // safeB+56. This now sits at safeB+84 (was safeB+64) — a bigger
+              // 28px gap above the nav bar (still no merging), and the prompt
+              // bar sits right up against the Prep & Plan card above it instead
+              // of leaving empty space beneath the card.
+              final promptBottom = kbH > 0 ? kbH + 8.0 : navBarTotalH;  // 8px consistent spacing
               return Positioned(
                 left: 20,
                 right: 20,
@@ -2321,7 +2570,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
           if (widget.onShellNavTap == null)
             Builder(builder: (ctx) {
               final safeB = MediaQuery.paddingOf(ctx).bottom;
-              return Positioned(left: 16, right: 16, bottom: safeB + 8, child: _buildBottomNav());
+              return Positioned(left: 16, right: 16, bottom: safeB + 6, child: _buildBottomNav());
             }),
 
           if (_seeAllOpen) _buildSeeAllPanel(),
@@ -2356,22 +2605,22 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                 Positioned(
                   top: -100 + (t1 * 90),
                   left: -80 + (t1 * 60),
-                  child: _auroraOrb(340, 340, c1.withValues(alpha: 0.30)),
+                  child: _auroraOrb(340, 340, c1.withOpacity(0.30)),
                 ),
                 Positioned(
                   bottom: -60 + (t2 * 60),
                   right: -60 + (t2 * 30),
-                  child: _auroraOrb(300, 300, c2.withValues(alpha: 0.34)),
+                  child: _auroraOrb(300, 300, c2.withOpacity(0.34)),
                 ),
                 Positioned(
                   top: 300 + (t3 * -60),
                   left: -40 + (t3 * 100),
-                  child: _auroraOrb(220, 220, c3.withValues(alpha: 0.22)),
+                  child: _auroraOrb(220, 220, c3.withOpacity(0.22)),
                 ),
                 Positioned(
                   top: 140 + (t1 * 80),
                   right: -30,
-                  child: _auroraOrb(180, 180, c1.withValues(alpha: 0.18)),
+                  child: _auroraOrb(180, 180, c1.withOpacity(0.18)),
                 ),
               ],
             );
@@ -2388,7 +2637,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         gradient: RadialGradient(
-          colors: [color, color.withValues(alpha: 0)],
+          colors: [color, color.withOpacity(0)],
           stops: const [0.0, 0.7],
         ),
       ),
@@ -2429,10 +2678,17 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
   Widget _buildProfileAvatar() {
     // ✅ FIX: ProfileController ని watch చేసి avatarPath directly వాడు
     // profile లో photo మారినప్పుడు ఇక్కడ automatically rebuild అవుతుంది
-    final avatarPath = context
-        .watch<profile.ProfileController>()
-        .state
-        .avatarPath;
+    final profileState = context.watch<profile.ProfileController>().state;
+    final avatarPath = profileState.avatarPath;
+    // ✅ FIX: was hardcoded 'P' — now derives the fallback initial from the
+    // real signed-in user's name (profile name, else the greeting name we
+    // already fetched, else a generic default) so it's never someone else's
+    // initial.
+    final String _fallbackName = profileState.name.isNotEmpty &&
+        profileState.name != 'New User'
+        ? profileState.name
+        : (_userName.isNotEmpty ? _userName : 'User');
+    final String _avatarInitial = _fallbackName[0].toUpperCase();
 
     return GestureDetector(
       onTap: () {
@@ -2465,49 +2721,70 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
           if (mounted) _fetchUserProfile();
         });
       },
-      child: Container(
-        width: 44,
-        height: 44,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: _panel,
-          border: Border.all(color: _accent.withValues(alpha: 0.25), width: 1.5),
-          boxShadow: [
-            BoxShadow(
-              color: _shadowMedium,
-              blurRadius: 14,
-              offset: const Offset(0, 4),
+      // ✅ FIX: Align gives its child loose constraints (rather than the tight
+      // ones a parent Row/Header might otherwise impose), so this avatar is
+      // always laid out at its own natural 40×40 size — guaranteeing a
+      // perfect circle instead of the stretched oval seen before.
+      child: Align(
+        alignment: Alignment.center,
+        child: SizedBox(
+          width: 40,
+          height: 40,
+          child: Container(
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [_accent, _accentTertiary],
+              ),
+              // ✏️ Thinner 1.5px outline — cleaner, premium circular look
+              border: Border.all(color: Colors.white.withOpacity(0.88), width: 1.5),
+              boxShadow: [
+                BoxShadow(
+                  color: _accent.withOpacity(0.22),
+                  blurRadius: 6,
+                  offset: const Offset(0, 1),
+                ),
+              ],
             ),
-          ],
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: avatarPath != null && avatarPath.isNotEmpty
-            ? Center(
-          child: Image.file(
-            File(avatarPath),
-            width: 44,
-            height: 44,
-            fit: BoxFit.cover,
-            errorBuilder: (_, __, ___) => Icon(
-              Icons.person_rounded,
-              size: 24,
-              color: _accent.withValues(alpha: 0.7),
+            padding: const EdgeInsets.all(2),
+            child: ClipOval(
+              child: avatarPath != null && avatarPath.isNotEmpty
+                  ? Image.file(
+                File(avatarPath),
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => Container(
+                  color: _accent,
+                  child: const Icon(
+                    Icons.person_rounded,
+                    size: 22,
+                    color: Colors.white,
+                  ),
+                ),
+              )
+                  : Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [_accent, _accentSecondary],
+                  ),
+                ),
+                child: Center(
+                  child: Text(
+                    _avatarInitial,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 17,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.5,
+                    ),
+                  ),
+                ),
+              ),
             ),
           ),
-        )
-            : _avatarBytes != null
-            ? Center(
-          child: Image.memory(
-            _avatarBytes!,
-            width: 44,
-            height: 44,
-            fit: BoxFit.cover,
-          ),
-        )
-            : Icon(
-          Icons.person_rounded,
-          size: 24,
-          color: _accent.withValues(alpha: 0.7),
         ),
       ),
     );
@@ -2520,9 +2797,8 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
     // Also cap by width so long localized greetings/names on narrow phones
     // (≈320dp) don't push the line height or wrap awkwardly.
     final double greetFontSize = (heightBasedSize * (screenW / 360.0)).clamp(18.0, 24.0);
-    final double botPad = screenH < 700 ? 4.0 : 6.0;
     return Padding(
-      padding: EdgeInsets.only(bottom: botPad),
+      padding: EdgeInsets.zero, // Chips → Hero gap now fully controlled by `topSpacing` below
       child: ValueListenableBuilder<_ClockState>(
         valueListenable: _clockState,
         builder: (context, clock, _) {
@@ -2539,7 +2815,9 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                clock.date.isEmpty ? 'Fri, 6 Mar' : clock.date,
+                clock.date.isEmpty
+                    ? AppLocalizations.t(context, 'date_example')
+                    : clock.date,
                 style: TextStyle(
                   color: _textMuted,
                   fontSize: 12,
@@ -2547,7 +2825,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                   letterSpacing: 0.1,
                 ),
               ),
-              const SizedBox(height: 4.0),
+              const SizedBox(height: 0.0), // ✏️ Reduced from 4.0 — tightens date→greeting gap
               RichText(
                 text: TextSpan(
                   style: TextStyle(
@@ -2574,111 +2852,126 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                 ),
                 textAlign: TextAlign.left,
               ),
-              const SizedBox(height: 6.0),
-              ValueListenableBuilder<_SuggestionState>(
-                valueListenable: _suggestionState,
-                builder: (context, suggestion, _) {
-                  // ── Dynamic suggestion — resolved at render time ─────────
-                  final dynamic = _dynamicSuggestions;
-                  final safeIdx = dynamic.isNotEmpty
-                      ? suggestion.index % dynamic.length
-                      : suggestion.index % _aiSuggestions.length;
-
-                  // Prefer dynamic suggestion text; fall back to static key.
-                  final String suggestionText;
-                  final String promptText;
-                  final IconData suggestionIcon;
-                  if (dynamic.isNotEmpty) {
-                    suggestionText = dynamic[safeIdx].text;
-                    promptText = dynamic[safeIdx].promptText;
-                    suggestionIcon = dynamic[safeIdx].icon;
-                  } else {
-                    suggestionText = AppLocalizations.t(
-                        context, _aiSuggestionKeys[safeIdx]);
-                    promptText = _aiSuggestions[safeIdx];
-                    suggestionIcon = Icons.auto_awesome;
-                  }
-
-                  return _AnimatedPressable(
-                    liftY: -1.5,
-                    scalePressed: 0.98,
-                    onTap: () => _openChatWithPrompt(promptText),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: _surface.withValues(alpha: 0.80),
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: _border),
-                        boxShadow: [
-                          BoxShadow(color: _shadowMedium, blurRadius: 10),
-                        ],
-                      ),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 11,
-                      ),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 26,
-                            height: 26,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              gradient: LinearGradient(
-                                colors: [
-                                  _accent.withValues(alpha: 0.15),
-                                  _accentTertiary.withValues(alpha: 0.15),
-                                ],
-                              ),
-                              border: Border.all(
-                                color: _accent.withValues(alpha: 0.25),
-                                width: 1,
-                              ),
-                            ),
-                            child: Center(
-                              child: ShaderMask(
-                                shaderCallback: (b) =>
-                                    _accentGradient.createShader(b),
-                                child: Icon(
-                                  suggestionIcon,
-                                  color: _textHeading,
-                                  size: 12,
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: AnimatedOpacity(
-                              opacity: suggestion.opacity,
-                              duration: const Duration(milliseconds: 350),
-                              child: Text(
-                                suggestionText,
-                                style: TextStyle(
-                                  color: _textSub,
-                                  fontSize: 12.5,
-                                  fontWeight: FontWeight.w400,
-                                  height: 1.4,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Icon(
-                            Icons.chevron_right_rounded,
-                            color: _accent.withValues(alpha: 0.65),
-                            size: 18,
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                },
-              ),
+              const SizedBox(height: 6.0), // ✏️ Reduced from 12.0 → 6.0 (greeting→chips gap)
+              _buildContextInfoChips(),
             ],
           );
         },
+      ),
+    );
+  }
+
+  /// Builds the 3 context chips: Mobility day | 27° | No meetings
+  Widget _buildContextInfoChips() {
+    // Derive labels from live signals
+    final w = _weatherSignal;
+    final tempLabel = w.tempCelsius != null ? '${w.tempCelsius!.round()}°' : '--°';
+    final weatherDesc = w.description.isNotEmpty ? w.description : 'clear';
+
+    // Workout type chip label
+    final fit = _fitnessSignal;
+    String mobilityLabel = 'Mobility day';
+    if (fit.nextWorkoutLabel.isNotEmpty) {
+      mobilityLabel = fit.nextWorkoutLabel;
+    }
+
+    // Calendar chip label
+    final ctx = _recommendationCtx;
+    final meeting = ctx.nextMeeting;
+    String calLabel = 'No meetings';
+    if (meeting != null && meeting.isToday) {
+      final hoursLeft = meeting.hoursUntil;
+      calLabel = hoursLeft > 0 ? '${meeting.title} in ${hoursLeft}h' : meeting.title;
+    } else if (_calendarEvents.isNotEmpty) {
+      calLabel = _calendarEvents.first.title;
+    }
+
+    Widget chip({
+      required IconData icon,
+      required String label,
+      required Color iconColor,
+      required VoidCallback onTap,
+    }) {
+      return GestureDetector(
+        onTap: onTap,
+        child: Container(
+          decoration: BoxDecoration(
+            color: _surface.withOpacity(0.90),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: _border),
+            boxShadow: [
+              BoxShadow(color: _shadowLight, blurRadius: 6),
+            ],
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 4), // ✏️ Reduced from 6 (saves ~4px height)
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 14, color: iconColor),
+              const SizedBox(width: 5),
+              Text(
+                label,
+                style: TextStyle(
+                  color: _textHeading,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                  letterSpacing: -0.1,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              // ✅ Dropdown arrow removed - no more dropdowns
+            ],
+          ),
+        ),
+      );
+    }
+
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      physics: const BouncingScrollPhysics(),
+      child: Row(
+        children: [
+          // ✅ MOBILITY CHIP - Synced with Workout screen
+          chip(
+            icon: Icons.directions_run_rounded,
+            label: mobilityLabel,
+            iconColor: const Color(0xFF5BBF8A),
+            onTap: () {
+              // Navigate to Workout screen
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const DailyWearScreen()),
+              );
+            },
+          ),
+          const SizedBox(width: 8),
+
+          // ✅ WEATHER CHIP - Synced with Meteo API (Display only, no modal)
+          chip(
+            icon: Icons.wb_sunny_outlined,
+            label: tempLabel,
+            iconColor: const Color(0xFFE8895A),
+            onTap: () {
+              // Weather chip is now informational only - no modal
+            },
+          ),
+          const SizedBox(width: 8),
+
+          // ✅ MEETINGS CHIP - Synced with Calendar screen
+          chip(
+            icon: Icons.calendar_today_outlined,
+            label: calLabel,
+            iconColor: _accent,
+            onTap: () {
+              // Navigate to Calendar screen
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const BoardsScreen()),
+              );
+            },
+          ),
+        ],
       ),
     );
   }
@@ -2693,7 +2986,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
       ('◷', AppLocalizations.t(context, 'chip_schedule'), AppLocalizations.t(context, 'chip_prompt_schedule')),
     ];
     return SizedBox(
-      height: 40,
+      height: 36, // ✏️ Reduced from 40px (saves 4px)
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(vertical: 4),
@@ -2712,7 +3005,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                 boxShadow: [
                   BoxShadow(color: _shadowMedium, blurRadius: 8),
                   BoxShadow(
-                    color: _accent.withValues(alpha: 0.06),
+                    color: _accent.withOpacity(0.06),
                     blurRadius: 8,
                   ),
                 ],
@@ -2817,97 +3110,58 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
     return (headline: 'Set Up Tomorrow\nTonight', emoji: '🌙');
   }
 
+  // Style card outfit index for Next button
+  int _styleCardOutfitIndex = 0;
+
+  // 🆕 IMPROVED HERO CARD - 50% Image | 50% Text Split (No Fade Overlay)
   Widget _buildHeroCard() {
     final cardBg = _surface;
+    final ctx = _recommendationCtx;
+    final w = ctx.weather;
 
-    // ── Dynamic summaries from HomeCardSummaryProvider ────────────────────────
-    final summary = context.watch<HomeCardSummaryProvider>();
-    final heroHeadline = _heroHeadlineContent(_recommendationCtx);
-
-    // ── Data ──────────────────────────────────────────────────────────────────
-    final heroRows = <_HeroRowData>[
-      _HeroRowData(
-        icon: Icons.checkroom_outlined,
-        color: const Color(0xFF6B8FD4),
-        label: AppLocalizations.t(context, 'hero_row_wear'),
-        value: AppLocalizations.t(context, summary.wear),
-        page: DailyWearScreen(),
-      ),
-      _HeroRowData(
-        icon: Icons.directions_run_rounded,
-        color: const Color(0xFF5BBF8A),
-        label: AppLocalizations.t(context, 'hero_row_move'),
-        value: AppLocalizations.t(context, summary.move),
-        page: WorkoutStudioScreen(),
-      ),
-      _HeroRowData(
-        icon: Icons.restaurant_outlined,
-        color: const Color(0xFFE8895A),
-        label: AppLocalizations.t(context, 'hero_row_eat'),
-        value: AppLocalizations.t(context, summary.eat),
-        page: MainScreen(fromHome: true),
-      ),
-      _HeroRowData(
-        icon: Icons.spa_outlined,
-        color: const Color(0xFFB07FD4),
-        label: AppLocalizations.t(context, 'hero_row_care'),
-        value: AppLocalizations.t(context, summary.care),
-        page: SkincareScreen(),
-      ),
-    ];
+    // ✅ FIX: only 2 images total — no generic/neutral fallback asset.
+    // If gender can't be resolved, _userGender already defaults to
+    // 'women' (see field declaration), so this naturally falls back to
+    // one of the 2 gendered photos instead of a 3rd generic image.
+    final genderedAssetPath = _userGender == 'men'
+        ? 'assets/images/style_card_men.jpeg'
+        : 'assets/images/style_card_women.jpeg';
 
     return RepaintBoundary(
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          // ── Responsive metrics ───────────────────────────────────────────
-          // Everything below derives from the card's own width (not the raw
-          // screen width), so the hero card looks right whether it's a small
-          // phone (~320dp), a standard phone (~360–430dp), or a tablet /
-          // foldable (600dp+) where the card itself may be width-capped by a
-          // parent ConstrainedBox.
-          final cardW = constraints.maxWidth.isFinite
-              ? constraints.maxWidth
-              : MediaQuery.sizeOf(context).width - 40;
-          // Card's actual allocated height (comes from the Expanded flex in
-          // the parent Column). Falling back to a sane default if unbounded.
-          final cardH = constraints.maxHeight.isFinite
-              ? constraints.maxHeight
-              : 420.0;
+      child: AnimatedBuilder(
+        animation: _breatheCtrl,
+        builder: (context, _) {
+          final breatheOpacity = 0.08 + 0.06 * _breatheCtrl.value;
+          final screenW = MediaQuery.of(context).size.width;
+          final screenH = MediaQuery.of(context).size.height;
 
-          // Scale factor pinned to a 360dp baseline phone, clamped so text
-          // never shrinks into illegibility nor balloons on tablets.
-          final widthScale = (cardW / 360.0).clamp(0.86, 1.30);
-          // Height scale — bigger phones / more available vertical space
-          // should grow text too, not just wider cards. Baseline ~420dp.
-          final heightScale = (cardH / 420.0).clamp(0.90, 1.35);
-          final scale = ((widthScale + heightScale) / 2).clamp(0.86, 1.35);
+          // 🆕 RESPONSIVE SIZING
+          // Small phones (280-360): min height, compact text
+          // Standard (360-480): normal layout
+          // Large (480-640): normal layout
+          // Tablets (640+): max height, larger text
+          final cardHeight = (screenH * 0.22).clamp(130.0, 171.0) + 12;
 
-          const outerPad = 16.0;
-          // Image takes a fixed *proportion* of the card instead of a fixed
-          // px value — on wide/tablet cards this stops the photo from
-          // ballooning and eating the text column; on narrow phones it stops
-          // the photo from being squeezed to nothing.
-          final imageW = (cardW * 0.40).clamp(120.0, 220.0);
-          final fadeW = (imageW * 0.55).clamp(56.0, 96.0);
-          // How much of the fade area text is allowed to sit under (keeps
-          // the text block from looking cramped against the photo edge).
-          final textMaxWidth =
-          (cardW - outerPad * 2 - imageW + fadeW * 0.35).clamp(140.0, cardW - outerPad * 2);
+          // Responsive padding based on screen width
+          final horPadding = screenW < 360 ? 12.0 : screenW < 640 ? 16.0 : 20.0;
+          final vertPadding = screenW < 360 ? 12.0 : screenW < 640 ? 14.0 : 16.0;
 
-          final headlineSize = (21.0 * scale).clamp(18.0, 26.0);
-          final rowScale = scale.clamp(0.95, 1.32);
-          // Available height for the foreground content column, so rows can
-          // spread out (spaceEvenly) and fill the card instead of hugging
-          // the top and leaving dead space at the bottom.
-          final contentH = (cardH - 28).clamp(0.0, cardH);
+          // Responsive font sizes
+          final titleFontSize = screenW < 360 ? 14.0 : screenW < 640 ? 16.0 : 18.0;
+          final bulletLabelSize = screenW < 360 ? 11.0 : screenW < 640 ? 12.0 : 13.0;
+          final bulletDescSize = screenW < 360 ? 9.0 : screenW < 640 ? 10.0 : 11.0;
+
+          // Responsive spacing between bullets
+          final bulletSpacing = screenW < 360 ? 6.0 : 8.0;
 
           return Container(
             width: double.infinity,
+            height: cardHeight,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(28),
               color: cardBg,
               border: Border.all(
-                color: _border.withValues(alpha: 0.45),
+                color: _border.withOpacity(0.45),
                 width: 1,
               ),
               boxShadow: [
@@ -2918,101 +3172,173 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                   offset: const Offset(0, 10),
                 ),
                 BoxShadow(
-                  color: _shadowLight,
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
+                  color: _accent.withOpacity(breatheOpacity),
+                  blurRadius: 20,
                 ),
               ],
             ),
             clipBehavior: Clip.antiAlias,
-            child: Stack(
+            child: Row(
               children: [
-                // ── Background image — right side with left-edge fade ──────
-                Positioned(
-                  right: 0,
-                  top: 0,
-                  bottom: 0,
-                  width: imageW,
-                  child: Stack(
-                    children: [
-                      Positioned.fill(
-                        child: Image.asset(
-                          'assets/images/hero_card.jpg',
-                          fit: BoxFit.cover,
-                          alignment: Alignment.topCenter,
-                          filterQuality: FilterQuality.low,
-                          errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                // ── Foreground content ─────────────────────────────────────
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(outerPad, 14, outerPad, 14),
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(maxWidth: textMaxWidth),
-                    // 🔧 FIX: SizedBox(height: contentH) forced an exact
-                    // height on a Column of non-flexible children (headline +
-                    // 4 routine rows). When contentH shrinks (e.g. a nudge
-                    // banner above the hero card eats vertical space) the
-                    // rows' natural height can exceed contentH — Column
-                    // can't compress non-flexible children, so it hard
-                    // "RenderFlex overflowed" no matter what mainAxisAlignment
-                    // says. SingleChildScrollView + a min-height constraint
-                    // keeps the old spaceEvenly "fill and spread" look when
-                    // everything fits, but lets content scroll instead of
-                    // overflowing when it doesn't.
-                    child: ScrollConfiguration(
-                      behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
-                      child: SingleChildScrollView(
-                        physics: const ClampingScrollPhysics(),
-                        child: ConstrainedBox(
-                          constraints: BoxConstraints(minHeight: contentH),
-                          child: IntrinsicHeight(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                              mainAxisSize: MainAxisSize.max,
-                              children: [
-
-                                // ── Headline ────────────────────────────────
-                                Padding(
-                                  padding: const EdgeInsets.only(left: 10),
-                                  child: Text(
-                                    '${heroHeadline.headline} ${heroHeadline.emoji}',
-                                    style: TextStyle(
-                                      color: _textHeading,
-                                      fontSize: headlineSize,
-                                      fontWeight: FontWeight.w700,
-                                      height: 1.25,
-                                      letterSpacing: -0.4,
-                                    ),
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-
-                                // ── Routine rows ──────────────────────────────
-                                ...heroRows.map((row) => _RoutineItem(
-                                  icon: row.icon,
-                                  color: row.color,
-                                  label: row.label,
-                                  value: row.value,
-                                  textHeading: _textHeading,
-                                  textMuted: _textSub,
-                                  scale: rowScale,
-                                  onTap: () => Navigator.push(
-                                    context,
-                                    MaterialPageRoute(builder: (_) => row.page),
-                                  ),
-                                )),
-                              ],
+                // ── 45% LEFT SIDE: OUTFIT IMAGE (BALANCED) ──────────────────────────────
+                // 🆕 UPDATED to 45% for better balance with expanded text
+                Expanded(
+                  flex: 45,
+                  child: ClipRRect(
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(28),
+                      bottomLeft: Radius.circular(28),
+                    ),
+                    child: Container(
+                      color: _accent.withOpacity(0.08),
+                      // ✏️ Image now fills the full tile — no dead space top/bottom
+                      child: Align(
+                        alignment: Alignment.center,
+                        child: FractionallySizedBox(
+                          widthFactor: 1.0,
+                          heightFactor: 1.0,
+                          child: Image.asset(
+                            genderedAssetPath,
+                            fit: BoxFit.cover,
+                            alignment: Alignment.center,
+                            filterQuality: FilterQuality.high,
+                            // ✅ FIX: Removed fallback image (checkroom icon)
+                            errorBuilder: (_, __, ___) => Container(
+                              color: _accent.withOpacity(0.12),
                             ),
                           ),
                         ),
                       ),
+                    ),
+                  ),
+                ),
+
+                // ── 55% RIGHT SIDE: TEXT CONTENT (PREMIUM) ──────────────────────────────
+                // 🆕 INCREASED to 55% for prominent text display
+                Expanded(
+                  flex: 55,
+                  child: Padding(
+                    // 🆕 OPTIMIZED: Balanced padding for spacious feel
+                    padding: EdgeInsets.only(
+                      left: horPadding * 0.75,
+                      right: horPadding * 0.75,
+                      top: vertPadding,
+                      bottom: vertPadding,
+                    ),
+                    // ✅ FIX: Removed SingleChildScrollView and LayoutBuilder.
+                    // Card height now scales to fit content without scrolling.
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        // 🔧 FIX: title + bullets used to be a fixed-size Column that
+                        // could be taller than the space actually left inside this
+                        // fixed-height card once the "Style Me" button below also
+                        // claimed its share — that produced a bottom overflow. Wrapping
+                        // it in Expanded + FittedBox(scaleDown) lets it take exactly the
+                        // remaining space above the button, shrinking uniformly only if
+                        // it doesn't fit, and never overflowing.
+                        Expanded(
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.topLeft,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  '${AppLocalizations.t(context, 'hero_card_title_main')}\n${AppLocalizations.t(context, 'hero_card_title_subtitle')}',
+                                  style: TextStyle(
+                                    color: _textHeading,
+                                    fontSize: titleFontSize,
+                                    fontWeight: FontWeight.w700,
+                                    height: 1.3,
+                                    letterSpacing: -0.3,
+                                  ),
+                                ),
+                                SizedBox(height: bulletSpacing + 2),
+                                // 🆕 Dynamic bullet points from context with responsive sizing
+                                _buildStyleCardBullet(
+                                  icon: Icons.eco_outlined,
+                                  color: const Color(0xFF6B9AD4),
+                                  label: _workoutLabel,
+                                  desc: AppLocalizations.t(context, 'hero_card_bullet_wear'),
+                                  labelFontSize: bulletLabelSize,
+                                  descFontSize: bulletDescSize,
+                                ),
+                                SizedBox(height: bulletSpacing),
+                                _buildStyleCardBullet(
+                                  icon: Icons.cloud_outlined,
+                                  color: const Color(0xFF7BBFDA),
+                                  label: w.tempCelsius != null && w.tempCelsius! > 0
+                                      ? '${w.tempCelsius!.toStringAsFixed(0)}° ${w.description}'
+                                      : '28° partly cloudy',
+                                  desc: AppLocalizations.t(context, 'hero_card_bullet_weather'),
+                                  labelFontSize: bulletLabelSize,
+                                  descFontSize: bulletDescSize,
+                                ),
+                                SizedBox(height: bulletSpacing),
+                                _buildStyleCardBullet(
+                                  icon: Icons.favorite_border_rounded,
+                                  color: const Color(0xFFD4A0C8),
+                                  label: 'You tend to love ${_wardrobeSignal.favoriteStyle}',
+                                  desc: AppLocalizations.t(context, 'hero_card_bullet_style'),
+                                  labelFontSize: bulletLabelSize,
+                                  descFontSize: bulletDescSize,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 8), // 🆕 More space before button
+                        _AnimatedPressable(
+                          liftY: -3.0,
+                          scalePressed: 0.93,
+                          onTap: () => _openChatWithPrompt('Suggest a complete outfit for me today.'),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                            decoration: BoxDecoration(
+                              // 🆕 ENHANCED: Stronger gradient for better visibility
+                              gradient: LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [_accent, _accentSecondary],
+                              ),
+                              borderRadius: BorderRadius.circular(100),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: _accent.withOpacity(0.45),
+                                  blurRadius: 18,
+                                  offset: const Offset(0, 6),
+                                ),
+                                BoxShadow(
+                                  color: _accent.withOpacity(0.15),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  AppLocalizations.t(context, 'cta_style_me'),
+                                  style: TextStyle(
+                                    color: _onAccent,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                    letterSpacing: 0.3,
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                // 🆕 Animated arrow for better UX
+                                Icon(Icons.arrow_forward_rounded, color: _onAccent, size: 11),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
@@ -3024,7 +3350,491 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
     );
   }
 
+  /// 🆕 Helper widget for style card bullets
+  Widget _buildStyleCardBullet({
+    required IconData icon,
+    required Color color,
+    required String label,
+    required String desc,
+    double labelFontSize = 11.0,
+    double descFontSize = 9.5,
+  }) {
+    // 🆕 RESPONSIVE ICON SIZE
+    final screenW = MediaQuery.of(context).size.width;
+    final iconBubbleSize = screenW < 360 ? 20.0 : 24.0;
+    final iconSize = screenW < 360 ? 10.0 : 12.0;
+    final spacing = screenW < 360 ? 8.0 : 10.0;
 
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: iconBubbleSize,
+          height: iconBubbleSize,
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.15),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(icon, size: iconSize, color: color),
+        ),
+        SizedBox(width: spacing),
+        // 🔧 FIX: Removed Expanded — this Row receives unbounded width from
+        // FittedBox (FittedBox always passes unconstrained constraints to its
+        // child). Expanded inside a Row with unbounded width throws:
+        //   "RenderFlex children have non-zero flex but incoming width is unbounded"
+        // Inside FittedBox, text should take its natural (intrinsic) width;
+        // FittedBox itself then scales the whole Column down to fit the card.
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              label,
+              style: TextStyle(
+                color: _textHeading,
+                fontSize: labelFontSize,
+                fontWeight: FontWeight.w600,
+                height: 1.2,
+              ),
+            ),
+            Text(
+              desc,
+              style: TextStyle(
+                color: _textMuted,
+                fontSize: descFontSize,
+                fontWeight: FontWeight.w400,
+                height: 1.2,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+
+  // ── Routine cards section: Wear / Move / Eat / Care / Medicine ───────────
+
+  Widget _buildRoutineCardsSection() {
+    final summary = context.watch<HomeCardSummaryProvider>();
+    // 🆕 Watching these causes the Care & Medicine cards to repaint
+    // automatically whenever SkincareScreen or MediTrackScreen push updates.
+    // All five cards repaint from the single merged HomeCardSummaryProvider.
+    final screenW = MediaQuery.of(context).size.width;
+
+    // 🆕 RESPONSIVE SIZING FOR ROUTINE CARDS - LARGER VERSION
+    // ✅ FIX: cards widened and given a touch more padding/icon size — paired
+    // with the taller section height above, this gives every card enough
+    // room for its full content and stops the label/description/status text
+    // from clipping or overflowing on smaller screens.
+    final cardWidth = screenW < 360 ? 78.0 : screenW < 480 ? 88.0 : 98.0;
+    final iconBubbleSize = screenW < 360 ? 30.0 : 34.0;
+    final iconSize = screenW < 360 ? 14.0 : 16.0;
+    final labelFontSize = screenW < 360 ? 11.0 : 12.0;
+    final descFontSize = screenW < 360 ? 9.0 : 9.5;
+    final statusFontSize = screenW < 360 ? 8.0 : 8.5;
+    final cardPadding = screenW < 360 ? 7.0 : 9.0;
+
+    // 🆕 DYNAMIC DATA FROM PROVIDERS & SERVICES
+    // Each routine syncs with real app data
+    final routines = <({
+    IconData icon,
+    Color color,
+    String label,
+    String desc,
+    String status,
+    bool done,
+    Widget page,
+    })>[
+      (
+      // 🔧 FIX: Icons.checkroom_outlined was rendering as the same running-
+      // figure glyph as the "Move" card below (icon font/tree-shaking
+      // mismatch). Icons.dry_cleaning_outlined is the same hanger icon
+      // already used (and confirmed working) for the Wardrobe nav tab.
+      icon: Icons.dry_cleaning_outlined,
+      color: const Color(0xFF6B8FD4),
+      label: 'Wear',
+      // 🔄 DYNAMIC: From DailyWearScreen/Wardrobe
+      desc: _getDailyWearDescription(),
+      status: _getDailyWearStatus(),
+      done: _isDailyWearDone(),
+      page: DailyWearScreen(),
+      ),
+      (
+      icon: Icons.directions_run_rounded,
+      color: const Color(0xFF5BBF8A),
+      label: 'Move',
+      // 🔄 DYNAMIC: From WorkoutStudioScreen/Fitness
+      desc: _getWorkoutDescription(),
+      status: _getWorkoutStatus(),
+      done: _isWorkoutDone(),
+      page: WorkoutStudioScreen(),
+      ),
+      (
+      icon: Icons.restaurant_outlined,
+      color: const Color(0xFFE8895A),
+      label: 'Eat',
+      // 🔄 DYNAMIC: From MainScreen/Diet
+      desc: _getMealDescription(),
+      status: _getMealStatus(),
+      done: _isMealDone(),
+      page: MainScreen(fromHome: true),
+      ),
+      (
+      icon: Icons.spa_outlined,
+      color: const Color(0xFFB07FD4),
+      label: 'Care',
+      // 🔄 DYNAMIC: From SkincareScreen
+      desc: _getSkincareDescription(),
+      status: _getSkincareStatus(),
+      done: _isSkincareDone(),
+      page: SkincareScreen(),
+      ),
+      (
+      icon: Icons.medication_outlined,
+      color: const Color(0xFFE88A8A),
+      label: 'Medicine',
+      // 🔄 DYNAMIC: From MediTrackScreen
+      desc: _getMedicineDescription(),
+      status: _getMedicineStatus(),
+      done: _isMedicineDone(),
+      page: MediTrackScreen(),
+      ),
+    ];
+
+    return Container(
+      decoration: BoxDecoration(
+        color: _surface,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: _border.withOpacity(0.50), width: 1),
+        boxShadow: [BoxShadow(color: _shadowLight, blurRadius: 12, offset: const Offset(0, 4))],
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 1), // ✏️ Reduced from 3px (saves 4px)
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Progress dots row
+          // 🔧 FIX: previously computed connector-line width by subtracting
+          // hardcoded pixel guesses from MediaQuery's full screen width —
+          // that math didn't account for this card's own border/padding, so
+          // it was consistently a couple pixels too wide and threw a
+          // "RIGHT OVERFLOWED" render error. Using Expanded lets the Row
+          // itself fill exactly the space it's given, on any screen size,
+          // with zero manual math.
+          Padding(
+            // ✏️ −2px per spec (progress stepper)
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+            child: Row(
+              children: List.generate(routines.length * 2 - 1, (i) {
+                if (i.isEven) {
+                  final done = routines[i ~/ 2].done;
+                  return Container(
+                    width: 22,
+                    height: 22,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: done ? _accent : Colors.transparent,
+                      border: Border.all(
+                        color: done ? _accent : _border,
+                        width: 1.5,
+                      ),
+                    ),
+                    child: done
+                        ? Icon(Icons.check_rounded, size: 12, color: _onAccent)
+                        : null,
+                  );
+                }
+                return Expanded(
+                  child: Container(
+                    height: 1.5,
+                    margin: const EdgeInsets.symmetric(horizontal: 2),
+                    color: _border,
+                  ),
+                );
+              }),
+            ),
+          ),
+
+          // ✏️ Gap between progress and routine items: 2px (near-touching, not touching)
+          const SizedBox(height: 2),
+
+          // ✅ FIXED: SingleChildScrollView + Row instead of ListView + FittedBox
+          Expanded(
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              padding: EdgeInsets.symmetric(horizontal: screenW < 360 ? 6 : 8),
+              physics: const BouncingScrollPhysics(),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: List.generate(
+                  routines.length,
+                      (i) {
+                    final r = routines[i];
+                    return Padding(
+                      padding: EdgeInsets.only(right: screenW < 360 ? 4 : 5),
+                      child: GestureDetector(
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => r.page),
+                        ),
+                        child: SizedBox(
+                          width: cardWidth,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: _bgSecondary.withOpacity(0.7),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: r.done
+                                    ? _accent.withOpacity(0.25)
+                                    : _border.withOpacity(0.5),
+                                width: 1,
+                              ),
+                            ),
+                            // ✏️ Top inset trimmed by 5px so the card sits closer
+                            // to the tracker line above; other sides unchanged.
+                            padding: EdgeInsets.fromLTRB(
+                              cardPadding,
+                              cardPadding - 6,
+                              cardPadding,
+                              cardPadding,
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              mainAxisAlignment: MainAxisAlignment.start,
+                              children: [
+                                // Icon bubble
+                                Container(
+                                  width: iconBubbleSize,
+                                  height: iconBubbleSize,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: r.color.withOpacity(0.15),
+                                  ),
+                                  child: Icon(r.icon, size: iconSize, color: r.color),
+                                ),
+                                SizedBox(height: cardPadding * 0.5),
+                                // Label
+                                Text(
+                                  r.label,
+                                  style: TextStyle(
+                                    color: _textHeading,
+                                    fontSize: labelFontSize,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                SizedBox(height: cardPadding * 0.3),
+                                // Description
+                                Text(
+                                  r.desc,
+                                  style: TextStyle(
+                                    color: _textMuted,
+                                    fontSize: descFontSize,
+                                    fontWeight: FontWeight.w400,
+                                    height: 1.2,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                SizedBox(height: cardPadding * 0.3),
+                                // Status
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      r.done ? Icons.check_circle_rounded : Icons.access_time_rounded,
+                                      size: descFontSize - 0.5,
+                                      color: r.done ? _accent : _textMuted,
+                                    ),
+                                    SizedBox(width: screenW < 360 ? 1 : 2),
+                                    Flexible(
+                                      child: Text(
+                                        r.status,
+                                        style: TextStyle(
+                                          color: r.done ? _accent : _textMuted,
+                                          fontSize: statusFontSize,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ),
+          ),
+
+        ],
+      ),
+    );
+  }
+
+  // ── Prep & Plan card ──────────────────────────────────────────────────────
+
+  // 🆕 IMPROVED PREP & PLAN CARD - 30% Text | 70% Image (No Fade Effects)
+  Widget _buildPrepPlanCard({double? screenH}) {
+    final content = _prepCardContent();
+    final accentColor = context.themeTokens.accent.primary;
+    final accentTertiary = context.themeTokens.accent.tertiary;
+
+    return _CardPressable(
+      onTap: () => showAhviStylistChatSheet(
+        context,
+        moduleContext: 'prepare',
+        initialPrompt: content.prompt,
+      ),
+      builder: (isHovered) {
+        return Container(
+          width: double.infinity,
+          // Fill parent height — the parent is an Expanded widget so this
+          // stretches the card to consume whatever space is left above the
+          // prompt bar, eliminating the dead gap visible in the screenshot.
+          height: double.infinity,
+          decoration: BoxDecoration(
+            color: _surface,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(
+              color: accentColor.withOpacity(0.18),
+              width: 1,
+            ),
+            boxShadow: [
+              BoxShadow(color: _shadowLight, blurRadius: 16, offset: const Offset(0, 4)),
+              BoxShadow(color: accentColor.withOpacity(0.06), blurRadius: 12),
+            ],
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // ── 30% LEFT: TEXT CONTENT ────────────────────────────────────
+              Expanded(
+                flex: 30,
+                child: Padding(
+                  padding: const EdgeInsets.only(left: 10, right: 10, top: 7, bottom: 10),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Prep & Plan',
+                            style: TextStyle(
+                              color: _textHeading,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: -0.3,
+                            ),
+                          ),
+                          const SizedBox(height: 1),
+                          Text(
+                            'Your week at a glance',
+                            style: TextStyle(
+                              color: _textMuted,
+                              fontSize: 8.5,
+                              fontWeight: FontWeight.w400,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'Outfits, meals & goals planned ahead.',
+                            style: TextStyle(
+                              color: _textMuted,
+                              fontSize: 8,
+                              fontWeight: FontWeight.w400,
+                              height: 1.1,
+                            ),
+                            maxLines: 1,
+                          ),
+                        ],
+                      ),
+                      _AnimatedPressable(
+                        liftY: -2.0,
+                        scalePressed: 0.95,
+                        onTap: () => showAhviStylistChatSheet(
+                          context,
+                          moduleContext: 'prepare',
+                          initialPrompt: content.prompt,
+                        ),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [accentColor, accentTertiary],
+                            ),
+                            borderRadius: BorderRadius.circular(100),
+                            boxShadow: [
+                              BoxShadow(
+                                color: accentColor.withOpacity(0.38),
+                                blurRadius: 14,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                'Plan Week',
+                                style: TextStyle(
+                                  color: _onAccent,
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w600,
+                                  letterSpacing: 0.1,
+                                ),
+                              ),
+                              const SizedBox(width: 1),
+                              Icon(Icons.arrow_forward_rounded, color: _onAccent, size: 8),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              // ── 70% RIGHT: OUTFIT/MEAL GRID PREVIEW OVER BACKDROP PHOTO ──────
+              Expanded(
+                flex: 70,
+                child: ClipRRect(
+                  borderRadius: const BorderRadius.only(
+                    topRight: Radius.circular(24),
+                    bottomRight: Radius.circular(24),
+                  ),
+                  child: Container(
+                    color: _surface,
+                    child: Image.asset(
+                      'assets/images/plan_card.jpg',
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => Container(color: _surface),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  /// 🆕 SIMPLIFIED WEEK PREVIEW - Just icons, no fade effects
   // ── Dynamic card content ───────────────────────────────────────────────────
   // Style card and Prep & Plan card title/subtitle/cta driven by context.
 
@@ -3367,7 +4177,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                       color: _surface,
                       borderRadius: BorderRadius.circular(18),
                       border: Border.all(
-                        color: accentColor.withValues(alpha: 0.18),
+                        color: accentColor.withOpacity(0.18),
                         width: 1,
                       ),
                       boxShadow: [
@@ -3377,8 +4187,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                           offset: const Offset(0, 8),
                         ),
                         BoxShadow(
-                          color: accentColor.withValues(
-                            alpha: isHovered ? 0.14 : 0.07,
+                          color: accentColor.withOpacity(isHovered ? 0.14 : 0.07,
                           ),
                           blurRadius: 20,
                         ),
@@ -3395,7 +4204,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                                 center: const Alignment(0.85, -0.6),
                                 radius: 1.3,
                                 colors: [
-                                  accentColor.withValues(alpha: 0.14),
+                                  accentColor.withOpacity(0.14),
                                   _transparent,
                                 ],
                               ),
@@ -3440,8 +4249,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                               decoration: BoxDecoration(
                                 borderRadius: BorderRadius.circular(18),
                                 border: Border.all(
-                                  color: accentColor.withValues(
-                                      alpha: breatheOpacity),
+                                  color: accentColor.withOpacity(breatheOpacity),
                                   width: 1,
                                 ),
                               ),
@@ -3462,13 +4270,12 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                                   width: 38,
                                   height: 38,
                                   decoration: BoxDecoration(
-                                    color: accentColor.withValues(
-                                      alpha: isHovered ? 0.18 : 0.11,
+                                    color: accentColor.withOpacity(isHovered ? 0.18 : 0.11,
                                     ),
                                     borderRadius: BorderRadius.circular(11),
                                     border: Border.all(
                                       color:
-                                      accentColor.withValues(alpha: 0.22),
+                                      accentColor.withOpacity(0.22),
                                       width: 1.2,
                                     ),
                                   ),
@@ -3530,8 +4337,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                                         borderRadius: BorderRadius.circular(100),
                                         boxShadow: [
                                           BoxShadow(
-                                            color: accentColor.withValues(
-                                                alpha: 0.36),
+                                            color: accentColor.withOpacity(0.36),
                                             blurRadius: 14,
                                             offset: const Offset(0, 4),
                                           ),
@@ -3634,7 +4440,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                       color: _surface,
                       borderRadius: BorderRadius.circular(18),
                       border: Border.all(
-                        color: accentColor.withValues(alpha: 0.20),
+                        color: accentColor.withOpacity(0.20),
                         width: 1,
                       ),
                       boxShadow: [
@@ -3644,8 +4450,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                           offset: const Offset(0, 8),
                         ),
                         BoxShadow(
-                          color: accentColor.withValues(
-                            alpha: isHovered ? 0.15 : 0.08,
+                          color: accentColor.withOpacity(isHovered ? 0.15 : 0.08,
                           ),
                           blurRadius: 20,
                         ),
@@ -3662,7 +4467,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                                 center: const Alignment(0.8, -0.5),
                                 radius: 1.4,
                                 colors: [
-                                  accentColor.withValues(alpha: 0.18),
+                                  accentColor.withOpacity(0.18),
                                   _transparent,
                                 ],
                               ),
@@ -3712,7 +4517,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                               decoration: BoxDecoration(
                                 borderRadius: BorderRadius.circular(18),
                                 border: Border.all(
-                                  color: accentColor.withValues(alpha: breatheOpacity),
+                                  color: accentColor.withOpacity(breatheOpacity),
                                   width: 1,
                                 ),
                               ),
@@ -3730,8 +4535,8 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                               gradient: LinearGradient(
                                 colors: [
                                   _transparent,
-                                  accentColor.withValues(alpha: 0.55 * shimmerAlpha),
-                                  accentColor.withValues(alpha: 0.35),
+                                  accentColor.withOpacity(0.55 * shimmerAlpha),
+                                  accentColor.withOpacity(0.35),
                                   _transparent,
                                 ],
                                 stops: const [0.0, 0.30, 0.65, 1.0],
@@ -3761,12 +4566,11 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                                           width: 32,
                                           height: 32,
                                           decoration: BoxDecoration(
-                                            color: accentColor.withValues(
-                                              alpha: isHovered ? 0.16 : 0.08,
+                                            color: accentColor.withOpacity(isHovered ? 0.16 : 0.08,
                                             ),
                                             borderRadius: BorderRadius.circular(10),
                                             border: Border.all(
-                                              color: accentColor.withValues(alpha: 0.18),
+                                              color: accentColor.withOpacity(0.18),
                                               width: 1,
                                             ),
                                           ),
@@ -3782,12 +4586,10 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                                           height: 20,
                                           decoration: BoxDecoration(
                                             shape: BoxShape.circle,
-                                            color: accentColor.withValues(
-                                              alpha: isHovered ? 0.18 : 0.06,
+                                            color: accentColor.withOpacity(isHovered ? 0.18 : 0.06,
                                             ),
                                             border: Border.all(
-                                              color: accentColor.withValues(
-                                                alpha: isHovered ? 0.30 : 0.15,
+                                              color: accentColor.withOpacity(isHovered ? 0.30 : 0.15,
                                               ),
                                               width: 1,
                                             ),
@@ -3858,12 +4660,12 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                                       borderRadius: BorderRadius.circular(100),
                                       boxShadow: [
                                         BoxShadow(
-                                          color: accentColor.withValues(alpha: 0.40),
+                                          color: accentColor.withOpacity(0.40),
                                           blurRadius: 20,
                                           offset: const Offset(0, 6),
                                         ),
                                         BoxShadow(
-                                          color: accentTertiary.withValues(alpha: 0.25),
+                                          color: accentTertiary.withOpacity(0.25),
                                           blurRadius: 8,
                                           offset: const Offset(0, 2),
                                         ),
@@ -3873,33 +4675,32 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                                       horizontal: 8,
                                       vertical: 6,
                                     ),
-                                    child: Row(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Flexible(
-                                          child: FittedBox(
-                                            fit: BoxFit.scaleDown,
-                                            alignment: Alignment.centerLeft,
-                                            child: Text(
-                                              content.cta, // 🆕 dynamic CTA
-                                              style: TextStyle(
-                                                color: _onAccent,
-                                                fontSize: 11,
-                                                fontWeight: FontWeight.w600,
-                                                letterSpacing: 0.20,
-                                              ),
-                                              maxLines: 1,
-                                            ),
-                                          ),
-                                        ),
-                                        const SizedBox(width: 4),
-                                        Icon(
-                                          Icons.arrow_forward_rounded,
+                                    child: FittedBox(
+                                      fit: BoxFit.scaleDown,
+                                      alignment: Alignment.center,
+                                      child: Text(
+                                        content.cta, // 🆕 dynamic CTA
+                                        style: TextStyle(
                                           color: _onAccent,
-                                          size: 11,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w700,
+                                          letterSpacing: 0.35,
+                                          shadows: [
+                                            Shadow(
+                                              color: Colors.black.withOpacity(0.20),
+                                              offset: const Offset(0, 1.5),
+                                              blurRadius: 2,
+                                            ),
+                                            Shadow(
+                                              color: accentColor.withOpacity(0.15),
+                                              offset: const Offset(0, -0.5),
+                                              blurRadius: 1,
+                                            ),
+                                          ],
+                                          height: 1.2,
                                         ),
-                                      ],
+                                        maxLines: 1,
+                                      ),
                                     ),
                                   ),
                                 ),
@@ -3976,7 +4777,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                       color: _surface,
                       borderRadius: BorderRadius.circular(18),
                       border: Border.all(
-                        color: accentColor.withValues(alpha: 0.20),
+                        color: accentColor.withOpacity(0.20),
                         width: 1,
                       ),
                       boxShadow: [
@@ -3986,8 +4787,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                           offset: const Offset(0, 8),
                         ),
                         BoxShadow(
-                          color: accentColor.withValues(
-                            alpha: isHovered ? 0.15 : 0.08,
+                          color: accentColor.withOpacity(isHovered ? 0.15 : 0.08,
                           ),
                           blurRadius: 20,
                         ),
@@ -4004,7 +4804,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                                 center: const Alignment(0.8, -0.5),
                                 radius: 1.4,
                                 colors: [
-                                  accentColor.withValues(alpha: 0.18),
+                                  accentColor.withOpacity(0.18),
                                   _transparent,
                                 ],
                               ),
@@ -4072,8 +4872,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                               decoration: BoxDecoration(
                                 borderRadius: BorderRadius.circular(18),
                                 border: Border.all(
-                                  color: accentColor.withValues(
-                                    alpha: breatheOpacity,
+                                  color: accentColor.withOpacity(breatheOpacity,
                                   ),
                                   width: 1,
                                 ),
@@ -4092,10 +4891,9 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                               gradient: LinearGradient(
                                 colors: [
                                   _transparent,
-                                  accentColor.withValues(
-                                    alpha: 0.55 * shimmerAlpha,
+                                  accentColor.withOpacity(0.55 * shimmerAlpha,
                                   ),
-                                  accentColor.withValues(alpha: 0.35),
+                                  accentColor.withOpacity(0.35),
                                   _transparent,
                                 ],
                                 stops: const [0.0, 0.30, 0.65, 1.0],
@@ -4129,13 +4927,11 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                                           width: 32,
                                           height: 32,
                                           decoration: BoxDecoration(
-                                            color: accentColor.withValues(
-                                              alpha: isHovered ? 0.16 : 0.08,
+                                            color: accentColor.withOpacity(isHovered ? 0.16 : 0.08,
                                             ),
                                             borderRadius: BorderRadius.circular(10),
                                             border: Border.all(
-                                              color: accentColor.withValues(
-                                                alpha: 0.18,
+                                              color: accentColor.withOpacity(0.18,
                                               ),
                                               width: 1,
                                             ),
@@ -4156,12 +4952,10 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                                           height: 20,
                                           decoration: BoxDecoration(
                                             shape: BoxShape.circle,
-                                            color: accentColor.withValues(
-                                              alpha: isHovered ? 0.18 : 0.06,
+                                            color: accentColor.withOpacity(isHovered ? 0.18 : 0.06,
                                             ),
                                             border: Border.all(
-                                              color: accentColor.withValues(
-                                                alpha: isHovered ? 0.30 : 0.15,
+                                              color: accentColor.withOpacity(isHovered ? 0.30 : 0.15,
                                               ),
                                               width: 1,
                                             ),
@@ -4234,13 +5028,13 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                                       borderRadius: BorderRadius.circular(100),
                                       boxShadow: [
                                         BoxShadow(
-                                          color: accentColor.withValues(alpha: 0.40),
+                                          color: accentColor.withOpacity(0.40),
                                           blurRadius: 20,
                                           offset: const Offset(0, 6),
                                         ),
                                         BoxShadow(
                                           color: context.themeTokens.accent.tertiary
-                                              .withValues(alpha: 0.25),
+                                              .withOpacity(0.25),
                                           blurRadius: 8,
                                           offset: const Offset(0, 2),
                                         ),
@@ -4320,10 +5114,10 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 2),
                 decoration: BoxDecoration(
-                  color: _accent.withValues(alpha: 0.08),
+                  color: _accent.withOpacity(0.08),
                   borderRadius: BorderRadius.circular(100),
                   border: Border.all(
-                    color: _accent.withValues(alpha: 0.18),
+                    color: _accent.withOpacity(0.18),
                     width: 1,
                   ),
                 ),
@@ -4457,7 +5251,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                           .round(),
                       filterQuality: FilterQuality.low,
                       errorBuilder: (_ctx, _err, _st) => Container(
-                        color: _accent.withValues(alpha: 0.1),
+                        color: _accent.withOpacity(0.1),
                         child: Icon(Icons.image, color: _textMuted),
                       ),
                     ),
@@ -4524,10 +5318,10 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
               height: 22,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: liked ? _accent.withValues(alpha: 0.20) : _shadowStrong,
+                color: liked ? _accent.withOpacity(0.20) : _shadowStrong,
                 border: liked
                     ? Border.all(
-                  color: _accent.withValues(alpha: 0.50),
+                  color: _accent.withOpacity(0.50),
                   width: 1,
                 )
                     : null,
@@ -4536,7 +5330,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                 liked ? Icons.favorite_rounded : Icons.favorite_border_rounded,
                 color: liked
                     ? _accentSecondary
-                    : _textHeading.withValues(alpha: 0.7),
+                    : _textHeading.withOpacity(0.7),
                 size: 12,
               ),
             ),
@@ -4579,7 +5373,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
   Widget _buildPlusMenu() {
     final safeBottom = MediaQuery.of(context).padding.bottom;
     // Position it just above the chat bar
-    final menuBottom = safeBottom + 86.0 + 72.0 + 8.0;
+    final menuBottom = safeBottom + 86.0 + 60.0 + 8.0;  // 60px prompt bar height
 
     final menuItems = [
       (Icons.camera_alt_outlined,       AppLocalizations.t(context, 'plus_menu_camera'),   AppLocalizations.t(context, 'plus_menu_camera_sub')),
@@ -4613,17 +5407,17 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                             color: _surface,
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(
-                              color: _accent.withValues(alpha: 0.18),
+                              color: _accent.withOpacity(0.18),
                               width: 1,
                             ),
                             boxShadow: [
                               BoxShadow(
-                                color: _bgPrimary.withValues(alpha: 0.40),
+                                color: _bgPrimary.withOpacity(0.40),
                                 blurRadius: 32,
                                 offset: const Offset(0, 8),
                               ),
                               BoxShadow(
-                                color: _accent.withValues(alpha: 0.08),
+                                color: _accent.withOpacity(0.08),
                                 blurRadius: 16,
                               ),
                             ],
@@ -4674,11 +5468,11 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
     final screenH = MediaQuery.of(context).size.height;
     final screenW = MediaQuery.of(context).size.width;
     final isTablet = screenW >= 600;
-    const double pillH = 62.0;
-    const double maxBulge = 18.0;
-    const double totalH = pillH + maxBulge + 6.0;
-    const double iconContainerSize = 42.0;
-    const double iconSize = 20.0;
+    const double pillH = 44.0;        // ✏️ Reduced from 50.0 — shrinks nav bar footprint
+    const double maxBulge = 6.0;      // ✏️ Reduced from 8.0
+    const double totalH = pillH + maxBulge + 0.0;  // totalH = 50px (was 58px)
+    const double iconContainerSize = 32.0;  // ✏️ Reduced from 36.0
+    const double iconSize = 16.0;     // ✏️ Reduced from 18.0
 
     // On tablet, constrain nav to a max width and center it
     final navMaxW = isTablet ? 480.0 : double.infinity;
@@ -4747,12 +5541,12 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                                       gradient: _accentGradient2,
                                       boxShadow: [
                                         BoxShadow(
-                                          color: _accent.withValues(alpha: 0.45),
+                                          color: _accent.withOpacity(0.45),
                                           blurRadius: 16,
                                           offset: const Offset(0, 4),
                                         ),
                                         BoxShadow(
-                                          color: _accent.withValues(alpha: 0.25),
+                                          color: _accent.withOpacity(0.25),
                                           blurRadius: 28,
                                         ),
                                       ],
@@ -4771,7 +5565,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                                     duration: const Duration(milliseconds: 220),
                                     style: TextStyle(
                                       color: active ? _textHeading : _textMuted,
-                                      fontSize: 10,
+                                      fontSize: 8,
                                       fontWeight: active
                                           ? FontWeight.w600
                                           : FontWeight.w500,
@@ -4812,7 +5606,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
               Positioned.fill(
                 child: GestureDetector(
                   onTap: _dismissOverlay,
-                  child: Container(color: _bgPrimary.withValues(alpha: 0.92)),
+                  child: Container(color: _bgPrimary.withOpacity(0.92)),
                 ),
               ),
               Positioned(
@@ -4910,7 +5704,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                     vertical: 13,
                   ),
                   decoration: BoxDecoration(
-                    color: _surface.withValues(alpha: 0.85),
+                    color: _surface.withOpacity(0.85),
                     borderRadius: BorderRadius.circular(15),
                     border: Border.all(color: _border),
                     boxShadow: [BoxShadow(color: _shadowMedium, blurRadius: 8)],
@@ -4922,7 +5716,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                         height: 6,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: _accent.withValues(alpha: 0.55),
+                          color: _accent.withOpacity(0.55),
                         ),
                       ),
                       const SizedBox(width: 10),
@@ -4956,11 +5750,11 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                   shape: BoxShape.circle,
                   gradient: LinearGradient(
                     colors: [
-                      _accent.withValues(alpha: 0.18),
-                      _accentSecondary.withValues(alpha: 0.28),
+                      _accent.withOpacity(0.18),
+                      _accentSecondary.withOpacity(0.28),
                     ],
                   ),
-                  border: Border.all(color: _accent.withValues(alpha: 0.30)),
+                  border: Border.all(color: _accent.withOpacity(0.30)),
                 ),
                 child: Center(
                   child: ShaderMask(
@@ -5010,14 +5804,14 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                       vertical: 11,
                     ),
                     decoration: BoxDecoration(
-                      color: _surface.withValues(alpha: 0.90),
+                      color: _surface.withOpacity(0.90),
                       borderRadius: BorderRadius.circular(18),
                       border: Border.all(
-                        color: _accent.withValues(alpha: 0.20),
+                        color: _accent.withOpacity(0.20),
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: _accent.withValues(alpha: 0.10),
+                          color: _accent.withOpacity(0.10),
                           blurRadius: 18,
                         ),
                       ],
@@ -5071,7 +5865,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                 bottomLeft: Radius.circular(18),
                 bottomRight: Radius.circular(4),
               ),
-              border: Border.all(color: _accent.withValues(alpha: 0.15)),
+              border: Border.all(color: _accent.withOpacity(0.15)),
             ),
             child: Text(
               resp.question,
@@ -5095,11 +5889,11 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                 shape: BoxShape.circle,
                 gradient: LinearGradient(
                   colors: [
-                    _accent.withValues(alpha: 0.18),
-                    _accentSecondary.withValues(alpha: 0.28),
+                    _accent.withOpacity(0.18),
+                    _accentSecondary.withOpacity(0.28),
                   ],
                 ),
-                border: Border.all(color: _accent.withValues(alpha: 0.30)),
+                border: Border.all(color: _accent.withOpacity(0.30)),
               ),
               child: Center(
                 child: ShaderMask(
@@ -5170,10 +5964,10 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                           vertical: 6,
                         ),
                         decoration: BoxDecoration(
-                          color: _accent.withValues(alpha: 0.08),
+                          color: _accent.withOpacity(0.08),
                           borderRadius: BorderRadius.circular(100),
                           border: Border.all(
-                            color: _accent.withValues(alpha: 0.20),
+                            color: _accent.withOpacity(0.20),
                           ),
                         ),
                         child: Text(
@@ -5239,7 +6033,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                             .round(),
                         filterQuality: FilterQuality.low,
                         errorBuilder: (_ctx, _err, _st) =>
-                            Container(color: _accent.withValues(alpha: 0.1)),
+                            Container(color: _accent.withOpacity(0.1)),
                       ),
                     ),
                     Padding(
@@ -5270,7 +6064,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                                   vertical: 1,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: _accent.withValues(alpha: 0.10),
+                                  color: _accent.withOpacity(0.10),
                                   borderRadius: BorderRadius.circular(100),
                                 ),
                                 child: Text(
@@ -5304,14 +6098,14 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                 ? _accent
                 : t.priority == 'mid'
                 ? _accentSecondary
-                : _accentTertiary.withValues(alpha: 0.5);
+                : _accentTertiary.withOpacity(0.5);
             return Opacity(
               opacity: t.done ? 0.45 : 1.0,
               child: Container(
                 padding: const EdgeInsets.symmetric(vertical: 10),
                 decoration: BoxDecoration(
                   border: Border(
-                    bottom: BorderSide(color: _border.withValues(alpha: 0.35)),
+                    bottom: BorderSide(color: _border.withOpacity(0.35)),
                   ),
                 ),
                 child: Row(
@@ -5325,11 +6119,11 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                         shape: BoxShape.circle,
                         border: Border.all(
                           color: t.done
-                              ? _accentTertiary.withValues(alpha: 0.5)
-                              : _accent.withValues(alpha: 0.3),
+                              ? _accentTertiary.withOpacity(0.5)
+                              : _accent.withOpacity(0.3),
                         ),
                         color: t.done
-                            ? _accentTertiary.withValues(alpha: 0.15)
+                            ? _accentTertiary.withOpacity(0.15)
                             : _transparent,
                       ),
                       child: t.done
@@ -5407,13 +6201,13 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                     padding: const EdgeInsets.all(4),
                     decoration: BoxDecoration(
                       color: d.isToday
-                          ? _accent.withValues(alpha: 0.10)
-                          : _bgPrimary.withValues(alpha: 0.04),
+                          ? _accent.withOpacity(0.10)
+                          : _bgPrimary.withOpacity(0.04),
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
                         color: d.isToday
-                            ? _accent.withValues(alpha: 0.25)
-                            : _border.withValues(alpha: 0.35),
+                            ? _accent.withOpacity(0.25)
+                            : _border.withOpacity(0.35),
                       ),
                     ),
                     child: Column(
@@ -5443,7 +6237,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                               vertical: 1,
                             ),
                             decoration: BoxDecoration(
-                              color: _accent.withValues(alpha: 0.07),
+                              color: _accent.withOpacity(0.07),
                               borderRadius: BorderRadius.circular(3),
                             ),
                             child: Text(
@@ -5674,7 +6468,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                       width: double.infinity,
                       height: 7,
                       decoration: BoxDecoration(
-                        color: _border.withValues(alpha: 0.35),
+                        color: _border.withOpacity(0.35),
                         borderRadius: BorderRadius.circular(99),
                       ),
                       child: ClipRRect(
@@ -5729,7 +6523,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                                   vertical: 2,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: _accentTertiary.withValues(alpha: 0.12),
+                                  color: _accentTertiary.withOpacity(0.12),
                                   borderRadius: BorderRadius.circular(99),
                                 ),
                                 child: Text(
@@ -5800,8 +6594,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                                   border: i < itemsState[sIdx].length - 1
                                       ? Border(
                                     bottom: BorderSide(
-                                      color: _border.withValues(
-                                        alpha: 0.85,
+                                      color: _border.withOpacity(0.85,
                                       ),
                                       width: 1,
                                     ),
@@ -6163,12 +6956,12 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                 top: Radius.circular(24),
               ),
               border: Border.all(
-                color: _accent.withValues(alpha: 0.12),
+                color: _accent.withOpacity(0.12),
                 width: 1,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: _accent.withValues(alpha: 0.15),
+                  color: _accent.withOpacity(0.15),
                   blurRadius: 40,
                   offset: const Offset(0, -8),
                 ),
@@ -6190,7 +6983,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                     height: 4,
                     margin: const EdgeInsets.only(bottom: 16),
                     decoration: BoxDecoration(
-                      color: _accent.withValues(alpha: 0.25),
+                      color: _accent.withOpacity(0.25),
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
@@ -6223,10 +7016,10 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                         child: Container(
                           padding: const EdgeInsets.symmetric(vertical: 14),
                           decoration: BoxDecoration(
-                            color: _accent.withValues(alpha: 0.08),
+                            color: _accent.withOpacity(0.08),
                             borderRadius: BorderRadius.circular(15),
                             border: Border.all(
-                              color: _accent.withValues(alpha: 0.20),
+                              color: _accent.withOpacity(0.20),
                               width: 1,
                             ),
                           ),
@@ -6255,7 +7048,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                             borderRadius: BorderRadius.circular(15),
                             boxShadow: [
                               BoxShadow(
-                                color: _accent.withValues(alpha: 0.35),
+                                color: _accent.withOpacity(0.35),
                                 blurRadius: 18,
                               ),
                             ],
@@ -6340,7 +7133,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                             decoration: BoxDecoration(
                               color: _panel,
                               border: Border.all(
-                                color: _accent.withValues(alpha: 0.20),
+                                color: _accent.withOpacity(0.20),
                                 width: 1,
                               ),
                               shape: BoxShape.circle,
@@ -6417,7 +7210,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                                         .round(),
                                     filterQuality: FilterQuality.low,
                                     errorBuilder: (_ctx, _err, _st) => Container(
-                                      color: _accent.withValues(alpha: 0.1),
+                                      color: _accent.withOpacity(0.1),
                                       child: Icon(
                                         Icons.image,
                                         color: _textMuted,
@@ -6492,7 +7285,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                   vertical: 9,
                 ),
                 decoration: BoxDecoration(
-                  color: _bgSecondary.withValues(alpha: 0.92),
+                  color: _bgSecondary.withOpacity(0.92),
                   borderRadius: BorderRadius.circular(999),
                   boxShadow: [BoxShadow(color: _shadowMedium, blurRadius: 28)],
                 ),
@@ -6518,9 +7311,150 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
       ),
     );
   }
+
+  // 🆕 DYNAMIC ROUTINE DATA FETCHING METHODS
+  // These methods sync with real data from screens and services
+
+  // ─── WEAR / DAILY WEAR ───
+  String _getDailyWearDescription() {
+    // Sync with DailyWearScreen/Wardrobe data
+    final outfit = _wardrobeSignal.lastWornItemName;
+    if (outfit.isNotEmpty) {
+      return outfit.length > 20 ? outfit.substring(0, 17) + '...' : outfit;
+    }
+    return _wardrobeSignal.favoriteStyle.isNotEmpty
+        ? _wardrobeSignal.favoriteStyle
+        : AppLocalizations.t(context, 'wear_pick_outfit');
+  }
+
+  String _getDailyWearStatus() {
+    // Check if outfit was selected today
+    return _wardrobeSignal.daysSinceLastWorn == 0
+        ? AppLocalizations.t(context, 'status_done')
+        : AppLocalizations.t(context, 'status_pending');
+  }
+
+  bool _isDailyWearDone() {
+    return _wardrobeSignal.daysSinceLastWorn == 0;
+  }
+
+  // ─── MOVE / WORKOUT ───
+  String _getWorkoutDescription() {
+    // Sync with WorkoutStudioScreen/Fitness data
+    final workoutLabel = _workoutLabel;
+    if (workoutLabel.isNotEmpty && workoutLabel != 'workout_mobility') {
+      // If it's a localization key, translate it first
+      String displayLabel = workoutLabel.startsWith('workout_')
+          ? AppLocalizations.t(context, workoutLabel)
+          : workoutLabel;
+      return displayLabel.length > 20 ? displayLabel.substring(0, 17) + '...' : displayLabel;
+    }
+    return AppLocalizations.t(context, 'move_ready_to_move');
+  }
+
+  String _getWorkoutStatus() {
+    // Check fitness streak or today's activity
+    return _fitnessSignal.hasActiveStreak
+        ? AppLocalizations.t(context, 'status_streak')
+        : AppLocalizations.t(context, 'status_start');
+  }
+
+  bool _isWorkoutDone() {
+    // Check if workout goal met today
+    return _fitnessSignal.stepGoalMet;
+  }
+
+  // ─── EAT / MEAL PLAN ───
+  String _getMealDescription() {
+    // Sync with MainScreen/Diet data
+    if (_fitnessSignal.calorieGoalMet) {
+      return AppLocalizations.t(context, 'eat_goal_met');
+    }
+    return _fitnessSignal.waterGlassesToday > 0
+        ? AppLocalizations.t(context, 'eat_hydrating')
+        : AppLocalizations.t(context, 'eat_meal_prep');
+  }
+
+  String _getMealStatus() {
+    return _fitnessSignal.calorieGoalMet
+        ? AppLocalizations.t(context, 'status_done')
+        : AppLocalizations.t(context, 'status_in_progress');
+  }
+
+  bool _isMealDone() {
+    return _fitnessSignal.calorieGoalMet;
+  }
+
+  // ─── CARE / SKINCARE ───
+  String _getSkincareDescription() {
+    // Live data from merged HomeCardSummaryProvider (pushed by SkincareScreen)
+    try {
+      return Provider.of<HomeCardSummaryProvider>(context, listen: false)
+          .skincareHomeSubtitle;
+    } catch (_) {
+      final hour = DateTime.now().hour;
+      if (hour >= 6 && hour < 12) return AppLocalizations.t(context, 'care_morning_glow');
+      if (hour >= 19) return AppLocalizations.t(context, 'care_night_routine');
+      return AppLocalizations.t(context, 'care_routine');
+    }
+  }
+
+  String _getSkincareStatus() {
+    try {
+      return Provider.of<HomeCardSummaryProvider>(context, listen: false)
+          .skincareHomeStatus;
+    } catch (_) {
+      final hour = DateTime.now().hour;
+      return (hour >= 6 && hour < 12) || hour >= 19
+          ? AppLocalizations.t(context, 'status_time')
+          : AppLocalizations.t(context, 'status_later');
+    }
+  }
+
+  bool _isSkincareDone() {
+    try {
+      return Provider.of<HomeCardSummaryProvider>(context, listen: false)
+          .isSkincareDone;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  // ─── MEDICINE / HEALTH ───
+  String _getMedicineDescription() {
+    // Live data from merged HomeCardSummaryProvider (pushed by MediTrackScreen)
+    try {
+      return Provider.of<HomeCardSummaryProvider>(context, listen: false)
+          .medicineHomeSubtitle;
+    } catch (_) {
+      return AppLocalizations.t(context, 'medicine_supplements');
+    }
+  }
+
+  String _getMedicineStatus() {
+    try {
+      return Provider.of<HomeCardSummaryProvider>(context, listen: false)
+          .medicineHomeStatus;
+    } catch (_) {
+      final hour = DateTime.now().hour;
+      return (hour >= 8 && hour < 10)
+          ? AppLocalizations.t(context, 'status_now')
+          : AppLocalizations.t(context, 'status_upcoming');
+    }
+  }
+
+  bool _isMedicineDone() {
+    try {
+      return Provider.of<HomeCardSummaryProvider>(context, listen: false)
+          .isMedicineDone;
+    } catch (_) {
+      return false;
+    }
+  }
 }
 
-// ── Plus Menu Item ────────────────────────────────────────────────────────────
+// ── Plus Menu Item Widget ─────────────────────────────────────────────────────
+
 class _PlusMenuItem extends StatefulWidget {
   final IconData icon;
   final String title;
@@ -6576,7 +7510,7 @@ class _PlusMenuItemState extends State<_PlusMenuItem> {
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 120),
             color: _pressed
-                ? widget.accent.withValues(alpha: 0.08)
+                ? widget.accent.withOpacity(0.08)
                 : Colors.transparent,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
             child: Opacity(
@@ -6589,10 +7523,10 @@ class _PlusMenuItemState extends State<_PlusMenuItem> {
                       width: 36,
                       height: 36,
                       decoration: BoxDecoration(
-                        color: widget.accent.withValues(alpha: 0.10),
+                        color: widget.accent.withOpacity(0.10),
                         borderRadius: BorderRadius.circular(10),
                         border: Border.all(
-                          color: widget.accent.withValues(alpha: 0.20),
+                          color: widget.accent.withOpacity(0.20),
                           width: 1,
                         ),
                       ),
@@ -6638,7 +7572,7 @@ class _PlusMenuItemState extends State<_PlusMenuItem> {
           Divider(
             height: 1,
             thickness: 1,
-            color: widget.border.withValues(alpha: 0.6),
+            color: widget.border.withOpacity(0.6),
             indent: 16,
             endIndent: 16,
           ),
@@ -6713,7 +7647,7 @@ class _NavPillPainter extends CustomPainter {
       canvas.drawPath(
         combined,
         Paint()
-          ..color = glowColor.withValues(alpha: 0.12 * bulgeT)
+          ..color = glowColor.withOpacity(0.12 * bulgeT)
           ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 14),
       );
     }
@@ -7056,14 +7990,14 @@ class _PrepareQuickChipState extends State<_PrepareQuickChip> {
             color: _active
                 ? null
                 : hovered
-                ? widget.accent.withValues(alpha: 0.15)
+                ? widget.accent.withOpacity(0.15)
                 : widget.panel,
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
               color: _active
                   ? Colors.transparent
                   : hovered
-                  ? widget.accent.withValues(alpha: 0.5)
+                  ? widget.accent.withOpacity(0.5)
                   : widget.border,
               width: 1.5,
             ),
@@ -7112,7 +8046,7 @@ class _HeroCardBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: accent.withValues(alpha: 0.10),
+        color: accent.withOpacity(0.10),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Text(
@@ -7177,27 +8111,27 @@ class _RoutineItemState extends State<_RoutineItem> {
     return Semantics(
       button: true,
       label: '${widget.label}: ${widget.value}',
-      child: MouseRegion(
-        onEnter: (_) => setState(() => _hovered = true),
-        onExit: (_) => setState(() {
-          _hovered = false;
-          _pressed = false;
-        }),
-        child: GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTapDown: (_) => setState(() => _pressed = true),
-          onTapUp: (_) {
-            setState(() => _pressed = false);
-            widget.onTap();
-          },
-          onTapCancel: () => setState(() => _pressed = false),
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTapDown: (_) => setState(() => _pressed = true),
+        onTapUp: (_) {
+          setState(() => _pressed = false);
+          widget.onTap();
+        },
+        onTapCancel: () => setState(() => _pressed = false),
+        child: MouseRegion(
+          onEnter: (_) => setState(() => _hovered = true),
+          onExit: (_) => setState(() {
+            _hovered = false;
+            _pressed = false;
+          }),
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 130),
             curve: Curves.easeOut,
             padding: EdgeInsets.symmetric(horizontal: 4, vertical: 1.5 * s),
             decoration: BoxDecoration(
               color: isActive
-                  ? widget.color.withValues(alpha: 0.08)
+                  ? widget.color.withOpacity(0.08)
                   : Colors.transparent,
               borderRadius: BorderRadius.circular(10),
             ),
@@ -7213,12 +8147,13 @@ class _RoutineItemState extends State<_RoutineItem> {
                     height: bubbleSize,
                     decoration: BoxDecoration(
                       color: isActive
-                          ? widget.color.withValues(alpha: 0.22)
-                          : widget.color.withValues(alpha: 0.13),
+                          ? widget.color.withOpacity(0.22)
+                          : widget.color.withOpacity(0.13),
                       shape: BoxShape.circle,
                     ),
-                    child:
-                    Icon(widget.icon, size: iconSize, color: widget.color),
+                    child: Center(
+                      child: Icon(widget.icon, size: iconSize, color: widget.color),
+                    ),
                   ),
                 ),
                 SizedBox(width: 8 * s),
@@ -7266,7 +8201,7 @@ class _RoutineItemState extends State<_RoutineItem> {
                       Icons.chevron_right_rounded,
                       size: chevronSize,
                       color:
-                      widget.color.withValues(alpha: isActive ? 0.90 : 0.50),
+                      widget.color.withOpacity(isActive ? 0.90 : 0.50),
                     ),
                   ),
                 ),

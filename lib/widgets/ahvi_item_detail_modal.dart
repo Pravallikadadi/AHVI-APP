@@ -22,7 +22,6 @@ import 'package:myapp/theme/theme_tokens.dart';
 import 'package:myapp/wardrobe.dart'; // WardrobeItem lives here
 import 'package:myapp/services/backend_service.dart'; // styleWardrobeItem
 import 'package:myapp/style_board/board_models.dart';
-import 'package:myapp/style_board/board_renderer.dart';
 import 'package:myapp/style_board/board_layout_engine.dart';
 import 'package:myapp/app_localizations.dart'; // 🆕 Localization
 import 'style_boards.dart'; // 🆕 STYLE BOARDS INTEGRATION (consolidated, same folder)
@@ -407,9 +406,9 @@ class _ItemDetailModal extends StatelessWidget {
     Navigator.of(context).pop(); // item detail modal close చేయి
     showBuildOutfitSheet(
       context,
-      initialItem: item,
+      selectedItem: item,
       allItems: allItems,
-      onOutfitCreated: onBuildOutfit, // optional callback (caller provided అయితే trigger అవుతుంది)
+      onStyleSelected: onBuildOutfit, // optional callback (caller provided అయితే trigger అవుతుంది)
     );
   }
 

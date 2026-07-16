@@ -110,7 +110,25 @@ class AhviHeader extends StatelessWidget {
                     ],
                     logo,
                     const Spacer(),
-                    if (right != null) right!,
+                    // ✏️ FIX: The Row here gets a TIGHT height constraint of just
+                    // `logoSize` (26–30px). A raw UnconstrainedBox let a taller
+                    // `right` widget (e.g. the 40×40 profile avatar) render at its
+                    // full size, which fixed the oval-squish but then overflowed/
+                    // clipped against this header's fixed overall height on
+                    // smaller screens. Wrapping in a SizedBox(logoSize × logoSize)
+                    // + FittedBox instead scales `right` down uniformly (preserving
+                    // its aspect ratio, so circles stay circles) to exactly fit the
+                    // available space — no squish, no overflow.
+                    if (right != null)
+                      SizedBox(
+                        width: logoSize,
+                        height: logoSize,
+                        child: FittedBox(
+                          fit: BoxFit.contain,
+                          alignment: Alignment.center,
+                          child: right!,
+                        ),
+                      ),
                   ],
                 ),
               ),
