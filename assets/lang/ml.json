@@ -1268,5 +1268,7 @@
   "status_in_progress": "പ്രക്രിയയിലാണ്",
   "care_routine": "പരിചരണ ദിനാചരണം",
   "no_medicines": "മരുന്നുകളില്ല",
-  "status_done": "നിലവാരം: പൂർത്തിയായി"
+  "status_done": "നിലവാരം: പൂർത്തിയായി",
+  "routine_medicine": "മരുന്ന്",
+  "routine_medicine_desc": "ദൈനംദിന മരുന്ന്"
 }

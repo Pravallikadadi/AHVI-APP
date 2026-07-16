@@ -140,6 +140,101 @@ class BackendService {
     }
   }
 
+  Future<Map<String, dynamic>?> getDailyBoard() async {
+    try {
+      final response = await http
+          .get(
+        Uri.parse('$baseUrl/api/stylist/daily-board'),
+        headers: await _authHeaders(),
+      )
+          .timeout(const Duration(seconds: 45));
+      if (response.statusCode == 200) {
+        return await compute(_parseJsonMap, response.body);
+      }
+      debugPrint(
+        'getDailyBoard failed: ${response.statusCode} - ${response.body}',
+      );
+      return null;
+    } catch (e) {
+      debugPrint('getDailyBoard error: $e');
+      return null;
+    }
+  }
+
+  Future<bool> logWear(List<String> itemIds) async {
+    final ids = itemIds
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toList(growable: false);
+    if (ids.isEmpty) return false;
+    try {
+      final response = await http
+          .post(
+        Uri.parse('$baseUrl/api/style/log-wear'),
+        headers: await _authHeaders(),
+        body: jsonEncode({'item_ids': ids}),
+      )
+          .timeout(const Duration(seconds: 20));
+      return response.statusCode >= 200 && response.statusCode < 300;
+    } catch (e) {
+      debugPrint('logWear error: $e');
+      return false;
+    }
+  }
+
+  // --- ACCOUNT & PROFILE ---
+  Future<void> deleteAccount(String userId) async {
+    final response = await http.delete(
+      Uri.parse('$baseUrl/api/user/delete-account'),
+      headers: await _authHeaders(),
+      body: jsonEncode({"user_id": userId}),
+    );
+    if (response.statusCode != 200) {
+      throw Exception('Failed to delete account');
+    }
+  }
+
+  Future<void> updateProfile(
+      String userId, {
+        String? name,
+        String? gender,
+        String? skinTone,
+      }) async {
+    final response = await http.patch(
+      Uri.parse('$baseUrl/api/user/update-profile'),
+      headers: await _authHeaders(),
+      body: jsonEncode({
+        "user_id": userId,
+        if (name != null) "name": name,
+        if (gender != null) "gender": gender,
+        if (skinTone != null) "skin_tone": skinTone,
+      }),
+    );
+    if (response.statusCode != 200) {
+      throw Exception('Failed to update profile');
+    }
+  }
+
+  // --- FAVORITES ---
+  Future<void> toggleGarmentFavorite(
+      String userId,
+      String itemId,
+      bool isLiked,
+      ) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/api/wardrobe/favorite'),
+      headers: await _authHeaders(),
+      body: jsonEncode({
+        "user_id": userId,
+        "item_id": itemId,
+        "is_liked": isLiked,
+      }),
+    );
+    if (response.statusCode != 200) {
+      throw Exception('Failed to sync favorite status');
+    }
+  }
+
   Object _memoryPayload(
       String currentMemory, [
         Map<String, dynamic>? lastStyleContext,
@@ -913,7 +1008,7 @@ class BackendService {
   /// handle a non-null map with success == false.
   Future<Map<String, dynamic>?> styleWardrobeItem({
     required String itemId,
-    required String mode,
+    required String scenario,
     Map<String, dynamic>? anchorItem,
     String? occasion,
   }) async {
@@ -926,7 +1021,9 @@ class BackendService {
         headers: await _authHeaders(),
         body: jsonEncode({
           'user_id': await _currentUserId(),
-          'mode': mode,
+          'mode': scenario,
+          'scenario': scenario,
+          'anchor_garment_id': itemId,
           if (occasion != null && occasion.isNotEmpty) 'occasion': occasion,
           if (anchorItem != null) 'anchor_item': anchorItem,
         }),
@@ -942,80 +1039,6 @@ class BackendService {
       return null;
     } catch (e) {
       debugPrint('styleWardrobeItem error: $e');
-      return null;
-    }
-  }
-
-  /// Fetch style boards via the new /api/stylist/generate endpoint.
-  ///
-  /// [scenario] must be either 'build_outfit' or 'style_this'.
-  /// [garmentId] is passed as anchor_garment_id in the context body.
-  ///
-  /// The response may carry intent == 'insufficient_wardrobe' or alert == true
-  /// when the user's wardrobe is too sparse to build a real outfit. Callers
-  /// MUST check these fields before rendering boards — see the item-detail
-  /// modal for the canonical check-and-alert pattern.
-  ///
-  /// Returns null only on transport / timeout failure; a non-null map with
-  /// intent == 'insufficient_wardrobe' is a valid, handled response.
-  Future<Map<String, dynamic>?> fetchStyleBoards({
-    required String garmentId,
-    required String scenario, // 'build_outfit' or 'style_this'
-    String? occasion,
-    String? weather,
-    Map<String, dynamic>? styleDna,
-    Map<String, dynamic>? anchorItem,
-  }) async {
-    try {
-      final userId = await _currentUserId();
-
-      final contextPayload = <String, dynamic>{
-        'anchor_garment_id': garmentId,
-        'scenario': scenario,
-        'user_id': userId,
-        if (occasion != null && occasion.trim().isNotEmpty)
-          'occasion': occasion.trim(),
-        if (weather != null && weather.trim().isNotEmpty)
-          'weather': weather.trim(),
-        if (styleDna != null && styleDna.isNotEmpty) 'style_dna': styleDna,
-        if (anchorItem != null) 'anchor_item': anchorItem,
-      };
-
-      debugPrint(
-        'AHVI_FETCH_STYLE_BOARDS garmentId=$garmentId scenario=$scenario',
-      );
-
-      final response = await http
-          .post(
-        Uri.parse('$baseUrl/api/stylist/generate'),
-        headers: await _authHeaders(),
-        body: jsonEncode({'context': contextPayload}),
-      )
-          .timeout(const Duration(seconds: 60));
-
-      if (response.statusCode == 200) {
-        final data = await compute(_parseJsonMap, response.body);
-        debugPrint(
-          'AHVI_FETCH_STYLE_BOARDS_OK '
-              'intent=${data['intent']} '
-              'alert=${data['alert']} '
-              'boards=${(data['boards'] as List?)?.length ?? 0}',
-        );
-        return data;
-      }
-
-      debugPrint(
-        'AHVI_FETCH_STYLE_BOARDS_FAIL '
-            'status=${response.statusCode} body=${response.body}',
-      );
-      return null;
-    } on TimeoutException {
-      debugPrint(
-        'AHVI_FETCH_STYLE_BOARDS_TIMEOUT garmentId=$garmentId scenario=$scenario',
-      );
-      return null;
-    } catch (e) {
-      debugPrint('AHVI_FETCH_STYLE_BOARDS_ERR $e');
       return null;
     }
   }

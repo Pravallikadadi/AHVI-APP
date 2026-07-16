@@ -1268,5 +1268,7 @@
   "status_in_progress": "ಪ್ರಗತಿಯಲ್ಲಿ",
   "care_routine": "ಕೇರ್ ರೂಟೀನ್",
   "no_medicines": "ಔಷಧಗಳಿಲ್ಲ",
-  "status_done": "ಸ್ಥಿತಿ: ಪೂರ್ಣ"
+  "status_done": "ಸ್ಥಿತಿ: ಪೂರ್ಣ",
+  "routine_medicine": "ಔಷಧ",
+  "routine_medicine_desc": "ದೈನಂದಿನ ಮಾತ್ರೆಗಳು"
 }

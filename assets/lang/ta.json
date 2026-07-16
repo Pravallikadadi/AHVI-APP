@@ -1268,5 +1268,7 @@
   "status_in_progress": "முன்னேறிக்கொண்டு இருக்கிறது",
   "care_routine": "பராமரிப்பு வழக்கம்",
   "no_medicines": "மருந்துகள் இல்லை",
-  "status_done": "நிலை: முடிந்தது"
+  "status_done": "நிலை: முடிந்தது",
+  "routine_medicine": "மருந்து",
+  "routine_medicine_desc": "தினசரி மருந்து"
 }

@@ -425,6 +425,19 @@ class _BuildOutfitScreenState extends State<BuildOutfitScreen> {
     }
   }
 
+  /// Small helper so brand-new UI strings never crash if a
+  /// localization key hasn't been added yet — falls back to the
+  /// given English text. Existing keys keep using AppLocalizations.t
+  /// directly, unchanged.
+  String _tr(BuildContext context, String key, String fallback) {
+    try {
+      final value = AppLocalizations.t(context, key);
+      return value.isNotEmpty ? value : fallback;
+    } catch (_) {
+      return fallback;
+    }
+  }
+
   // ── Data fetching (AI flow) ──────────────────────────────────
 
   Future<void> _loadOutfits() async {
@@ -440,11 +453,11 @@ class _BuildOutfitScreenState extends State<BuildOutfitScreen> {
         occasionNameFor: (occasion) {
           switch (occasion) {
             case 'casual':
-              return AppLocalizations.t(context, 'buildOutfitOccasionCasual');
+              return _tr(context, 'style_boards_board_name_1', 'Casual');
             case 'office':
-              return AppLocalizations.t(context, 'buildOutfitOccasionOffice');
+              return _tr(context, 'style_boards_board_name_2', 'Office');
             default:
-              return AppLocalizations.t(context, 'buildOutfitOccasionEvening');
+              return _tr(context, 'style_boards_board_name_3', 'Evening');
           }
         },
       );
@@ -467,7 +480,8 @@ class _BuildOutfitScreenState extends State<BuildOutfitScreen> {
     } catch (_) {
       if (!mounted) return;
       setState(() {
-        _loadError = AppLocalizations.t(context, 'buildOutfitLoadError');
+        _loadError = _tr(context, 'buildOutfitLoadError',
+            'Could not generate an outfit. Please try again.');
         _isLoading = false;
       });
     }
@@ -651,8 +665,8 @@ class _BuildOutfitScreenState extends State<BuildOutfitScreen> {
       backgroundColor: Colors.transparent,
       builder: (ctx) => _ItemPickerSheet(
         title: similarOnly
-            ? AppLocalizations.t(context, 'style_boards_find_similar_title')
-            : AppLocalizations.t(context, 'style_boards_replace_title'),
+            ? _tr(context, 'style_boards_find_similar_title', 'Find Similar')
+            : _tr(context, 'style_boards_replace_title', 'Replace This Item'),
         candidates: candidates,
         onPicked: (picked) {
           Navigator.pop(ctx);
@@ -727,7 +741,7 @@ class _BuildOutfitScreenState extends State<BuildOutfitScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            AppLocalizations.t(context, 'buildOutfitTitle'),
+            _tr(context, 'buildOutfitTitle', 'Build Outfit'),
             style: GoogleFonts.inter(
               fontSize: 18,
               fontWeight: FontWeight.w700,
@@ -768,7 +782,7 @@ class _BuildOutfitScreenState extends State<BuildOutfitScreen> {
           CircularProgressIndicator(color: t.accent.primary),
           const SizedBox(height: 16),
           Text(
-            AppLocalizations.t(context, 'style_boards_loading'),
+            _tr(context, 'style_boards_loading', 'Styling your outfit…'),
             style: GoogleFonts.inter(fontSize: 13, color: t.mutedText),
           ),
         ],
@@ -797,7 +811,7 @@ class _BuildOutfitScreenState extends State<BuildOutfitScreen> {
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 child: Text(
-                  AppLocalizations.t(context, 'style_boards_retry'),
+                  _tr(context, 'style_boards_retry', 'Retry'),
                   style: GoogleFonts.inter(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
@@ -857,7 +871,7 @@ class _BuildOutfitScreenState extends State<BuildOutfitScreen> {
   // Picks the exact sketch layout based on item count (3–8).
   // ============================================================
 
-  static const double _kGap = 10.0;
+  static const double _kGap = 16.0;
 
   // Caps how large any single grid cell in the 1/2/4-item layouts can
   // grow. Those layouts use half-width (or bigger) cells, which made
@@ -865,7 +879,7 @@ class _BuildOutfitScreenState extends State<BuildOutfitScreen> {
   // widths. 5/6/7/8-item layouts already divide into three columns and
   // stay compact on their own, so they're left as-is. (3-item layout
   // has its own sizing — see _kLayout3MaxRowWidth below.)
-  static const double _kMaxCardExtent = 140.0;
+  static const double _kMaxCardExtent = 180.0;
 
   double _cappedCellWidth(double totalWidth, double gap, int columns,
       {double maxExtent = _kMaxCardExtent}) {
@@ -932,7 +946,7 @@ class _BuildOutfitScreenState extends State<BuildOutfitScreen> {
   //            photo's aspect, instead of a narrow rectangle that got
   //            cropped by BoxFit.cover) and the whole row never grows
   //            past _kLayout3MaxRowWidth.
-  static const double _kLayout3MaxRowWidth = 220.0;
+  static const double _kLayout3MaxRowWidth = 270.0;
 
   Widget _layout3(
       BuildContext context, AppThemeTokens t, List<BoardDisplayItem> items) {
@@ -1552,13 +1566,13 @@ class _BuildOutfitScreenState extends State<BuildOutfitScreen> {
     }
   }
 
-  static const double _kHGap = 6.0; // tighter gap for the mini preview
+  static const double _kHGap = 10.0; // tighter gap for the mini preview
 
   // Outfit History cards are always rendered smaller than the main
   // board — this caps their overall width regardless of layout (A, B,
   // or otherwise), so they read as compact previews rather than
   // full-size boards.
-  static const double _kHistoryCardMaxWidth = 150.0;
+  static const double _kHistoryCardMaxWidth = 200.0;
 
   Widget _buildHistoryItemCard(
       BuildContext context, BoardDisplayItem item, AppThemeTokens t) {

@@ -2357,7 +2357,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                   // Placeholder height — _buildFixedLogoBar తో exact match:
                   // SafeArea.top (statusBarH) + topPad + logoFontSize + botPad
                   // Chat _ChatLogoHeader కూడా same values use చేస్తోంది
-                  final double topPad = screenH < 700 ? 6.0 : 10.0;
+                  final double topPad = screenH < 700 ? 12.0 : 16.0;
                   final double botPad = screenH < 700 ? 4.0 : 6.0;
                   final double logoFontSizeH = screenH < 700 ? 26.0 : 30.0;
                   final double statusBarH = MediaQuery.paddingOf(context).top;
@@ -2405,10 +2405,36 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                   // since it's applied inside an Expanded (which can never
                   // request more space than its parent has to give).
                   final safeBottom = MediaQuery.paddingOf(context).bottom;
-                  const promptBarH = 62.0;              // Prompt bar visual height
-                  const promptBarBottomOffset = 84.0;   // matches `navBarTotalH` (safeB + 84) used below for the floating prompt bar
-                  const breathingGap = 8.0;             // small clearance above the prompt bar
-                  final bottomReserved = safeBottom + promptBarBottomOffset + promptBarH + breathingGap;
+                  // Prompt bar sits at bottom: navBarTotalH (safeBottom+88).
+                  // We only need to clear: navBarTotalH + promptBarH + gap.
+                  // Do NOT add safeBottom again — it's already baked into navBarTotalH.
+                  // ✏️ Bumped +8 (62→70) to reserve space for the taller prompt
+                  // bar — actual bar height lives in AhviChatPromptBar
+                  // (widgets/ahvi_chat_prompt_bar.dart), not in this file.
+                  const promptBarH = 70.0;
+                  // ✏️ Nav bar sits at safeB+6, is now 78px tall (pillH 64 +
+                  // maxBulge 14 — bumped from 58px so icons feel less
+                  // cramped), so its top edge sits at safeB+84. A consistent
+                  // 4px gap above it puts navBarTotalH at safeB+88.
+                  // ✅ FIX 1: navBarTotalH reduced by 1px (88→87).
+                  // ✅ FIX 3: tightened by another 1px (87→86) — Nav Bar ↔
+                  // Prompt Bar gap is now 1px tighter than before.
+                  final double navBarTotalH = 86.0;
+                  final double screenHFull = MediaQuery.of(context).size.height;
+                  final double promptExtraLift =
+                  screenHFull >= 760 ? 8.0 : screenHFull >= 680 ? 6.0 : 0.0;
+                  // ✅ FIX 2: breathingGap reduced from 6→4 (saves 2px between
+                  // Prep & Plan card and Prompt Bar).
+                  // ✅ FIX 4: tightened by another 3px (4→1) — Prep & Plan ↔
+                  // Prompt Bar gap is now 3px tighter than before.
+                  const breathingGap = 1.0;
+                  // Combined, FIX 3 + FIX 4 recover 4px of vertical space
+                  // (1px + 3px) versus the previous layout. That whole 4px is
+                  // routed entirely into the Routine Cards section below
+                  // (see recoveredSpaceForRoutine) instead of being re-split
+                  // across Hero + Routine by flex.
+                  const recoveredSpaceForRoutine = 4.0;
+                  final bottomReserved = safeBottom + navBarTotalH + promptBarH + promptExtraLift + breathingGap;
 
                   return SizedBox(
                     height: constraints.maxHeight,
@@ -2430,66 +2456,78 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                           ),
                           SizedBox(height: topSpacing),
 
-                          // ── SINGLE SCREEN LAYOUT: No scrolling ──
-                          // All content must fit within the remaining height
+                          // ── CARDS LAYOUT — distribute remaining height ────────
+                          // Expanded takes all SafeArea height minus topBar + greeting.
+                          // The inner LayoutBuilder distributes that to the 3 cards.
+                          // bottomReserved padding keeps the last card above the prompt bar.
                           Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisSize: MainAxisSize.max,
-                              children: [
-                                // Style Card — Responsive height based on screen size
-                                // ✅ OPTIMIZED: Increased to maximum — uses all freed space
-                                // Now uses the freed spacing (12px from chips/progress) to expand hero prominence
-                                // ✏️ +12px total: reclaimed from tracker→cards gap
-                                // (−6px across three passes) and routine card top
-                                // padding (−6px across three passes) below.
-                                SizedBox(
-                                  height: screenH < 700
-                                      ? (screenH * 0.22).clamp(110.0, 172.0) + 12
-                                      : (screenH * 0.22).clamp(130.0, 197.0) + 12,
-                                  child: ValueListenableBuilder<int>(
-                                    valueListenable: _cardContextVersion,
-                                    builder: (context, _, __) => _buildHeroCard(),
-                                  ),
-                                ),
-                                SizedBox(height: cardSpacing),
+                            child: Padding(
+                              padding: EdgeInsets.only(bottom: bottomReserved),
+                              child: LayoutBuilder(
+                                builder: (context, cardConstraints) {
+                                  final availableH = cardConstraints.maxHeight;
+                                  // ── PREP & PLAN: fixed height (it hosts a designed,
+                                  // pre-cropped weekly image, so it shouldn't stretch
+                                  // or shrink like the other two). Still screen-size
+                                  // aware via the existing proportional+clamp formula,
+                                  // just bumped +17px (15–20px per spec) on top of it.
+                                  // ── PREP & PLAN: Reduced by ~17px vs previous formula ──
+                                  // The saved height flows to Routine cards (flex 38 vs 35)
+                                  // which eliminates the 1px bottom overflow on all screens.
+                                  final prepH = (availableH * 0.22).clamp(95.0, 120.0);
 
-                                // Routine cards — Responsive with better overflow handling
-                                // ✅ FIX: Reduced from 0.25/0.27 to 0.22 to match Hero card
-                                // and free up space for Prep & Plan section.
-                                // The clamp ensures cards have enough height for their
-                                // icon + label + description + status stack.
-                                SizedBox(
-                                  // ✏️ −10px per spec (routine cards: 130→120px range)
-                                  height: screenH < 700
-                                      ? (screenH * 0.22).clamp(106.0, 119.0)
-                                      : (screenH * 0.22).clamp(118.0, 149.0),
-                                  child: ValueListenableBuilder<int>(
-                                    valueListenable: _cardContextVersion,
-                                    builder: (context, _, __) =>
-                                        _buildRoutineCardsSection(),
-                                  ),
-                                ),
-                                SizedBox(height: cardSpacing),
+                                  // ── HERO + ROUTINE: share the remaining flexible height ──
+                                  // Hero is pinned to a fixed height computed from the
+                                  // *pre-recovery* flexible space (62%), so the 4px
+                                  // recovered from tightening the Nav↔Prompt and
+                                  // Prep↔Prompt gaps doesn't get re-split 62/38 by
+                                  // flex — it flows entirely to Routine Cards' Expanded
+                                  // below instead, which just consumes whatever's left.
+                                  final flexibleH = availableH - prepH - (cardSpacing * 2);
+                                  final heroH = math.max(
+                                    0.0,
+                                    (flexibleH - recoveredSpaceForRoutine) * 0.62,
+                                  );
 
-                                // Prep & Plan card — back to Expanded (fills whatever space
-                                // is actually left) instead of a fixed pixel height, so it
-                                // adapts to any screen size with ZERO overflow risk — Expanded
-                                // can never claim more space than its parent Column has to
-                                // give. `bottomReserved` (computed above from the real safe
-                                // area + nav bar + prompt bar dimensions) keeps the visible
-                                // card clear of the floating prompt bar on every device.
-                                Expanded(
-                                  child: Padding(
-                                    padding: EdgeInsets.only(bottom: bottomReserved),
-                                    child: ValueListenableBuilder<int>(
-                                      valueListenable: _cardContextVersion,
-                                      builder: (context, _, __) =>
-                                          _buildPrepPlanCard(screenH: screenH),
-                                    ),
-                                  ),
-                                ),
-                              ],
+                                  return Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    mainAxisSize: MainAxisSize.max,
+                                    children: [
+                                      // ── HERO / STYLE CARD ──────────────────────────────
+                                      SizedBox(
+                                        height: heroH,
+                                        child: ValueListenableBuilder<int>(
+                                          valueListenable: _cardContextVersion,
+                                          builder: (context, _, __) => _buildHeroCard(),
+                                        ),
+                                      ),
+                                      SizedBox(height: cardSpacing),
+
+                                      // ── ROUTINE CARDS ───────────────────────────────────
+                                      // Expanded absorbs all remaining space, which now
+                                      // includes the full 4px recovered above.
+                                      Expanded(
+                                        child: ValueListenableBuilder<int>(
+                                          valueListenable: _cardContextVersion,
+                                          builder: (context, _, __) =>
+                                              _buildRoutineCardsSection(),
+                                        ),
+                                      ),
+                                      SizedBox(height: cardSpacing),
+
+                                      // ── PREP & PLAN CARD ────────────────────────────────
+                                      SizedBox(
+                                        height: prepH,
+                                        child: ValueListenableBuilder<int>(
+                                          valueListenable: _cardContextVersion,
+                                          builder: (context, _, __) =>
+                                              _buildPrepPlanCard(screenH: screenH),
+                                        ),
+                                      ),
+                                    ],
+                                  );
+                                },
+                              ),
                             ),
                           ),
                         ],
@@ -2541,13 +2579,25 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
               // didChangeMetrics triggers a rebuild via setState anyway.
               final kbH = MediaQuery.of(ctx).viewInsets.bottom;
               final safeB = MediaQuery.paddingOf(ctx).bottom;
-              final navBarTotalH = safeB + 70.0 - 6.0 + 20.0;  // ✏️ moved prompt bar UP 20px more to close the gap below the Prep & Plan card
-              // ✏️ Nav bar totalH was reduced (58 -> 50), so its top edge sits at
-              // safeB+56. This now sits at safeB+84 (was safeB+64) — a bigger
-              // 28px gap above the nav bar (still no merging), and the prompt
-              // bar sits right up against the Prep & Plan card above it instead
-              // of leaving empty space beneath the card.
-              final promptBottom = kbH > 0 ? kbH + 8.0 : navBarTotalH;  // 8px consistent spacing
+              final screenHPrompt = MediaQuery.of(ctx).size.height;
+              // ✏️ Nav bar sits at safeB+6, is now 78px tall (pillH 64 +
+              // maxBulge 14, up from 58px) — top edge at safeB+84. A
+              // consistent 4px gap above it puts navBarTotalH at safeB+88.
+              // ✅ FIX 1: matches bottomReserved — prompt bar 1px closer to nav bar.
+              // ✅ FIX 3: matches bottomReserved — tightened another 1px (87→86).
+              final navBarTotalH = safeB + 86.0;
+              // ✏️ Responsive keyboard-open gap: 8px on shorter screens, 10px
+              // on taller ones (was a fixed 8px).
+              final double promptKeyboardGap = screenHPrompt < 700 ? 8.0 : 10.0;
+              // ✏️ Extra lift so the prompt bar sits 6–8px higher than its
+              // resting spot when the screen has room to spare — the 4px
+              // gap above the nav bar is always preserved as a floor, this
+              // only ever adds MORE breathing room on taller devices.
+              final double promptExtraLift =
+              screenHPrompt >= 760 ? 8.0 : screenHPrompt >= 680 ? 6.0 : 0.0;
+              final promptBottom = kbH > 0
+                  ? kbH + promptKeyboardGap
+                  : navBarTotalH + promptExtraLift;
               return Positioned(
                 left: 20,
                 right: 20,
@@ -2646,7 +2696,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
 
   Widget _buildTopBar() {
     final screenH = MediaQuery.of(context).size.height;
-    final double topPad = screenH < 700 ? 6.0 : 10.0;
+    final double topPad = screenH < 700 ? 12.0 : 16.0;
     final double botPad = screenH < 700 ? 4.0 : 6.0;
     final double logoFontSize = screenH < 700 ? 26.0 : 30.0;
     return Padding(
@@ -2863,6 +2913,19 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
 
   /// Builds the 3 context chips: Mobility day | 27° | No meetings
   Widget _buildContextInfoChips() {
+    final screenW = MediaQuery.of(context).size.width;
+    // 🆕 Continuous responsive scale factor (1.0 = 360dp baseline), matching
+    // the same proportional approach used by the style/hero card, Prep & Plan
+    // card, and routine cards — instead of one fixed pixel size for every
+    // phone screen.
+    final chipScale = (screenW / 360.0).clamp(0.85, 1.30);
+    final chipIconSize = 14.0 * chipScale;
+    final chipFontSize = 12.0 * chipScale;
+    final chipPadH = 11.0 * chipScale;
+    final chipPadV = 4.0 * chipScale;
+    final chipIconGap = 5.0 * chipScale;
+    final chipGap = 8.0 * chipScale;
+
     // Derive labels from live signals
     final w = _weatherSignal;
     final tempLabel = w.tempCelsius != null ? '${w.tempCelsius!.round()}°' : '--°';
@@ -2892,9 +2955,17 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
       required Color iconColor,
       required VoidCallback onTap,
     }) {
+      // Cap label length so chips never break layout on very small screens
+      final maxLabelChars = screenW < 360 ? 12 : 18;
+      final displayLabel = label.length > maxLabelChars
+          ? '${label.substring(0, maxLabelChars)}…'
+          : label;
       return GestureDetector(
         onTap: onTap,
         child: Container(
+          constraints: BoxConstraints(
+            maxWidth: (screenW * 0.38).clamp(90.0, 160.0),
+          ),
           decoration: BoxDecoration(
             color: _surface.withOpacity(0.90),
             borderRadius: BorderRadius.circular(20),
@@ -2903,22 +2974,24 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
               BoxShadow(color: _shadowLight, blurRadius: 6),
             ],
           ),
-          padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 4), // ✏️ Reduced from 6 (saves ~4px height)
+          padding: EdgeInsets.symmetric(horizontal: chipPadH, vertical: chipPadV),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(icon, size: 14, color: iconColor),
-              const SizedBox(width: 5),
-              Text(
-                label,
-                style: TextStyle(
-                  color: _textHeading,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                  letterSpacing: -0.1,
+              Icon(icon, size: chipIconSize, color: iconColor),
+              SizedBox(width: chipIconGap),
+              Flexible(
+                child: Text(
+                  displayLabel,
+                  style: TextStyle(
+                    color: _textHeading,
+                    fontSize: chipFontSize,
+                    fontWeight: FontWeight.w500,
+                    letterSpacing: -0.1,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
               ),
               // ✅ Dropdown arrow removed - no more dropdowns
             ],
@@ -2945,7 +3018,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
               );
             },
           ),
-          const SizedBox(width: 8),
+          SizedBox(width: chipGap),
 
           // ✅ WEATHER CHIP - Synced with Meteo API (Display only, no modal)
           chip(
@@ -2956,7 +3029,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
               // Weather chip is now informational only - no modal
             },
           ),
-          const SizedBox(width: 8),
+          SizedBox(width: chipGap),
 
           // ✅ MEETINGS CHIP - Synced with Calendar screen
           chip(
@@ -2977,6 +3050,9 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
   }
 
   Widget _buildPromptChipsRow() {
+    final screenW = MediaQuery.of(context).size.width;
+    final chipFontSize = screenW < 360 ? 11.0 : 12.0;
+    final chipHPad = screenW < 360 ? 10.0 : 14.0;
     // 🆕 Chips localized
     final chips = [
       ('✦', AppLocalizations.t(context, 'chip_outfit_idea'), AppLocalizations.t(context, 'chip_prompt_outfit')),
@@ -2986,7 +3062,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
       ('◷', AppLocalizations.t(context, 'chip_schedule'), AppLocalizations.t(context, 'chip_prompt_schedule')),
     ];
     return SizedBox(
-      height: 36, // ✏️ Reduced from 40px (saves 4px)
+      height: 36,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(vertical: 4),
@@ -3010,7 +3086,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                   ),
                 ],
               ),
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+              padding: EdgeInsets.symmetric(horizontal: chipHPad, vertical: 7),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -3026,7 +3102,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                     chips[i].$2,
                     style: TextStyle(
                       color: _textSub,
-                      fontSize: 12,
+                      fontSize: chipFontSize,
                       fontWeight: FontWeight.w500,
                       letterSpacing: -0.01,
                     ),
@@ -3135,24 +3211,21 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
           final screenW = MediaQuery.of(context).size.width;
           final screenH = MediaQuery.of(context).size.height;
 
-          // 🆕 RESPONSIVE SIZING
-          // Small phones (280-360): min height, compact text
-          // Standard (360-480): normal layout
-          // Large (480-640): normal layout
-          // Tablets (640+): max height, larger text
-          final cardHeight = (screenH * 0.22).clamp(130.0, 171.0) + 12;
+          // ── RESPONSIVE SIZING ──────────────────────────────────────────
+          // cardHeight is driven by the parent SizedBox; use double.infinity
+          // so the card fills whatever height the parent provides.
+          // Internal sizes derived from screenW (not screenH) for consistency.
+          final cardHeight = double.infinity;
 
           // Responsive padding based on screen width
-          final horPadding = screenW < 360 ? 12.0 : screenW < 640 ? 16.0 : 20.0;
+          // ✏️ Left/right padding reduced by 4px per spec (was 12/16/20).
+          final horPadding = screenW < 360 ? 8.0 : screenW < 640 ? 12.0 : 16.0;
           final vertPadding = screenW < 360 ? 12.0 : screenW < 640 ? 14.0 : 16.0;
-
-          // Responsive font sizes
-          final titleFontSize = screenW < 360 ? 14.0 : screenW < 640 ? 16.0 : 18.0;
-          final bulletLabelSize = screenW < 360 ? 11.0 : screenW < 640 ? 12.0 : 13.0;
-          final bulletDescSize = screenW < 360 ? 9.0 : screenW < 640 ? 10.0 : 11.0;
-
-          // Responsive spacing between bullets
-          final bulletSpacing = screenW < 360 ? 6.0 : 8.0;
+          // 🆕 Text font sizes are now derived inside a LayoutBuilder around the
+          // text panel itself (see the flex:55 Expanded below) so they scale
+          // off the card's own available width/height instead of just the
+          // global screen width — keeps the heading, labels, descriptions and
+          // CTA proportional to the card size on every device.
 
           return Container(
             width: double.infinity,
@@ -3189,24 +3262,26 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                       topLeft: Radius.circular(28),
                       bottomLeft: Radius.circular(28),
                     ),
+                    // 🆕 Removed the fixed 8px inset + extra Center wrapper that
+                    // made the outfit photo look boxed inside a smaller square.
+                    // The image now stretches to fill the entire left panel;
+                    // BoxFit.contain still guarantees the whole outfit stays
+                    // visible with no cropping, and Alignment.center keeps it
+                    // centered — it just uses all the available space naturally
+                    // instead of sitting inside a padded inset.
                     child: Container(
                       color: _accent.withOpacity(0.08),
-                      // ✏️ Image now fills the full tile — no dead space top/bottom
-                      child: Align(
+                      width: double.infinity,
+                      height: double.infinity,
+                      child: Image.asset(
+                        genderedAssetPath,
+                        fit: BoxFit.contain,
                         alignment: Alignment.center,
-                        child: FractionallySizedBox(
-                          widthFactor: 1.0,
-                          heightFactor: 1.0,
-                          child: Image.asset(
-                            genderedAssetPath,
-                            fit: BoxFit.cover,
-                            alignment: Alignment.center,
-                            filterQuality: FilterQuality.high,
-                            // ✅ FIX: Removed fallback image (checkroom icon)
-                            errorBuilder: (_, __, ___) => Container(
-                              color: _accent.withOpacity(0.12),
-                            ),
-                          ),
+                        width: double.infinity,
+                        height: double.infinity,
+                        filterQuality: FilterQuality.high,
+                        errorBuilder: (_, __, ___) => Container(
+                          color: _accent.withOpacity(0.12),
                         ),
                       ),
                     ),
@@ -3225,120 +3300,138 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                       top: vertPadding,
                       bottom: vertPadding,
                     ),
-                    // ✅ FIX: Removed SingleChildScrollView and LayoutBuilder.
-                    // Card height now scales to fit content without scrolling.
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        // 🔧 FIX: title + bullets used to be a fixed-size Column that
-                        // could be taller than the space actually left inside this
-                        // fixed-height card once the "Style Me" button below also
-                        // claimed its share — that produced a bottom overflow. Wrapping
-                        // it in Expanded + FittedBox(scaleDown) lets it take exactly the
-                        // remaining space above the button, shrinking uniformly only if
-                        // it doesn't fit, and never overflowing.
-                        Expanded(
-                          child: FittedBox(
-                            fit: BoxFit.scaleDown,
-                            alignment: Alignment.topLeft,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(
-                                  '${AppLocalizations.t(context, 'hero_card_title_main')}\n${AppLocalizations.t(context, 'hero_card_title_subtitle')}',
-                                  style: TextStyle(
-                                    color: _textHeading,
-                                    fontSize: titleFontSize,
-                                    fontWeight: FontWeight.w700,
-                                    height: 1.3,
-                                    letterSpacing: -0.3,
-                                  ),
+                    // 🆕 LayoutBuilder gives us the *actual* text panel width so
+                    // every font/spacing value below scales off the card's own
+                    // available space (not just a global screen-width bucket).
+                    // FittedBox(scaleDown) further downstream still guarantees
+                    // zero overflow even if a very long localized string comes in.
+                    child: LayoutBuilder(
+                      builder: (context, textConstraints) {
+                        final panelW = textConstraints.maxWidth;
+                        // 165dp is the panel width on a baseline 360dp phone
+                        // (55% flex minus padding) — used as the 1.0 reference.
+                        final sizeScale = (panelW / 165.0).clamp(0.72, 1.35);
+                        final titleFontSize = (16.0 * sizeScale).clamp(11.0, 20.0);
+                        final bulletLabelSize = (12.0 * sizeScale).clamp(9.5, 15.0);
+                        final bulletDescSize = (10.0 * sizeScale).clamp(8.0, 13.0);
+                        final bulletSpacing = (7.0 * sizeScale).clamp(5.0, 10.0);
+                        final ctaFontSize = (12.0 * sizeScale).clamp(10.0, 14.0);
+                        final ctaIconSize = (11.0 * sizeScale).clamp(9.0, 13.0);
+
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            // 🔧 FIX: title + bullets used to be a fixed-size Column that
+                            // could be taller than the space actually left inside this
+                            // fixed-height card once the "Style Me" button below also
+                            // claimed its share — that produced a bottom overflow. Wrapping
+                            // it in Expanded + FittedBox(scaleDown) lets it take exactly the
+                            // remaining space above the button, shrinking uniformly only if
+                            // it doesn't fit, and never overflowing.
+                            Expanded(
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                alignment: Alignment.topLeft,
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      '${AppLocalizations.t(context, 'hero_card_title_main')}\n${AppLocalizations.t(context, 'hero_card_title_subtitle')}',
+                                      style: TextStyle(
+                                        color: _textHeading,
+                                        fontSize: titleFontSize,
+                                        fontWeight: FontWeight.w700,
+                                        height: 1.3,
+                                        letterSpacing: -0.3,
+                                      ),
+                                    ),
+                                    SizedBox(height: bulletSpacing + 2),
+                                    // 🆕 Dynamic bullet points from context with responsive sizing
+                                    _buildStyleCardBullet(
+                                      icon: Icons.eco_outlined,
+                                      color: const Color(0xFF6B9AD4),
+                                      label: _workoutLabel,
+                                      desc: AppLocalizations.t(context, 'hero_card_bullet_wear'),
+                                      labelFontSize: bulletLabelSize,
+                                      descFontSize: bulletDescSize,
+                                    ),
+                                    SizedBox(height: bulletSpacing),
+                                    _buildStyleCardBullet(
+                                      icon: Icons.cloud_outlined,
+                                      color: const Color(0xFF7BBFDA),
+                                      label: w.tempCelsius != null && w.tempCelsius! > 0
+                                          ? '${w.tempCelsius!.toStringAsFixed(0)}° ${w.description.isNotEmpty ? AppLocalizations.t(context, w.description) : ''}'
+                                          : '28° partly cloudy',
+                                      desc: AppLocalizations.t(context, 'hero_card_bullet_weather'),
+                                      labelFontSize: bulletLabelSize,
+                                      descFontSize: bulletDescSize,
+                                    ),
+                                    SizedBox(height: bulletSpacing),
+                                    _buildStyleCardBullet(
+                                      icon: Icons.favorite_border_rounded,
+                                      color: const Color(0xFFD4A0C8),
+                                      label: 'You tend to love ${_wardrobeSignal.favoriteStyle}',
+                                      desc: AppLocalizations.t(context, 'hero_card_bullet_style'),
+                                      labelFontSize: bulletLabelSize,
+                                      descFontSize: bulletDescSize,
+                                    ),
+                                  ],
                                 ),
-                                SizedBox(height: bulletSpacing + 2),
-                                // 🆕 Dynamic bullet points from context with responsive sizing
-                                _buildStyleCardBullet(
-                                  icon: Icons.eco_outlined,
-                                  color: const Color(0xFF6B9AD4),
-                                  label: _workoutLabel,
-                                  desc: AppLocalizations.t(context, 'hero_card_bullet_wear'),
-                                  labelFontSize: bulletLabelSize,
-                                  descFontSize: bulletDescSize,
-                                ),
-                                SizedBox(height: bulletSpacing),
-                                _buildStyleCardBullet(
-                                  icon: Icons.cloud_outlined,
-                                  color: const Color(0xFF7BBFDA),
-                                  label: w.tempCelsius != null && w.tempCelsius! > 0
-                                      ? '${w.tempCelsius!.toStringAsFixed(0)}° ${w.description}'
-                                      : '28° partly cloudy',
-                                  desc: AppLocalizations.t(context, 'hero_card_bullet_weather'),
-                                  labelFontSize: bulletLabelSize,
-                                  descFontSize: bulletDescSize,
-                                ),
-                                SizedBox(height: bulletSpacing),
-                                _buildStyleCardBullet(
-                                  icon: Icons.favorite_border_rounded,
-                                  color: const Color(0xFFD4A0C8),
-                                  label: 'You tend to love ${_wardrobeSignal.favoriteStyle}',
-                                  desc: AppLocalizations.t(context, 'hero_card_bullet_style'),
-                                  labelFontSize: bulletLabelSize,
-                                  descFontSize: bulletDescSize,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 8), // 🆕 More space before button
-                        _AnimatedPressable(
-                          liftY: -3.0,
-                          scalePressed: 0.93,
-                          onTap: () => _openChatWithPrompt('Suggest a complete outfit for me today.'),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                            decoration: BoxDecoration(
-                              // 🆕 ENHANCED: Stronger gradient for better visibility
-                              gradient: LinearGradient(
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                                colors: [_accent, _accentSecondary],
                               ),
-                              borderRadius: BorderRadius.circular(100),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: _accent.withOpacity(0.45),
-                                  blurRadius: 18,
-                                  offset: const Offset(0, 6),
-                                ),
-                                BoxShadow(
-                                  color: _accent.withOpacity(0.15),
-                                  blurRadius: 8,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ],
                             ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text(
-                                  AppLocalizations.t(context, 'cta_style_me'),
-                                  style: TextStyle(
-                                    color: _onAccent,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w700,
-                                    letterSpacing: 0.3,
+                            const SizedBox(height: 8), // 🆕 More space before button
+                            _AnimatedPressable(
+                              liftY: -3.0,
+                              scalePressed: 0.93,
+                              onTap: () => _openChatWithPrompt('Suggest a complete outfit for me today.'),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                                decoration: BoxDecoration(
+                                  // 🆕 ENHANCED: Stronger gradient for better visibility
+                                  gradient: LinearGradient(
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                    colors: [_accent, _accentSecondary],
                                   ),
+                                  borderRadius: BorderRadius.circular(100),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: _accent.withOpacity(0.45),
+                                      blurRadius: 18,
+                                      offset: const Offset(0, 6),
+                                    ),
+                                    BoxShadow(
+                                      color: _accent.withOpacity(0.15),
+                                      blurRadius: 8,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
                                 ),
-                                const SizedBox(width: 4),
-                                // 🆕 Animated arrow for better UX
-                                Icon(Icons.arrow_forward_rounded, color: _onAccent, size: 11),
-                              ],
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Text(
+                                      AppLocalizations.t(context, 'cta_style_me'),
+                                      style: TextStyle(
+                                        color: _onAccent,
+                                        fontSize: ctaFontSize,
+                                        fontWeight: FontWeight.w700,
+                                        letterSpacing: 0.3,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 4),
+                                    // 🆕 Animated arrow for better UX
+                                    Icon(Icons.arrow_forward_rounded, color: _onAccent, size: ctaIconSize),
+                                  ],
+                                ),
+                              ),
                             ),
-                          ),
-                        ),
-                      ],
+                          ],
+                        );
+                      },
                     ),
                   ),
                 ),
@@ -3422,18 +3515,15 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
     // All five cards repaint from the single merged HomeCardSummaryProvider.
     final screenW = MediaQuery.of(context).size.width;
 
-    // 🆕 RESPONSIVE SIZING FOR ROUTINE CARDS - LARGER VERSION
-    // ✅ FIX: cards widened and given a touch more padding/icon size — paired
-    // with the taller section height above, this gives every card enough
-    // room for its full content and stops the label/description/status text
-    // from clipping or overflowing on smaller screens.
-    final cardWidth = screenW < 360 ? 78.0 : screenW < 480 ? 88.0 : 98.0;
-    final iconBubbleSize = screenW < 360 ? 30.0 : 34.0;
-    final iconSize = screenW < 360 ? 14.0 : 16.0;
-    final labelFontSize = screenW < 360 ? 11.0 : 12.0;
-    final descFontSize = screenW < 360 ? 9.0 : 9.5;
-    final statusFontSize = screenW < 360 ? 8.0 : 8.5;
-    final cardPadding = screenW < 360 ? 7.0 : 9.0;
+    // 🆕 RESPONSIVE SIZING FOR ROUTINE CARDS — medium size increase
+    final routineScale = (screenW / 360.0).clamp(0.82, 1.30);
+    final cardWidth = (96.0 * routineScale).clamp(82.0, 126.0);
+    final iconBubbleSize = (36.0 * routineScale).clamp(30.0, 46.0);
+    final iconSize = (17.0 * routineScale).clamp(14.0, 22.0);
+    final labelFontSize = (12.5 * routineScale).clamp(11.0, 16.0);
+    final descFontSize = (10.0 * routineScale).clamp(8.5, 13.0);
+    final statusFontSize = (9.0 * routineScale).clamp(8.0, 12.0);
+    final cardPadding = (9.0 * routineScale).clamp(7.0, 12.0);
 
     // 🆕 DYNAMIC DATA FROM PROVIDERS & SERVICES
     // Each routine syncs with real app data
@@ -3453,7 +3543,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
       // already used (and confirmed working) for the Wardrobe nav tab.
       icon: Icons.dry_cleaning_outlined,
       color: const Color(0xFF6B8FD4),
-      label: 'Wear',
+      label: AppLocalizations.t(context, 'routine_wear'),
       // 🔄 DYNAMIC: From DailyWearScreen/Wardrobe
       desc: _getDailyWearDescription(),
       status: _getDailyWearStatus(),
@@ -3463,7 +3553,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
       (
       icon: Icons.directions_run_rounded,
       color: const Color(0xFF5BBF8A),
-      label: 'Move',
+      label: AppLocalizations.t(context, 'routine_move'),
       // 🔄 DYNAMIC: From WorkoutStudioScreen/Fitness
       desc: _getWorkoutDescription(),
       status: _getWorkoutStatus(),
@@ -3473,7 +3563,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
       (
       icon: Icons.restaurant_outlined,
       color: const Color(0xFFE8895A),
-      label: 'Eat',
+      label: AppLocalizations.t(context, 'routine_eat'),
       // 🔄 DYNAMIC: From MainScreen/Diet
       desc: _getMealDescription(),
       status: _getMealStatus(),
@@ -3483,7 +3573,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
       (
       icon: Icons.spa_outlined,
       color: const Color(0xFFB07FD4),
-      label: 'Care',
+      label: AppLocalizations.t(context, 'routine_care'),
       // 🔄 DYNAMIC: From SkincareScreen
       desc: _getSkincareDescription(),
       status: _getSkincareStatus(),
@@ -3493,7 +3583,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
       (
       icon: Icons.medication_outlined,
       color: const Color(0xFFE88A8A),
-      label: 'Medicine',
+      label: AppLocalizations.t(context, 'routine_medicine'),
       // 🔄 DYNAMIC: From MediTrackScreen
       desc: _getMedicineDescription(),
       status: _getMedicineStatus(),
@@ -3509,7 +3599,12 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
         border: Border.all(color: _border.withOpacity(0.50), width: 1),
         boxShadow: [BoxShadow(color: _shadowLight, blurRadius: 12, offset: const Offset(0, 4))],
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 1), // ✏️ Reduced from 3px (saves 4px)
+      // ✅ FIX: bottom padding restored to 6px (was 0px, which made each
+      // routine card's bottom border sit flush against this section's own
+      // edge). The Routine Cards section now gets extra height from the
+      // recovered Nav/Prompt/Prep spacing above, so there's room for this
+      // without reintroducing the old 1px overflow.
+      padding: const EdgeInsets.fromLTRB(0, 3, 0, 6),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
@@ -3545,11 +3640,18 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                         : null,
                   );
                 }
+                // 🆕 Dynamic progress line: this segment sits right after
+                // routines[i ~/ 2], so it fills with the accent color once
+                // that item is done — the connector row now visually tracks
+                // real completion progress instead of staying static gray.
+                final segmentDone = routines[i ~/ 2].done;
                 return Expanded(
-                  child: Container(
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 220),
+                    curve: Curves.easeOut,
                     height: 1.5,
                     margin: const EdgeInsets.symmetric(horizontal: 2),
-                    color: _border,
+                    color: segmentDone ? _accent : _border,
                   ),
                 );
               }),
@@ -3560,119 +3662,137 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
           const SizedBox(height: 2),
 
           // ✅ FIXED: SingleChildScrollView + Row instead of ListView + FittedBox
+          // 🆕 FIX: previously the outer SizedBox(height: routineH) only grew
+          // invisible whitespace around these cards — the cards themselves
+          // were sized purely by their own (fixed) intrinsic content height,
+          // so changing routineH had zero visible effect. Wrapping in a
+          // LayoutBuilder gives us the *actual* available height here, which
+          // we now apply directly to each card's SizedBox — so the visible
+          // card boxes genuinely resize with routineH.
           Expanded(
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              padding: EdgeInsets.symmetric(horizontal: screenW < 360 ? 6 : 8),
-              physics: const BouncingScrollPhysics(),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: List.generate(
-                  routines.length,
-                      (i) {
-                    final r = routines[i];
-                    return Padding(
-                      padding: EdgeInsets.only(right: screenW < 360 ? 4 : 5),
-                      child: GestureDetector(
-                        onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => r.page),
-                        ),
-                        child: SizedBox(
-                          width: cardWidth,
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: _bgSecondary.withOpacity(0.7),
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(
-                                color: r.done
-                                    ? _accent.withOpacity(0.25)
-                                    : _border.withOpacity(0.5),
-                                width: 1,
-                              ),
+            child: LayoutBuilder(
+              builder: (context, cardsConstraints) {
+                final cardItemHeight = cardsConstraints.maxHeight;
+                return SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  padding: EdgeInsets.symmetric(horizontal: screenW < 360 ? 4 : 6, vertical: 0),
+                  physics: const BouncingScrollPhysics(),
+                  clipBehavior: Clip.antiAlias,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: List.generate(
+                      routines.length,
+                          (i) {
+                        final r = routines[i];
+                        return Padding(
+                          padding: EdgeInsets.only(right: screenW < 360 ? 3 : 4),
+                          child: GestureDetector(
+                            onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (_) => r.page),
                             ),
-                            // ✏️ Top inset trimmed by 5px so the card sits closer
-                            // to the tracker line above; other sides unchanged.
-                            padding: EdgeInsets.fromLTRB(
-                              cardPadding,
-                              cardPadding - 6,
-                              cardPadding,
-                              cardPadding,
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisSize: MainAxisSize.min,
-                              mainAxisAlignment: MainAxisAlignment.start,
-                              children: [
-                                // Icon bubble
-                                Container(
-                                  width: iconBubbleSize,
-                                  height: iconBubbleSize,
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    color: r.color.withOpacity(0.15),
+                            child: SizedBox(
+                              width: cardWidth,
+                              height: cardItemHeight,
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: _bgSecondary.withOpacity(0.7),
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(
+                                    color: r.done
+                                        ? _accent.withOpacity(0.25)
+                                        : _border.withOpacity(0.5),
+                                    width: 1,
                                   ),
-                                  child: Icon(r.icon, size: iconSize, color: r.color),
                                 ),
-                                SizedBox(height: cardPadding * 0.5),
-                                // Label
-                                Text(
-                                  r.label,
-                                  style: TextStyle(
-                                    color: _textHeading,
-                                    fontSize: labelFontSize,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
+                                // ✏️ Top inset trimmed by 5px so the card sits closer
+                                // to the tracker line above; other sides unchanged.
+                                padding: EdgeInsets.fromLTRB(
+                                  cardPadding,
+                                  cardPadding - 6,
+                                  cardPadding,
+                                  cardPadding,
                                 ),
-                                SizedBox(height: cardPadding * 0.3),
-                                // Description
-                                Text(
-                                  r.desc,
-                                  style: TextStyle(
-                                    color: _textMuted,
-                                    fontSize: descFontSize,
-                                    fontWeight: FontWeight.w400,
-                                    height: 1.2,
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                                SizedBox(height: cardPadding * 0.3),
-                                // Status
-                                Row(
-                                  mainAxisSize: MainAxisSize.min,
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisSize: MainAxisSize.max,
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
-                                    Icon(
-                                      r.done ? Icons.check_circle_rounded : Icons.access_time_rounded,
-                                      size: descFontSize - 0.5,
-                                      color: r.done ? _accent : _textMuted,
-                                    ),
-                                    SizedBox(width: screenW < 360 ? 1 : 2),
-                                    Flexible(
-                                      child: Text(
-                                        r.status,
-                                        style: TextStyle(
-                                          color: r.done ? _accent : _textMuted,
-                                          fontSize: statusFontSize,
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
+                                    // Icon bubble
+                                    Container(
+                                      width: iconBubbleSize,
+                                      height: iconBubbleSize,
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        color: r.color.withOpacity(0.15),
                                       ),
+                                      child: Icon(r.icon, size: iconSize, color: r.color),
+                                    ),
+                                    SizedBox(height: cardPadding * 0.5),
+                                    // Label
+                                    Text(
+                                      r.label,
+                                      style: TextStyle(
+                                        color: _textHeading,
+                                        fontSize: labelFontSize,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    SizedBox(height: cardPadding * 0.3),
+                                    // Description - responsive text filling available space
+                                    Expanded(
+                                      child: Text(
+                                        r.desc,
+                                        style: TextStyle(
+                                          color: _textMuted,
+                                          fontSize: descFontSize,
+                                          fontWeight: FontWeight.w400,
+                                          height: 1.3,
+                                        ),
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                        softWrap: true,
+                                      ),
+                                    ),
+                                    SizedBox(height: cardPadding * 0.3),
+                                    // Status
+                                    Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          r.done ? Icons.check_circle_rounded : Icons.access_time_rounded,
+                                          size: descFontSize - 0.5,
+                                          color: r.done ? _accent : _textMuted,
+                                        ),
+                                        SizedBox(width: screenW < 360 ? 1 : 2),
+                                        Flexible(
+                                          child: Text(
+                                            r.status,
+                                            style: TextStyle(
+                                              color: r.done ? _accent : _textMuted,
+                                              fontSize: statusFontSize,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ],
                                 ),
-                              ],
+                              ),
                             ),
                           ),
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
+                        );
+                      },
+                    ),
+                  ),
+                );
+              },
             ),
           ),
 
@@ -3716,113 +3836,165 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
           ),
           clipBehavior: Clip.antiAlias,
           child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            // .stretch forces both the text column and the image to fill the
+            // card's full height on every screen size.
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // ── 30% LEFT: TEXT CONTENT ────────────────────────────────────
+              // ── 35% LEFT: TEXT CONTENT ────────────────────────────────────
               Expanded(
-                flex: 30,
-                child: Padding(
-                  padding: const EdgeInsets.only(left: 10, right: 10, top: 7, bottom: 10),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Column(
+                flex: 35,
+                child: LayoutBuilder(
+                  builder: (context, cc) {
+                    final colW = cc.maxWidth;
+                    final hPad = colW < 90 ? 8.0 : 10.0;
+                    return Padding(
+                      padding: EdgeInsets.only(left: hPad, right: 4, top: 7, bottom: 10),
+                      child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text(
-                            'Prep & Plan',
-                            style: TextStyle(
-                              color: _textHeading,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: -0.3,
-                            ),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              FittedBox(
+                                fit: BoxFit.scaleDown,
+                                alignment: Alignment.centerLeft,
+                                child: Text(
+                                  'Prep & Plan',
+                                  style: TextStyle(
+                                    color: _textHeading,
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: -0.3,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 1),
+                              Text(
+                                'Your week at a glance',
+                                style: TextStyle(
+                                  color: _textMuted,
+                                  fontSize: 8.5,
+                                  fontWeight: FontWeight.w400,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 3),
+                              Text(
+                                'Outfits, meals & goals planned ahead.',
+                                style: TextStyle(
+                                  // 🆕 Blended a bit toward _textHeading (from plain
+                                  // _textMuted) + bumped size/weight so the subtitle
+                                  // is clearly legible instead of fading into the
+                                  // background, while staying visually secondary
+                                  // to the "Prep & Plan" title above it.
+                                  color: Color.lerp(_textMuted, _textHeading, 0.35),
+                                  fontSize: 9.5,
+                                  fontWeight: FontWeight.w500,
+                                  height: 1.2,
+                                ),
+                                // Column (flex 35) and the weekly-preview image
+                                // (flex 65) are separate Row children, so this text
+                                // can never paint over the image — maxLines+ellipsis
+                                // just keeps it from overflowing its own column.
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
                           ),
-                          const SizedBox(height: 1),
-                          Text(
-                            'Your week at a glance',
-                            style: TextStyle(
-                              color: _textMuted,
-                              fontSize: 8.5,
-                              fontWeight: FontWeight.w400,
+                          _AnimatedPressable(
+                            liftY: -2.0,
+                            scalePressed: 0.95,
+                            onTap: () => showAhviStylistChatSheet(
+                              context,
+                              moduleContext: 'prepare',
+                              initialPrompt: content.prompt,
                             ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            'Outfits, meals & goals planned ahead.',
-                            style: TextStyle(
-                              color: _textMuted,
-                              fontSize: 8,
-                              fontWeight: FontWeight.w400,
-                              height: 1.1,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                  colors: [accentColor, accentTertiary],
+                                ),
+                                borderRadius: BorderRadius.circular(100),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: accentColor.withOpacity(0.38),
+                                    blurRadius: 14,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                ],
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    child: Text(
+                                      'Plan Week',
+                                      style: TextStyle(
+                                        color: _onAccent,
+                                        fontSize: 9,
+                                        fontWeight: FontWeight.w600,
+                                        letterSpacing: 0.1,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 1),
+                                  Icon(Icons.arrow_forward_rounded, color: _onAccent, size: 8),
+                                ],
+                              ),
                             ),
-                            maxLines: 1,
                           ),
                         ],
                       ),
-                      _AnimatedPressable(
-                        liftY: -2.0,
-                        scalePressed: 0.95,
-                        onTap: () => showAhviStylistChatSheet(
-                          context,
-                          moduleContext: 'prepare',
-                          initialPrompt: content.prompt,
-                        ),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                              colors: [accentColor, accentTertiary],
-                            ),
-                            borderRadius: BorderRadius.circular(100),
-                            boxShadow: [
-                              BoxShadow(
-                                color: accentColor.withOpacity(0.38),
-                                blurRadius: 14,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                'Plan Week',
-                                style: TextStyle(
-                                  color: _onAccent,
-                                  fontSize: 9,
-                                  fontWeight: FontWeight.w600,
-                                  letterSpacing: 0.1,
-                                ),
-                              ),
-                              const SizedBox(width: 1),
-                              Icon(Icons.arrow_forward_rounded, color: _onAccent, size: 8),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+                    );
+                  },
                 ),
               ),
 
-              // ── 70% RIGHT: OUTFIT/MEAL GRID PREVIEW OVER BACKDROP PHOTO ──────
+              // 🆕 Explicit, balanced gap between the text column and the
+              // weekly preview image (replaces the old implicit gap that was
+              // just the leftover of two separate paddings on either side).
+              const SizedBox(width: 8),
+
+              // ── 65% RIGHT: OUTFIT/MEAL GRID PREVIEW OVER BACKDROP PHOTO ──────
               Expanded(
-                flex: 70,
+                flex: 65,
                 child: ClipRRect(
                   borderRadius: const BorderRadius.only(
                     topRight: Radius.circular(24),
                     bottomRight: Radius.circular(24),
                   ),
-                  child: Container(
-                    color: _surface,
-                    child: Image.asset(
-                      'assets/images/plan_card.jpg',
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => Container(color: _surface),
+                  // ✅ FIX 4: No padding container needed — LayoutBuilder drives
+                  // sizing so the image fills the panel proportionally.
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(0, 2, 0, 2),
+                    child: ClipRRect(
+                      borderRadius: const BorderRadius.only(
+                        topRight: Radius.circular(20),
+                        bottomRight: Radius.circular(20),
+                      ),
+                      // 🆕 FIX: BoxFit.cover + Alignment.centerLeft was scaling the
+                      // image up to fill the panel's height and then cropping
+                      // whatever spilled past the right edge — since the 7-day
+                      // grid runs left-to-right, that always cut off the last
+                      // 2 days (Sat/Sun). BoxFit.fitWidth guarantees the image's
+                      // full width (all 7 days) is always visible on every
+                      // screen size, at the cost of cropping top/bottom instead
+                      // of left/right — which is the correct tradeoff here since
+                      // the days are arranged horizontally, not vertically.
+                      child: Image.asset(
+                        'assets/images/plan_card.jpg',
+                        fit: BoxFit.fitWidth,
+                        alignment: Alignment.center,
+                        width: double.infinity,
+                        height: double.infinity,
+                        errorBuilder: (_, __, ___) => Container(color: _surface),
+                      ),
                     ),
                   ),
                 ),
@@ -5468,9 +5640,9 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
     final screenH = MediaQuery.of(context).size.height;
     final screenW = MediaQuery.of(context).size.width;
     final isTablet = screenW >= 600;
-    const double pillH = 44.0;        // ✏️ Reduced from 50.0 — shrinks nav bar footprint
-    const double maxBulge = 6.0;      // ✏️ Reduced from 8.0
-    const double totalH = pillH + maxBulge + 0.0;  // totalH = 50px (was 58px)
+    const double pillH = 64.0;        // ✏️ Increased from 50.0 — taller nav bar, icons less cramped
+    const double maxBulge = 14.0;     // ✏️ Increased from 8.0
+    const double totalH = pillH + maxBulge + 0.0;  // totalH = 78px (was 58px)
     const double iconContainerSize = 32.0;  // ✏️ Reduced from 36.0
     const double iconSize = 16.0;     // ✏️ Reduced from 18.0
 
@@ -7328,10 +7500,9 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
   }
 
   String _getDailyWearStatus() {
-    // Check if outfit was selected today
     return _wardrobeSignal.daysSinceLastWorn == 0
         ? AppLocalizations.t(context, 'status_done')
-        : AppLocalizations.t(context, 'status_pending');
+        : AppLocalizations.t(context, 'status_in_progress');
   }
 
   bool _isDailyWearDone() {
@@ -7340,23 +7511,21 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
 
   // ─── MOVE / WORKOUT ───
   String _getWorkoutDescription() {
-    // Sync with WorkoutStudioScreen/Fitness data
     final workoutLabel = _workoutLabel;
     if (workoutLabel.isNotEmpty && workoutLabel != 'workout_mobility') {
-      // If it's a localization key, translate it first
       String displayLabel = workoutLabel.startsWith('workout_')
           ? AppLocalizations.t(context, workoutLabel)
           : workoutLabel;
-      return displayLabel.length > 20 ? displayLabel.substring(0, 17) + '...' : displayLabel;
+      return displayLabel.length > 20 ? '${displayLabel.substring(0, 17)}...' : displayLabel;
     }
-    return AppLocalizations.t(context, 'move_ready_to_move');
+    return AppLocalizations.t(context, 'routine_move_desc');  // "7-min stretch"
   }
 
   String _getWorkoutStatus() {
-    // Check fitness streak or today's activity
+    // status_streak / status_start లేవు → existing keys వాడు
     return _fitnessSignal.hasActiveStreak
-        ? AppLocalizations.t(context, 'status_streak')
-        : AppLocalizations.t(context, 'status_start');
+        ? AppLocalizations.t(context, 'status_in_progress')
+        : AppLocalizations.t(context, 'status_in_progress');
   }
 
   bool _isWorkoutDone() {
@@ -7366,12 +7535,11 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
 
   // ─── EAT / MEAL PLAN ───
   String _getMealDescription() {
-    // Sync with MainScreen/Diet data
     if (_fitnessSignal.calorieGoalMet) {
-      return AppLocalizations.t(context, 'eat_goal_met');
+      return AppLocalizations.t(context, 'home_card_eat_default');
     }
     return _fitnessSignal.waterGlassesToday > 0
-        ? AppLocalizations.t(context, 'eat_hydrating')
+        ? AppLocalizations.t(context, 'eat_meal_prep')   // hydrating → meal prep fallback
         : AppLocalizations.t(context, 'eat_meal_prep');
   }
 
@@ -7387,14 +7555,13 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
 
   // ─── CARE / SKINCARE ───
   String _getSkincareDescription() {
-    // Live data from merged HomeCardSummaryProvider (pushed by SkincareScreen)
     try {
       return Provider.of<HomeCardSummaryProvider>(context, listen: false)
           .skincareHomeSubtitle;
     } catch (_) {
       final hour = DateTime.now().hour;
-      if (hour >= 6 && hour < 12) return AppLocalizations.t(context, 'care_morning_glow');
-      if (hour >= 19) return AppLocalizations.t(context, 'care_night_routine');
+      if (hour >= 6 && hour < 12) return AppLocalizations.t(context, 'skin_morning_routine');
+      if (hour >= 19) return AppLocalizations.t(context, 'skin_night_routine');
       return AppLocalizations.t(context, 'care_routine');
     }
   }
@@ -7406,8 +7573,8 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
     } catch (_) {
       final hour = DateTime.now().hour;
       return (hour >= 6 && hour < 12) || hour >= 19
-          ? AppLocalizations.t(context, 'status_time')
-          : AppLocalizations.t(context, 'status_later');
+          ? AppLocalizations.t(context, 'status_in_progress')
+          : AppLocalizations.t(context, 'status_in_progress');
     }
   }
 
@@ -7422,12 +7589,11 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
 
   // ─── MEDICINE / HEALTH ───
   String _getMedicineDescription() {
-    // Live data from merged HomeCardSummaryProvider (pushed by MediTrackScreen)
     try {
       return Provider.of<HomeCardSummaryProvider>(context, listen: false)
           .medicineHomeSubtitle;
     } catch (_) {
-      return AppLocalizations.t(context, 'medicine_supplements');
+      return AppLocalizations.t(context, 'medi_take_medicines');
     }
   }
 
@@ -7436,10 +7602,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
       return Provider.of<HomeCardSummaryProvider>(context, listen: false)
           .medicineHomeStatus;
     } catch (_) {
-      final hour = DateTime.now().hour;
-      return (hour >= 8 && hour < 10)
-          ? AppLocalizations.t(context, 'status_now')
-          : AppLocalizations.t(context, 'status_upcoming');
+      return AppLocalizations.t(context, 'status_in_progress');
     }
   }
 

@@ -1268,5 +1268,7 @@
   "status_in_progress": "ప్రక్రియలో ఉంది",
   "care_routine": "సంరక్షణ రొటీన్",
   "no_medicines": "ఔషధాలు లేవు",
-  "status_done": "స్థితి: పూర్తి"
+  "status_done": "స్థితి: పూర్తి",
+  "routine_medicine": "మందు",
+  "routine_medicine_desc": "రోజువారీ మందులు"
 }

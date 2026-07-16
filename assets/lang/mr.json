@@ -1268,5 +1268,7 @@
   "status_in_progress": "प्रगतीमध्ये",
   "care_routine": "केअर रुटिन",
   "no_medicines": "कोणतीही औषधे नाही",
-  "status_done": "स्थिती: पूर्ण"
+  "status_done": "स्थिती: पूर्ण",
+  "routine_medicine": "औषध",
+  "routine_medicine_desc": "दैनिक औषधे"
 }

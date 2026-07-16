@@ -1268,5 +1268,7 @@
   "status_in_progress": "In Progress",
   "care_routine": "Care Routine",
   "no_medicines": "No Medicines",
-  "status_done": "Status: Done"
+  "status_done": "Status: Done",
+  "routine_medicine": "Medicine",
+  "routine_medicine_desc": "Daily meds"
 }

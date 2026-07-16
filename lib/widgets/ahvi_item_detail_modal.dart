@@ -459,7 +459,7 @@ class _ItemDetailModal extends StatelessWidget {
       result = await BackendService()
           .styleWardrobeItem(
         itemId: item.id,
-        mode: mode,
+        scenario: mode,
         anchorItem: {
           'item_id': item.id,
           'name': item.name,

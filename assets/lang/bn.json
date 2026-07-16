@@ -1268,5 +1268,7 @@
   "status_in_progress": "চলমান",
   "care_routine": "যত্ন রুটিন",
   "no_medicines": "কোন ওষুধ নেই",
-  "status_done": "অবস্থা: সম্পন্ন"
+  "status_done": "অবস্থা: সম্পন্ন",
+  "routine_medicine": "ওষুধ",
+  "routine_medicine_desc": "দৈনিক ওষুধ"
 }
