@@ -189,23 +189,6 @@ Color _accentTertiary(AppThemeTokens t) => t.accent.tertiary;
 
 // ─── Dynamic Recommendation Engine ──────────────────────────────────────────
 
-/// Represents a single proactive AI suggestion with contextual metadata.
-class _AiSuggestion {
-  const _AiSuggestion({
-    required this.text,
-    required this.promptText,
-    required this.icon,
-    required this.intent,
-    this.priority = 0,
-  });
-
-  final String text;
-  final String promptText;
-  final IconData icon;
-  final String intent;
-  final int priority;
-}
-
 /// Dynamic content for a home card (title, subtitle, CTA, icon, prompt).
 class _CardContent {
   const _CardContent({
@@ -367,327 +350,6 @@ class _RecommendationContext {
 
   bool get hasSoonMeeting => nextMeeting?.isSoon ?? false;
   bool get hasSoonOccasion => nextOccasion?.isSoon ?? false;
-
-  // ── Context equality (for cache invalidation) ─────────────────────────────
-  String get _cacheKey =>
-      '$hour-$weekday-$userName-${recentIntents.length}'
-          '-${weather.condition.index}-${weather.tempCelsius?.round()}'
-          '-${upcomingEvents.length}'
-          '-${wardrobe.daysSinceLastWorn}-${wardrobe.unwornItems}'
-          '-${fitness.workoutStreakDays}-${fitness.calorieGoalMet}';
-}
-
-// ── Scoring engine ────────────────────────────────────────────────────────────
-
-/// Pure function — builds a scored, sorted list of suggestions for the
-/// current context. All signals live here so they can be extended independently.
-List<_AiSuggestion> _buildDynamicSuggestions(_RecommendationContext ctx) {
-  final all = <_AiSuggestion>[];
-  final name = ctx.userName;
-  final w = ctx.weather;
-  final fit = ctx.fitness;
-  final ward = ctx.wardrobe;
-
-  // ── 🌦️ WEATHER SIGNALS ────────────────────────────────────────────────────
-
-  if (w.isRainy) {
-    all.add(_AiSuggestion(
-      text: "It's raining — want a rainy-day outfit that still looks great?",
-      promptText: "Suggest a stylish, practical outfit for a rainy day. Include waterproof layers.",
-      icon: Icons.umbrella_outlined,
-      intent: 'style',
-      priority: ctx.isMorning ? 15 : 8,
-    ));
-  }
-
-  if (w.isCold && w.tempLabel.isNotEmpty) {
-    all.add(_AiSuggestion(
-      text: "It's ${w.tempLabel} outside — let me build a cosy layered look.",
-      promptText: "It's ${w.tempLabel} today. Suggest a warm yet stylish layered outfit.",
-      icon: Icons.ac_unit_outlined,
-      intent: 'style',
-      priority: ctx.isMorning ? 14 : 7,
-    ));
-  }
-
-  if (w.isHot && w.tempLabel.isNotEmpty) {
-    all.add(_AiSuggestion(
-      text: "Hot day at ${w.tempLabel} — I've got breathable outfit ideas.",
-      promptText: "It's ${w.tempLabel} today. Suggest a cool, breathable yet stylish outfit.",
-      icon: Icons.wb_sunny_outlined,
-      intent: 'style',
-      priority: ctx.isMorning ? 14 : 6,
-    ));
-  }
-
-  if (w.isClear && ctx.isWeekend) {
-    all.add(_AiSuggestion(
-      text: "Beautiful day out — perfect for a fresh weekend look!",
-      promptText: "It's a clear sunny day on the weekend. Suggest a fresh, fun outdoor outfit.",
-      icon: Icons.nature_outlined,
-      intent: 'style',
-      priority: 10,
-    ));
-  }
-
-  if (!w.isRainy && !w.isCold && !w.isHot && ctx.isMorning) {
-    all.add(_AiSuggestion(
-      text: w.description.isNotEmpty
-          ? "${w.description.capitalize()} today — here's your style brief."
-          : "Nice weather today — want me to plan the perfect outfit?",
-      promptText: "Plan a complete outfit for today's weather: ${w.description.isNotEmpty ? w.description : 'mild conditions'}.",
-      icon: Icons.cloud_outlined,
-      intent: 'style',
-      priority: 9,
-    ));
-  }
-
-  // ── 📅 CALENDAR SIGNALS ────────────────────────────────────────────────────
-
-  final meeting = ctx.nextMeeting;
-  if (meeting != null && meeting.isSoon) {
-    all.add(_AiSuggestion(
-      text: '"${meeting.title}" in ${meeting.hoursUntil}h — want a meeting-ready look?',
-      promptText: 'I have a meeting called "${meeting.title}" in ${meeting.hoursUntil} hours. Suggest a sharp, confident outfit.',
-      icon: Icons.work_outline_rounded,
-      intent: 'style',
-      priority: 18,
-    ));
-  } else if (meeting != null && meeting.isToday) {
-    all.add(_AiSuggestion(
-      text: '"${meeting.title}" later today — let\'s get the outfit right.',
-      promptText: 'I have a meeting called "${meeting.title}" later today. Suggest a professional outfit.',
-      icon: Icons.event_outlined,
-      intent: 'style',
-      priority: 12,
-    ));
-  }
-
-  final occasion = ctx.nextOccasion;
-  if (occasion != null && occasion.isSoon) {
-    all.add(_AiSuggestion(
-      text: '"${occasion.title}" is in ${occasion.hoursUntil}h — let\'s nail the look!',
-      promptText: 'I have "${occasion.title}" in ${occasion.hoursUntil} hours. Create the perfect occasion outfit for me.',
-      icon: Icons.celebration_outlined,
-      intent: 'style',
-      priority: 19,
-    ));
-  }
-
-  if (ctx.upcomingEvents.any((e) => e.type == _EventType.dinner && e.isToday)) {
-    final dinner = ctx.upcomingEvents.firstWhere((e) => e.type == _EventType.dinner && e.isToday);
-    all.add(_AiSuggestion(
-      text: 'Dinner plans tonight — I can style a perfect evening look.',
-      promptText: 'I have dinner plans tonight: "${dinner.title}". Suggest an elegant yet comfortable evening outfit.',
-      icon: Icons.restaurant_outlined,
-      intent: 'style',
-      priority: ctx.isAfternoon || ctx.isEvening ? 14 : 8,
-    ));
-  }
-
-  if (ctx.upcomingEvents.any((e) => e.type == _EventType.travel && e.isToday)) {
-    all.add(_AiSuggestion(
-      text: 'Travel day! Want a stylish yet comfy airport outfit?',
-      promptText: 'I am travelling today. Suggest a stylish, comfortable travel outfit with practical tips.',
-      icon: Icons.flight_outlined,
-      intent: 'style',
-      priority: ctx.isMorning ? 17 : 11,
-    ));
-  }
-
-  // ── 👗 WARDROBE SIGNALS ────────────────────────────────────────────────────
-
-  if (ward.hasUnwornItems && ward.unwornItems >= 3) {
-    all.add(_AiSuggestion(
-      text: 'You have ${ward.unwornItems} unworn pieces — want to rediscover them?',
-      promptText: 'I have ${ward.unwornItems} clothing items I have never worn. Help me build outfits using them.',
-      icon: Icons.dry_cleaning_outlined,
-      intent: 'organize',
-      priority: ctx.isMorning ? 11 : 6,
-    ));
-  }
-
-  if (ward.wardrobeNeedsAttention && ward.lastWornItemName.isNotEmpty) {
-    all.add(_AiSuggestion(
-      text: "Haven't styled a new look in ${ward.daysSinceLastWorn}d — want fresh inspiration?",
-      promptText: "I haven't planned a new outfit in ${ward.daysSinceLastWorn} days. Surprise me with something fresh from my wardrobe.",
-      icon: Icons.auto_fix_high_outlined,
-      intent: 'style',
-      priority: ward.daysSinceLastWorn >= 3 ? 10 : 6,
-    ));
-  }
-
-  if (ward.favoriteStyle.isNotEmpty) {
-    all.add(_AiSuggestion(
-      text: 'New ${ward.favoriteStyle} picks match your taste — want to see?',
-      promptText: 'Show me the latest ${ward.favoriteStyle} fashion picks that match my saved preferences.',
-      icon: Icons.favorite_outline_rounded,
-      intent: 'style',
-      priority: ctx.recentIntents.contains('style') ? 9 : 5,
-    ));
-  }
-
-  // ── 🏃 FITNESS SIGNALS ─────────────────────────────────────────────────────
-
-  if (fit.hasActiveStreak) {
-    all.add(_AiSuggestion(
-      text: '${fit.workoutStreakDays}-day streak! Keep it going — what\'s today\'s workout?',
-      promptText: 'I have a ${fit.workoutStreakDays}-day workout streak. Suggest today\'s workout routine to maintain it.',
-      icon: Icons.local_fire_department_outlined,
-      intent: 'style',
-      priority: ctx.isMorning ? 12 : 7,
-    ));
-  }
-
-  if (fit.nextWorkoutLabel.isNotEmpty && ctx.isMorning) {
-    all.add(_AiSuggestion(
-      text: '${fit.nextWorkoutLabel} day — I can suggest the right gym outfit.',
-      promptText: 'Today is my ${fit.nextWorkoutLabel} workout. Suggest a comfortable and stylish gym outfit.',
-      icon: Icons.fitness_center_outlined,
-      intent: 'style',
-      priority: 11,
-    ));
-  }
-
-  if (fit.mealPlanNeeded && (ctx.isAfternoon || ctx.isEvening)) {
-    all.add(_AiSuggestion(
-      text: "You haven't hit your calorie goal — want a meal plan?",
-      promptText: "I haven't met my calorie goal today. Suggest healthy, easy meals I can prepare now.",
-      icon: Icons.restaurant_outlined,
-      intent: 'eat',
-      priority: 10,
-    ));
-  }
-
-  if (fit.waterGlassesToday < 4 && ctx.isAfternoon) {
-    all.add(_AiSuggestion(
-      text: "Only ${fit.waterGlassesToday} glasses of water today — stay hydrated!",
-      promptText: "I've only had ${fit.waterGlassesToday} glasses of water today. Give me a hydration plan and healthy snack ideas.",
-      icon: Icons.water_drop_outlined,
-      intent: 'eat',
-      priority: 8,
-    ));
-  }
-
-  // ── 📅 TIME + DAY SIGNALS (always-available fallbacks) ─────────────────────
-
-  all.add(_AiSuggestion(
-    text: name.isNotEmpty
-        ? "Morning, $name — want me to plan today's look?"
-        : "Good morning — want me to plan today's outfit?",
-    promptText: "Plan a complete outfit for today based on the weather and my schedule.",
-    icon: Icons.wb_sunny_outlined,
-    intent: 'style',
-    priority: ctx.isMorning ? 10 : 2,
-  ));
-
-  if (ctx.isMondayMorning) {
-    all.add(_AiSuggestion(
-      text: "New week — want me to plan 5 outfits in one go?",
-      promptText: "Plan 5 complete outfits for me for the entire work week ahead.",
-      icon: Icons.date_range_outlined,
-      intent: 'style',
-      priority: 13,
-    ));
-  }
-
-  if (ctx.isFridayEvening) {
-    all.add(_AiSuggestion(
-      text: "Friday night — let's plan something special to wear.",
-      promptText: "Help me pick a stylish evening outfit for Friday night out.",
-      icon: Icons.nightlife_outlined,
-      intent: 'style',
-      priority: 13,
-    ));
-  }
-
-  if (ctx.isSunday && ctx.isAfternoon) {
-    all.add(_AiSuggestion(
-      text: "Sunday is perfect for weekly meal prep — want help?",
-      promptText: "Create a healthy and practical weekly meal prep plan for me.",
-      icon: Icons.restaurant_outlined,
-      intent: 'eat',
-      priority: 11,
-    ));
-  }
-
-  if (ctx.isWeekend) {
-    all.add(_AiSuggestion(
-      text: "Weekend vibes — want a casual look for today?",
-      promptText: "Suggest a relaxed, stylish casual outfit for the weekend.",
-      icon: Icons.weekend_outlined,
-      intent: 'style',
-      priority: 9,
-    ));
-  }
-
-  if (ctx.isEvening) {
-    all.add(_AiSuggestion(
-      text: "Wind-down time — I can build your evening skincare routine.",
-      promptText: "Build me a personalised evening skincare routine.",
-      icon: Icons.spa_outlined,
-      intent: 'style',
-      priority: 8,
-    ));
-  }
-
-  if (ctx.isNight) {
-    all.add(_AiSuggestion(
-      text: "Browsing late? I noticed new minimal picks that suit you.",
-      promptText: "Show me the latest minimal fashion picks tailored to my saved style.",
-      icon: Icons.auto_awesome_outlined,
-      intent: 'style',
-      priority: 7,
-    ));
-  }
-
-  // ── Engagement-history boosts ─────────────────────────────────────────────
-  if (ctx.recentIntents.contains('organize')) {
-    all.add(_AiSuggestion(
-      text: "Let's organise your wardrobe — I can sort by occasion.",
-      promptText: "Help me organise my wardrobe by occasion and season.",
-      icon: Icons.dry_cleaning_outlined,
-      intent: 'organize',
-      priority: 9,
-    ));
-  }
-
-  if (ctx.recentIntents.contains('prepare')) {
-    all.add(_AiSuggestion(
-      text: "Got an event coming up? Let me help you prepare.",
-      promptText: "Help me prepare a complete checklist for an upcoming event.",
-      icon: Icons.event_outlined,
-      intent: 'prepare',
-      priority: 9,
-    ));
-  }
-
-  // ── Always-available fallback ─────────────────────────────────────────────
-  all.add(_AiSuggestion(
-    text: "Feeling indecisive? I can style you in seconds.",
-    promptText: "Surprise me with a complete outfit based on my style preferences.",
-    icon: Icons.auto_fix_high_outlined,
-    intent: 'style',
-    priority: 5,
-  ));
-
-  // Sort by priority descending, return top 8.
-  all.sort((a, b) => b.priority.compareTo(a.priority));
-  return all.take(8).toList();
-}
-
-// ── Cache ─────────────────────────────────────────────────────────────────────
-
-List<_AiSuggestion> _cachedSuggestions = [];
-String _lastCacheKey = '';
-
-List<_AiSuggestion> _getOrRefreshSuggestions(_RecommendationContext ctx) {
-  final key = ctx._cacheKey;
-  if (key != _lastCacheKey) {
-    _cachedSuggestions = _buildDynamicSuggestions(ctx);
-    _lastCacheKey = key;
-  }
-  return _cachedSuggestions;
 }
 
 // ── String helper ─────────────────────────────────────────────────────────────
@@ -695,27 +357,6 @@ extension _StringCapitalize on String {
   String capitalize() =>
       isEmpty ? this : '${this[0].toUpperCase()}${substring(1)}';
 }
-
-// 🆕 AI suggestions keys — values come from JSON
-const _aiSuggestionKeys = [
-  'ai_sug_1',
-  'ai_sug_2',
-  'ai_sug_3',
-  'ai_sug_4',
-  'ai_sug_5',
-  'ai_sug_6',
-  'ai_sug_7',
-];
-// Keep original English as fallback
-const _aiSuggestions = [
-  "Your 2pm meeting is in 4 hrs — want to prep an outfit?",
-  "It's 14°C and partly cloudy — shall I suggest a layered look?",
-  "You haven't planned your week yet — want me to help?",
-  "Feeling indecisive? I can style you in seconds.",
-  "New drops match your saved style — want to see them?",
-  "Your Friday dinner is coming up — let's plan the look.",
-  "I noticed you love minimal styles — new picks are in.",
-];
 
 // 🆕 Prepare chips keys for localization
 const _prepareChipKeys = [
@@ -743,7 +384,6 @@ const _prepareChips = [
   ('🌿 Gardening', '🌿 Garden Planting'),
 ];
 
-typedef _SuggestionState = ({int index, double opacity});
 typedef _ClockState = ({String greeting, String date});
 
 class Screen4 extends StatefulWidget {
@@ -831,10 +471,6 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
   late List<AnimationController> _heartPopCtrls;
   final List<bool> _likedState = [false, false, true, false];
 
-  final ValueNotifier<_SuggestionState> _suggestionState =
-  ValueNotifier<_SuggestionState>((index: 0, opacity: 1.0));
-  Timer? _suggestionTimer;
-
   // ── Plus menu ─────────────────────────────────────────────────────────────
   // (Lens sheet manages its own state — no local controller needed)
   late AnimationController _plusMenuCtrl; // kept to avoid dispose() errors
@@ -892,12 +528,8 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
   }
 
   void _invalidateSuggestionCache() {
-    _lastCacheKey = '';
     // Notify card widgets to re-evaluate their dynamic content.
     _cardContextVersion.value += 1;
-    // Reset suggestion ticker to index 0 — new signals may have changed
-    // priorities, so the highest-ranked suggestion should show first.
-    _suggestionState.value = (index: 0, opacity: 1.0);
   }
 
   /// Builds the current context snapshot for the recommendation engine.
@@ -914,10 +546,6 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
       fitness: _fitnessSignal,
     );
   }
-
-  /// Returns the live-ranked suggestion list for the current context.
-  List<_AiSuggestion> get _dynamicSuggestions =>
-      _getOrRefreshSuggestions(_recommendationCtx);
 
   // ── Signal fetchers ────────────────────────────────────────────────────────
 
@@ -1362,7 +990,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
   /// 🆕 Get workout label from fitness signal or default
   String get _workoutLabel {
     final fit = _fitnessSignal;
-    return fit.nextWorkoutLabel.isNotEmpty ? fit.nextWorkoutLabel : 'Mobility day';
+    return fit.nextWorkoutLabel.isNotEmpty ? fit.nextWorkoutLabel : AppLocalizations.t(context, 'chip_mobility_default');
   }
 
   /// Public method called by external code to inject a calendar event
@@ -1571,11 +1199,6 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
       ),
     );
 
-    _suggestionTimer = Timer.periodic(
-      const Duration(seconds: 3),
-          (_) => _rotateSuggestion(),
-    );
-
     _homeCollapseCtrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 600),
@@ -1636,7 +1259,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
 
       final firstName = rawName.isNotEmpty
           ? rawName.split(' ').first
-          : 'Stylist';
+          : AppLocalizations.t(context, 'default_stylist_name');
 
       // avatarPath లేనప్పుడు Appwrite fallback avatar తెచ్చుకో
       Uint8List? avatarBytes;
@@ -1699,10 +1322,10 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
   void _updateClock() {
     if (!mounted) return;
     final now = DateTime.now();
-    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-    const months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+    const dayKeys = ['day_sun', 'day_mon', 'day_tue', 'day_wed', 'day_thu', 'day_fri', 'day_sat'];
+    const monthKeys = [
+      'month_jan', 'month_feb', 'month_mar', 'month_apr', 'month_may', 'month_jun',
+      'month_jul', 'month_aug', 'month_sep', 'month_oct', 'month_nov', 'month_dec',
     ];
     // 🆕 Greeting key — translated in _buildGreetingBlock()
     String greetingKey;
@@ -1717,25 +1340,10 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
     }
     _clockState.value = (
     greeting: greetingKey,
-    date: '${days[now.weekday % 7]}, ${now.day} ${months[now.month - 1]}',
+    date: '${AppLocalizations.t(context, dayKeys[now.weekday % 7])}, ${now.day} ${AppLocalizations.t(context, monthKeys[now.month - 1])}',
     );
     // Invalidate suggestion cache — hour/weekday may have changed
     _invalidateSuggestionCache();
-  }
-
-  void _rotateSuggestion() {
-    final current = _suggestionState.value;
-    _suggestionState.value = (index: current.index, opacity: 0.0);
-    Future.delayed(const Duration(milliseconds: 350), () {
-      if (!mounted) return;
-      final maxIdx = _dynamicSuggestions.isNotEmpty
-          ? _dynamicSuggestions.length
-          : _aiSuggestions.length;
-      _suggestionState.value = (
-      index: (current.index + 1) % maxIdx,
-      opacity: 1.0,
-      );
-    });
   }
 
   void _startThinkingAnimation() {
@@ -1842,10 +1450,8 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
     _overlayFadeCtrl.dispose();
     _thinkingCtrl.dispose();
     _tagsRevealCtrl.dispose();
-    _suggestionTimer?.cancel();
     _toastTimer?.cancel();
     _clockTimer?.cancel();
-    _suggestionState.dispose();
     _clockState.dispose();
     _cardContextVersion.dispose();
     _chatController.dispose();
@@ -2895,7 +2501,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
     final String _fallbackName = profileState.name.isNotEmpty &&
         profileState.name != 'New User'
         ? profileState.name
-        : (_userName.isNotEmpty ? _userName : 'User');
+        : (_userName.isNotEmpty ? _userName : AppLocalizations.t(context, 'default_user_name'));
     final String _avatarInitial = _fallbackName[0].toUpperCase();
 
     return GestureDetector(
@@ -3101,7 +2707,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
 
     // Workout type chip label
     final fit = _fitnessSignal;
-    String mobilityLabel = 'Mobility day';
+    String mobilityLabel = AppLocalizations.t(context, 'chip_mobility_default');
     if (fit.nextWorkoutLabel.isNotEmpty) {
       mobilityLabel = fit.nextWorkoutLabel;
     }
@@ -3109,7 +2715,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
     // Calendar chip label
     final ctx = _recommendationCtx;
     final meeting = ctx.nextMeeting;
-    String calLabel = 'No meetings';
+    String calLabel = AppLocalizations.t(context, 'chip_no_meetings');
     if (meeting != null && meeting.isToday) {
       final hoursLeft = meeting.hoursUntil;
       calLabel = hoursLeft > 0 ? '${meeting.title} in ${hoursLeft}h' : meeting.title;
@@ -3325,22 +2931,22 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
     // 📅 Occasion takes top priority — overrides everything else.
     if (ctx.hasSoonOccasion) {
       final e = ctx.nextOccasion!;
-      return (headline: '${e.title} In ${e.hoursUntil}h — Let\'s Get Ready', emoji: '🎉');
+      return (headline: '${e.title} In ${e.hoursUntil}h — ${AppLocalizations.t(context, 'hero_occasion_suffix')}', emoji: '🎉');
     }
     if (ctx.hasSoonMeeting) {
       final e = ctx.nextMeeting!;
-      return (headline: '${e.title} In ${e.hoursUntil}h — Look Sharp', emoji: '💼');
+      return (headline: '${e.title} In ${e.hoursUntil}h — ${AppLocalizations.t(context, 'hero_meeting_suffix')}', emoji: '💼');
     }
 
     // 🌦️ Weather-driven
     if (w.isRainy) {
-      return (headline: 'Rainy Day, Still Put Together', emoji: '🌧️');
+      return (headline: AppLocalizations.t(context, 'hero_rainy'), emoji: '🌧️');
     }
     if (w.isCold && w.tempLabel.isNotEmpty) {
-      return (headline: '${w.tempLabel} Outside — Cosy Up Right', emoji: '❄️');
+      return (headline: '${w.tempLabel} ${AppLocalizations.t(context, 'hero_cold_suffix')}', emoji: '❄️');
     }
     if (w.isHot && w.tempLabel.isNotEmpty) {
-      return (headline: '${w.tempLabel} Today — Stay Cool', emoji: '☀️');
+      return (headline: '${w.tempLabel} ${AppLocalizations.t(context, 'hero_hot_suffix')}', emoji: '☀️');
     }
 
     // 🕒 Time-of-day fallback
@@ -3349,12 +2955,12 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
       return (headline: localizedHeroTitle, emoji: '');
     }
     if (ctx.isAfternoon) {
-      return (headline: 'Keep The Momentum\nGoing', emoji: '🔥');
+      return (headline: AppLocalizations.t(context, 'hero_afternoon'), emoji: '🔥');
     }
     if (ctx.isEvening) {
-      return (headline: 'Wind Down,\nLook Good Doing It', emoji: '🌆');
+      return (headline: AppLocalizations.t(context, 'hero_evening'), emoji: '🌆');
     }
-    return (headline: 'Set Up Tomorrow\nTonight', emoji: '🌙');
+    return (headline: AppLocalizations.t(context, 'hero_night'), emoji: '🌙');
   }
 
   // Style card outfit index for Next button
@@ -4039,7 +3645,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                             fit: BoxFit.scaleDown,
                             alignment: Alignment.centerLeft,
                             child: Text(
-                              'Prep & Plan',
+                              AppLocalizations.t(context, 'prep_card_title'),
                               style: TextStyle(
                                 color: _textHeading,
                                 fontSize: 18,
@@ -4050,7 +3656,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                           ),
                           const SizedBox(height: 1),
                           Text(
-                            'Your week at a glance',
+                            AppLocalizations.t(context, 'prep_card_subtitle'),
                             style: TextStyle(
                               color: _textMuted,
                               fontSize: 8.5,
@@ -4061,7 +3667,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                           ),
                           const SizedBox(height: 3),
                           Text(
-                            'Outfits, meals & goals planned ahead.',
+                            AppLocalizations.t(context, 'prep_card_desc'),
                             style: TextStyle(
                               // 🆕 Blended a bit toward _textHeading (from plain
                               // _textMuted) + bumped size/weight so the subtitle
@@ -4113,7 +3719,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                               FittedBox(
                                 fit: BoxFit.scaleDown,
                                 child: Text(
-                                  'Plan Week',
+                                  AppLocalizations.t(context, 'prep_card_cta'),
                                   style: TextStyle(
                                     color: _onAccent,
                                     fontSize: 9,
@@ -4502,9 +4108,9 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
         Expanded(
           child: _buildStaticSecCard(
             icon: Icons.checkroom_outlined,
-            title: 'Style',
-            subtitle: 'Build today\'s look from your wardrobe.',
-            ctaLabel: 'Style Me',
+            title: AppLocalizations.t(context, 'sec_style_title'),
+            subtitle: AppLocalizations.t(context, 'sec_style_subtitle'),
+            ctaLabel: AppLocalizations.t(context, 'sec_style_cta'),
             assetImage: 'assets/images/style_card.jpeg',
             intent: 'style',
             prompt: 'Plan a complete outfit for me today.',
@@ -4515,9 +4121,9 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
         Expanded(
           child: _buildStaticSecCard(
             icon: Icons.calendar_month_outlined,
-            title: 'Prep & Plan',
-            subtitle: 'Plan outfits, meals & goals for the week ahead.',
-            ctaLabel: 'Plan My Week',
+            title: AppLocalizations.t(context, 'prep_card_title'),
+            subtitle: AppLocalizations.t(context, 'sec_prep_subtitle'),
+            ctaLabel: AppLocalizations.t(context, 'sec_prep_cta'),
             assetImage: 'assets/images/plan_card.jpg',
             intent: 'organize',
             prompt: 'Help me plan my week: outfits, meals, and goals.',
@@ -7520,13 +7126,13 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
       'https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=300&h=280&fit=crop&crop=top&auto=format',
       ),
       (
-      'Athleisure',
-      'Sport · Morning',
+      AppLocalizations.t(context, 'pick_athleisure'),
+      AppLocalizations.t(context, 'pick_athleisure_tag'),
       'https://images.unsplash.com/photo-1538805060514-97d9cc17730c?w=300&h=280&fit=crop&crop=top&auto=format',
       ),
       (
-      'Resort Wear',
-      'Vacation · Breezy',
+      AppLocalizations.t(context, 'pick_resort_wear'),
+      AppLocalizations.t(context, 'pick_resort_wear_tag'),
       'https://images.unsplash.com/photo-1469334031218-e382a71b716b?w=300&h=280&fit=crop&crop=top&auto=format',
       ),
     ];
@@ -7785,7 +7391,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                                   ShaderMask(
                                     shaderCallback: (b) => _accentGradient.createShader(b),
                                     child: Text(
-                                      'Notifications',
+                                      AppLocalizations.t(context, 'notifications_title'),
                                       style: TextStyle(
                                         color: _textHeading,
                                         fontSize: 18,
@@ -7839,7 +7445,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                                   ),
                                   const SizedBox(height: 14),
                                   Text(
-                                    'All caught up!',
+                                    AppLocalizations.t(context, 'notifications_empty_title'),
                                     style: TextStyle(
                                       color: _textHeading,
                                       fontSize: 15,
@@ -7849,7 +7455,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
-                                    'No new notifications right now.',
+                                    AppLocalizations.t(context, 'notifications_empty_subtitle'),
                                     style: TextStyle(
                                       color: _textMuted,
                                       fontSize: 13,
