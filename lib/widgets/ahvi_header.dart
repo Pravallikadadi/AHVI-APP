@@ -55,7 +55,7 @@ class AhviHeader extends StatelessWidget {
     // Use sizeOf — subscribes ONLY to size changes, not viewInsets.
     // Keyboard open/close never triggers a rebuild of this widget.
     final screenH = MediaQuery.sizeOf(context).height;
-    final double topPad = screenH < 700 ? 12.0 : 16.0;
+    final double topPad = screenH < 700 ? 6.0 : 10.0;
     final double botPad = screenH < 700 ? 4.0 : 6.0;
     final double logoSize = screenH < 700 ? 26.0 : 30.0;
 
@@ -73,15 +73,14 @@ class AhviHeader extends StatelessWidget {
 
     return SafeArea(
       bottom: false,
+      minimum: const EdgeInsets.only(top: 0), // no extra SafeArea top padding
       child: ClipRect(
         child: BackdropFilter(
-          // frosted=true → blur; frosted=false → ImageFilter.matrix identity (no-op)
           filter: frosted
               ? ImageFilter.blur(sigmaX: 18, sigmaY: 18)
               : ImageFilter.blur(sigmaX: 0, sigmaY: 0),
           child: DecoratedBox(
             decoration: BoxDecoration(
-              // frosted=true → very subtle tint (no hard edge), false → fully transparent
               color: frosted
                   ? t.backgroundPrimary.withValues(alpha: 0.55)
                   : Colors.transparent,
@@ -90,10 +89,11 @@ class AhviHeader extends StatelessWidget {
                   : null,
             ),
             child: SizedBox(
-              height: topPad + logoSize + botPad,
+              height: 33.0,
               child: Padding(
-                padding: EdgeInsets.fromLTRB(20, topPad, 20, botPad),
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
                 child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     if (showBack) ...[
                       GestureDetector(
@@ -110,24 +110,14 @@ class AhviHeader extends StatelessWidget {
                     ],
                     logo,
                     const Spacer(),
-                    // ✏️ FIX: The Row here gets a TIGHT height constraint of just
-                    // `logoSize` (26–30px). A raw UnconstrainedBox let a taller
-                    // `right` widget (e.g. the 40×40 profile avatar) render at its
-                    // full size, which fixed the oval-squish but then overflowed/
-                    // clipped against this header's fixed overall height on
-                    // smaller screens. Wrapping in a SizedBox(logoSize × logoSize)
-                    // + FittedBox instead scales `right` down uniformly (preserving
-                    // its aspect ratio, so circles stay circles) to exactly fit the
-                    // available space — no squish, no overflow.
+                    // 🔧 FIX: Removed FittedBox + logoSize SizedBox that was
+                    // squeezing the right widget (notification bell + profile
+                    // avatar) from 48px down to 26-30px.
+                    // Now right widget renders at its own natural 48px size.
                     if (right != null)
-                      SizedBox(
-                        width: logoSize,
-                        height: logoSize,
-                        child: FittedBox(
-                          fit: BoxFit.contain,
-                          alignment: Alignment.center,
-                          child: right!,
-                        ),
+                      UnconstrainedBox(
+                        alignment: Alignment.center,
+                        child: right!,
                       ),
                   ],
                 ),
