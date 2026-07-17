@@ -380,7 +380,6 @@
   "daily_wear_wear": "घाला",
   "daily_wear_wear_today": "✓  आज घाला",
   "daily_wear_wearing": "✓ घालत आहे",
-  "date_example": "शुक्रवार, 6 मार्च",
   "date_format": "{day}, {date} {month}",
   "default_stylist_name": "स्टायलिस्ट",
   "default_user_name": "पाहुणे",
@@ -1332,5 +1331,8 @@
   "daily_wear_saved_boards": "आपल्या बोर्डांना जतन केले.",
   "daily_wear_toast_style_history_added": "आपल्या शैली इतिहासात जोडले गेले",
   "daily_wear_toast_update_failed": "शैली इतिहास अपडेट करता आले नाही",
-  "daily_wear_wardrobe_alert": "कपडांच्या आलमारीची सूचना"
+  "daily_wear_wardrobe_alert": "कपडांच्या आलमारीची सूचना",
+  "hero_card_you_tend_to_love": "तुम्हाला {style} आवडते",
+  "status_streak": "सलग सुरू आहे!",
+  "status_start": "सुरू करा"
 }

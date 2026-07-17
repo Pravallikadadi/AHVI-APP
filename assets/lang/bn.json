@@ -380,7 +380,6 @@
   "daily_wear_wear": "পরুন",
   "daily_wear_wear_today": "✓  আজ পরুন",
   "daily_wear_wearing": "✓ পরছি",
-  "date_example": "শুক্রবার, 6 মার্চ",
   "date_format": "{day}, {date} {month}",
   "default_stylist_name": "স্টাইলিস্ট",
   "default_user_name": "অতিথি",
@@ -1332,5 +1331,8 @@
   "daily_wear_saved_boards": "আপনার বোর্ডে সংরক্ষিত।",
   "daily_wear_toast_style_history_added": "আপনার স্টাইল ইতিহাসে যোগ করা হয়েছে",
   "daily_wear_toast_update_failed": "স্টাইল ইতিহাস আপডেট করা যায়নি",
-  "daily_wear_wardrobe_alert": "ওয়ার্ডরোব সতর্কতা"
+  "daily_wear_wardrobe_alert": "ওয়ার্ডরোব সতর্কতা",
+  "hero_card_you_tend_to_love": "আপনি {style} পছন্দ করেন",
+  "status_streak": "ধারাবাহিকতা চলছে!",
+  "status_start": "শুরু করুন"
 }

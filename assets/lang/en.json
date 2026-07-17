@@ -380,7 +380,6 @@
   "daily_wear_wear": "Wear",
   "daily_wear_wear_today": "✓  Wear Today",
   "daily_wear_wearing": "✓ Wearing",
-  "date_example": "Fri, 6 Mar",
   "date_format": "{day}, {date} {month}",
   "default_stylist_name": "Stylist",
   "default_user_name": "Guest",
@@ -1332,5 +1331,8 @@
   "daily_wear_saved_boards": "Saved to your boards.",
   "daily_wear_toast_style_history_added": "Added to your style history",
   "daily_wear_toast_update_failed": "Couldn't update style history",
-  "daily_wear_wardrobe_alert": "Wardrobe Alert"
+  "daily_wear_wardrobe_alert": "Wardrobe Alert",
+  "hero_card_you_tend_to_love": "You tend to love {style}",
+  "status_streak": "On a streak!",
+  "status_start": "Get started"
 }

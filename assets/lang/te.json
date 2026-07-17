@@ -380,7 +380,6 @@
   "daily_wear_wear": "వేసుకో",
   "daily_wear_wear_today": "✓  ఈ రోజు వేసుకో",
   "daily_wear_wearing": "✓ వేసుకుంటున్నాను",
-  "date_example": "శుక్రవారం, 6 మార్చి",
   "date_format": "{day}, {date} {month}",
   "default_stylist_name": "స్టైలిస్ట్",
   "default_user_name": "అతిథి",
@@ -1332,5 +1331,8 @@
   "daily_wear_saved_boards": "మీ బోర్డులకు సేవ్ చేయబడింది.",
   "daily_wear_toast_style_history_added": "మీ శైలి చరిత్రకు జోడించబడింది",
   "daily_wear_toast_update_failed": "శైలి చరిత్రను నవీకరించలేకపోయాము",
-  "daily_wear_wardrobe_alert": "వార్డ్‌రోబ్ హెచ్చరిక"
+  "daily_wear_wardrobe_alert": "వార్డ్‌రోబ్ హెచ్చరిక",
+  "hero_card_you_tend_to_love": "మీకు {style} అంటే ఇష్టం",
+  "status_streak": "వరుస కొనసాగుతోంది!",
+  "status_start": "ప్రారంభించండి"
 }

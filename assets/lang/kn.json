@@ -380,7 +380,6 @@
   "daily_wear_wear": "ಧರಿಸಿ",
   "daily_wear_wear_today": "✓  ಇಂದು ಧರಿಸಿ",
   "daily_wear_wearing": "✓ ಧರಿಸಲಾಗಿದೆ",
-  "date_example": "ಶುಕ್ರವಾರ, 6 ಮಾರ್ಚ್",
   "date_format": "{day}, {date} {month}",
   "default_stylist_name": "ಸ್ಟೈಲಿಸ್ಟ್",
   "default_user_name": "ಅತಿಥಿ",
@@ -1332,5 +1331,8 @@
   "daily_wear_saved_boards": "ನಿಮ್ಮ ಫಲಕಗಳಿಗೆ ಉಳಿಸಲಾಗಿದೆ.",
   "daily_wear_toast_style_history_added": "ನಿಮ್ಮ ಶೈಲಿ ಇತಿಹಾಸಕ್ಕೆ ಸೇರಿಸಲಾಗಿದೆ",
   "daily_wear_toast_update_failed": "ಶೈಲಿ ಇತಿಹಾಸವನ್ನು ಅಪ್‌ಡೇಟ್ ಮಾಡಲು ಸಾಧ್ಯವಿಲ್ಲ",
-  "daily_wear_wardrobe_alert": "ವಾರ್ಡ್‌ರೋಬ್ ಎಚ್ಚರಿಕೆ"
+  "daily_wear_wardrobe_alert": "ವಾರ್ಡ್‌ರೋಬ್ ಎಚ್ಚರಿಕೆ",
+  "hero_card_you_tend_to_love": "ನಿಮಗೆ {style} ಇಷ್ಟ",
+  "status_streak": "ಸ್ಟ್ರೀಕ್‌ನಲ್ಲಿದ್ದೀರಿ!",
+  "status_start": "ಪ್ರಾರಂಭಿಸಿ"
 }

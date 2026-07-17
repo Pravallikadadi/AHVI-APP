@@ -380,7 +380,6 @@
   "daily_wear_wear": "पहनें",
   "daily_wear_wear_today": "✓  आज पहनें",
   "daily_wear_wearing": "✓ पहन रही हूं",
-  "date_example": "शुक्रवार, 6 मार्च",
   "date_format": "{day}, {date} {month}",
   "default_stylist_name": "स्टाइलिस्ट",
   "default_user_name": "मेहमान",
@@ -1332,5 +1331,8 @@
   "daily_wear_saved_boards": "आपकी बोर्डों में सहेजा गया।",
   "daily_wear_toast_style_history_added": "आपकी शैली इतिहास में जोड़ा गया",
   "daily_wear_toast_update_failed": "शैली इतिहास अपडेट नहीं किया जा सका",
-  "daily_wear_wardrobe_alert": "अलमारी चेतावनी"
+  "daily_wear_wardrobe_alert": "अलमारी चेतावनी",
+  "hero_card_you_tend_to_love": "आपको {style} पसंद है",
+  "status_streak": "लगातार जारी!",
+  "status_start": "शुरू करें"
 }

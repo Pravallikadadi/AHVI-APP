@@ -380,7 +380,6 @@
   "daily_wear_wear": "ധരിക്കൂ",
   "daily_wear_wear_today": "✓  ഇന്ന് ധരിക്കൂ",
   "daily_wear_wearing": "✓ ധരിക്കുന്നു",
-  "date_example": "വെള്ളിയാഴ്ച, 6 മാർച്ച്",
   "date_format": "{day}, {date} {month}",
   "default_stylist_name": "സ്റ്റൈലിസ്റ്റ്",
   "default_user_name": "അതിഥി",
@@ -1332,5 +1331,8 @@
   "daily_wear_saved_boards": "നിങ്ങളുടെ ബോർഡുകളിലേക്ക് സംരക്ഷിച്ചു.",
   "daily_wear_toast_style_history_added": "നിങ്ങളുടെ ശൈലി ചരിത്രത്തിലേക്ക് ചേർത്തു",
   "daily_wear_toast_update_failed": "ശൈലി ചരിത്രം അപ്‌ഡേറ്റ് ചെയ്യാൻ കഴിഞ്ഞില്ല",
-  "daily_wear_wardrobe_alert": "വാരിയെണ്ണ് മുന്നറിയിപ്പ്"
+  "daily_wear_wardrobe_alert": "വാരിയെണ്ണ് മുന്നറിയിപ്പ്",
+  "hero_card_you_tend_to_love": "നിങ്ങൾക്ക് {style} ഇഷ്ടമാണ്",
+  "status_streak": "സ്ട്രീക്കിലാണ്!",
+  "status_start": "ആരംഭിക്കുക"
 }
