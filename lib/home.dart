@@ -1216,11 +1216,17 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
       duration: const Duration(milliseconds: 380),
     );
 
-    _updateClock();
-    _clockTimer = Timer.periodic(
-      const Duration(seconds: 15),
-          (_) => _updateClock(),
-    );
+    // 🔧 FIX: Defer _updateClock() to after frame completes
+    // This ensures the localization inherited widget is fully initialized
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _updateClock();
+        _clockTimer = Timer.periodic(
+          const Duration(seconds: 15),
+              (_) => _updateClock(),
+        );
+      }
+    });
 
     _fetchUserProfile();
 
@@ -1319,14 +1325,20 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
     return _userGender;
   }
 
+  // 🆕 Fixed (non-localized) day/month abbreviations. These used to be looked
+  // up via 'day_sun'..'day_sat' / 'month_jan'..'month_dec' translation keys,
+  // but none of those keys exist in any of the 8 locale JSON files, so the
+  // date line was rendering raw key names instead of an actual date. Using
+  // fixed abbreviations here instead of translation keys avoids that.
+  static const _dayAbbrs = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  static const _monthAbbrs = [
+    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+  ];
+
   void _updateClock() {
     if (!mounted) return;
     final now = DateTime.now();
-    const dayKeys = ['day_sun', 'day_mon', 'day_tue', 'day_wed', 'day_thu', 'day_fri', 'day_sat'];
-    const monthKeys = [
-      'month_jan', 'month_feb', 'month_mar', 'month_apr', 'month_may', 'month_jun',
-      'month_jul', 'month_aug', 'month_sep', 'month_oct', 'month_nov', 'month_dec',
-    ];
     // 🆕 Greeting key — translated in _buildGreetingBlock()
     String greetingKey;
     if (now.hour >= 5 && now.hour < 12) {
@@ -1340,7 +1352,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
     }
     _clockState.value = (
     greeting: greetingKey,
-    date: '${AppLocalizations.t(context, dayKeys[now.weekday % 7])}, ${now.day} ${AppLocalizations.t(context, monthKeys[now.month - 1])}',
+    date: '${_dayAbbrs[now.weekday % 7]}, ${now.day} ${_monthAbbrs[now.month - 1]}',
     );
     // Invalidate suggestion cache — hour/weekday may have changed
     _invalidateSuggestionCache();
@@ -2634,7 +2646,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
             children: [
               Text(
                 clock.date.isEmpty
-                    ? AppLocalizations.t(context, 'date_example')
+                    ? '${_dayAbbrs[DateTime.now().weekday % 7]}, ${DateTime.now().day} ${_monthAbbrs[DateTime.now().month - 1]}'
                     : clock.date,
                 style: TextStyle(
                   color: _textMuted,
@@ -3149,7 +3161,8 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                                     _buildStyleCardBullet(
                                       icon: Icons.favorite_border_rounded,
                                       color: const Color(0xFFD4A0C8),
-                                      label: 'You tend to love ${_wardrobeSignal.favoriteStyle}',
+                                      label: AppLocalizations.t(context, 'hero_card_you_tend_to_love')
+                                          .replaceAll('{style}', _wardrobeSignal.favoriteStyle),
                                       desc: AppLocalizations.t(context, 'hero_card_bullet_style'),
                                       labelFontSize: bulletLabelSize,
                                       descFontSize: bulletDescSize,
@@ -7659,10 +7672,9 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
   }
 
   String _getWorkoutStatus() {
-    // status_streak / status_start లేవు → existing keys వాడు
     return _fitnessSignal.hasActiveStreak
-        ? AppLocalizations.t(context, 'status_in_progress')
-        : AppLocalizations.t(context, 'status_in_progress');
+        ? AppLocalizations.t(context, 'status_streak')
+        : AppLocalizations.t(context, 'status_start');
   }
 
   bool _isWorkoutDone() {
