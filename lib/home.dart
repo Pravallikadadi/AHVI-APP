@@ -1079,6 +1079,13 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
   String _runningMemory = "";
   final ScrollController _overlayScrollCtrl = ScrollController();
 
+  // 🆕 Routine progress tracker + cards row now scroll together horizontally.
+  // Two separate controllers (each row is its own SingleChildScrollView) kept
+  // in sync via listeners in initState — see _syncRoutineScroll().
+  final ScrollController _routineCardsScrollCtrl = ScrollController();
+  final ScrollController _routineProgressScrollCtrl = ScrollController();
+  bool _isSyncingRoutineScroll = false;
+
   List<String> _responseTags = [];
   bool _tagsRevealed = false;
 
@@ -1187,6 +1194,15 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
     // Keyboard height track చేయడానికి FocusNode listener
     _chatFocusNode.addListener(_onChatFocusChange);
     WidgetsBinding.instance.addObserver(this);
+
+    // 🆕 Keep the routine progress tracker and routine cards scrolling
+    // together — dragging either one moves the other by the same offset.
+    _routineCardsScrollCtrl.addListener(
+          () => _syncRoutineScroll(_routineCardsScrollCtrl, _routineProgressScrollCtrl),
+    );
+    _routineProgressScrollCtrl.addListener(
+          () => _syncRoutineScroll(_routineProgressScrollCtrl, _routineCardsScrollCtrl),
+    );
 
     _aurora1Ctrl = AnimationController(
       vsync: this,
@@ -1532,6 +1548,8 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
       }
     }
     _overlayScrollCtrl.dispose();
+    _routineCardsScrollCtrl.dispose();
+    _routineProgressScrollCtrl.dispose();
     super.dispose();
   }
 
@@ -3396,6 +3414,18 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
 
   // ── Routine cards section: Wear / Move / Eat / Care / Medicine ───────────
 
+  /// Mirrors [from]'s current scroll offset onto [to], guarded by a flag so
+  /// the two listeners don't ping-pong each other infinitely.
+  void _syncRoutineScroll(ScrollController from, ScrollController to) {
+    if (_isSyncingRoutineScroll) return;
+    if (!from.hasClients || !to.hasClients) return;
+    final target = from.offset.clamp(0.0, to.position.maxScrollExtent);
+    if ((to.offset - target).abs() < 0.5) return;
+    _isSyncingRoutineScroll = true;
+    to.jumpTo(target);
+    _isSyncingRoutineScroll = false;
+  }
+
   Widget _buildRoutineCardsSection() {
     final summary = context.watch<HomeCardSummaryProvider>();
     // 🆕 Watching these causes the Care & Medicine cards to repaint
@@ -3414,6 +3444,9 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
     // We intentionally avoid going below 88dp so the label+icon+status always
     // have room to render without clipping.
     final cardWidth = (88.0 * routineScale).clamp(88.0, 120.0);
+    // 🆕 Shared gap used by BOTH the cards row and the progress tracker row,
+    // so each progress segment's width lines up with its card underneath.
+    final cardGap = screenW < 360 ? 3.0 : 4.0;
     final iconBubbleSize = (36.0 * routineScale).clamp(34.0, 46.0);
     final iconSize = (17.0 * routineScale).clamp(16.0, 22.0);
     final labelFontSize = (12.5 * routineScale).clamp(12.0, 16.0);
@@ -3505,34 +3538,45 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
         mainAxisSize: MainAxisSize.max,
         children: [
           // Progress dots row
-          // 🔧 FIX: previously computed connector-line width by subtracting
-          // hardcoded pixel guesses from MediaQuery's full screen width —
-          // that math didn't account for this card's own border/padding, so
-          // it was consistently a couple pixels too wide and threw a
-          // "RIGHT OVERFLOWED" render error. Using Expanded lets the Row
-          // itself fill exactly the space it's given, on any screen size,
-          // with zero manual math.
-          Padding(
-            // ✏️ −2px per spec (progress stepper)
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+          // 🆕 FIX: now scrolls horizontally exactly like the routine cards
+          // row below it. Previously this used Expanded connector segments,
+          // which only works when the Row's width is bounded (i.e. NOT
+          // scrollable) — Expanded/Flexible throw inside a scrollable Row
+          // with unbounded width. Switched to fixed-width segments sized to
+          // match each card's width + gap, wrapped in its own
+          // SingleChildScrollView using the SAME horizontal padding as the
+          // cards row below, so each bubble lines up directly above its
+          // card. The two rows' scroll controllers are kept in sync (see
+          // _syncRoutineScroll) so dragging either one scrolls both.
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            controller: _routineProgressScrollCtrl,
+            padding: EdgeInsets.symmetric(horizontal: screenW < 360 ? 4 : 6, vertical: 0),
+            physics: const BouncingScrollPhysics(),
             child: Row(
+              mainAxisSize: MainAxisSize.min,
               children: List.generate(routines.length * 2 - 1, (i) {
                 if (i.isEven) {
                   final done = routines[i ~/ 2].done;
-                  return Container(
-                    width: 22,
-                    height: 22,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: done ? _accent : Colors.transparent,
-                      border: Border.all(
-                        color: done ? _accent : _border,
-                        width: 1.5,
+                  return SizedBox(
+                    width: cardWidth,
+                    child: Center(
+                      child: Container(
+                        width: 22,
+                        height: 22,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: done ? _accent : Colors.transparent,
+                          border: Border.all(
+                            color: done ? _accent : _border,
+                            width: 1.5,
+                          ),
+                        ),
+                        child: done
+                            ? Icon(Icons.check_rounded, size: 12, color: _onAccent)
+                            : null,
                       ),
                     ),
-                    child: done
-                        ? Icon(Icons.check_rounded, size: 12, color: _onAccent)
-                        : null,
                   );
                 }
                 // 🆕 Dynamic progress line: this segment sits right after
@@ -3540,16 +3584,17 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                 // that item is done — the connector row now visually tracks
                 // real completion progress instead of staying static gray.
                 final segmentDone = routines[i ~/ 2].done;
-                return Expanded(
+                return SizedBox(
+                  width: cardGap,
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 220),
                     curve: Curves.easeOut,
                     height: 1.5,
-                    margin: const EdgeInsets.symmetric(horizontal: 2),
                     color: segmentDone ? _accent : _border,
                   ),
                 );
-              }),
+              })
+                ..add(SizedBox(width: cardGap)), // 🆕 matches trailing gap after the last card
             ),
           ),
 
@@ -3573,6 +3618,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                 final cardItemHeight = cardsConstraints.maxHeight.clamp(90.0, double.infinity);
                 return SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
+                  controller: _routineCardsScrollCtrl,
                   padding: EdgeInsets.symmetric(horizontal: screenW < 360 ? 4 : 6, vertical: 0),
                   physics: const BouncingScrollPhysics(),
                   clipBehavior: Clip.antiAlias,
@@ -3584,7 +3630,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                           (i) {
                         final r = routines[i];
                         return Padding(
-                          padding: EdgeInsets.only(right: screenW < 360 ? 3 : 4),
+                          padding: EdgeInsets.only(right: cardGap),
                           child: GestureDetector(
                             onTap: () => Navigator.push(
                               context,
