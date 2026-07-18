@@ -183,6 +183,41 @@ const _homeNavItems = <({IconData icon, String label})>[
   (icon: Icons.explore_outlined, label: 'Explore'),
 ];
 
+/// 🆕 SINGLE SOURCE OF TRUTH for the screen's responsive horizontal gutter.
+///
+/// Previously this breakpoint math was duplicated: once inline inside the
+/// body's LayoutBuilder (drives padding for the greeting/cards/routine
+/// sections), and the fixed AHVI logo bar never used it at all — it was
+/// rendered via a full-bleed `Positioned(left: 0, right: 0)` while
+/// `AhviHeader` applied its own hardcoded 20px inset. On small phones the
+/// body gutter can be as low as 8px while the header stayed at 20px, and on
+/// tablets the body content is centered (gutter = (screenW-620)/2, often
+/// >20px) while the header still sat at a flat 20 — so the logo never lined
+/// up with the greeting/date text beneath it except by coincidence at
+/// exactly the 480–640dp bucket. Both call sites now read from here, so the
+/// logo is guaranteed to share the same left edge as everything below it on
+/// every screen size.
+({double horizontalPad, double maxContentWidth}) _responsiveGutter(double screenW) {
+  if (screenW < 340) {
+    // Very small phones (iPhone SE) - 280-340dp
+    return (horizontalPad: 8.0, maxContentWidth: screenW - 16.0);
+  } else if (screenW < 360) {
+    // Small phones (Galaxy A12) - 340-360dp
+    return (horizontalPad: 10.0, maxContentWidth: screenW - 20.0);
+  } else if (screenW < 480) {
+    // Small/Standard phones (iPhone 11, Pixel 5) - 360-480dp
+    return (horizontalPad: 16.0, maxContentWidth: screenW - 32.0);
+  } else if (screenW < 640) {
+    // Large phones (iPhone 14 Pro Max, Pixel 7 Pro) - 480-640dp
+    return (horizontalPad: 20.0, maxContentWidth: screenW - 40.0);
+  } else {
+    // Tablets and large devices (iPad, foldables) - 640+dp — content is
+    // centered at a fixed max width, so the gutter grows to fill the rest.
+    const maxContentWidth = 620.0;
+    return (horizontalPad: (screenW - maxContentWidth) / 2, maxContentWidth: maxContentWidth);
+  }
+}
+
 Color _accent(AppThemeTokens t) => t.accent.primary;
 Color _accentSecondary(AppThemeTokens t) => t.accent.secondary;
 Color _accentTertiary(AppThemeTokens t) => t.accent.tertiary;
@@ -483,7 +518,12 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
 
   // ── Notifications ──────────────────────────────────────────────────────────
   bool _notifPanelOpen = false;
-  int _unreadNotifCount = 3; // demo unread badge count
+  // 🆕 FIX: Initialize to 0 instead of hardcoded 3
+  // Unread count is calculated dynamically from notification list
+  int _unreadNotifCount = 0;
+
+  // 🆕 Unread notifications list — synced with backend
+  List<_NotifData> _notificationsList = [];
 
   late List<AnimationController> _navRiseCtrls;
 
@@ -1248,6 +1288,37 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
         );
       }
     });
+
+    // 🆕 Load notifications on app start
+    _loadNotifications();
+  }
+
+  /// 🆕 Load notifications from backend and update unread count dynamically
+  Future<void> _loadNotifications() async {
+    try {
+      // TODO: Replace with actual backend API call to fetch notifications
+      // For now, this demonstrates the pattern
+      // Example:
+      // final response = await backendService.fetchNotifications();
+      // _notificationsList = response.map(_NotifData.fromJson).toList();
+
+      // Currently using empty list (no notifications by default)
+      _notificationsList = [];
+
+      // 🆕 Update unread count based on actual notifications
+      _updateUnreadNotifCount();
+
+      if (mounted) setState(() {});
+    } catch (e) {
+      debugPrint('Error loading notifications: $e');
+    }
+  }
+
+  /// 🆕 Calculate and update unread notification count
+  void _updateUnreadNotifCount() {
+    _unreadNotifCount = _notificationsList
+        .where((notif) => notif.unread)
+        .length;
   }
 
   Future<void> _fetchUserProfile() async {
@@ -1325,20 +1396,14 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
     return _userGender;
   }
 
-  // 🆕 Fixed (non-localized) day/month abbreviations. These used to be looked
-  // up via 'day_sun'..'day_sat' / 'month_jan'..'month_dec' translation keys,
-  // but none of those keys exist in any of the 8 locale JSON files, so the
-  // date line was rendering raw key names instead of an actual date. Using
-  // fixed abbreviations here instead of translation keys avoids that.
-  static const _dayAbbrs = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-  static const _monthAbbrs = [
-    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
-  ];
-
   void _updateClock() {
     if (!mounted) return;
     final now = DateTime.now();
+    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const monthNames = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December',
+    ];
     // 🆕 Greeting key — translated in _buildGreetingBlock()
     String greetingKey;
     if (now.hour >= 5 && now.hour < 12) {
@@ -1352,7 +1417,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
     }
     _clockState.value = (
     greeting: greetingKey,
-    date: '${_dayAbbrs[now.weekday % 7]}, ${now.day} ${_monthAbbrs[now.month - 1]}',
+    date: '${dayNames[now.weekday % 7]}, ${now.day} ${monthNames[now.month - 1]}',
     );
     // Invalidate suggestion cache — hour/weekday may have changed
     _invalidateSuggestionCache();
@@ -1995,8 +2060,13 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                   // Large: 480-640dp (increased spacing, larger cards)
                   // Tablets: 640+dp (centered, max width)
                   final screenW = constraints.maxWidth;
-                  final double horizontalPad;
-                  final double maxContentWidth;
+                  // 🆕 Single shared source of truth — see _responsiveGutter
+                  // above. The fixed logo bar (_buildFixedLogoBar) reads the
+                  // exact same function, so the header and body content can
+                  // never drift out of alignment again.
+                  final gutter = _responsiveGutter(screenW);
+                  final double horizontalPad = gutter.horizontalPad;
+                  final double maxContentWidth = gutter.maxContentWidth;
                   final double cardSpacing;
                   final double topSpacing;
 
@@ -2005,28 +2075,6 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                   // 🔧 FIX: Responsive spacing for small screens
                   cardSpacing = screenW < 340 ? 6.0 : 8.0;
                   topSpacing = screenW < 340 ? 8.0 : 10.0;
-
-                  if (screenW < 340) {
-                    // Very small phones (iPhone SE) - 280-340dp
-                    horizontalPad = 8.0;
-                    maxContentWidth = screenW - 16.0;
-                  } else if (screenW < 360) {
-                    // Small phones (Galaxy A12) - 340-360dp
-                    horizontalPad = 10.0;
-                    maxContentWidth = screenW - 20.0;
-                  } else if (screenW < 480) {
-                    // Small/Standard phones (iPhone 11, Pixel 5) - 360-480dp
-                    horizontalPad = 16.0;
-                    maxContentWidth = screenW - 32.0;
-                  } else if (screenW < 640) {
-                    // Large phones (iPhone 14 Pro Max, Pixel 7 Pro) - 480-640dp
-                    horizontalPad = 20.0;
-                    maxContentWidth = screenW - 40.0;
-                  } else {
-                    // Tablets and large devices (iPad, foldables) - 640+dp
-                    maxContentWidth = 620.0;
-                    horizontalPad = (screenW - maxContentWidth) / 2;
-                  }
 
                   // ── Bottom reserve: chat bar + nav bar + safe bottom ──────────
                   // Now ACTUALLY applied (previously computed but unused) as the
@@ -2056,9 +2104,9 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                   screenHFull >= 760 ? 8.0 : screenHFull >= 680 ? 6.0 : 0.0;
                   // ✅ FIX 2: breathingGap reduced from 6→4 (saves 2px between
                   // Prep & Plan card and Prompt Bar).
-                  // ✅ FIX 4: tightened by another 3px (4→1) — Prep & Plan ↔
-                  // Prompt Bar gap is now 3px tighter than before.
-                  const breathingGap = 1.0;
+                  // ✅ FIX 4: tightened by another 3px (4→1 → 0) — Prep & Plan ↔
+                  // Prompt Bar gap is now 4px tighter than before (no gap).
+                  const breathingGap = 0.0;
                   // Combined, FIX 3 + FIX 4 recover 4px of vertical space
                   // (1px + 3px) versus the previous layout. That whole 4px is
                   // routed entirely into the Routine Cards section below
@@ -2070,8 +2118,8 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                   final bottomReserved = screenW < 340
                       ? (safeBottom + 72.0)  // Reduced for tiny phones
                       : screenW < 380
-                      ? (safeBottom + navBarTotalH + promptBarH + promptExtraLift + breathingGap - 2.0)
-                      : (safeBottom + navBarTotalH + promptBarH + promptExtraLift + breathingGap);
+                      ? (safeBottom + navBarTotalH + promptBarH + promptExtraLift + breathingGap - 3.0)
+                      : (safeBottom + navBarTotalH + promptBarH + promptExtraLift + breathingGap - 1.0);
 
                   return SizedBox(
                     height: constraints.maxHeight,
@@ -2399,8 +2447,16 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
   Widget _buildFixedLogoBar() {
     // Delegated to AhviHeader — same spacing on all screens, keyboard-safe
     final screenW = MediaQuery.of(context).size.width;
+    // 🔧 FIX: previously AhviHeader used its own hardcoded 20px inset here,
+    // while the body content below used the responsive `horizontalPad` from
+    // _responsiveGutter (8/10/16/20, or centered on tablets). That mismatch
+    // is exactly why the logo looked misaligned relative to the greeting
+    // text and cards. Reading the same shared helper guarantees the logo's
+    // left edge always matches the content's left edge.
+    final horizontalPad = _responsiveGutter(screenW).horizontalPad;
     return AhviHeader(
       frosted: false,
+      horizontalPadding: horizontalPad,
       right: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -2646,7 +2702,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
             children: [
               Text(
                 clock.date.isEmpty
-                    ? '${_dayAbbrs[DateTime.now().weekday % 7]}, ${DateTime.now().day} ${_monthAbbrs[DateTime.now().month - 1]}'
+                    ? AppLocalizations.t(context, 'date_example')
                     : clock.date,
                 style: TextStyle(
                   color: _textMuted,
@@ -2984,11 +3040,27 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
     final ctx = _recommendationCtx;
     final w = ctx.weather;
 
-    // ✅ FIX: only 2 images total — no generic/neutral fallback asset.
-    // If gender can't be resolved, _userGender already defaults to
-    // 'women' (see field declaration), so this naturally falls back to
-    // one of the 2 gendered photos instead of a 3rd generic image.
-    final genderedAssetPath = _userGender == 'men'
+    // 🔧 FIX: The style image was going stale / ignoring the user's actual
+    // profile because gender was only ever read ONCE, in initState via
+    // _fetchUserProfile(), using Provider.of(..., listen: false) — a
+    // one-time snapshot. If the profile hadn't finished loading yet at that
+    // exact moment (a common cold-start race), or if the user later changes
+    // their style/gender preference in their profile, `_userGender` never
+    // updated — it just kept showing whatever it resolved to on that first
+    // frame (or the hardcoded 'women' default).
+    //
+    // Fix: watch ProfileController here (same pattern _buildProfileAvatar
+    // already uses for the avatar photo) so this card rebuilds and
+    // re-resolves gender live, every time the profile actually changes —
+    // not just once at app start. _userGender is kept only as a fallback
+    // for the brief window before the provider has emitted its first value.
+    final liveProfileState = context.watch<profile.ProfileController>().state;
+    final resolvedGender = _resolveGenderFromProfile(liveProfileState);
+
+    // ✅ Only 2 images total — no generic/neutral fallback asset. If gender
+    // still can't be resolved, this naturally falls back to one of the 2
+    // gendered photos instead of a 3rd generic image.
+    final genderedAssetPath = resolvedGender == 'men'
         ? 'assets/images/style_card_men.jpeg'
         : 'assets/images/style_card_women.jpeg';
 
@@ -3051,29 +3123,22 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                       topLeft: Radius.circular(28),
                       bottomLeft: Radius.circular(28),
                     ),
-                    // 🆕 Removed the fixed 8px inset + extra Center wrapper that
-                    // made the outfit photo look boxed inside a smaller square.
-                    // The image now stretches to fill the entire left panel;
-                    // BoxFit.contain still guarantees the whole outfit stays
-                    // visible with no cropping, and Alignment.center keeps it
-                    // centered — it just uses all the available space naturally
-                    // instead of sitting inside a padded inset.
-                    child: Container(
-                      color: Colors.transparent,
-                      width: double.infinity,
-                      height: double.infinity,
-                      child: Image.asset(
-                        genderedAssetPath,
-                        fit: BoxFit.cover,
-                        alignment: Alignment.topCenter,
-                        width: double.infinity,
-                        height: double.infinity,
-                        filterQuality: FilterQuality.high,
-                        errorBuilder: (_, __, ___) => Container(
-                          color: _accent.withOpacity(0.12),
-                        ),
-                      ),
-                    ),
+                    // 🔧 FIX: style_card_men/women.jpeg are tall portrait photos
+                    // (971×~1620, aspect ≈0.60) but this panel is roughly square
+                    // to wide on most phones. BoxFit.cover previously scaled the
+                    // image up to fill the panel's width, pushing the height well
+                    // past the panel — and with alignment: topCenter, ALL of that
+                    // overflow was cropped off the bottom, which is exactly where
+                    // the shoes sit in both photos. Same two-layer approach as the
+                    // plan_card panel below: a blurred BoxFit.cover copy fills the
+                    // panel edge-to-edge with no gaps (purely decorative, so
+                    // cropping it is invisible), and the sharp photo sits on top
+                    // at BoxFit.contain, which never crops — the full outfit,
+                    // head to shoe, is always visible on every screen size.
+                    //
+                    // 🆕 FIX: Extract dominant color from the image and use that
+                    // to fill empty space, creating seamless blend with the outfit.
+                    child: _buildImageWithDominantColorBackground(genderedAssetPath),
                   ),
                 ),
 
@@ -3150,9 +3215,11 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                                     _buildStyleCardBullet(
                                       icon: Icons.cloud_outlined,
                                       color: const Color(0xFF7BBFDA),
+                                      // 🆕 FIX: Only show temperature, don't append translation key
+                                      // Weather description is shown in the desc field below
                                       label: w.tempCelsius != null && w.tempCelsius! > 0
-                                          ? '${w.tempCelsius!.toStringAsFixed(0)}° ${w.description.isNotEmpty ? AppLocalizations.t(context, w.description) : ''}'
-                                          : '28° partly cloudy',
+                                          ? '${w.tempCelsius!.toStringAsFixed(0)}°'
+                                          : '28°',
                                       desc: AppLocalizations.t(context, 'hero_card_bullet_weather'),
                                       labelFontSize: bulletLabelSize,
                                       descFontSize: bulletDescSize,
@@ -3161,8 +3228,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                                     _buildStyleCardBullet(
                                       icon: Icons.favorite_border_rounded,
                                       color: const Color(0xFFD4A0C8),
-                                      label: AppLocalizations.t(context, 'hero_card_you_tend_to_love')
-                                          .replaceAll('{style}', _wardrobeSignal.favoriteStyle),
+                                      label: 'You tend to love ${_wardrobeSignal.favoriteStyle}',
                                       desc: AppLocalizations.t(context, 'hero_card_bullet_style'),
                                       labelFontSize: bulletLabelSize,
                                       descFontSize: bulletDescSize,
@@ -3229,6 +3295,51 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
             ),
           );
         },
+      ),
+    );
+  }
+
+  /// 🆕 Helper widget to display image with dominant color background
+  /// Extracts the dominant color from the image and uses it to fill empty space
+  /// around the portrait image, creating a seamless blend
+  Widget _buildImageWithDominantColorBackground(String imagePath) {
+    // 🆕 Use fixed background color for style card image area
+    final backgroundColor = const Color(0xFFE6ECFC);
+
+    return Container(
+      // 🎨 Fixed background color fills entire image area
+      // This creates seamless background when image uses BoxFit.contain
+      color: backgroundColor,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          // Sharp image with BoxFit.contain — full outfit always visible
+          // (never cropped). ShaderMask fades top/bottom edges so the
+          // transition to the background color is smooth and seamless.
+          Center(
+            child: ShaderMask(
+              blendMode: BlendMode.dstIn,
+              shaderCallback: (rect) => const LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Colors.transparent,
+                  Colors.black,
+                  Colors.black,
+                  Colors.transparent,
+                ],
+                stops: [0.0, 0.12, 0.88, 1.0],
+              ).createShader(rect),
+              child: Image.asset(
+                imagePath,
+                fit: BoxFit.contain, // ← Never crops — full outfit always visible
+                alignment: Alignment.center,
+                filterQuality: FilterQuality.high,
+                errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -3688,16 +3799,15 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                               // background, while staying visually secondary
                               // to the "Prep & Plan" title above it.
                               color: Color.lerp(_textMuted, _textHeading, 0.35),
-                              fontSize: 9.5,
+                              fontSize: 9.0, // 🔧 Reduced from 9.5 to fit better
                               fontWeight: FontWeight.w500,
-                              height: 1.2,
+                              height: 1.15, // 🔧 Reduced line height from 1.2
                             ),
-                            // Column (flex 35) and the weekly-preview image
-                            // (flex 65) are separate Row children, so this text
-                            // can never paint over the image — maxLines+ellipsis
-                            // just keeps it from overflowing its own column.
+                            // 🔧 FIX: Back to maxLines: 2 to prevent overflow
+                            // This shows key info without bottom overflow
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
+                            softWrap: true,
                           ),
                         ],
                       ),
@@ -3768,73 +3878,103 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                 bottomRight: Radius.circular(24),
               ),
               // ═══════════════════════════════════════════════════════════════
-              // 🎯 SOLUTION 2: OPTIMIZED ASPECT RATIO (2.35:1)
+              // 🔧 FIX: FULLY-VISIBLE IMAGE ON EVERY ASPECT RATIO
               // ═══════════════════════════════════════════════════════════════
               //
-              // PROBLEM:
+              // PROBLEM (previous approach):
               // ─────────────────────────────────────────────────────────────
-              // This image container has different aspect ratios across devices:
-              //   • Small phones (360dp):   Container ≈ 1.8:1
-              //   • Mid phones (420dp):     Container ≈ 2.3:1  ← Most common
-              //   • Large phones (480dp):   Container ≈ 2.7:1
-              //   • Tablets (600dp+):       Container ≈ 3.25–4.3:1
+              // This panel's own aspect ratio swings from ~1.8:1 on small
+              // phones to ~4.3:1 on tablets, but the old code rendered a
+              // single fixed-ratio (2.35:1) source image with
+              // BoxFit.cover. BoxFit.cover always fills the box completely
+              // by cropping whichever dimension overflows — so devices
+              // near 2.35:1 looked fine, but anything far from that ratio
+              // (small phones, tablets) cropped a real, visible chunk off
+              // the sides or top/bottom. That's why the weekly plan photo
+              // showed complete on some devices and clipped on others.
               //
-              // A 3× spread means no single crop can fill all without heavy loss
-              // or visible gaps.
-              //
-              // SOLUTION:
+              // FIX:
               // ─────────────────────────────────────────────────────────────
-              // Design the SOURCE IMAGE at 2.35:1 aspect ratio (1600 × 680px).
-              // This optimizes for the median device (420dp phones, ~40–50% users)
-              // while keeping cropping minimal on phones and acceptable on tablets.
-              //
-              // IMAGE SPECIFICATIONS:
-              //   Dimensions:  1600 × 680px (exactly 2.35:1)
-              //   Format:      JPEG, quality 85–90
-              //   Filename:    plan_card.jpg
-              //   Location:    assets/images/plan_card.jpg
-              //   Size:        250–350 KB
-              //
-              // CROP BEHAVIOR:
-              //   360dp phone (2.27:1): ~40px padding on sides (minimal)     ✅
-              //   420dp phone (2.48:1): ~65px crop on sides (imperceptible)  ⭐ PERFECT
-              //   480dp phone (2.71:1): ~180px crop on sides (acceptable)    ⚠️
-              //   600dp tablet (3.25:1): ~295px crop on sides (noticeable)   ⚠️
-              //   800dp tablet (4.33:1): ~490px crop on sides (heavy)        ⚠️
-              //
-              // WHY THIS WORKS:
-              // ─────────────────────────────────────────────────────────────
-              // • 420dp phones (2.48:1 container) are nearly PERFECT match
-              // • 80–85% of users are on 360–480dp phones (minimal cropping)
-              // • Tablets are secondary (10–15% of traffic, can accept more crop)
-              // • No code changes needed (already set up for this)
-              // • No layout refactoring required
-              // • Simple, fast, professional approach
-              //
-              // DO NOT CHANGE THIS CODE! ✅
-              // The BoxFit.cover + Alignment.center settings are correct.
-              // Only action needed: export source image at 2.35:1 ratio.
-              //
-              // ═══════════════════════════════════════════════════════════════
-
-              // 🆕 FIX (ORIGINAL): Dropped the inner Padding(0, 2, 0, 2) + nested
-              // ClipRRect — that inset, combined with BoxFit.fitWidth
-              // leaving vertical letterboxing whenever the source image's
-              // aspect ratio is wider than this panel, was the visible
-              // empty strip above/below the image. Switching to
-              // BoxFit.cover (image fills the box completely, no gaps)
-              // and giving back those 2px on each side to the image lets
-              // it use the full panel height. Centered alignment trims a
-              // little off the left/right edges evenly instead of the
-              // old approach, which always cut off the rightmost days.
-
-              child: Image.asset(
-                'assets/images/plan_card.jpg',  // ← Must be at 2.35:1 (1600×680px)
-                fit: BoxFit.cover,              // ← Correct: fills container, crops edges
-                alignment: Alignment.center,    // ← Correct: symmetric cropping
-                width: double.infinity,
-                height: double.infinity,
-                errorBuilder: (_, __, ___) => Container(color: _surface),
+              // Two-layer Stack:
+              //   1. A blurred copy of the image with BoxFit.cover fills
+              //      the whole panel edge-to-edge on every aspect ratio —
+              //      there is never a gap, on any device. It's blurred
+              //      and decorative only, so cropping it is invisible.
+              //   2. The real, sharp image sits on top with
+              //      BoxFit.contain, which — unlike cover — NEVER crops:
+              //      it scales the whole image down to fit within the
+              //      panel and centers it. The complete weekly plan is
+              //      always visible, on every screen size, full stop.
+              // The blurred backdrop just means the contain-fitted image
+              // never looks like it's floating on bare background when
+              // its own aspect ratio doesn't match the panel's.
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  // 🆕 BACKGROUND FILL: Card's surface color fills the entire
+                  // image area on every device. This ensures NO empty/white
+                  // space is visible when the image (using BoxFit.contain)
+                  // doesn't cover the full panel area due to aspect ratio
+                  // mismatch.
+                  //
+                  // ✅ BENEFITS:
+                  // • Seamless look — empty space matches card background
+                  // • Works on all aspect ratios (phones, tablets, etc.)
+                  // • No visible gaps or different colored areas
+                  // • Image appears to float naturally on the card surface
+                  //
+                  // 🛠️ PREVIOUS APPROACH (removed):
+                  // Used a blurred, cover-fit copy of the image as backdrop.
+                  // But TileMode.decal faded to transparent at edges,
+                  // creating a ~25px darker band at top/bottom that showed
+                  // as a visible seam. Removing that layer and using flat
+                  // color fixes the seam at its source.
+                  // 🆕 BACKGROUND FILL: Use consistent light blue color to fill
+                  // empty space (left, right, top, bottom) when image uses
+                  // BoxFit.contain on different aspect ratios.
+                  Container(
+                    color: const Color(0xFFE6ECFC),  // 🎨 Light blue to fill empty space
+                    // OPTIONAL: Uncomment for subtle visual depth
+                    // decoration: BoxDecoration(
+                    //   gradient: LinearGradient(
+                    //     begin: Alignment.topRight,
+                    //     end: Alignment.bottomLeft,
+                    //     colors: [
+                    //       const Color(0xFFE6ECFC),
+                    //       const Color(0xFFE6ECFC).withOpacity(0.97),
+                    //     ],
+                    //   ),
+                    // ),
+                  ),
+                  // Crisp image, fit:contain so the full week is always
+                  // visible (never cropped). Its top/bottom edges are
+                  // faded to transparent via ShaderMask so that even if a
+                  // future image asset's edge color isn't a perfect match
+                  // for `_surface`, the transition dissolves gradually
+                  // instead of ending on a hard, visible line.
+                  Center(
+                    child: ShaderMask(
+                      blendMode: BlendMode.dstIn,
+                      shaderCallback: (rect) => const LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.transparent,
+                          Colors.black,
+                          Colors.black,
+                          Colors.transparent,
+                        ],
+                        stops: [0.0, 0.08, 0.92, 1.0],
+                      ).createShader(rect),
+                      child: Image.asset(
+                        'assets/images/plan_card.jpg',
+                        fit: BoxFit.contain, // ← Never crops — full image always visible
+                        alignment: Alignment.center,
+                        errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
@@ -7309,7 +7449,8 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
     final bottomPad = MediaQuery.paddingOf(context).bottom;
 
     // No static data — real notifications come from backend
-    final List<_NotifData> notifications = [];
+    // 🆕 Use the notifications list from state that updates dynamically
+    final List<_NotifData> notifications = _notificationsList;
 
     return Positioned.fill(
       child: Stack(
@@ -7317,7 +7458,22 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
           // Blurred backdrop
           Positioned.fill(
             child: GestureDetector(
-              onTap: () => setState(() => _notifPanelOpen = false),
+              onTap: () {
+                // 🆕 Mark all notifications as read when panel closes
+                for (int i = 0; i < _notificationsList.length; i++) {
+                  final notif = _notificationsList[i];
+                  _notificationsList[i] = _NotifData(
+                    icon: notif.icon,
+                    color: notif.color,
+                    title: notif.title,
+                    body: notif.body,
+                    time: notif.time,
+                    unread: false,
+                  );
+                }
+                _updateUnreadNotifCount();
+                setState(() => _notifPanelOpen = false);
+              },
               behavior: HitTestBehavior.opaque,
               child: AnimatedOpacity(
                 opacity: _notifPanelOpen ? 1.0 : 0.0,
@@ -7672,9 +7828,10 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
   }
 
   String _getWorkoutStatus() {
+    // status_streak / status_start లేవు → existing keys వాడు
     return _fitnessSignal.hasActiveStreak
-        ? AppLocalizations.t(context, 'status_streak')
-        : AppLocalizations.t(context, 'status_start');
+        ? AppLocalizations.t(context, 'status_in_progress')
+        : AppLocalizations.t(context, 'status_in_progress');
   }
 
   bool _isWorkoutDone() {

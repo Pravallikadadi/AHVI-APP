@@ -3363,23 +3363,6 @@ class _EditViewState extends State<_EditView>
                       ),
                       const SizedBox(height: 14),
 
-                      // ── Face Shape ──
-                      _FieldLabel(text: _t.faceShape, textMuted: _textMuted),
-                      const SizedBox(height: 6),
-                      GridView.count(
-                        crossAxisCount: 3,
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        crossAxisSpacing: 10,
-                        mainAxisSpacing: 10,
-                        childAspectRatio: 0.65,
-                        children: kFaceShapes.map((shape) {
-                          final isActive = _draft.faceShape == shape['name'];
-                          return _buildFaceShapeCard(shape, isActive, c);
-                        }).toList(),
-                      ),
-                      const SizedBox(height: 14),
-
                       // ── Shop Preferences — Women / Men / Both (onboarding1 exact logic) ──
                       _FieldLabel(
                         text: _t.shopPreferences,

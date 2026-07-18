@@ -39,6 +39,14 @@ class AhviHeader extends StatelessWidget {
   /// Slight frosted-glass bg so content scrolls cleanly underneath.
   final bool frosted;
 
+  /// Left/right inset for the header row. Defaults to 20 (the value every
+  /// screen used before this fix). Pass the SAME horizontal gutter the
+  /// screen's own body content uses (e.g. Home's responsive `horizontalPad`)
+  /// so the logo lines up with the greeting/cards below it instead of using
+  /// a fixed 20px that drifts out of sync on small phones and tablets where
+  /// the body gutter is narrower/wider (or centered).
+  final double horizontalPadding;
+
   const AhviHeader({
     super.key,
     this.showBack = false,
@@ -46,6 +54,7 @@ class AhviHeader extends StatelessWidget {
     this.right,
     this.showBorder = false,
     this.frosted = false,
+    this.horizontalPadding = 20.0,
   });
 
   @override
@@ -91,7 +100,7 @@ class AhviHeader extends StatelessWidget {
             child: SizedBox(
               height: 33.0,
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
+                padding: EdgeInsets.fromLTRB(horizontalPadding, 0, horizontalPadding, 0),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
