@@ -458,6 +458,13 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
           if (mounted) {
             // Re-sync fitness signal whenever HomeCardSummaryProvider notifies
             _syncFitnessSignal();
+            // 🔧 FIX: Wear card was static — _fetchWardrobeSignal() was only
+            // ever called once in initState, so picking/wearing an outfit in
+            // DailyWearScreen never refreshed Home's copy until app restart.
+            // Now it re-syncs every time Home's dependencies change (e.g.
+            // navigating back from DailyWearScreen), matching fitness signal
+            // behavior so the Wear bubble + card status update immediately.
+            _fetchWardrobeSignal();
             _preloadHomeImages();
           }
         });
@@ -2603,12 +2610,6 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
             height: avatarSize,  // 🔧 FIXED: matches SizedBox size
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [_accent, _accentTertiary],
-              ),
-              // ✏️ Thinner 1.5px outline — cleaner, premium circular look
               border: Border.all(color: Colors.white.withOpacity(0.88), width: 1.5),
               boxShadow: [
                 BoxShadow(
@@ -7780,8 +7781,21 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
   // These methods sync with real data from screens and services
 
   // ─── WEAR / DAILY WEAR ───
+  // 🔧 FIX: "Wear" tracks DailyWearScreen's own daily pick — NOT generic
+  // Wardrobe "last worn" data. Now reads from HomeCardSummaryProvider,
+  // exactly like Care (Skincare) and Medicine below. DailyWearScreen must
+  // set summary.wearHomeSubtitle / wearHomeStatus / isWearDone (and call
+  // notifyListeners()) whenever the user picks/confirms today's outfit —
+  // that file isn't in this upload, so that side still needs wiring up.
+  // Falls back to the old Wardrobe-derived guess only if those fields
+  // aren't available yet, so nothing breaks in the meantime.
   String _getDailyWearDescription() {
-    // Sync with DailyWearScreen/Wardrobe data
+    try {
+      final subtitle = Provider.of<HomeCardSummaryProvider>(context, listen: false)
+          .wearHomeSubtitle;
+      if (subtitle.isNotEmpty) return subtitle;
+    } catch (_) {}
+    // Fallback: generic Wardrobe data (until DailyWearScreen wires the provider up)
     final outfit = _wardrobeSignal.lastWornItemName;
     if (outfit.isNotEmpty) {
       return outfit.length > 20 ? outfit.substring(0, 17) + '...' : outfit;
@@ -7792,13 +7806,23 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
   }
 
   String _getDailyWearStatus() {
-    return _wardrobeSignal.daysSinceLastWorn == 0
-        ? AppLocalizations.t(context, 'status_done')
-        : AppLocalizations.t(context, 'status_in_progress');
+    try {
+      return Provider.of<HomeCardSummaryProvider>(context, listen: false)
+          .wearHomeStatus;
+    } catch (_) {
+      return _wardrobeSignal.daysSinceLastWorn == 0
+          ? AppLocalizations.t(context, 'status_done')
+          : AppLocalizations.t(context, 'status_in_progress');
+    }
   }
 
   bool _isDailyWearDone() {
-    return _wardrobeSignal.daysSinceLastWorn == 0;
+    try {
+      return Provider.of<HomeCardSummaryProvider>(context, listen: false)
+          .isWearDone;
+    } catch (_) {
+      return _wardrobeSignal.daysSinceLastWorn == 0;
+    }
   }
 
   // ─── MOVE / WORKOUT ───

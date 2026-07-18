@@ -119,6 +119,38 @@ class HomeCardSummaryProvider extends ChangeNotifier {
   void setCare(String value) => _setIfUseful(_care, value, (c) => _care = c);
 
   // ─────────────────────────────────────────────────────────────────────────
+  // 1b.  WEAR — DAILY COMPLETION STATE  (drives the Home "Wear" bubble/card)
+  // ─────────────────────────────────────────────────────────────────────────
+  //
+  // Separate from the `_wear` summary string above (which is a fallback
+  // gender-based greeting key). This tracks whether the user has actually
+  // picked/confirmed an outfit TODAY in DailyWearScreen — call markWearDone()
+  // from _DailyWearScreenState._wearOutfit() every time the user taps
+  // "Wear this".
+
+  bool   _wearDone       = false;
+  String _wearOutfitName = '';
+
+  bool   get isWearDone     => _wearDone;
+  String get wearOutfitName => _wearOutfitName;
+
+  /// One-liner subtitle shown on the Home "Wear" card once an outfit is picked.
+  String get wearHomeSubtitle =>
+      _wearOutfitName.isNotEmpty ? _wearOutfitName : '';
+
+  /// Short status label shown next to the check/clock icon on the Wear card.
+  String get wearHomeStatus => _wearDone ? 'Done' : 'Pick outfit';
+
+  /// Push wear completion from DailyWearScreen whenever the user confirms
+  /// today's outfit (or un-confirms it, e.g. picking a different one).
+  void markWearDone({required bool done, String outfitName = ''}) {
+    final changed = _wearDone != done || _wearOutfitName != outfitName;
+    _wearDone = done;
+    _wearOutfitName = outfitName;
+    if (changed) notifyListeners();
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
   // 2.  SKINCARE  (formerly SkincareStateProvider)
   // ─────────────────────────────────────────────────────────────────────────
   //
@@ -269,6 +301,10 @@ class HomeCardSummaryProvider extends ChangeNotifier {
     _move          = _moveDefaultKey;
     _eat           = _eatDefaultKey;
     _care          = _careDefaultKey;
+
+    // ── Wear daily completion ────────────────────────────────────────────
+    _wearDone       = false;
+    _wearOutfitName = '';
 
     // ── Skincare ─────────────────────────────────────────────────────────
     _isNight        = false;
