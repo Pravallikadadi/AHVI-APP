@@ -287,6 +287,12 @@ class _SkincareScreenState extends State<SkincareScreen>
         .toList();
   }
 
+  // A saved routine only counts as "today's" progress if it was last
+  // updated on the current calendar day. Anything older is a stale
+  // completion from a previous day and must not block today's routine.
+  bool _isSameCalendarDay(DateTime a, DateTime b) =>
+      a.year == b.year && a.month == b.month && a.day == b.day;
+
   Future<void> _loadSkincareProfile() async {
     if (_profileLoading) return;
     _profileLoading = true;
@@ -295,6 +301,12 @@ class _SkincareScreenState extends State<SkincareScreen>
       final doc = await service.getSkincareProfile();
       if (!mounted || doc == null) return;
       final data = doc.data;
+
+      final lastUpdated =
+      DateTime.tryParse((data['lastUpdated'] ?? '').toString())?.toLocal();
+      final bool isNewDay = lastUpdated == null ||
+          !_isSameCalendarDay(lastUpdated, DateTime.now());
+
       setState(() {
         _profileDocumentId = doc.$id;
         _skinType = (data['skinType'] ?? '').toString();
@@ -302,9 +314,19 @@ class _SkincareScreenState extends State<SkincareScreen>
             .map((e) => e.toString())
             .where((e) => e.trim().isNotEmpty)
             .toList();
-        _dayCompletedSteps = _intList(data['daySteps']).toSet();
-        _nightCompletedSteps = _intList(data['nightSteps']).toSet();
+        // If the last saved progress is from a previous day, start today's
+        // routine fresh instead of showing yesterday's steps as already done.
+        _dayCompletedSteps =
+        isNewDay ? <int>{} : _intList(data['daySteps']).toSet();
+        _nightCompletedSteps =
+        isNewDay ? <int>{} : _intList(data['nightSteps']).toSet();
       });
+
+      if (isNewDay) {
+        // Persist the reset so the stale completion doesn't reappear if the
+        // profile is reloaded again before any step is tapped today.
+        _saveSkincareProfile();
+      }
     } catch (_) {
       // Keep the screen usable offline; the next selection will retry save.
     } finally {

@@ -912,8 +912,10 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
         // ('women') is used as the fallback — not a 3rd image.
         'assets/images/style_card_women.jpeg',
         'assets/images/style_card_men.jpeg',
-        // Prep & Plan decorative backdrop
-        'assets/images/plan_card.jpg',
+        // Prep & Plan decorative backdrop — ONLY the 2 gendered variants,
+        // same pattern as the Style card above (no generic/neutral 3rd asset).
+        'assets/images/plan_card_women.jpg',
+        'assets/images/plan_card_men.jpg',
       ];
 
       for (final asset in imagesToPreload) {
@@ -3538,65 +3540,84 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
         mainAxisSize: MainAxisSize.max,
         children: [
           // Progress dots row
-          // 🆕 FIX: now scrolls horizontally exactly like the routine cards
-          // row below it. Previously this used Expanded connector segments,
-          // which only works when the Row's width is bounded (i.e. NOT
-          // scrollable) — Expanded/Flexible throw inside a scrollable Row
-          // with unbounded width. Switched to fixed-width segments sized to
-          // match each card's width + gap, wrapped in its own
-          // SingleChildScrollView using the SAME horizontal padding as the
-          // cards row below, so each bubble lines up directly above its
-          // card. The two rows' scroll controllers are kept in sync (see
+          // 🆕 FIX: connector lines were showing as tiny disconnected dashes
+          // instead of continuous lines. Root cause: the previous version
+          // alternated bubble-slots (width: cardWidth) with connector-slots
+          // (width: cardGap, only ~3-4px) as SEPARATE Row children — so the
+          // visible line only covered the 3-4px gap between cards, while the
+          // much larger empty space around each centered bubble (inside its
+          // own cardWidth slot) had no line at all, reading as "○ - ○ - ○".
+          //
+          // Fix: switched to a Stack where each connector is positioned
+          // explicitly to run from one bubble's exact center to the next
+          // bubble's exact center (a span of cardWidth + cardGap, always
+          // constant) — regardless of how much of that span is "card" vs
+          // "gap". This also still scrolls horizontally like the routine
+          // cards row below it, using the same per-card width/gap and the
+          // same horizontal padding so every bubble lines up above its card.
+          // The two rows' scroll controllers stay in sync (see
           // _syncRoutineScroll) so dragging either one scrolls both.
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            controller: _routineProgressScrollCtrl,
-            padding: EdgeInsets.symmetric(horizontal: screenW < 360 ? 4 : 6, vertical: 0),
-            physics: const BouncingScrollPhysics(),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: List.generate(routines.length * 2 - 1, (i) {
-                if (i.isEven) {
-                  final done = routines[i ~/ 2].done;
-                  return SizedBox(
-                    width: cardWidth,
-                    child: Center(
-                      child: Container(
-                        width: 22,
-                        height: 22,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: done ? _accent : Colors.transparent,
-                          border: Border.all(
-                            color: done ? _accent : _border,
-                            width: 1.5,
+          Builder(
+            builder: (context) {
+              // Constant footprint of one card + its trailing gap — matches
+              // the cards row's Padding(right: cardGap) around each card.
+              final slot = cardWidth + cardGap;
+              final totalWidth = routines.length * slot;
+              return SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                controller: _routineProgressScrollCtrl,
+                padding: EdgeInsets.symmetric(horizontal: screenW < 360 ? 4 : 6, vertical: 0),
+                physics: const BouncingScrollPhysics(),
+                child: SizedBox(
+                  width: totalWidth,
+                  height: 22,
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      // Connector lines drawn first so bubbles paint on top.
+                      for (int i = 0; i < routines.length - 1; i++)
+                        Positioned(
+                          left: i * slot + cardWidth / 2,
+                          top: 10.25, // vertically centers a 1.5px line in a 22px-tall row
+                          width: slot,
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 220),
+                            curve: Curves.easeOut,
+                            height: 1.5,
+                            // 🆕 Dynamic: fills with accent once THIS routine
+                            // is done, so the line visually tracks real
+                            // completion progress instead of staying static.
+                            color: routines[i].done ? _accent : _border,
                           ),
                         ),
-                        child: done
-                            ? Icon(Icons.check_rounded, size: 12, color: _onAccent)
-                            : null,
-                      ),
-                    ),
-                  );
-                }
-                // 🆕 Dynamic progress line: this segment sits right after
-                // routines[i ~/ 2], so it fills with the accent color once
-                // that item is done — the connector row now visually tracks
-                // real completion progress instead of staying static gray.
-                final segmentDone = routines[i ~/ 2].done;
-                return SizedBox(
-                  width: cardGap,
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 220),
-                    curve: Curves.easeOut,
-                    height: 1.5,
-                    color: segmentDone ? _accent : _border,
+                      // Bubbles, each centered above its card below.
+                      for (int i = 0; i < routines.length; i++)
+                        Positioned(
+                          left: i * slot + cardWidth / 2 - 11,
+                          top: 0,
+                          child: Container(
+                            width: 22,
+                            height: 22,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: routines[i].done ? _accent : Colors.transparent,
+                              border: Border.all(
+                                color: routines[i].done ? _accent : _border,
+                                width: 1.5,
+                              ),
+                            ),
+                            child: routines[i].done
+                                ? Icon(Icons.check_rounded, size: 12, color: _onAccent)
+                                : null,
+                          ),
+                        ),
+                    ],
                   ),
-                );
-              })
-                ..add(SizedBox(width: cardGap)), // 🆕 matches trailing gap after the last card
-            ),
+                ),
+              );
+            },
           ),
+
 
           // ✏️ Gap between progress and routine items: 2px (near-touching, not touching)
           const SizedBox(height: 2),
@@ -3752,6 +3773,18 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
     final content = _prepCardContent();
     final accentColor = context.themeTokens.accent.primary;
     final accentTertiary = context.themeTokens.accent.tertiary;
+
+    // 🆕 Gender-aware backdrop photo — same live-resolution pattern as the
+    // Style/Hero card (_buildHeroCard): watch ProfileController so this card
+    // rebuilds and re-resolves gender any time the profile actually changes,
+    // not just once at app start. Only 2 images total, no generic/neutral
+    // fallback — whichever gender _resolveGenderFromProfile lands on is
+    // used, defaulting to 'women' via _userGender until the profile loads.
+    final liveProfileState = context.watch<profile.ProfileController>().state;
+    final resolvedGender = _resolveGenderFromProfile(liveProfileState);
+    final genderedPrepPlanAsset = resolvedGender == 'men'
+        ? 'assets/images/plan_card_men.jpg'
+        : 'assets/images/plan_card_women.jpg';
 
     // 🆕 FIX: The card is no longer wrapped in a card-wide _CardPressable/
     // onTap. Previously the entire card navigated to chat on tap, which
@@ -4000,7 +4033,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                         stops: [0.0, 0.08, 0.92, 1.0],
                       ).createShader(rect),
                       child: Image.asset(
-                        'assets/images/plan_card.jpg',
+                        genderedPrepPlanAsset,
                         fit: BoxFit.contain, // ← Never crops — full image always visible
                         alignment: Alignment.center,
                         errorBuilder: (_, __, ___) => const SizedBox.shrink(),
@@ -4283,1012 +4316,6 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
       cta: AppLocalizations.t(context, 'prep_default_cta'),
       icon: Icons.grid_view_rounded,
       prompt: 'Help me plan and organise my wardrobe, meals, and schedule.',
-    );
-  }
-
-  Widget _buildSecondaryRow() {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        // ── Card 1: Style ─────────────────────────────────────────────────
-        Expanded(
-          child: _buildStaticSecCard(
-            icon: Icons.checkroom_outlined,
-            title: AppLocalizations.t(context, 'sec_style_title'),
-            subtitle: AppLocalizations.t(context, 'sec_style_subtitle'),
-            ctaLabel: AppLocalizations.t(context, 'sec_style_cta'),
-            assetImage: 'assets/images/style_card.jpeg',
-            intent: 'style',
-            prompt: 'Plan a complete outfit for me today.',
-          ),
-        ),
-        const SizedBox(width: 12),
-        // ── Card 2: Prep & Plan ───────────────────────────────────────────
-        Expanded(
-          child: _buildStaticSecCard(
-            icon: Icons.calendar_month_outlined,
-            title: AppLocalizations.t(context, 'prep_card_title'),
-            subtitle: AppLocalizations.t(context, 'sec_prep_subtitle'),
-            ctaLabel: AppLocalizations.t(context, 'sec_prep_cta'),
-            assetImage: 'assets/images/plan_card.jpg',
-            intent: 'organize',
-            prompt: 'Help me plan my week: outfits, meals, and goals.',
-          ),
-        ),
-      ],
-    );
-  }
-
-  // ── Static secondary card ────────────────────────────────────────────────
-  // Matches the reference design: icon top-left, large image right side,
-  // static title + subtitle, full-width gradient CTA pill at bottom.
-  Widget _buildStaticSecCard({
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required String ctaLabel,
-    required String intent,
-    String? prompt,
-    String? assetImage,
-    String? imageUrl,
-  }) {
-    return RepaintBoundary(
-      child: AnimatedBuilder(
-        animation: Listenable.merge([_shimmerCtrl, _breatheCtrl]),
-        builder: (context, _) {
-          final accentColor = context.themeTokens.accent.primary;
-          final accentTertiary = context.themeTokens.accent.tertiary;
-          final breatheOpacity = 0.10 + 0.10 * _breatheCtrl.value;
-
-          return _CardPressable(
-            onTap: () => prompt != null
-                ? _openChatWithPrompt(prompt)
-                : _openModuleChat(intent),
-            builder: (isHovered) {
-              return LayoutBuilder(
-                builder: (context, cardConstraints) {
-                  final screenW = MediaQuery.of(context).size.width;
-                  final cardW = cardConstraints.maxWidth.isFinite
-                      ? cardConstraints.maxWidth
-                      : 160.0;
-                  // 🔧 IMPROVED: More aggressive shrinking on very small phones
-                  // On tiny screens, reduce image to 45% to give text more breathing room
-                  final imageW = cardConstraints.maxWidth < 240  // If card itself is tiny
-                      ? (cardW * 0.40).clamp(80.0, 140.0)  // Very aggressive shrink
-                      : (cardW * 0.50).clamp(90.0, 160.0);
-                  // Left fade gradient for visual separation — reduced since image is larger
-                  final fadeW = (imageW * 0.38).clamp(24.0, 44.0);
-
-                  // 🔧 IMPROVED: Calculate dynamic padding based on image width
-                  // Text gets more space if image takes less space
-                  final textPadLeftStart = screenW < 340 ? 8.0 : 10.0;  // Minimal gap from image
-                  final textPadRight = screenW < 340 ? 10.0 : 12.0;
-                  final textPadTop = screenW < 340 ? 10.0 : 12.0;
-                  final textPadBottom = screenW < 340 ? 10.0 : 12.0;
-
-                  return Container(
-                    height: double.infinity,
-                    decoration: BoxDecoration(
-                      color: _surface,
-                      borderRadius: BorderRadius.circular(18),
-                      border: Border.all(
-                        color: accentColor.withOpacity(0.18),
-                        width: 1,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: _shadowMedium,
-                          blurRadius: isHovered ? 52 : 28,
-                          offset: const Offset(0, 8),
-                        ),
-                        BoxShadow(
-                          color: accentColor.withOpacity(isHovered ? 0.14 : 0.07,
-                          ),
-                          blurRadius: 20,
-                        ),
-                      ],
-                    ),
-                    clipBehavior: Clip.hardEdge,  // 🔧 Changed to hardEdge for crisp image edges
-                    child: Stack(
-                      children: [
-                        // ── Subtle radial glow ────────────────────────────
-                        Positioned.fill(
-                          child: Container(
-                            decoration: BoxDecoration(
-                              gradient: RadialGradient(
-                                center: const Alignment(0.85, -0.6),
-                                radius: 1.3,
-                                colors: [
-                                  accentColor.withOpacity(0.14),
-                                  _transparent,
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                        // ── Image — LEFT side EDGE-TO-EDGE, NO empty space ─
-                        // 🔧 NEW: Image starts from left: 0 and fills completely
-                        if (assetImage != null || imageUrl != null)
-                          Positioned(
-                            left: 0,  // 🔧 CHANGED: from right: 0 to left: 0
-                            top: 0,
-                            bottom: 0,
-                            width: imageW,
-                            child: Stack(
-                              children: [
-                                Positioned.fill(
-                                  child: assetImage != null
-                                      ? Image.asset(
-                                    assetImage,
-                                    fit: BoxFit.cover,
-                                    alignment: Alignment.topCenter,
-                                    filterQuality: FilterQuality.low,
-                                    errorBuilder: (_, __, ___) =>
-                                    const SizedBox.shrink(),
-                                  )
-                                      : Image.network(
-                                    imageUrl!,
-                                    fit: BoxFit.cover,
-                                    alignment: Alignment.topCenter,
-                                    filterQuality: FilterQuality.low,
-                                    errorBuilder: (_, __, ___) =>
-                                    const SizedBox.shrink(),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        // ── Breathing border overlay ───────────────────────
-                        Positioned.fill(
-                          child: IgnorePointer(
-                            child: Container(
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(18),
-                                border: Border.all(
-                                  color: accentColor.withOpacity(breatheOpacity),
-                                  width: 1,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                        // ── Content: icon, title, subtitle, CTA ───────────
-                        // 🔧 IMPROVED: Position text after image with minimal gap
-                        Positioned(
-                          left: imageW + textPadLeftStart,  // 🔧 Start after image + small gap (8-10px)
-                          right: textPadRight,
-                          top: textPadTop,
-                          bottom: textPadBottom,
-                          child: Padding(
-                            // 🔧 No additional padding - all spacing via Positioned
-                            padding: EdgeInsets.zero,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                // Icon box — improved styling for prep&plan
-                                AnimatedContainer(
-                                  duration: const Duration(milliseconds: 200),
-                                  width: 38,
-                                  height: 38,
-                                  decoration: BoxDecoration(
-                                    color: accentColor.withOpacity(isHovered ? 0.18 : 0.11,
-                                    ),
-                                    borderRadius: BorderRadius.circular(11),
-                                    border: Border.all(
-                                      color:
-                                      accentColor.withOpacity(0.22),
-                                      width: 1.2,
-                                    ),
-                                  ),
-                                  child: Icon(
-                                    icon,
-                                    color: isHovered ? accentColor : _textHeading,
-                                    size: 18,
-                                  ),
-                                ),
-                                // Title + subtitle — improved spacing
-                                Flexible(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Text(
-                                        title,
-                                        style: TextStyle(
-                                          color: _textHeading,
-                                          fontSize: 15.5,
-                                          fontWeight: FontWeight.w700,
-                                          letterSpacing: -0.2,
-                                          height: 1.1,
-                                        ),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                      const SizedBox(height: 6),
-                                      Text(
-                                        subtitle,
-                                        style: TextStyle(
-                                          color: _textMuted,
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.w400,
-                                          height: 1.4,
-                                        ),
-                                        maxLines: 2,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                // CTA button — full-width teal pill with better spacing
-                                Flexible(
-                                  child: _AnimatedPressable(
-                                    liftY: -2.0,
-                                    scalePressed: 0.95,
-                                    onTap: () => prompt != null
-                                        ? _openChatWithPrompt(prompt)
-                                        : _openModuleChat(intent),
-                                    child: Container(
-                                      width: double.infinity,
-                                      decoration: BoxDecoration(
-                                        gradient: LinearGradient(
-                                          begin: Alignment.topLeft,
-                                          end: Alignment.bottomRight,
-                                          colors: [accentColor, accentTertiary],
-                                        ),
-                                        borderRadius: BorderRadius.circular(100),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: accentColor.withOpacity(0.36),
-                                            blurRadius: 14,
-                                            offset: const Offset(0, 4),
-                                          ),
-                                        ],
-                                      ),
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 12,
-                                        vertical: 8,
-                                      ),
-                                      child: Row(
-                                        mainAxisAlignment:
-                                        MainAxisAlignment.center,
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Flexible(
-                                            child: Text(
-                                              ctaLabel,
-                                              style: TextStyle(
-                                                color: _onAccent,
-                                                fontSize: 12,
-                                                fontWeight: FontWeight.w600,
-                                                letterSpacing: 0.2,
-                                              ),
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
-                                            ),
-                                          ),
-                                          const SizedBox(width: 6),
-                                          Icon(
-                                            Icons.arrow_forward_rounded,
-                                            color: _onAccent,
-                                            size: 13,
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              );
-            },
-          );
-        },
-      ),
-    );
-  }
-
-  // ── Legacy _buildStyleCard kept for reference but no longer used ──────────
-  Widget _buildStyleCard_UNUSED() {
-    final content = _styleCardContent(); // 🆕 context-aware
-    return RepaintBoundary(
-      child: AnimatedBuilder(
-        animation: Listenable.merge([_shimmerCtrl, _breatheCtrl]),
-        builder: (context, _) {
-          final accentColor = context.themeTokens.accent.primary;
-          final accentTertiary = context.themeTokens.accent.tertiary;
-          final breatheOpacity = 0.10 + 0.10 * _breatheCtrl.value;
-          final shimmerAlpha =
-              0.5 + 0.5 * math.sin(_shimmerCtrl.value * math.pi * 2);
-
-          return _CardPressable(
-            onTap: () => _openChatWithPrompt(content.prompt),
-            builder: (isHovered) {
-              return LayoutBuilder(
-                builder: (context, cardConstraints) {
-                  final cardW = cardConstraints.maxWidth.isFinite
-                      ? cardConstraints.maxWidth
-                      : 160.0;
-                  // Proportional image width so very narrow cards (small
-                  // phones, split-screen) don't get swallowed by the photo,
-                  // and wide cards (tablets) don't leave the photo looking
-                  // tiny/disconnected.
-                  // 🔧 FIX: narrower image + lower min-width on small/narrow
-                  // cards so the text column has enough room and titles no
-                  // longer get chopped off with "...".
-                  final imageW = (cardW * 0.36).clamp(64.0, 120.0);
-                  final fadeW = (imageW * 0.44).clamp(30.0, 50.0);
-                  // 🔧 FIX: must subtract imageW, otherwise the text column
-                  // is sized almost as wide as the whole card and long
-                  // titles/subtitles run underneath (visually "over") the
-                  // photo instead of wrapping/ellipsizing before it.
-                  final textMaxWidth =
-                  (cardW - 14 * 2 - imageW + fadeW * 0.3).clamp(90.0, cardW - 14 * 2);
-                  // 🔧 FIX: CTA pill must stay within the text column width
-                  // too — previously it was `double.infinity` against the
-                  // *whole* card, so it ran past the text column and sat on
-                  // top of the photo on the right.
-                  final ctaMaxWidth = textMaxWidth;
-
-                  return Container(
-                    height: double.infinity,
-                    decoration: BoxDecoration(
-                      color: _surface,
-                      borderRadius: BorderRadius.circular(18),
-                      border: Border.all(
-                        color: accentColor.withOpacity(0.20),
-                        width: 1,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: _shadowMedium,
-                          blurRadius: isHovered ? 52 : 28,
-                          offset: const Offset(0, 8),
-                        ),
-                        BoxShadow(
-                          color: accentColor.withOpacity(isHovered ? 0.15 : 0.08,
-                          ),
-                          blurRadius: 20,
-                        ),
-                      ],
-                    ),
-                    clipBehavior: Clip.antiAlias,
-                    child: Stack(
-                      children: [
-                        // ── Radial glow background ────────────────────────────
-                        Positioned.fill(
-                          child: Container(
-                            decoration: BoxDecoration(
-                              gradient: RadialGradient(
-                                center: const Alignment(0.8, -0.5),
-                                radius: 1.4,
-                                colors: [
-                                  accentColor.withOpacity(0.18),
-                                  _transparent,
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                        // ── Fashion image — right side with left-edge fade ────
-                        Positioned(
-                          right: 0,
-                          top: 0,
-                          bottom: 0,
-                          width: imageW,
-                          child: Stack(
-                            children: [
-                              Positioned.fill(
-                                child: Image.asset(
-                                  'assets/images/style_card.jpeg',
-                                  fit: BoxFit.cover,
-                                  alignment: Alignment.topCenter,
-                                  filterQuality: FilterQuality.low,
-                                  errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-                                ),
-                              ),
-                              Positioned(
-                                left: 0,
-                                top: 0,
-                                bottom: 0,
-                                width: fadeW,
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    gradient: LinearGradient(
-                                      begin: Alignment.centerLeft,
-                                      end: Alignment.centerRight,
-                                      colors: [_surface, _transparent],
-                                      stops: const [0.72, 1.0],
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        // ── Animated breathing border overlay ─────────────────
-                        Positioned.fill(
-                          child: IgnorePointer(
-                            child: Container(
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(18),
-                                border: Border.all(
-                                  color: accentColor.withOpacity(breatheOpacity),
-                                  width: 1,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                        // ── Shimmer top line ───────────────────────────────────
-                        Positioned(
-                          top: 0,
-                          left: 0,
-                          right: 0,
-                          child: Container(
-                            height: 1,
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [
-                                  _transparent,
-                                  accentColor.withOpacity(0.55 * shimmerAlpha),
-                                  accentColor.withOpacity(0.35),
-                                  _transparent,
-                                ],
-                                stops: const [0.0, 0.30, 0.65, 1.0],
-                              ),
-                            ),
-                          ),
-                        ),
-                        // ── Card content — icon + title + subtitle + CTA ──────
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(14, 8, 14, 8),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            mainAxisSize: MainAxisSize.max,
-                            children: [
-                              ConstrainedBox(
-                                constraints: BoxConstraints(maxWidth: textMaxWidth),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                      crossAxisAlignment: CrossAxisAlignment.center,
-                                      children: [
-                                        AnimatedContainer(
-                                          duration: const Duration(milliseconds: 200),
-                                          width: 32,
-                                          height: 32,
-                                          decoration: BoxDecoration(
-                                            color: accentColor.withOpacity(isHovered ? 0.16 : 0.08,
-                                            ),
-                                            borderRadius: BorderRadius.circular(10),
-                                            border: Border.all(
-                                              color: accentColor.withOpacity(0.18),
-                                              width: 1,
-                                            ),
-                                          ),
-                                          child: Icon(
-                                            content.icon, // 🆕 dynamic icon
-                                            color: isHovered ? accentColor : _textMuted,
-                                            size: 16,
-                                          ),
-                                        ),
-                                        AnimatedContainer(
-                                          duration: const Duration(milliseconds: 200),
-                                          width: 20,
-                                          height: 20,
-                                          decoration: BoxDecoration(
-                                            shape: BoxShape.circle,
-                                            color: accentColor.withOpacity(isHovered ? 0.18 : 0.06,
-                                            ),
-                                            border: Border.all(
-                                              color: accentColor.withOpacity(isHovered ? 0.30 : 0.15,
-                                              ),
-                                              width: 1,
-                                            ),
-                                          ),
-                                          child: Transform.translate(
-                                            offset: Offset(isHovered ? 2.0 : 0.0, 0),
-                                            child: Icon(
-                                              Icons.chevron_right_rounded,
-                                              color: isHovered ? accentColor : _textMuted,
-                                              size: 12,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 6),
-                                    // 🆕 Dynamic title — shrinks to fit the
-                                    // available width instead of truncating
-                                    // with "..." on narrow cards.
-                                    FittedBox(
-                                      fit: BoxFit.scaleDown,
-                                      alignment: Alignment.centerLeft,
-                                      child: Text(
-                                        content.title,
-                                        style: TextStyle(
-                                          color: _textHeading,
-                                          fontSize: 14.0,
-                                          fontWeight: FontWeight.w600,
-                                          letterSpacing: -0.15,
-                                        ),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 2),
-                                    // 🆕 Dynamic subtitle
-                                    Text(
-                                      content.subtitle,
-                                      style: TextStyle(
-                                        color: _textMuted,
-                                        fontSize: 11.0,
-                                        fontWeight: FontWeight.w300,
-                                        height: 1.3,
-                                      ),
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              // ── Gradient CTA button — pill, capped to the
-                              // text column width so it never runs under the
-                              // photo on the right ───────────────────────────
-                              ConstrainedBox(
-                                constraints: BoxConstraints(maxWidth: ctaMaxWidth),
-                                child: _AnimatedPressable(
-                                  liftY: -2.0,
-                                  scalePressed: 0.95,
-                                  onTap: () => _openChatWithPrompt(content.prompt),
-                                  child: Container(
-                                    width: double.infinity,
-                                    decoration: BoxDecoration(
-                                      gradient: LinearGradient(
-                                        begin: Alignment.topLeft,
-                                        end: Alignment.bottomRight,
-                                        colors: [accentColor, accentTertiary],
-                                      ),
-                                      borderRadius: BorderRadius.circular(100),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: accentColor.withOpacity(0.40),
-                                          blurRadius: 20,
-                                          offset: const Offset(0, 6),
-                                        ),
-                                        BoxShadow(
-                                          color: accentTertiary.withOpacity(0.25),
-                                          blurRadius: 8,
-                                          offset: const Offset(0, 2),
-                                        ),
-                                      ],
-                                    ),
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 8,
-                                      vertical: 6,
-                                    ),
-                                    child: FittedBox(
-                                      fit: BoxFit.scaleDown,
-                                      alignment: Alignment.center,
-                                      child: Text(
-                                        content.cta, // 🆕 dynamic CTA
-                                        style: TextStyle(
-                                          color: _onAccent,
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w700,
-                                          letterSpacing: 0.35,
-                                          shadows: [
-                                            Shadow(
-                                              color: Colors.black.withOpacity(0.20),
-                                              offset: const Offset(0, 1.5),
-                                              blurRadius: 2,
-                                            ),
-                                            Shadow(
-                                              color: accentColor.withOpacity(0.15),
-                                              offset: const Offset(0, -0.5),
-                                              blurRadius: 1,
-                                            ),
-                                          ],
-                                          height: 1.2,
-                                        ),
-                                        maxLines: 1,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              );
-            },
-          );
-        },
-      ),
-    );
-  }
-
-  // ignore: unused_element
-  Widget _buildSecCard_UNUSED({
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required String ctaLabel,
-    required String intent,
-    String? prompt,
-    String? imageUrl,
-    String? assetImage,
-  }) {
-    final screenH = MediaQuery.of(context).size.height;
-
-    return RepaintBoundary(
-      child: AnimatedBuilder(
-        animation: Listenable.merge([_shimmerCtrl, _breatheCtrl]),
-        builder: (context, _) {
-          // 🔧 Fresh read inside builder — palette switch అయినప్పుడు stale అవ్వవు
-          final accentColor = context.themeTokens.accent.primary;
-          final accentTertiary = context.themeTokens.accent.tertiary;
-          final breatheOpacity = 0.10 + 0.10 * _breatheCtrl.value;
-          final shimmerAlpha =
-              0.5 + 0.5 * math.sin(_shimmerCtrl.value * math.pi * 2);
-
-          return _CardPressable(
-            onTap: () => prompt != null
-                ? _openChatWithPrompt(prompt)
-                : _openModuleChat(intent),
-            builder: (isHovered) {
-              return LayoutBuilder(
-                builder: (context, cardConstraints) {
-                  final cardW = cardConstraints.maxWidth.isFinite
-                      ? cardConstraints.maxWidth
-                      : 160.0;
-                  // 🔧 FIX: narrower image + lower min-width on small/narrow
-                  // cards so the text column has enough room and titles no
-                  // longer get chopped off with "...".
-                  final imageW = (cardW * 0.36).clamp(64.0, 120.0);
-                  final fadeW = (imageW * 0.44).clamp(30.0, 50.0);
-                  // 🔧 FIX: must subtract imageW, otherwise the text column
-                  // is sized almost as wide as the whole card and long
-                  // titles/subtitles run underneath (visually "over") the
-                  // photo instead of wrapping/ellipsizing before it.
-                  final textMaxWidth =
-                  (cardW - 14 * 2 - imageW + fadeW * 0.3).clamp(90.0, cardW - 14 * 2);
-                  // 🔧 FIX: CTA pill must stay within the text column width
-                  // too — previously it was `double.infinity` against the
-                  // *whole* card, so it ran past the text column and sat on
-                  // top of the photo on the right.
-                  final ctaMaxWidth = textMaxWidth;
-
-                  return Container(
-                    height: double.infinity,
-                    decoration: BoxDecoration(
-                      color: _surface,
-                      borderRadius: BorderRadius.circular(18),
-                      border: Border.all(
-                        color: accentColor.withOpacity(0.20),
-                        width: 1,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: _shadowMedium,
-                          blurRadius: isHovered ? 52 : 28,
-                          offset: const Offset(0, 8),
-                        ),
-                        BoxShadow(
-                          color: accentColor.withOpacity(isHovered ? 0.15 : 0.08,
-                          ),
-                          blurRadius: 20,
-                        ),
-                      ],
-                    ),
-                    clipBehavior: Clip.antiAlias,
-                    child: Stack(
-                      children: [
-                        // Radial glow background
-                        Positioned.fill(
-                          child: Container(
-                            decoration: BoxDecoration(
-                              gradient: RadialGradient(
-                                center: const Alignment(0.8, -0.5),
-                                radius: 1.4,
-                                colors: [
-                                  accentColor.withOpacity(0.18),
-                                  _transparent,
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                        // Hero-card style: image on right, left-edge fade
-                        if (assetImage != null || imageUrl != null)
-                          Positioned(
-                            right: 0,
-                            top: 0,
-                            bottom: 0,
-                            width: imageW,
-                            child: Stack(
-                              children: [
-                                Positioned.fill(
-                                  child: assetImage != null
-                                      ? Image.asset(
-                                    assetImage,
-                                    fit: BoxFit.cover,
-                                    alignment: Alignment.topCenter,
-                                    filterQuality: FilterQuality.low,
-                                    errorBuilder: (_ctx, _err, _st) =>
-                                    const SizedBox.shrink(),
-                                  )
-                                      : Image.network(
-                                    imageUrl!,
-                                    fit: BoxFit.cover,
-                                    alignment: Alignment.topCenter,
-                                    cacheWidth:
-                                    (imageW *
-                                        MediaQuery.of(
-                                          context,
-                                        ).devicePixelRatio)
-                                        .round(),
-                                    filterQuality: FilterQuality.low,
-                                    errorBuilder: (_ctx, _err, _st) =>
-                                    const SizedBox.shrink(),
-                                  ),
-                                ),
-                                // Left fade — blends into card surface
-                                Positioned(
-                                  left: 0,
-                                  top: 0,
-                                  bottom: 0,
-                                  width: fadeW,
-                                  child: Container(
-                                    decoration: BoxDecoration(
-                                      gradient: LinearGradient(
-                                        begin: Alignment.centerLeft,
-                                        end: Alignment.centerRight,
-                                        colors: [_surface, _transparent],
-                                        stops: const [0.72, 1.0],
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        // Animated breathing border overlay
-                        Positioned.fill(
-                          child: IgnorePointer(
-                            child: Container(
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(18),
-                                border: Border.all(
-                                  color: accentColor.withOpacity(breatheOpacity,
-                                  ),
-                                  width: 1,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                        // Shimmer top line
-                        Positioned(
-                          top: 0,
-                          left: 0,
-                          right: 0,
-                          child: Container(
-                            height: 1,
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [
-                                  _transparent,
-                                  accentColor.withOpacity(0.55 * shimmerAlpha,
-                                  ),
-                                  accentColor.withOpacity(0.35),
-                                  _transparent,
-                                ],
-                                stops: const [0.0, 0.30, 0.65, 1.0],
-                              ),
-                            ),
-                          ),
-                        ),
-                        // Card content
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(14, 8, 14, 8),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            mainAxisSize: MainAxisSize.max,
-                            children: [
-                              // Card top content — icon + title + subtitle
-                              ConstrainedBox(
-                                constraints: BoxConstraints(maxWidth: textMaxWidth),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                      crossAxisAlignment: CrossAxisAlignment.center,
-                                      children: [
-                                        AnimatedContainer(
-                                          duration: const Duration(
-                                            milliseconds: 200,
-                                          ),
-                                          width: 32,
-                                          height: 32,
-                                          decoration: BoxDecoration(
-                                            color: accentColor.withOpacity(isHovered ? 0.16 : 0.08,
-                                            ),
-                                            borderRadius: BorderRadius.circular(10),
-                                            border: Border.all(
-                                              color: accentColor.withOpacity(0.18,
-                                              ),
-                                              width: 1,
-                                            ),
-                                          ),
-                                          child: Icon(
-                                            icon,
-                                            color: isHovered
-                                                ? accentColor
-                                                : _textMuted,
-                                            size: 16,
-                                          ),
-                                        ),
-                                        AnimatedContainer(
-                                          duration: const Duration(
-                                            milliseconds: 200,
-                                          ),
-                                          width: 20,
-                                          height: 20,
-                                          decoration: BoxDecoration(
-                                            shape: BoxShape.circle,
-                                            color: accentColor.withOpacity(isHovered ? 0.18 : 0.06,
-                                            ),
-                                            border: Border.all(
-                                              color: accentColor.withOpacity(isHovered ? 0.30 : 0.15,
-                                              ),
-                                              width: 1,
-                                            ),
-                                          ),
-                                          child: Transform.translate(
-                                            offset: Offset(
-                                              isHovered ? 2.0 : 0.0,
-                                              0,
-                                            ),
-                                            child: Icon(
-                                              Icons.chevron_right_rounded,
-                                              color: isHovered
-                                                  ? accentColor
-                                                  : _textMuted,
-                                              size: 12,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 6),
-                                    Text(
-                                      title,
-                                      style: TextStyle(
-                                        color: _textHeading,
-                                        fontSize: 14.0,
-                                        fontWeight: FontWeight.w600,
-                                        letterSpacing: -0.15,
-                                      ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      subtitle,
-                                      style: TextStyle(
-                                        color: _textMuted,
-                                        fontSize: 11.0,
-                                        fontWeight: FontWeight.w300,
-                                        height: 1.3,
-                                      ),
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              // Gradient CTA button — pill, capped to the text
-                              // column width so it never runs under the photo
-                              // on the right (mirrors _buildStyleCard's fix).
-                              ConstrainedBox(
-                                constraints: BoxConstraints(maxWidth: ctaMaxWidth),
-                                child: _AnimatedPressable(
-                                  liftY: -2.0,
-                                  scalePressed: 0.95,
-                                  onTap: () => prompt != null
-                                      ? _openChatWithPrompt(prompt)
-                                      : _openModuleChat(intent),
-                                  child: Container(
-                                    width: double.infinity,
-                                    decoration: BoxDecoration(
-                                      gradient: LinearGradient(
-                                        begin: Alignment.topLeft,
-                                        end: Alignment.bottomRight,
-                                        colors: [
-                                          accentColor,
-                                          context.themeTokens.accent.tertiary,
-                                        ],
-                                      ),
-                                      borderRadius: BorderRadius.circular(100),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: accentColor.withOpacity(0.40),
-                                          blurRadius: 20,
-                                          offset: const Offset(0, 6),
-                                        ),
-                                        BoxShadow(
-                                          color: context.themeTokens.accent.tertiary
-                                              .withOpacity(0.25),
-                                          blurRadius: 8,
-                                          offset: const Offset(0, 2),
-                                        ),
-                                      ],
-                                    ),
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 8,
-                                      vertical: 6,
-                                    ),
-                                    child: Row(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Flexible(
-                                          child: FittedBox(
-                                            fit: BoxFit.scaleDown,
-                                            alignment: Alignment.centerLeft,
-                                            child: Text(
-                                              ctaLabel,
-                                              style: TextStyle(
-                                                color: _onAccent,
-                                                fontSize: 11,
-                                                fontWeight: FontWeight.w600,
-                                                letterSpacing: 0.20,
-                                              ),
-                                              maxLines: 1,
-                                            ),
-                                          ),
-                                        ),
-                                        const SizedBox(width: 4),
-                                        Icon(
-                                          Icons.arrow_forward_rounded,
-                                          color: _onAccent,
-                                          size: 11,
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              );
-            },
-          );
-        },
-      ),
     );
   }
 
