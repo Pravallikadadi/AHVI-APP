@@ -143,6 +143,46 @@ class ProfileState {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// FACE ANALYSIS DATA MODEL  (mirrors onboarding3.dart's advanced face scan)
+// ─────────────────────────────────────────────────────────────────────────────
+
+class FaceAnalysisData {
+  final bool faceDetected;
+  final String faceShape;
+  final String skinTone;
+  final Color skinToneColor;
+  final double skinQuality;
+  final bool acneDetected;
+  final int acneSeverity; // 0-100
+  final bool pigmentationDetected;
+  final double pigmentationIntensity; // 0-1
+  final String eyeShape;
+  final double eyeSize; // 0-1
+  final String lipColor;
+  final double lipFullness; // 0-1
+  final bool darkerCircles; // Under eye
+  final List<String> recommendations;
+
+  FaceAnalysisData({
+    required this.faceDetected,
+    required this.faceShape,
+    required this.skinTone,
+    required this.skinToneColor,
+    required this.skinQuality,
+    required this.acneDetected,
+    required this.acneSeverity,
+    required this.pigmentationDetected,
+    required this.pigmentationIntensity,
+    required this.eyeShape,
+    required this.eyeSize,
+    required this.lipColor,
+    required this.lipFullness,
+    required this.darkerCircles,
+    required this.recommendations,
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // CONSTANTS
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -2182,6 +2222,7 @@ class _EditViewState extends State<_EditView>
   // ── Face analyser (mirrors onboarding3) ──
   late FaceDetector _faceDetector;
   bool _isAnalyzingFace = false;
+  FaceAnalysisData? _faceAnalysisData;
   final ImagePicker _facePicker = ImagePicker();
 
   // ── Country code picker state (mirrors onboarding1) ──
@@ -2375,13 +2416,50 @@ class _EditViewState extends State<_EditView>
       }
 
       final face = faces.first;
+
+      // Extract facial features (mirrors onboarding3's _analyzeFaceAdvanced)
       final faceShape = _analyzeFaceShape(face);
       final skinToneData = _extractSkinTone(decodedImage, face);
+      final skinToneLabel = skinToneData['label'] as String;
       final skinToneColor = skinToneData['color'] as Color;
       final skinToneIndex = _nearestSkinToneIndex(skinToneColor);
+      final skinQuality = _calculateSkinQuality(decodedImage, face);
+      final acneData = _detectAcne(decodedImage, face);
+      final pigmentationData = _detectPigmentation(decodedImage, face);
+      final eyeShapeData = _analyzeEyeShape(face);
+      final lipColorData = _analyzeLipColor(decodedImage, face);
+      final darkerCircles = _detectDarkCircles(decodedImage, face);
+
+      final recommendations = _generateRecommendations(
+        skinToneLabel,
+        acneData['detected'] as bool,
+        pigmentationData['detected'] as bool,
+        eyeShapeData,
+        darkerCircles,
+        faceShape,
+      );
+
+      final analysisData = FaceAnalysisData(
+        faceDetected: true,
+        faceShape: faceShape,
+        skinTone: skinToneLabel,
+        skinToneColor: skinToneColor,
+        skinQuality: skinQuality,
+        acneDetected: acneData['detected'] as bool,
+        acneSeverity: acneData['severity'] as int,
+        pigmentationDetected: pigmentationData['detected'] as bool,
+        pigmentationIntensity: pigmentationData['intensity'] as double,
+        eyeShape: eyeShapeData,
+        eyeSize: _calculateEyeSize(face),
+        lipColor: lipColorData,
+        lipFullness: _calculateLipFullness(face),
+        darkerCircles: darkerCircles,
+        recommendations: recommendations,
+      );
 
       setState(() {
         _faceUploaded = true;
+        _faceAnalysisData = analysisData;
         _draft = _draft.copyWith(
           faceShape: faceShape,
           skinTone: skinToneIndex,
@@ -2566,6 +2644,256 @@ class _EditViewState extends State<_EditView>
       }
     }
     return bestIndex + 1; // matches the 1-based convention used elsewhere
+  }
+
+  // ── Acne Detection ─────────────────────────────────────────────
+  Map<String, dynamic> _detectAcne(img.Image image, Face face) {
+    try {
+      final bbox = face.boundingBox;
+      final width = (bbox.width * image.width).toInt();
+      final height = (bbox.height * image.height).toInt();
+      final startX = (bbox.left * image.width).toInt().clamp(0, image.width - 1);
+      final startY = (bbox.top * image.height).toInt().clamp(0, image.height - 1);
+
+      int irregularPixels = 0;
+      int totalPixels = 0;
+
+      final regionWidth = (width * 0.8).toInt();
+      final regionHeight = (height * 0.7).toInt();
+
+      for (int x = startX; x < startX + regionWidth && x < image.width; x++) {
+        for (int y = startY; y < startY + regionHeight && y < image.height; y++) {
+          totalPixels++;
+          final pixel = image.getPixelSafe(x, y);
+          final r = pixel.r.toInt();
+          final g = pixel.g.toInt();
+          final b = pixel.b.toInt();
+
+          // Detect red spots (potential acne)
+          if (r > g + 30 && r > b + 30) {
+            irregularPixels++;
+          }
+        }
+      }
+
+      final acnePercentage = totalPixels > 0 ? (irregularPixels / totalPixels * 100).toInt() : 0;
+      final detected = acnePercentage > 5;
+      final severity = acnePercentage.clamp(0, 100);
+
+      return {
+        'detected': detected,
+        'severity': severity,
+      };
+    } catch (e) {
+      return {'detected': false, 'severity': 0};
+    }
+  }
+
+  // ── Pigmentation Detection ─────────────────────────────────────
+  Map<String, dynamic> _detectPigmentation(img.Image image, Face face) {
+    try {
+      final bbox = face.boundingBox;
+      final width = (bbox.width * image.width).toInt();
+      final height = (bbox.height * image.height).toInt();
+      final startX = (bbox.left * image.width).toInt().clamp(0, image.width - 1);
+      final startY = (bbox.top * image.height).toInt().clamp(0, image.height - 1);
+
+      double totalColorVariance = 0;
+      int sampleCount = 0;
+
+      for (int x = startX; x < startX + width && x < image.width; x += 5) {
+        for (int y = startY; y < startY + height && y < image.height; y += 5) {
+          sampleCount++;
+          final pixel = image.getPixelSafe(x, y);
+          final r = pixel.r.toDouble();
+          final g = pixel.g.toDouble();
+          final b = pixel.b.toDouble();
+
+          final variance = ((r - g).abs() + (g - b).abs() + (r - b).abs()) / 3;
+          totalColorVariance += variance;
+        }
+      }
+
+      final avgVariance = sampleCount > 0 ? totalColorVariance / sampleCount : 0;
+      final intensity = (avgVariance / 100).clamp(0.0, 1.0);
+      final detected = intensity > 0.3;
+
+      return {
+        'detected': detected,
+        'intensity': intensity,
+      };
+    } catch (e) {
+      return {'detected': false, 'intensity': 0.0};
+    }
+  }
+
+  // ── Eye Shape Analysis ────────────────────────────────────────
+  String _analyzeEyeShape(Face face) {
+    try {
+      if (face.landmarks.isEmpty) return 'Standard';
+
+      final leftEyeLandmark = face.landmarks.values.firstWhere(
+            (lm) => lm?.type == FaceLandmarkType.leftEye,
+        orElse: () => null,
+      );
+
+      if (leftEyeLandmark == null) return 'Standard';
+
+      final position = leftEyeLandmark.position;
+      if (position.y < face.boundingBox.top + face.boundingBox.height * 0.4) {
+        return 'Almond';
+      } else if (position.y > face.boundingBox.top + face.boundingBox.height * 0.45) {
+        return 'Hooded';
+      } else {
+        return 'Round';
+      }
+    } catch (e) {
+      return 'Standard';
+    }
+  }
+
+  // ── Eye Size Calculation ──────────────────────────────────────
+  double _calculateEyeSize(Face face) {
+    try {
+      if (face.landmarks.isEmpty) return 0.5;
+
+      final eyeWidth = face.boundingBox.width * 0.15;
+      return (eyeWidth / (face.boundingBox.width * 0.3)).clamp(0.0, 1.0);
+    } catch (e) {
+      return 0.5;
+    }
+  }
+
+  // ── Lip Color Analysis ────────────────────────────────────────
+  String _analyzeLipColor(img.Image image, Face face) {
+    try {
+      final bbox = face.boundingBox;
+      final centerX = (bbox.center.dx * image.width).toInt();
+      final centerY = (bbox.bottom * image.height * 0.95).toInt();
+
+      if (centerX < 0 || centerX >= image.width || centerY < 0 || centerY >= image.height) {
+        return 'Natural';
+      }
+
+      final pixel = image.getPixelSafe(centerX, centerY);
+      final r = pixel.r.toInt();
+      final g = pixel.g.toInt();
+      final b = pixel.b.toInt();
+
+      if (r > g + 20 && r > b + 20) {
+        return 'Deep Red/Pink';
+      } else if (r > g && r > b) {
+        return 'Warm Tone';
+      } else if (b > r && b > g) {
+        return 'Cool Tone';
+      } else {
+        return 'Natural';
+      }
+    } catch (e) {
+      return 'Natural';
+    }
+  }
+
+  // ── Lip Fullness Calculation ──────────────────────────────────
+  double _calculateLipFullness(Face face) {
+    try {
+      final lipsHeight = face.boundingBox.height * 0.08;
+      return (lipsHeight / (face.boundingBox.height * 0.15)).clamp(0.0, 1.0);
+    } catch (e) {
+      return 0.5;
+    }
+  }
+
+  // ── Dark Circles Detection ────────────────────────────────────
+  bool _detectDarkCircles(img.Image image, Face face) {
+    try {
+      final bbox = face.boundingBox;
+      final underEyeY = (bbox.top + bbox.height * 0.5).toInt();
+      final sampleX = (bbox.center.dx * image.width).toInt();
+
+      if (sampleX < 0 || sampleX >= image.width || underEyeY < 0 || underEyeY >= image.height) {
+        return false;
+      }
+
+      final pixel = image.getPixelSafe(sampleX, underEyeY);
+      final brightness = (pixel.r.toInt() + pixel.g.toInt() + pixel.b.toInt()) / 3;
+
+      return brightness < 100;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  // ── Skin Quality Calculation ──────────────────────────────────
+  double _calculateSkinQuality(img.Image image, Face face) {
+    try {
+      final acneData = _detectAcne(image, face);
+      final pigmentationData = _detectPigmentation(image, face);
+
+      double quality = 100.0;
+      quality -= (acneData['severity'] as int) * 0.5;
+      quality -= ((pigmentationData['intensity'] as double) * 100) * 0.3;
+
+      return quality.clamp(0.0, 100.0);
+    } catch (e) {
+      return 75.0;
+    }
+  }
+
+  // ── Generate Recommendations ──────────────────────────────────
+  List<String> _generateRecommendations(
+      String skinTone,
+      bool hasAcne,
+      bool hasPigmentation,
+      String eyeShape,
+      bool darkCircles,
+      String faceShape,
+      ) {
+    final recommendations = <String>[];
+
+    if (hasAcne) {
+      recommendations.add('Try acne-fighting products with salicylic acid');
+    }
+
+    if (hasPigmentation) {
+      recommendations.add('Consider vitamin C serums for brightening');
+    }
+
+    if (darkCircles) {
+      recommendations.add('Use eye creams with caffeine to reduce puffiness');
+    }
+
+    if (eyeShape == 'Hooded') {
+      recommendations.add('Highlight inner corner for wider eye appearance');
+    }
+
+    switch (faceShape) {
+      case 'Round':
+        recommendations.add('Contour cheeks softly to add definition');
+        break;
+      case 'Square':
+        recommendations.add('Soften angles with rounded blush placement');
+        break;
+      case 'Heart':
+        recommendations.add('Balance a wider forehead with soft, side-swept styling');
+        break;
+      case 'Oblong':
+        recommendations.add('Add visual width with horizontal blush placement');
+        break;
+      case 'Diamond':
+        recommendations.add('Highlight cheekbones — your strongest feature');
+        break;
+      default:
+        recommendations.add('Your balanced face shape suits most styles');
+    }
+
+    recommendations.add('Stay hydrated for healthy, glowing skin');
+
+    if (recommendations.isEmpty) {
+      recommendations.add('Your skin looks great! Maintain current routine');
+    }
+
+    return recommendations;
   }
 
   Widget _buildFaceShapeCard(
@@ -3328,6 +3656,65 @@ class _EditViewState extends State<_EditView>
                       ),
                       const SizedBox(height: 14),
 
+                      // ── Gender (onboarding1-style pill selector) ──
+                      // Was previously missing here — ProfileState already
+                      // stored `gender`, but there was no UI to view/edit it
+                      // after onboarding. Options match onboarding1 exactly.
+                      _FieldLabel(text: _t.gender, textMuted: _textMuted),
+                      const SizedBox(height: 6),
+                      Row(
+                        children: List.generate(3, (i) {
+                          const genders = ['Male', 'Female', 'Others'];
+                          final label = genders[i];
+                          final isActive = _draft.gender == label;
+                          return Expanded(
+                            child: Padding(
+                              padding: EdgeInsets.only(
+                                right: i < genders.length - 1 ? 8 : 0,
+                              ),
+                              child: GestureDetector(
+                                onTap: () => setState(() {
+                                  _draft = _draft.copyWith(gender: label);
+                                  _markDirty();
+                                }),
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 200),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 10,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: isActive
+                                        ? c.accent1.withOpacity(0.13)
+                                        : _panel,
+                                    border: Border.all(
+                                      color: isActive
+                                          ? c.accent1
+                                          : _cardBorder,
+                                      width: isActive ? 1.5 : 1,
+                                    ),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Text(
+                                    label,
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      fontSize: 13.5,
+                                      fontWeight: isActive
+                                          ? FontWeight.w600
+                                          : FontWeight.w500,
+                                      color: isActive
+                                          ? _textPrimary
+                                          : _textMuted,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          );
+                        }),
+                      ),
+                      const SizedBox(height: 14),
+
                       // ── Skin Tone ──
                       _FieldLabel(text: _t.skinTone, textMuted: _textMuted),
                       const SizedBox(height: 6),
@@ -3883,6 +4270,18 @@ class _EditViewState extends State<_EditView>
                         textMuted: _textMuted,
                         onTap: _captureAndAnalyzeFacePhoto,
                       ),
+                      if (_faceAnalysisData != null) ...[
+                        const SizedBox(height: 12),
+                        _FaceAnalysisPreview(
+                          data: _faceAnalysisData!,
+                          colors: c,
+                          card: _card,
+                          cardBorder: _cardBorder,
+                          textPrimary: _textPrimary,
+                          textMuted: _textMuted,
+                          isDark: _draft.isDark,
+                        ),
+                      ],
                       const SizedBox(height: 12),
 
                       // Body upload row
@@ -5008,6 +5407,318 @@ class _TryOnUploadRow extends StatelessWidget {
       ),
     );
   }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FACE ANALYSIS PREVIEW  (mirrors onboarding3.dart's _FaceAnalysisPreview)
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _FaceAnalysisPreview extends StatelessWidget {
+  final FaceAnalysisData data;
+  final ThemeColors colors;
+  final Color card, cardBorder, textPrimary, textMuted;
+  final bool isDark;
+
+  const _FaceAnalysisPreview({
+    required this.data,
+    required this.colors,
+    required this.card,
+    required this.cardBorder,
+    required this.textPrimary,
+    required this.textMuted,
+    required this.isDark,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final danger = isDark ? const Color(0xFFFF6B6E) : const Color(0xFFE5484D);
+    final warning = isDark ? const Color(0xFFFFC94D) : const Color(0xFFF5A524);
+    final statusPurple =
+    isDark ? const Color(0xFFA78BFA) : const Color(0xFF8B5CF6);
+    final statusPink =
+    isDark ? const Color(0xFFF472B6) : const Color(0xFFEC4899);
+    final recommendationBg =
+    isDark ? const Color(0xFF3A2E12) : const Color(0xFFFFF8E8);
+    final recommendationBorder =
+    isDark ? const Color(0xFF5C4720) : const Color(0xFFFFE5B4);
+    final recommendationTitle =
+    isDark ? const Color(0xFFFFC66D) : const Color(0xFFD97706);
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: card,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: cardBorder, width: 1),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '✨ Face Analysis Results',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              color: textPrimary,
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Skin Analysis Section
+          _AnalysisSection(
+            title: '🎨 Skin Profile',
+            textPrimary: textPrimary,
+            textMuted: textMuted,
+            cardBorder: cardBorder,
+            items: [
+              _AnalysisItem(
+                label: 'Skin Tone',
+                value: data.skinTone,
+                icon: '🌿',
+                color: colors.accent3,
+                swatchColor: data.skinToneColor,
+              ),
+              _AnalysisItem(
+                label: 'Skin Quality',
+                value: '${data.skinQuality.toStringAsFixed(0)}%',
+                icon: '✨',
+                color: colors.accent1,
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+
+          // Acne & Pigmentation Section
+          _AnalysisSection(
+            title: '🔍 Skin Conditions',
+            textPrimary: textPrimary,
+            textMuted: textMuted,
+            cardBorder: cardBorder,
+            items: [
+              _AnalysisItem(
+                label: 'Acne Status',
+                value: data.acneDetected
+                    ? 'Detected (${data.acneSeverity}%)'
+                    : 'Clear',
+                icon: data.acneDetected ? '⚠️' : '✅',
+                color: data.acneDetected ? danger : colors.accent3,
+              ),
+              _AnalysisItem(
+                label: 'Pigmentation',
+                value: data.pigmentationDetected ? 'Present' : 'Even',
+                icon: data.pigmentationDetected ? '⚠️' : '✅',
+                color: data.pigmentationDetected ? warning : colors.accent3,
+              ),
+              if (data.darkerCircles)
+                _AnalysisItem(
+                  label: 'Dark Circles',
+                  value: 'Detected',
+                  icon: '👁️',
+                  color: statusPurple,
+                ),
+            ],
+          ),
+          const SizedBox(height: 14),
+
+          // Eye & Lip Section
+          _AnalysisSection(
+            title: '👁️ Facial Features',
+            textPrimary: textPrimary,
+            textMuted: textMuted,
+            cardBorder: cardBorder,
+            items: [
+              _AnalysisItem(
+                label: 'Face Shape',
+                value: data.faceShape,
+                icon: '🧑',
+                color: colors.accent1,
+              ),
+              _AnalysisItem(
+                label: 'Eye Shape',
+                value: data.eyeShape,
+                icon: '👁️',
+                color: colors.accent2,
+              ),
+              _AnalysisItem(
+                label: 'Eye Size',
+                value: _getSizeLabel(data.eyeSize),
+                icon: '💫',
+                color: colors.accent2,
+              ),
+              _AnalysisItem(
+                label: 'Lip Color',
+                value: data.lipColor,
+                icon: '💋',
+                color: statusPink,
+              ),
+              _AnalysisItem(
+                label: 'Lip Fullness',
+                value: _getSizeLabel(data.lipFullness),
+                icon: '✨',
+                color: statusPink,
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // Recommendations Section
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: recommendationBg,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: recommendationBorder, width: 1),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '💡 Personalized Recommendations',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: recommendationTitle,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                ...data.recommendations.map(
+                      (rec) => Padding(
+                    padding: const EdgeInsets.only(bottom: 6),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('• ', style: TextStyle(color: textMuted)),
+                        Expanded(
+                          child: Text(
+                            rec,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: textMuted,
+                              height: 1.4,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _getSizeLabel(double size) {
+    if (size < 0.3) return 'Small';
+    if (size < 0.6) return 'Medium';
+    if (size < 0.8) return 'Large';
+    return 'Very Large';
+  }
+}
+
+class _AnalysisSection extends StatelessWidget {
+  final String title;
+  final List<_AnalysisItem> items;
+  final Color textPrimary, textMuted, cardBorder;
+
+  const _AnalysisSection({
+    required this.title,
+    required this.items,
+    required this.textPrimary,
+    required this.textMuted,
+    required this.cardBorder,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: TextStyle(
+            fontSize: 12.5,
+            fontWeight: FontWeight.w600,
+            color: textMuted,
+            letterSpacing: 0.3,
+          ),
+        ),
+        const SizedBox(height: 8),
+        ...items.map(
+              (item) => Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Row(
+                    children: [
+                      Text(item.icon, style: const TextStyle(fontSize: 16)),
+                      const SizedBox(width: 8),
+                      Text(
+                        item.label,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: textPrimary,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      if (item.swatchColor != null) ...[
+                        const SizedBox(width: 8),
+                        Container(
+                          width: 14,
+                          height: 14,
+                          decoration: BoxDecoration(
+                            color: item.swatchColor,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: cardBorder, width: 1),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                Container(
+                  padding:
+                  const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: item.color.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    item.value,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: item.color,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _AnalysisItem {
+  final String label;
+  final String value;
+  final String icon;
+  final Color color;
+  final Color? swatchColor; // Optional actual color dot (e.g. skin tone)
+
+  _AnalysisItem({
+    required this.label,
+    required this.value,
+    required this.icon,
+    required this.color,
+    this.swatchColor,
+  });
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

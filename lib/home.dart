@@ -1360,39 +1360,25 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
     }
   }
 
-  /// Best-effort read of the onboarding gender preference from
-  /// [profile.ProfileController]'s state. Tries several common field names
-  /// dynamically (so it never breaks compilation even if the real
-  /// ProfileState uses a different name) and falls back to the current
-  /// value if nothing matches.
+  /// Reads the onboarding gender preference from [profile.ProfileState.gender]
+  /// (set in onboarding1.dart via `ProfileController.updateBasics(gender: ...)`
+  /// and now editable on the profile screen too) and maps it to the 'women' /
+  /// 'men' bucket used to pick the Style card outfit photo.
   ///
-  /// 🔧 If your ProfileState exposes gender under a different getter name,
-  /// just add it to the `candidates` list below.
-  String _resolveGenderFromProfile(Object? state) {
+  /// 🔧 Previously this used a dynamic multi-field-name guessing hack because
+  /// it wasn't certain ProfileState exposed `gender` — it does, so we read it
+  /// directly now.
+  String _resolveGenderFromProfile(profile.ProfileState? state) {
     if (state == null) return _userGender;
-    final dynamic s = state;
-    final candidates = <dynamic Function()>[
-          () => s.gender,
-          () => s.sex,
-          () => s.userGender,
-          () => s.genderPreference,
-          () => s.onboardingGender,
-    ];
-    for (final read in candidates) {
-      try {
-        final raw = read();
-        if (raw == null) continue;
-        final v = raw.toString().toLowerCase();
-        if (v.contains('women') || v.contains('female') || v == 'w' || v == 'f') {
-          return 'women';
-        }
-        if (v.contains('men') || v.contains('male') || v == 'm') {
-          return 'men';
-        }
-      } catch (_) {
-        // That field doesn't exist on this ProfileState — try the next one.
-      }
+    final v = state.gender.toLowerCase();
+    if (v.contains('women') || v.contains('female') || v == 'w' || v == 'f') {
+      return 'women';
     }
+    if (v.contains('men') || v.contains('male') || v == 'm') {
+      return 'men';
+    }
+    // 'others' (or anything unrecognized) — no 3rd generic asset by design,
+    // so keep whatever gender was already showing.
     return _userGender;
   }
 
