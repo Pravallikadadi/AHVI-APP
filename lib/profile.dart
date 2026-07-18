@@ -1368,6 +1368,59 @@ class ProfileController extends ChangeNotifier {
     );
     notifyListeners();
   }
+
+  /// Rehydrates the rest of the profile (gender, dob, phone, skinTone,
+  /// faceShape, bodyShape, styles, shopPrefs) from the Appwrite "users"
+  /// document. Call this on cold start right after fetching the profile
+  /// doc — otherwise ProfileState()'s hardcoded defaults (e.g. gender
+  /// defaulting to 'Female') silently override whatever the user actually
+  /// picked during onboarding.
+  void hydrateFromProfileDoc(Map<String, dynamic>? doc) {
+    if (doc == null) return;
+
+    String? asNonEmptyString(dynamic v) {
+      if (v == null) return null;
+      final s = v.toString().trim();
+      return s.isEmpty ? null : s;
+    }
+
+    // onboarding1.dart saves gender lowercased ('male'/'female'/'others'),
+    // but the UI (edit-profile pills, ['Male','Female','Others']) compares
+    // against Title-Case. Normalize so the saved value actually matches.
+    String? titleCase(dynamic v) {
+      final s = asNonEmptyString(v);
+      if (s == null) return null;
+      return s[0].toUpperCase() + s.substring(1).toLowerCase();
+    }
+
+    int? asInt(dynamic v) {
+      if (v is int) return v;
+      if (v is num) return v.toInt();
+      if (v is String) return int.tryParse(v);
+      return null;
+    }
+
+    Set<String>? asStringSet(dynamic v) {
+      if (v is List) {
+        final set = v.map((e) => e.toString()).toSet();
+        return set.isEmpty ? null : set;
+      }
+      return null;
+    }
+
+    _state = _state.copyWith(
+      name: asNonEmptyString(doc['name']),
+      phone: asNonEmptyString(doc['phone']),
+      dob: asNonEmptyString(doc['dob']),
+      gender: titleCase(doc['gender']),
+      skinTone: asInt(doc['skinTone']),
+      faceShape: asNonEmptyString(doc['faceShape']),
+      bodyShape: asNonEmptyString(doc['bodyShape']),
+      styles: asStringSet(doc['stylePreferences']),
+      shopPrefs: asStringSet(doc['shopPrefs']),
+    );
+    notifyListeners();
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

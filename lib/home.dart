@@ -3600,7 +3600,13 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                             height: 22,
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              color: routines[i].done ? _accent : Colors.transparent,
+                              // 🔧 FIX: was Colors.transparent, which let the
+                              // connector line show through the hollow center
+                              // of un-done bubbles (looked like the line was
+                              // cutting into the circle). Filling with the
+                              // card surface color makes the bubble opaque so
+                              // the line visually stops at its border instead.
+                              color: routines[i].done ? _accent : _surface,
                               border: Border.all(
                                 color: routines[i].done ? _accent : _border,
                                 width: 1.5,
