@@ -1393,18 +1393,28 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
   /// 🔧 Previously this used a dynamic multi-field-name guessing hack because
   /// it wasn't certain ProfileState exposed `gender` — it does, so we read it
   /// directly now.
+  ///
+  /// 🔧 FIX: This used to fall back to `_userGender` (a cached field)
+  /// whenever `state` was null or `state.gender` was empty/unrecognized.
+  /// That cache is only written once, inside `_fetchUserProfile`, after
+  /// profile hydration completes — so right after app restart, before
+  /// hydration finishes, this returned the hardcoded default and the two
+  /// call sites that `context.watch` the live ProfileState kept showing
+  /// that stale cached value instead of re-deriving it from the state they
+  /// were watching. Made this fully deterministic from `state` alone so it
+  /// no longer depends on `_userGender` and always reflects the current
+  /// ProfileState on every rebuild.
   String _resolveGenderFromProfile(profile.ProfileState? state) {
-    if (state == null) return _userGender;
-    final v = state.gender.toLowerCase();
+    final v = state?.gender.trim().toLowerCase() ?? '';
     if (v.contains('women') || v.contains('female') || v == 'w' || v == 'f') {
       return 'women';
     }
     if (v.contains('men') || v.contains('male') || v == 'm') {
       return 'men';
     }
-    // 'others' (or anything unrecognized) — no 3rd generic asset by design,
-    // so keep whatever gender was already showing.
-    return _userGender;
+    // 'others' (or anything unrecognized/not-yet-loaded) — no 3rd generic
+    // asset by design, so default to 'women' rather than an unrelated cache.
+    return 'women';
   }
 
   void _updateClock() {
@@ -3812,7 +3822,8 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
     // rebuilds and re-resolves gender any time the profile actually changes,
     // not just once at app start. Only 2 images total, no generic/neutral
     // fallback — whichever gender _resolveGenderFromProfile lands on is
-    // used, defaulting to 'women' via _userGender until the profile loads.
+    // used, defaulting to 'women' (deterministically, not via _userGender)
+    // until the profile loads.
     final liveProfileState = context.watch<profile.ProfileController>().state;
     final resolvedGender = _resolveGenderFromProfile(liveProfileState);
     final genderedPrepPlanAsset = resolvedGender == 'men'
