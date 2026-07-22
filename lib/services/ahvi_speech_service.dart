@@ -66,9 +66,20 @@ class AhviSpeechService {
     }
   }
 
+  // `_speech.listen()` ప్రారంభమయ్యే ప్రతి session కీ `result.recognizedWords`
+  // ఆ SESSION లోపలి cumulative transcript మాత్రమే (mic ఆఫ్ చేసి మళ్ళీ ఆన్
+  // చేస్తే, ఇది మళ్ళీ '' నుండి start అవుతుంది) — ఫీల్డ్‌లో ఇప్పటికే ఉన్న
+  // పాత టెక్స్ట్ గురించి ఈ package కి తెలియదు. కాబట్టి mic restart అయిన
+  // ప్రతిసారి `existingText` (ఆ time కి controller/field లో ఉన్న text) ని
+  // ఇక్కడ base గా పట్టుకుని, ప్రతి onResult callback లోనూ
+  // `existingText + ఈ session transcript` గా కలిపి `onText`కి పంపిస్తాం.
+  // దీనివల్ల caller ఎప్పుడూ `onText(combinedText)` ని నేరుగా
+  // `controller.text = combinedText` గా వాడినా, పాత text పోకుండా
+  // కొత్త voice input దాని మీద append అవుతుంది (replace అవ్వదు).
   Future<void> start({
     required ValueChanged<String> onText,
     VoidCallback? onDone,
+    String existingText = '',
   }) async {
     if (_state == AhviSpeechState.initializing) {
       while (_state == AhviSpeechState.initializing) {
@@ -90,15 +101,20 @@ class AhviSpeechService {
     _state = AhviSpeechState.listening;
     _activeOnDone = onDone;
 
+    final baseText = existingText.trim();
+
     try {
       await _speech.listen(
         listenMode: stt.ListenMode.dictation,
         partialResults: true,
         onResult: (result) {
-          final text = result.recognizedWords.trim();
+          final sessionText = result.recognizedWords.trim();
 
-          if (text.isNotEmpty) {
-            onText(text);
+          if (sessionText.isNotEmpty) {
+            final combined = baseText.isEmpty
+                ? sessionText
+                : '$baseText $sessionText';
+            onText(combined);
           }
 
           if (result.finalResult) {

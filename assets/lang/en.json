@@ -896,7 +896,7 @@
   "plus_web_search_title": "Web Search",
   "plus_web_suggestions": "Suggestions",
   "prep_card_cta": "Plan Week",
-  "prep_card_desc": "AI-planned meals, outfits & schedule — all in one place.",
+  "prep_card_desc": "AI-planned meals, outfits & schedule.",
   "prep_card_subtitle": "Your week, sorted",
   "prep_card_title": "Prep & Plan",
   "prep_day_cta": "Plan My Day",
@@ -1334,5 +1334,10 @@
   "daily_wear_wardrobe_alert": "Wardrobe Alert",
   "hero_card_you_tend_to_love": "You tend to love {style}",
   "status_streak": "On a streak!",
-  "status_start": "Get started"
+  "status_start": "Get started",
+  "style_boards_anchor_badge": "Selected",
+  "style_boards_anchor_note": "This is your selected item. It will always appear in your style board.",
+  "style_boards_picker_load_error": "Couldn't load suggestions. Check your connection and try again.",
+  "buildOutfitShuffleError": "Could not shuffle. Please try again.",
+  "buildOutfitPickerError": "Could not load items. Please try again."
 }

@@ -85,8 +85,8 @@ class _AhviChatPromptBarState extends State<AhviChatPromptBar> {
       onVisualSearch: widget.onVisualSearch,
       onFindSimilar: widget.onFindSimilar,
       onAddToWardrobe:
-          widget.onAddToWardrobe ??
-          () {
+      widget.onAddToWardrobe ??
+              () {
             debugPrint(
               '👗 [LensSheet] onAddToWardrobe tapped, context mounted: ${capturedContext.mounted}',
             );
@@ -229,32 +229,32 @@ class _AhviChatPromptBarState extends State<AhviChatPromptBar> {
                     decoration: BoxDecoration(
                       gradient: widget.isListening
                           ? const LinearGradient(
-                              colors: [Colors.redAccent, Color(0xFFB71C1C)],
-                            )
+                        colors: [Colors.redAccent, Color(0xFFB71C1C)],
+                      )
                           : LinearGradient(
-                              colors: [
-                                widget.accent.withValues(alpha: 0.18),
-                                widget.accentSecondary.withValues(alpha: 0.18),
-                              ],
-                            ),
+                        colors: [
+                          widget.accent.withValues(alpha: 0.18),
+                          widget.accentSecondary.withValues(alpha: 0.18),
+                        ],
+                      ),
                       borderRadius: BorderRadius.circular(13),
                       boxShadow: widget.isListening
                           ? [
-                              BoxShadow(
-                                color: Colors.redAccent.withValues(alpha: 0.45),
-                                blurRadius: 16,
-                                offset: const Offset(0, 4),
-                              ),
-                            ]
+                        BoxShadow(
+                          color: Colors.redAccent.withValues(alpha: 0.45),
+                          blurRadius: 16,
+                          offset: const Offset(0, 4),
+                        ),
+                      ]
                           : [],
                     ),
                     child: widget.isListening
                         ? const _PulsingMicIcon()
                         : Icon(
-                            Icons.mic_none_rounded,
-                            color: widget.accent,
-                            size: 18,
-                          ),
+                      Icons.mic_none_rounded,
+                      color: widget.accent,
+                      size: 18,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 6),
@@ -265,7 +265,7 @@ class _AhviChatPromptBarState extends State<AhviChatPromptBar> {
                   onTap: _trySend,
                   child: ValueListenableBuilder<TextEditingValue>(
                     valueListenable:
-                        widget.hasTextListenable ?? widget.controller,
+                    widget.hasTextListenable ?? widget.controller,
                     builder: (context, value, _) {
                       final effectiveHasText =
                           widget.hasText ?? value.text.trim().isNotEmpty;
@@ -281,31 +281,31 @@ class _AhviChatPromptBarState extends State<AhviChatPromptBar> {
                           gradient: effectiveHasText
                               ? _accentGradient2
                               : LinearGradient(
-                                  colors: [
-                                    widget.accent.withValues(alpha: 0.35),
-                                    widget.accentSecondary.withValues(
-                                      alpha: 0.35,
-                                    ),
-                                  ],
-                                ),
+                            colors: [
+                              widget.accent.withValues(alpha: 0.35),
+                              widget.accentSecondary.withValues(
+                                alpha: 0.35,
+                              ),
+                            ],
+                          ),
                           borderRadius: BorderRadius.circular(13),
                           boxShadow: effectiveHasText
                               ? [
-                                  BoxShadow(
-                                    color: widget.accent.withValues(
-                                      alpha: 0.45,
-                                    ),
-                                    blurRadius: 22,
-                                    offset: const Offset(0, 6),
-                                  ),
-                                  BoxShadow(
-                                    color: widget.accentSecondary.withValues(
-                                      alpha: 0.28,
-                                    ),
-                                    blurRadius: 8,
-                                    offset: const Offset(0, 3),
-                                  ),
-                                ]
+                            BoxShadow(
+                              color: widget.accent.withValues(
+                                alpha: 0.45,
+                              ),
+                              blurRadius: 22,
+                              offset: const Offset(0, 6),
+                            ),
+                            BoxShadow(
+                              color: widget.accentSecondary.withValues(
+                                alpha: 0.28,
+                              ),
+                              blurRadius: 8,
+                              offset: const Offset(0, 3),
+                            ),
+                          ]
                               : [],
                         ),
                         child: Icon(
@@ -329,7 +329,7 @@ class _AhviChatPromptBarState extends State<AhviChatPromptBar> {
 // ── Expandable multiline text field ────────────────────────────────────────
 // Starts at 1 line, grows to maxHeight (~5 lines) via minLines/maxLines:null,
 // then scrolls internally. AnimatedSize on the parent smooths the growth.
-class _ExpandableTextField extends StatelessWidget {
+class _ExpandableTextField extends StatefulWidget {
   final TextEditingController controller;
   final FocusNode focusNode;
   final String hintText;
@@ -351,21 +351,101 @@ class _ExpandableTextField extends StatelessWidget {
   });
 
   @override
+  State<_ExpandableTextField> createState() => _ExpandableTextFieldState();
+}
+
+// Voice input (speech_to_text లాంటి packages) సాధారణంగా
+// `controller.text = recognizedWords` అని direct గా assign చేస్తాయి.
+// Flutter లో `TextEditingController.text` setter selection ని
+// (offset: -1 → clamped to 0) reset చేస్తుంది, అంటే cursor ఎప్పుడూ
+// TEXT START కి jump అవుతుంది, END కి కాదు. ఫలితంగా ఫీల్డ్ scroll position
+// మారదు — పొడవైన dictation తర్వాత చివరి పదాలు invisible అయిపోయి
+// "text cut off" లా కనిపిస్తుంది.
+//
+// దీన్ని fix చేయడానికి controller ని listen చేసి, ఇలాంటి external
+// full-text-replace (selection 0కి reset అయినప్పుడు) జరిగినప్పుడల్లా
+// cursor ని & scroll position ని text చివరకి తీసుకెళ్తాం, తద్వారా
+// తాజా (voice) text ఎప్పుడూ కనిపిస్తుంది.
+class _ExpandableTextFieldState extends State<_ExpandableTextField> {
+  final ScrollController _scrollController = ScrollController();
+  int _lastLength = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _lastLength = widget.controller.text.length;
+    widget.controller.addListener(_handleControllerChange);
+  }
+
+  @override
+  void didUpdateWidget(covariant _ExpandableTextField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.controller != widget.controller) {
+      oldWidget.controller.removeListener(_handleControllerChange);
+      widget.controller.addListener(_handleControllerChange);
+      _lastLength = widget.controller.text.length;
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.controller.removeListener(_handleControllerChange);
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _handleControllerChange() {
+    final value = widget.controller.value;
+    final lengthChanged = value.text.length != _lastLength;
+    _lastLength = value.text.length;
+
+    // Normal typing always leaves the caret AFTER the character just
+    // typed/deleted, so it only sits at offset 0 (or the invalid -1
+    // sentinel) when something assigned `.text` wholesale — exactly what
+    // voice-to-text (and similar programmatic updates) do.
+    final selectionCollapsedAtStart =
+        value.selection.baseOffset <= 0 && value.selection.extentOffset <= 0;
+
+    if (value.text.isNotEmpty && lengthChanged && selectionCollapsedAtStart) {
+      final endOffset = value.text.length;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        // Re-check in case the user already moved the caret this frame.
+        if (widget.controller.selection.baseOffset <= 0 &&
+            widget.controller.selection.extentOffset <= 0 &&
+            widget.controller.text.length == endOffset) {
+          widget.controller.selection = TextSelection.collapsed(
+            offset: endOffset,
+          );
+        }
+        if (_scrollController.hasClients) {
+          _scrollController.animateTo(
+            _scrollController.position.maxScrollExtent,
+            duration: const Duration(milliseconds: 160),
+            curve: Curves.easeOutCubic,
+          );
+        }
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return ConstrainedBox(
-      constraints: BoxConstraints(maxHeight: maxHeight),
+      constraints: BoxConstraints(maxHeight: widget.maxHeight),
       child: ScrollConfiguration(
         // Allow internal scroll past maxHeight, but hide the scrollbar thumb.
         behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
         child: TextField(
-          controller: controller,
-          focusNode: focusNode,
+          controller: widget.controller,
+          focusNode: widget.focusNode,
+          scrollController: _scrollController,
           minLines: 1,
           maxLines: null,
           keyboardType: TextInputType.multiline,
           textInputAction: TextInputAction.newline,
           style: TextStyle(
-            color: textColor,
+            color: widget.textColor,
             fontSize: 14.5,
             fontWeight: FontWeight.w400,
             height: 1.4,
@@ -376,18 +456,18 @@ class _ExpandableTextField extends StatelessWidget {
             border: InputBorder.none,
             enabledBorder: InputBorder.none,
             focusedBorder: InputBorder.none,
-            hintText: hintText,
+            hintText: widget.hintText,
             hintStyle: TextStyle(
-              color: hintColor,
+              color: widget.hintColor,
               fontSize: 14.5,
               fontWeight: FontWeight.w300,
               height: 1.4,
             ),
           ),
-          cursorColor: cursorColor,
+          cursorColor: widget.cursorColor,
           cursorWidth: 1.5,
           cursorRadius: const Radius.circular(1),
-          onSubmitted: onSubmitted,
+          onSubmitted: widget.onSubmitted,
         ),
       ),
     );

@@ -248,8 +248,15 @@ class HomeCardSummaryProvider extends ChangeNotifier {
   // ── Derived labels for the home "Medicine" card ──────────────────────────
 
   /// One-liner subtitle shown on the "Medicine" routine card.
+  ///
+  /// 🔧 FIX: was 'No meds today' — at 14 characters this wrapped to a
+  /// second line inside the ~88-120dp routine card, and the card's fixed
+  /// height didn't have room for that second line, so it got visually
+  /// clipped against the status chip ("None") sitting right below it.
+  /// Shortened to keep it on a single line like every other card's
+  /// default description ("Daily meds", "Care routine", etc.).
   String get medicineHomeSubtitle {
-    if (_totalMeds == 0) return 'No meds today';
+    if (_totalMeds == 0) return 'No meds';
     if (allMedsTaken) return 'All meds taken ✓';
     if (_nextMedName.isNotEmpty) {
       final name = _nextMedName.length > 14

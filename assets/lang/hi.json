@@ -896,7 +896,7 @@
   "plus_web_search_title": "वेब खोज",
   "plus_web_suggestions": "सुझाव",
   "prep_card_cta": "सप्ताह प्लान करें",
-  "prep_card_desc": "AI द्वारा प्लान किए गए भोजन, आउटफिट व शेड्यूल — सब एक जगह।",
+  "prep_card_desc": "AI द्वारा प्लान किए गए भोजन, आउटफिट व शेड्यूल।",
   "prep_card_subtitle": "आपका सप्ताह, व्यवस्थित",
   "prep_card_title": "प्रेप & प्लान",
   "prep_day_cta": "मेरा दिन प्लान करें",
@@ -1334,5 +1334,10 @@
   "daily_wear_wardrobe_alert": "अलमारी चेतावनी",
   "hero_card_you_tend_to_love": "आपको {style} पसंद है",
   "status_streak": "लगातार जारी!",
-  "status_start": "शुरू करें"
+  "status_start": "शुरू करें",
+  "style_boards_anchor_badge": "चुना गया",
+  "style_boards_anchor_note": "यह आपका चुना हुआ आइटम है। यह हमेशा आपके स्टाइल बोर्ड में दिखाई देगा।",
+  "style_boards_picker_load_error": "सुझाव लोड नहीं हो सके। अपना कनेक्शन जांचें और फिर कोशिश करें।",
+  "buildOutfitShuffleError": "शफ़ल नहीं हो सका। कृपया फिर कोशिश करें।",
+  "buildOutfitPickerError": "आइटम लोड नहीं हो सके। कृपया फिर कोशिश करें।"
 }

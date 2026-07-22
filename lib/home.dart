@@ -1469,11 +1469,25 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
       await _speech.stop();
       setState(() => _isListening = false);
     } else {
+      // Mic మళ్ళీ ఆన్ చేసినప్పుడు, ఇప్పటికే ఫీల్డ్‌లో ఉన్న text ని base గా
+      // పట్టుకోవాలి. `_speech.listen()` ప్రతిసారి కొత్త session
+      // start చేస్తుంది కాబట్టి, `result.recognizedWords` ఆ SESSION లోపలి
+      // transcript మాత్రమే (మళ్ళీ '' నుండి start అవుతుంది) — పాత text
+      // గురించి package కి తెలియదు. దీన్ని బేస్‌ గా save చేయకుండా నేరుగా
+      // `_chatController.text = result.recognizedWords` చేస్తే, mic ఆఫ్/ఆన్
+      // చేసిన ప్రతిసారి పాత text wipe అయిపోతుంది — అదే ఈ బగ్‌కి root cause.
+      final baseText = _chatController.text.trim();
       setState(() => _isListening = true);
       await _speech.listen(
         onResult: (result) {
+          final sessionText = result.recognizedWords.trim();
+          // సెషన్ ఇంకా ఏ మాటలూ recognize చేయకపోతే (మొదటి empty callback
+          // లాంటివి), పాత base text ని అలాగే ఉంచాలి — wipe చేయకూడదు.
+          final combined = sessionText.isEmpty
+              ? baseText
+              : (baseText.isEmpty ? sessionText : '$baseText $sessionText');
           setState(() {
-            _chatController.text = result.recognizedWords;
+            _chatController.text = combined;
             _chatController.selection = TextSelection.fromPosition(
               TextPosition(offset: _chatController.text.length),
             );
@@ -3714,6 +3728,19 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                                     ),
                                     SizedBox(height: cardPadding * 0.3),
                                     // Description - responsive text filling available space
+                                    // 🔧 FIX: was maxLines: 2. When a card's dynamic
+                                    // description was long enough to wrap (e.g. the
+                                    // Medicine card's "No meds today"), the 2nd line
+                                    // needed more height than the tight, fixed-height
+                                    // card had left over — so instead of ellipsizing
+                                    // cleanly, the RenderParagraph got squeezed and
+                                    // the wrapped line was visually clipped mid-glyph
+                                    // against the status row below it. Every other
+                                    // card's description already renders on one line
+                                    // in practice, so capping to 1 line here changes
+                                    // nothing for them and guarantees a clean "…"
+                                    // truncation (never a mid-line clip) for any
+                                    // longer/localized string in the future.
                                     Expanded(
                                       child: Text(
                                         r.desc,
@@ -3723,9 +3750,9 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                                           fontWeight: FontWeight.w400,
                                           height: 1.3,
                                         ),
-                                        maxLines: 2,
+                                        maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
-                                        softWrap: true,
+                                        softWrap: false,
                                       ),
                                     ),
                                     SizedBox(height: cardPadding * 0.3),

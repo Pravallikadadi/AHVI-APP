@@ -896,7 +896,7 @@
   "plus_web_search_title": "వెబ్ సెర్చ్",
   "plus_web_suggestions": "సూచనలు",
   "prep_card_cta": "వారం ప్లాన్ చేయండి",
-  "prep_card_desc": "AI ప్లాన్ చేసిన భోజనం, అవుట్‌ఫిట్‌లు & షెడ్యూల్ — అన్నీ ఒకే చోట.",
+  "prep_card_desc": "AI ప్లాన్ చేసిన భోజనం, అవుట్‌ఫిట్‌లు & షెడ్యూల్.",
   "prep_card_subtitle": "మీ వారం, క్రమబద్ధంగా",
   "prep_card_title": "ప్రిప్ & ప్లాన్",
   "prep_day_cta": "నా రోజును ప్లాన్ చేయండి",
@@ -1334,5 +1334,10 @@
   "daily_wear_wardrobe_alert": "వార్డ్‌రోబ్ హెచ్చరిక",
   "hero_card_you_tend_to_love": "మీకు {style} అంటే ఇష్టం",
   "status_streak": "వరుస కొనసాగుతోంది!",
-  "status_start": "ప్రారంభించండి"
+  "status_start": "ప్రారంభించండి",
+  "style_boards_anchor_badge": "ఎంచుకున్నది",
+  "style_boards_anchor_note": "ఇది మీరు ఎంచుకున్న అంశం. ఇది ఎల్లప్పుడూ మీ స్టైల్ బోర్డ్‌లో కనిపిస్తుంది.",
+  "style_boards_picker_load_error": "సూచనలు లోడ్ చేయడం సాధ్యపడలేదు. మీ కనెక్షన్ తనిఖీ చేసి మళ్ళీ ప్రయత్నించండి.",
+  "buildOutfitShuffleError": "షఫుల్ చేయడం సాధ్యపడలేదు. దయచేసి మళ్ళీ ప్రయత్నించండి.",
+  "buildOutfitPickerError": "అంశాలు లోడ్ చేయడం సాధ్యపడలేదు. దయచేసి మళ్ళీ ప్రయత్నించండి."
 }

@@ -245,7 +245,7 @@ Future<void> showAhviStylistChatSheet(
       final screenH = MediaQuery.of(ctx).size.height;
       final topPad = MediaQuery.of(ctx).padding.top;
       final kbH = MediaQuery.of(ctx).viewInsets.bottom;
-      final sheetH = (screenH - topPad) * 0.92;
+      final sheetH = screenH - topPad;
       return Padding(
         padding: EdgeInsets.only(bottom: kbH),
         child: SizedBox(
@@ -1220,24 +1220,12 @@ class _AhviStylistChatSheetState extends State<_AhviStylistChatSheet>
       body: Container(
         decoration: BoxDecoration(
           color: t.backgroundPrimary,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-          border: Border.all(color: t.cardBorder),
         ),
         child: Stack(
           children: [
-            // ── Handle + Header + Messages (scrollable) ────────────
+            // ── Header + Messages (scrollable) ────────────
             Column(
               children: [
-                // ── Handle ─────────────────────────────────────────
-                const SizedBox(height: 8),
-                Container(
-                  width: 36,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: t.panelBorder,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
                 // ── Header ─────────────────────────────────────────
                 Padding(
                   padding: const EdgeInsets.fromLTRB(20, 14, 20, 12),
@@ -1312,9 +1300,6 @@ class _AhviStylistChatSheetState extends State<_AhviStylistChatSheet>
               child: Container(
                 decoration: BoxDecoration(
                   color: t.phoneShellInner,
-                  borderRadius: const BorderRadius.vertical(
-                    bottom: Radius.circular(28),
-                  ),
                 ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,

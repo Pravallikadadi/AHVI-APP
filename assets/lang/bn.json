@@ -896,7 +896,7 @@
   "plus_web_search_title": "ওয়েব অনুসন্ধান",
   "plus_web_suggestions": "পরামর্শ",
   "prep_card_cta": "সপ্তাহ পরিকল্পনা",
-  "prep_card_desc": "AI দ্বারা পরিকল্পিত খাবার, পোশাক ও সময়সূচি — সব এক জায়গায়।",
+  "prep_card_desc": "AI দ্বারা পরিকল্পিত খাবার, পোশাক ও সময়সূচি।",
   "prep_card_subtitle": "আপনার সপ্তাহ, গোছানো",
   "prep_card_title": "প্রেপ ও প্ল্যান",
   "prep_day_cta": "আমার দিন পরিকল্পনা করুন",
@@ -1334,5 +1334,10 @@
   "daily_wear_wardrobe_alert": "ওয়ার্ডরোব সতর্কতা",
   "hero_card_you_tend_to_love": "আপনি {style} পছন্দ করেন",
   "status_streak": "ধারাবাহিকতা চলছে!",
-  "status_start": "শুরু করুন"
+  "status_start": "শুরু করুন",
+  "style_boards_anchor_badge": "নির্বাচিত",
+  "style_boards_anchor_note": "এটি আপনার নির্বাচিত আইটেম। এটি সর্বদা আপনার স্টাইল বোর্ডে দেখাবে।",
+  "style_boards_picker_load_error": "পরামর্শ লোড করা যায়নি। আপনার সংযোগ পরীক্ষা করুন এবং আবার চেষ্টা করুন।",
+  "buildOutfitShuffleError": "শাফেল করা যায়নি। অনুগ্রহ করে আবার চেষ্টা করুন।",
+  "buildOutfitPickerError": "আইটেম লোড করা যায়নি। অনুগ্রহ করে আবার চেষ্টা করুন।"
 }

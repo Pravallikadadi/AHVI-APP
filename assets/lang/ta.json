@@ -896,7 +896,7 @@
   "plus_web_search_title": "வலை தேடல்",
   "plus_web_suggestions": "பரிந்துரைகள்",
   "prep_card_cta": "வாரத்தை திட்டமிடு",
-  "prep_card_desc": "AI திட்டமிட்ட உணவு, உடைகள் & அட்டவணை — அனைத்தும் ஒரே இடத்தில்.",
+  "prep_card_desc": "AI திட்டமிட்ட உணவு, உடைகள் & அட்டவணை.",
   "prep_card_subtitle": "உங்கள் வாரம், ஒழுங்காக",
   "prep_card_title": "தயாரிப்பு & திட்டம்",
   "prep_day_cta": "என் நாளை திட்டமிடு",
@@ -1334,5 +1334,10 @@
   "daily_wear_wardrobe_alert": "உடைக்குறி எச்சரிக்கை",
   "hero_card_you_tend_to_love": "உங்களுக்கு {style} பிடிக்கும்",
   "status_streak": "தொடர்ச்சியில் உள்ளீர்கள்!",
-  "status_start": "தொடங்குங்கள்"
+  "status_start": "தொடங்குங்கள்",
+  "style_boards_anchor_badge": "தேர்ந்தெடுக்கப்பட்டது",
+  "style_boards_anchor_note": "இது உங்கள் தேர்ந்தெடுத்த பொருள். இது எப்போதும் உங்கள் ஸ்டைல் போர்டில் தோன்றும்.",
+  "style_boards_picker_load_error": "பரிந்துரைகளை ஏற்ற முடியவில்லை. உங்கள் இணைப்பை சரிபார்த்து மீண்டும் முயற்சிக்கவும்.",
+  "buildOutfitShuffleError": "கலைக்க முடியவில்லை. மீண்டும் முயற்சிக்கவும்.",
+  "buildOutfitPickerError": "பொருட்களை ஏற்ற முடியவில்லை. மீண்டும் முயற்சிக்கவும்."
 }

@@ -896,7 +896,7 @@
   "plus_web_search_title": "വെബ് തിരയൽ",
   "plus_web_suggestions": "നിർദ്ദേശങ്ങൾ",
   "prep_card_cta": "ആഴ്ച പ്ലാൻ ചെയ്യൂ",
-  "prep_card_desc": "AI ആസൂത്രണം ചെയ്ത ഭക്ഷണം, ഔട്ട്‌ഫിറ്റുകൾ & ഷെഡ്യൂൾ — എല്ലാം ഒരിടത്ത്.",
+  "prep_card_desc": "AI ആസൂത്രണം ചെയ്ത ഭക്ഷണം, ഔട്ട്‌ഫിറ്റുകൾ & ഷെഡ്യൂൾ.",
   "prep_card_subtitle": "നിങ്ങളുടെ ആഴ്ച, ക്രമമായി",
   "prep_card_title": "പ്രെപ് & പ്ലാൻ",
   "prep_day_cta": "എന്റെ ദിനം പ്ലാൻ ചെയ്യൂ",
@@ -1334,5 +1334,10 @@
   "daily_wear_wardrobe_alert": "വാരിയെണ്ണ് മുന്നറിയിപ്പ്",
   "hero_card_you_tend_to_love": "നിങ്ങൾക്ക് {style} ഇഷ്ടമാണ്",
   "status_streak": "സ്ട്രീക്കിലാണ്!",
-  "status_start": "ആരംഭിക്കുക"
+  "status_start": "ആരംഭിക്കുക",
+  "style_boards_anchor_badge": "തിരഞ്ഞെടുത്തത്",
+  "style_boards_anchor_note": "ഇത് നിങ്ങൾ തിരഞ്ഞെടുത്ത ഇനമാണ്. ഇത് എപ്പോഴും നിങ്ങളുടെ സ്റ്റൈൽ ബോർഡിൽ ദൃശ്യമാകും.",
+  "style_boards_picker_load_error": "നിർദ്ദേശങ്ങൾ ലോഡ് ചെയ്യാൻ കഴിഞ്ഞില്ല. നിങ്ങളുടെ കണക്ഷൻ പരിശോധിച്ച് വീണ്ടും ശ്രമിക്കുക.",
+  "buildOutfitShuffleError": "ഷഫ്ൾ ചെയ്യാൻ കഴിഞ്ഞില്ല. ദയവായി വീണ്ടും ശ്രമിക്കുക.",
+  "buildOutfitPickerError": "ഇനങ്ങൾ ലോഡ് ചെയ്യാൻ കഴിഞ്ഞില്ല. ദയവായി വീണ്ടും ശ്രമിക്കുക."
 }

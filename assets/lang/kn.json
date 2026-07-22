@@ -896,7 +896,7 @@
   "plus_web_search_title": "ವೆಬ್ ಹುಡುಕಾಟ",
   "plus_web_suggestions": "ಸೂಚನೆಗಳು",
   "prep_card_cta": "ವಾರ ಯೋಜಿಸಿ",
-  "prep_card_desc": "AI ಯೋಜಿಸಿದ ಊಟ, ಉಡುಪು ಮತ್ತು ವೇಳಾಪಟ್ಟಿ — ಎಲ್ಲವೂ ಒಂದೇ ಸ್ಥಳದಲ್ಲಿ.",
+  "prep_card_desc": "AI ಯೋಜಿಸಿದ ಊಟ, ಉಡುಪು ಮತ್ತು ವೇಳಾಪಟ್ಟಿ.",
   "prep_card_subtitle": "ನಿಮ್ಮ ವಾರ, ಅಚ್ಚುಕಟ್ಟಾಗಿ",
   "prep_card_title": "ಪ್ರಿಪ್ & ಪ್ಲಾನ್",
   "prep_day_cta": "ನನ್ನ ದಿನ ಯೋಜಿಸಿ",
@@ -1334,5 +1334,10 @@
   "daily_wear_wardrobe_alert": "ವಾರ್ಡ್‌ರೋಬ್ ಎಚ್ಚರಿಕೆ",
   "hero_card_you_tend_to_love": "ನಿಮಗೆ {style} ಇಷ್ಟ",
   "status_streak": "ಸ್ಟ್ರೀಕ್‌ನಲ್ಲಿದ್ದೀರಿ!",
-  "status_start": "ಪ್ರಾರಂಭಿಸಿ"
+  "status_start": "ಪ್ರಾರಂಭಿಸಿ",
+  "style_boards_anchor_badge": "ಆಯ್ಕೆ ಮಾಡಲಾಗಿದೆ",
+  "style_boards_anchor_note": "ಇದು ನೀವು ಆಯ್ಕೆ ಮಾಡಿದ ಐಟಂ ಆಗಿದೆ. ಇದು ಯಾವಾಗಲೂ ನಿಮ್ಮ ಸ್ಟೈಲ್ ಬೋರ್ಡ್‌ನಲ್ಲಿ ಕಾಣಿಸುತ್ತದೆ.",
+  "style_boards_picker_load_error": "ಸಲಹೆಗಳನ್ನು ಲೋಡ್ ಮಾಡಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ. ನಿಮ್ಮ ಸಂಪರ್ಕವನ್ನು ಪರಿಶೀಲಿಸಿ ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.",
+  "buildOutfitShuffleError": "ಶಫಲ್ ಮಾಡಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ. ದಯವಿಟ್ಟು ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.",
+  "buildOutfitPickerError": "ಐಟಂಗಳನ್ನು ಲೋಡ್ ಮಾಡಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ. ದಯವಿಟ್ಟು ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ."
 }

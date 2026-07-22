@@ -896,7 +896,7 @@
   "plus_web_search_title": "वेब शोध",
   "plus_web_suggestions": "सूचना",
   "prep_card_cta": "आठवडा नियोजित करा",
-  "prep_card_desc": "AI ने नियोजित जेवण, पोशाख व वेळापत्रक — सर्व एकाच ठिकाणी.",
+  "prep_card_desc": "AI ने नियोजित जेवण, पोशाख व वेळापत्रक.",
   "prep_card_subtitle": "तुमचा आठवडा, नीटनेटका",
   "prep_card_title": "प्रेप & प्लान",
   "prep_day_cta": "माझा दिवस नियोजित करा",
@@ -1334,5 +1334,10 @@
   "daily_wear_wardrobe_alert": "कपडांच्या आलमारीची सूचना",
   "hero_card_you_tend_to_love": "तुम्हाला {style} आवडते",
   "status_streak": "सलग सुरू आहे!",
-  "status_start": "सुरू करा"
+  "status_start": "सुरू करा",
+  "style_boards_anchor_badge": "निवडलेले",
+  "style_boards_anchor_note": "हे तुमचे निवडलेले आयटम आहे. हे नेहमी तुमच्या स्टाइल बोर्डवर दिसेल।",
+  "style_boards_picker_load_error": "सूचना लोड करता आल्या नाहीत. तुमचे कनेक्शन तपासा आणि पुन्हा प्रयत्न करा.",
+  "buildOutfitShuffleError": "शफल करता आले नाही. कृपया पुन्हा प्रयत्न करा.",
+  "buildOutfitPickerError": "आयटम लोड करता आले नाहीत. कृपया पुन्हा प्रयत्न करा."
 }
