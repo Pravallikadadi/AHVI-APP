@@ -1431,6 +1431,12 @@ class AppwriteService extends ChangeNotifier {
     final raw = value.trim();
     final key = raw.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]+'), '_');
     switch (key) {
+      case 'dailywear':
+      case 'daily_wear':
+      case 'daily':
+      case 'everyday':
+      case 'casual':
+        return 'Daily Wear';
       case 'party':
       case 'party_looks':
       case 'date':
@@ -1463,6 +1469,8 @@ class AppwriteService extends ChangeNotifier {
 
   String _savedBoardCategoryKey(String label) {
     switch (_savedBoardOccasionLabel(label).toLowerCase()) {
+      case 'daily wear':
+        return 'daily_wear';
       case 'party':
         return 'party_looks';
       case 'office':
@@ -1709,6 +1717,85 @@ class AppwriteService extends ChangeNotifier {
       );
     } catch (e) {
       debugPrint("Error deleting workout outfit: $e");
+      rethrow;
+    }
+  }
+
+  // =========================================================================
+  // FITNESS LOG DB METHODS
+  // Dedicated collection: Env.fitnessLogsCollection
+  // ⚠️ PLACEHOLDER NAME — rename this getter (and its .env key) to match
+  // whatever you name the collection/env var, then update every reference
+  // to `Env.fitnessLogsCollection` below.
+  // Suggested attributes on that collection:
+  //   userId (string, required), title (string, required),
+  //   catId (string), durationMinutes (integer), intensity (string),
+  //   exercises (string — JSON-encoded list of exercise maps)
+  // =========================================================================
+
+  Future<List<Document>> getFitnessLogs() async {
+    try {
+      final user = await getCurrentUser();
+      if (user == null) throw Exception("User not authenticated");
+
+      final result = await databases.listDocuments(
+        databaseId: Env.appwriteDatabaseId,
+        collectionId: Env.fitnessLogsCollection,
+        queries: [
+          Query.equal('userId', user.$id),
+          Query.orderDesc('\$createdAt'),
+        ],
+      );
+      return result.documents;
+    } catch (e) {
+      debugPrint("Error fetching fitness logs: $e");
+      return [];
+    }
+  }
+
+  /// Log a completed workout.
+  /// [title] workout name, [catId] category id, [durationMinutes] length,
+  /// [intensity] e.g. "Light"/"Moderate"/"Intense",
+  /// [exercises] list of exercise maps (name/sets/reps/etc — stored as JSON).
+  Future<Document> createFitnessLog({
+    required String title,
+    required String catId,
+    int durationMinutes = 0,
+    String intensity = '',
+    List<Map<String, dynamic>> exercises = const [],
+  }) async {
+    try {
+      final user = await getCurrentUser();
+      if (user == null) throw Exception("User not authenticated");
+
+      return await databases.createDocument(
+        databaseId: Env.appwriteDatabaseId,
+        collectionId: Env.fitnessLogsCollection,
+        documentId: ID.unique(),
+        data: {
+          'userId': user.$id,
+          'title': title,
+          'catId': catId,
+          'durationMinutes': durationMinutes,
+          'intensity': intensity,
+          'exercises': jsonEncode(exercises),
+        },
+      );
+    } catch (e) {
+      debugPrint("Error creating fitness log: $e");
+      rethrow;
+    }
+  }
+
+  Future<void> deleteFitnessLog(String documentId) async {
+    try {
+      await databases.deleteDocument(
+        databaseId: Env.appwriteDatabaseId,
+        collectionId: Env.fitnessLogsCollection,
+        documentId: documentId,
+      );
+    } catch (e) {
+      debugPrint("Error deleting fitness log: $e");
       rethrow;
     }
   }

@@ -25,6 +25,8 @@ class Env {
       dotenv.env['EXPO_PUBLIC_APPWRITE_COLLECTION_SKINCARE'] ?? '';
   static String get workoutOutfitsCollection =>
       dotenv.env['EXPO_PUBLIC_APPWRITE_COLLECTION_WORKOUT_OUTFITS'] ?? '';
+  static String get fitnessLogsCollection =>
+      dotenv.env['EXPO_PUBLIC_APPWRITE_COLLECTION_FITNESS_LOGS'] ?? '';
   static String get billsCollection =>
       dotenv.env['EXPO_PUBLIC_APPWRITE_COLLECTION_BILLS'] ?? '';
   static String get couponsCollection =>
@@ -37,8 +39,8 @@ class Env {
       dotenv.env['EXPO_PUBLIC_APPWRITE_COLLECTION_LIFE_GOALS'] ?? '';
   static String get backendApiUrl =>
       dotenv.env['EXPO_PUBLIC_BACKEND_API_URL'] ??
-      dotenv.env['BACKEND_URL'] ??
-      '';
+          dotenv.env['BACKEND_URL'] ??
+          '';
   static String get mealPlansCollection =>
       dotenv.env['EXPO_PUBLIC_APPWRITE_COLLECTION_MEAL_PLANS'] ?? '';
 
@@ -51,6 +53,7 @@ class Env {
     'EXPO_PUBLIC_APPWRITE_COLLECTION_SAVED_BOARDS': savedBoardsCollection,
     'EXPO_PUBLIC_APPWRITE_COLLECTION_SKINCARE': skincareCollection,
     'EXPO_PUBLIC_APPWRITE_COLLECTION_WORKOUT_OUTFITS': workoutOutfitsCollection,
+    'EXPO_PUBLIC_APPWRITE_COLLECTION_FITNESS_LOGS': fitnessLogsCollection,
     'EXPO_PUBLIC_APPWRITE_COLLECTION_BILLS': billsCollection,
     'EXPO_PUBLIC_APPWRITE_COLLECTION_COUPONS': couponsCollection,
     'EXPO_PUBLIC_APPWRITE_COLLECTION_MEDS': medsCollection,
