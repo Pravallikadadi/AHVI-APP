@@ -2278,6 +2278,11 @@ class _EditViewState extends State<_EditView>
   FaceAnalysisData? _faceAnalysisData;
   final ImagePicker _facePicker = ImagePicker();
 
+  // ── Body photo capture (full body) ──
+  bool _isAnalyzingBody = false;
+  String? _bodyPhotoPath;
+  final ImagePicker _bodyPicker = ImagePicker();
+
   // ── Country code picker state (mirrors onboarding1) ──
   String _selectedCountryCode = '+91';
   String _selectedCountryFlag = '🇮🇳';
@@ -2527,6 +2532,65 @@ class _EditViewState extends State<_EditView>
       debugPrint('Face analysis error: $e');
       widget.onToast('Failed to analyze face. Please try again.');
       setState(() => _isAnalyzingFace = false);
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────────────
+  // BODY PHOTO CAPTURE (full body) — real camera capture
+  // Rear camera is used since a front camera can't frame a full body shot.
+  // ─────────────────────────────────────────────────────────────────────
+
+  Future<void> _captureBodyPhoto() async {
+    if (_isAnalyzingBody) return;
+
+    final status = await Permission.camera.request();
+    if (status.isPermanentlyDenied) {
+      widget.onToast('Camera permission denied. Please enable it in Settings.');
+      await openAppSettings();
+      return;
+    }
+    if (!status.isGranted) {
+      widget.onToast('Camera permission is required for full body capture.');
+      return;
+    }
+
+    XFile? photo;
+    try {
+      photo = await _bodyPicker.pickImage(
+        source: ImageSource.camera,
+        preferredCameraDevice: CameraDevice.rear,
+      );
+    } catch (e) {
+      debugPrint('Body capture error: $e');
+      widget.onToast('Failed to capture body photo.');
+      return;
+    }
+    if (photo == null) return;
+
+    setState(() => _isAnalyzingBody = true);
+
+    try {
+      final imageFile = File(photo.path);
+      final imageBytes = await imageFile.readAsBytes();
+      final decodedImage = img.decodeImage(imageBytes);
+      if (decodedImage == null) {
+        widget.onToast('Failed to process image.');
+        setState(() => _isAnalyzingBody = false);
+        return;
+      }
+
+      setState(() {
+        _bodyUploaded = true;
+        _bodyPhotoPath = imageFile.path;
+        _isAnalyzingBody = false;
+        _isDirty = true;
+      });
+
+      widget.onToast('Body photo captured.');
+    } catch (e) {
+      debugPrint('Body photo error: $e');
+      widget.onToast('Failed to process body photo. Please try again.');
+      setState(() => _isAnalyzingBody = false);
     }
   }
 
@@ -4342,6 +4406,7 @@ class _EditViewState extends State<_EditView>
                         title: _t.uploadBodyPhoto,
                         subtitle: 'Improves outfit proportion accuracy.',
                         uploaded: _bodyUploaded,
+                        isAnalyzing: _isAnalyzingBody,
                         isFace: false,
                         colors: c,
                         card: _card,
@@ -4349,10 +4414,7 @@ class _EditViewState extends State<_EditView>
                         panel: _panel,
                         textPrimary: _textPrimary,
                         textMuted: _textMuted,
-                        onTap: () => setState(() {
-                          _bodyUploaded = !_bodyUploaded;
-                          _markDirty();
-                        }),
+                        onTap: _captureBodyPhoto,
                       ),
                       const SizedBox(height: 16),
 

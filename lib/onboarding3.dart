@@ -1480,7 +1480,8 @@ class _UploadSection extends StatelessWidget {
           icon: Icons.accessibility_outlined,
           uploaded: bodyUploaded,
           enabled: enabled,
-          onTap: onBodyTap,
+          onTap: isAnalyzing ? null : onBodyTap,
+          isLoading: isAnalyzing,
         ),
       ],
     );
