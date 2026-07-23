@@ -1041,7 +1041,8 @@
   "style_boards_item_find_similar": "Find similar",
   "style_boards_item_lock": "Lock item",
   "style_boards_item_locked_badge": "Locked",
-  "style_boards_item_replace": "Replace only this item",
+  "style_boards_item_replace": "Replace",
+  "style_boards_item_replace_only": "Replace only this item",
   "style_boards_item_unlock": "Unlock item",
   "style_boards_items_locked": "{locked} of {total} items locked",
   "style_boards_legend_ai": "AI Recommended",
@@ -1338,6 +1339,8 @@
   "style_boards_anchor_badge": "Selected",
   "style_boards_anchor_note": "This is your selected item. It will always appear in your style board.",
   "style_boards_picker_load_error": "Couldn't load suggestions. Check your connection and try again.",
+  "style_boards_why_this_works_loading": "Finding out why this works…",
+  "style_boards_why_this_works_error": "Couldn't load Why This Works. Please try again.",
   "buildOutfitShuffleError": "Could not shuffle. Please try again.",
   "buildOutfitPickerError": "Could not load items. Please try again."
 }

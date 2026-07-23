@@ -1041,7 +1041,8 @@
   "style_boards_item_find_similar": "Find similar",
   "style_boards_item_lock": "Lock item",
   "style_boards_item_locked_badge": "Locked",
-  "style_boards_item_replace": "Replace only this item",
+  "style_boards_item_replace": "প্রতিস্থাপন করুন",
+  "style_boards_item_replace_only": "Replace only this item",
   "style_boards_item_unlock": "Unlock item",
   "style_boards_items_locked": "{locked} of {total} items locked",
   "style_boards_legend_ai": "AI সুপারিশকৃত",
@@ -1338,6 +1339,8 @@
   "style_boards_anchor_badge": "নির্বাচিত",
   "style_boards_anchor_note": "এটি আপনার নির্বাচিত আইটেম। এটি সর্বদা আপনার স্টাইল বোর্ডে দেখাবে।",
   "style_boards_picker_load_error": "পরামর্শ লোড করা যায়নি। আপনার সংযোগ পরীক্ষা করুন এবং আবার চেষ্টা করুন।",
+  "style_boards_why_this_works_loading": "এটি কেন কার্যকর তা জানা হচ্ছে…",
+  "style_boards_why_this_works_error": "Why This Works লোড করা যায়নি। অনুগ্রহ করে আবার চেষ্টা করুন।",
   "buildOutfitShuffleError": "শাফেল করা যায়নি। অনুগ্রহ করে আবার চেষ্টা করুন।",
   "buildOutfitPickerError": "আইটেম লোড করা যায়নি। অনুগ্রহ করে আবার চেষ্টা করুন।"
 }

@@ -1041,7 +1041,8 @@
   "style_boards_item_find_similar": "సమానమైన వాటిని కనుగొనండి",
   "style_boards_item_lock": "అంశను లాక్ చేయండి",
   "style_boards_item_locked_badge": "లాక్ చేయబడినది",
-  "style_boards_item_replace": "ఈ అంశాన్ని మాత్రమే భర్తీ చేయండి",
+  "style_boards_item_replace": "భర్తీ చేయండి",
+  "style_boards_item_replace_only": "ఈ అంశాన్ని మాత్రమే భర్తీ చేయండి",
   "style_boards_item_unlock": "అంశను అన్‌లాక్ చేయండి",
   "style_boards_items_locked": "{locked} నుండి {total} అంశాలు లాక్ చేయబడ్డాయి",
   "style_boards_legend_ai": "AI సిఫారసు చేసినది",
@@ -1338,6 +1339,8 @@
   "style_boards_anchor_badge": "ఎంచుకున్నది",
   "style_boards_anchor_note": "ఇది మీరు ఎంచుకున్న అంశం. ఇది ఎల్లప్పుడూ మీ స్టైల్ బోర్డ్‌లో కనిపిస్తుంది.",
   "style_boards_picker_load_error": "సూచనలు లోడ్ చేయడం సాధ్యపడలేదు. మీ కనెక్షన్ తనిఖీ చేసి మళ్ళీ ప్రయత్నించండి.",
+  "style_boards_why_this_works_loading": "ఇది ఎందుకు పని చేస్తుందో తెలుసుకుంటున్నాము…",
+  "style_boards_why_this_works_error": "Why This Works లోడ్ చేయడం సాధ్యపడలేదు. దయచేసి మళ్ళీ ప్రయత్నించండి.",
   "buildOutfitShuffleError": "షఫుల్ చేయడం సాధ్యపడలేదు. దయచేసి మళ్ళీ ప్రయత్నించండి.",
   "buildOutfitPickerError": "అంశాలు లోడ్ చేయడం సాధ్యపడలేదు. దయచేసి మళ్ళీ ప్రయత్నించండి."
 }

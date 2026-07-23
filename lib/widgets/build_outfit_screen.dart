@@ -26,19 +26,36 @@
 //   - Shuffle (_fetchShuffledItemsFromBackend) sends the current
 //     board's item ids + locked item ids and gets back a fresh set of
 //     items for the unlocked slots.
-//   - Replace / Find Similar (_fetchReplacementCandidatesFromBackend)
-//     asks the backend for candidate items for a given slot/occasion
-//     and renders whatever it returns in the picker sheet.
-// None of these three actions read from widget.allItems (the local
-// wardrobe) anymore — every item shown anywhere on the Style Board
-// comes from a backend response.
+//   - Replace Only This Item (_fetchReplacementForItemFromBackend)
+//     sends the selected item's id + the current Style Board context
+//     (anchor item, occasion, current item ids, locked item ids) and
+//     gets back a single replacement item. There's no picker: the
+//     frontend swaps in whatever item the backend returns and leaves
+//     every other slot on the board untouched.
+//   - Find Similar (_fetchShoppableMatchesFromBackend) sends the
+//     tapped item's id + image URL to POST /api/v1/find-similar,
+//     which runs a reverse image search across the web (the same
+//     Google Lens flow as the standalone main.py/index.html AHVI
+//     prototype) and returns shoppable products (title, thumbnail,
+//     buy link). This is a different data shape from board items —
+//     it's for "buy this instead" links, not for swapping a board
+//     slot — so it renders in its own sheet (_ShoppableMatchesSheet)
+//     rather than the Replace picker.
+// None of these actions read from widget.allItems (the local
+// wardrobe) or do any similarity/ranking on-device — every item or
+// match shown anywhere on this screen comes straight from a backend
+// response.
 //
 // Screen features:
 //   - Occasion tabs (Casual/Office/Evening) above the outfit.
 //   - Lock/unlock individual items, shuffle unlocked items (re-ranked
 //     against the anchor by the backend).
 //   - Outfit history, scoped per occasion tab.
-//   - Tap an item to see details: lock/unlock, replace, find similar.
+//   - Why This Works: after the Style Board is generated (or its item
+//     set changes), the backend returns a title + explanation for why
+//     the current board works, rendered below the Style Board as-is.
+//   - Tap an item to see details: lock/unlock, Replace Only This Item,
+//     find similar.
 //   - Loading state (skeletons) while the backend Style Board loads;
 //     error state with retry.
 // ============================================================
@@ -49,6 +66,7 @@ import 'package:myapp/theme/theme_tokens.dart';
 import 'package:myapp/wardrobe.dart';
 import 'package:myapp/app_localizations.dart';
 import 'package:http/http.dart' as http;
+import 'package:url_launcher/url_launcher.dart';
 import 'dart:convert';
 
 // ============================================================
@@ -159,6 +177,32 @@ class BackendBoardItem implements BoardDisplayItem {
 }
 
 // ============================================================
+// SHOPPABLE MATCH (Find Similar — reverse image search results)
+// Represents a single "buy this instead" product returned by the
+// backend's /api/v1/find-similar endpoint (a Google Lens reverse
+// image search under the hood, same approach as main.py's
+// /api/v1/search-outfit). This is intentionally a different shape
+// from BackendBoardItem: shoppable matches are external web
+// products with a store name and a purchase link, not board items,
+// and are never treated as candidates for replacing a board slot.
+// ============================================================
+class ShoppableMatch {
+  final String title;
+  final String? thumbnail;
+  final String? link;
+
+  ShoppableMatch({required this.title, this.thumbnail, this.link});
+
+  factory ShoppableMatch.fromJson(Map<String, dynamic> json) {
+    return ShoppableMatch(
+      title: json['title']?.toString() ?? 'E-commerce Store',
+      thumbnail: json['thumbnail']?.toString(),
+      link: json['link']?.toString(),
+    );
+  }
+}
+
+// ============================================================
 // MODEL CLASSES
 // ============================================================
 class Outfit {
@@ -226,6 +270,28 @@ class OutfitHistory {
 }
 
 // ============================================================
+// WHY THIS WORKS
+// Represents the "Why This Works" explanation for the currently
+// selected Style Board, exactly as returned by the backend. The
+// frontend never generates or hardcodes this copy — it only ever
+// renders the title/explanation strings the backend sends back for
+// the current anchor item + occasion + item set.
+// ============================================================
+class WhyThisWorks {
+  final String title;
+  final String explanation;
+
+  WhyThisWorks({required this.title, required this.explanation});
+
+  factory WhyThisWorks.fromJson(Map<String, dynamic> json) {
+    return WhyThisWorks(
+      title: json['title']?.toString() ?? '',
+      explanation: json['explanation']?.toString() ?? '',
+    );
+  }
+}
+
+// ============================================================
 // MAIN SCREEN
 // ============================================================
 class BuildOutfitScreen extends StatefulWidget {
@@ -246,6 +312,12 @@ class BuildOutfitScreen extends StatefulWidget {
 }
 
 class _BuildOutfitScreenState extends State<BuildOutfitScreen> {
+  // LOCALIZATION: Replace Only This Item reuses the app's existing
+  // 'style_boards_item_replace_only' key. Why This Works needed two
+  // new keys, now added to the locale JSON files:
+  //   - style_boards_why_this_works_loading
+  //   - style_boards_why_this_works_error
+  //
   // TODO: Wire these up to the app's real config/auth service
   // (e.g. an environment config and a session/auth manager) instead
   // of hardcoding them here.
@@ -263,6 +335,18 @@ class _BuildOutfitScreenState extends State<BuildOutfitScreen> {
   bool _isShuffling = false;
   String? _loadError;
   List<int> _skeletonIndices = []; // Track which outfits are still loading skeleton items
+
+  // Why This Works — fetched fresh from the backend any time the
+  // Style Board content for the selected occasion changes (initial
+  // generate, tab switch, shuffle, replace). Never hardcoded here.
+  WhyThisWorks? _whyThisWorks;
+  bool _isLoadingWhyThisWorks = false;
+  String? _whyThisWorksError;
+
+  // Replace Only This Item — tracks which item id currently has a
+  // replace request in flight, so we can show a per-item spinner
+  // instead of a picker sheet.
+  String? _replacingItemId;
 
   @override
   void initState() {
@@ -343,11 +427,80 @@ class _BuildOutfitScreenState extends State<BuildOutfitScreen> {
         _isLoading = false;
         _skeletonIndices.clear(); // Clear skeleton tracking
       });
+
+      // The Style Board has now been generated — fetch its "Why This
+      // Works" explanation from the backend.
+      _loadWhyThisWorks();
     } catch (e) {
       if (!mounted) return;
       setState(() {
         _loadError = AppLocalizations.t(context, 'buildOutfitLoadError');
         _isLoading = false;
+      });
+    }
+  }
+
+  /// Asks the backend for the "Why This Works" title + explanation for
+  /// the currently selected Style Board. This is purely presentational
+  /// copy generated by the backend for the current anchor item,
+  /// occasion, and item set — the frontend does not compose or infer
+  /// any of this text itself.
+  Future<WhyThisWorks> _fetchWhyThisWorksFromBackend() async {
+    final board = outfits[selectedOutfitIndex];
+
+    final response = await http
+        .post(
+      Uri.parse('$_apiBaseUrl/v1/style-boards/why-this-works'),
+      headers: {
+        'Content-Type': 'application/json',
+        if (_authToken != null) 'Authorization': 'Bearer $_authToken',
+      },
+      body: json.encode({
+        'anchorItemId': widget.selectedItem.id,
+        'occasion': board.occasion,
+        'itemIds': board.items.map((i) => i.id).toList(),
+      }),
+    )
+        .timeout(const Duration(seconds: 30));
+
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body) as Map<String, dynamic>;
+      return WhyThisWorks.fromJson(data);
+    } else if (response.statusCode == 401) {
+      throw Exception('Unauthorized: Please log in again');
+    } else if (response.statusCode == 500) {
+      throw Exception('Server error: Please try again later');
+    } else {
+      throw Exception(
+          'Failed to fetch why this works: ${response.statusCode}');
+    }
+  }
+
+  /// Loads (or reloads) the Why This Works copy for whichever board is
+  /// currently selected. Called after the board is first generated, and
+  /// again any time the visible item set changes (tab switch, shuffle,
+  /// single-item replace) so the explanation always matches what's on
+  /// screen.
+  Future<void> _loadWhyThisWorks() async {
+    setState(() {
+      _isLoadingWhyThisWorks = true;
+      _whyThisWorksError = null;
+    });
+
+    try {
+      final result = await _fetchWhyThisWorksFromBackend();
+      if (!mounted) return;
+      setState(() {
+        _whyThisWorks = result;
+        _isLoadingWhyThisWorks = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _whyThisWorks = null;
+        _whyThisWorksError =
+            AppLocalizations.t(context, 'style_boards_why_this_works_error');
+        _isLoadingWhyThisWorks = false;
       });
     }
   }
@@ -510,6 +663,9 @@ class _BuildOutfitScreenState extends State<BuildOutfitScreen> {
 
         _isShuffling = false;
       });
+
+      // The board's item set changed — refresh Why This Works.
+      _loadWhyThisWorks();
     } catch (e) {
       if (!mounted) return;
       setState(() => _isShuffling = false);
@@ -568,11 +724,11 @@ class _BuildOutfitScreenState extends State<BuildOutfitScreen> {
           },
           onReplace: () {
             Navigator.pop(ctx);
-            _openItemPicker(item, similarOnly: false);
+            _replaceOnlyThisItem(item);
           },
           onFindSimilar: () {
             Navigator.pop(ctx);
-            _openItemPicker(item, similarOnly: true);
+            _openShoppableMatches(item);
           },
         ),
       ),
@@ -612,22 +768,26 @@ class _BuildOutfitScreenState extends State<BuildOutfitScreen> {
       if (selectedItemId == oldId) selectedItemId = newItem.id;
     });
     widget.onItemReplaced?.call();
+
+    // The board's item set changed — refresh Why This Works.
+    _loadWhyThisWorks();
   }
 
-  /// Asks the backend for candidate items to replace [current] with
-  /// (or, when [similarOnly] is true, items similar to it). The local
-  /// wardrobe is never used here — every candidate shown in the
-  /// Replace / Find Similar picker comes from this response.
-  Future<List<BackendBoardItem>> _fetchReplacementCandidatesFromBackend({
-    required BoardDisplayItem current,
-    required bool similarOnly,
-  }) async {
+  /// Replace Only This Item — sends the selected item's id plus the
+  /// current Style Board context (anchor item, occasion, the full set
+  /// of item ids currently on the board, and which ones are locked) to
+  /// the backend, and gets back a single suitable replacement item.
+  /// There is no candidate picker: the backend decides the replacement,
+  /// and the frontend swaps only that one slot in place while leaving
+  /// the rest of the Style Board untouched.
+  Future<BackendBoardItem> _fetchReplacementForItemFromBackend(
+      BoardDisplayItem current,
+      ) async {
     final board = outfits[selectedOutfitIndex];
-    final usedIds = board.items.map((i) => i.id).toSet();
 
     final response = await http
         .post(
-      Uri.parse('$_apiBaseUrl/v1/style-boards/candidates'),
+      Uri.parse('$_apiBaseUrl/v1/style-boards/replace-item'),
       headers: {
         'Content-Type': 'application/json',
         if (_authToken != null) 'Authorization': 'Bearer $_authToken',
@@ -637,17 +797,85 @@ class _BuildOutfitScreenState extends State<BuildOutfitScreen> {
         'occasion': board.occasion,
         'itemId': current.id,
         'category': current.cat,
-        'mode': similarOnly ? 'similar' : 'replace',
-        'excludeItemIds': usedIds.toList(),
+        'currentItemIds': board.items.map((i) => i.id).toList(),
+        'lockedItemIds': lockedItemIds.toList(),
       }),
     )
         .timeout(const Duration(seconds: 30));
 
     if (response.statusCode == 200) {
       final data = json.decode(response.body) as Map<String, dynamic>;
-      final candidatesJson = (data['candidates'] as List?) ?? const [];
-      return candidatesJson
-          .map((e) => BackendBoardItem.fromJson(e as Map<String, dynamic>))
+      final itemJson = data['item'] as Map<String, dynamic>?;
+      if (itemJson == null) {
+        throw Exception('Backend did not return a replacement item');
+      }
+      return BackendBoardItem.fromJson(itemJson);
+    } else if (response.statusCode == 401) {
+      throw Exception('Unauthorized: Please log in again');
+    } else if (response.statusCode == 500) {
+      throw Exception('Server error: Please try again later');
+    } else {
+      throw Exception(
+          'Failed to fetch replacement item: ${response.statusCode}');
+    }
+  }
+
+  /// Kicks off Replace Only This Item for [current]: calls the backend
+  /// for a single replacement and, once it arrives, swaps just that
+  /// item into the board via [_replaceItem] — every other item on the
+  /// Style Board stays exactly as it was.
+  Future<void> _replaceOnlyThisItem(BoardDisplayItem current) async {
+    setState(() => _replacingItemId = current.id);
+
+    try {
+      final replacement = await _fetchReplacementForItemFromBackend(current);
+      if (!mounted) return;
+      _replaceItem(current.id, replacement);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content:
+          Text(AppLocalizations.t(context, 'buildOutfitPickerError')),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _replacingItemId = null);
+    }
+  }
+
+  /// Find Similar — sends the tapped item's id + image to the backend
+  /// (POST /api/v1/find-similar), which runs a reverse image search
+  /// across the web (same Google Lens flow as main.py's
+  /// /api/v1/search-outfit) and returns shoppable product matches.
+  /// The frontend does no matching/ranking of its own — it only
+  /// renders whatever the backend returns.
+  Future<List<ShoppableMatch>> _fetchShoppableMatchesFromBackend(
+      BoardDisplayItem item) async {
+    final imageUrl = item.displayUrl;
+    if (imageUrl == null || imageUrl.isEmpty) {
+      throw Exception('This item has no image to search with.');
+    }
+
+    final response = await http
+        .post(
+      Uri.parse('$_apiBaseUrl/api/v1/find-similar'),
+      headers: {
+        'Content-Type': 'application/json',
+        if (_authToken != null) 'Authorization': 'Bearer $_authToken',
+      },
+      body: json.encode({
+        'item_id': item.id,
+        'image_url': imageUrl,
+      }),
+    )
+        .timeout(const Duration(seconds: 30));
+
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body) as Map<String, dynamic>;
+      final matchesJson = (data['exact_matches'] as List?) ?? const [];
+      return matchesJson
+          .map((e) => ShoppableMatch.fromJson(e as Map<String, dynamic>))
           .toList();
     } else if (response.statusCode == 401) {
       throw Exception('Unauthorized: Please log in again');
@@ -655,27 +883,17 @@ class _BuildOutfitScreenState extends State<BuildOutfitScreen> {
       throw Exception('Server error: Please try again later');
     } else {
       throw Exception(
-          'Failed to fetch replacement candidates: ${response.statusCode}');
+          'Failed to fetch similar products: ${response.statusCode}');
     }
   }
 
-  void _openItemPicker(BoardDisplayItem current, {required bool similarOnly}) {
+  void _openShoppableMatches(BoardDisplayItem item) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (ctx) => _ItemPickerSheet(
-        title: similarOnly
-            ? AppLocalizations.t(context, 'style_boards_find_similar_title')
-            : AppLocalizations.t(context, 'style_boards_replace_title'),
-        fetchCandidates: () => _fetchReplacementCandidatesFromBackend(
-          current: current,
-          similarOnly: similarOnly,
-        ),
-        onPicked: (picked) {
-          Navigator.pop(ctx);
-          _replaceItem(current.id, picked);
-        },
+      builder: (ctx) => _ShoppableMatchesSheet(
+        fetchMatches: () => _fetchShoppableMatchesFromBackend(item),
       ),
     );
   }
@@ -718,6 +936,7 @@ class _BuildOutfitScreenState extends State<BuildOutfitScreen> {
                       ],
                     ),
                   ),
+                  _buildWhyThisWorksSection(context, t),
                   const SizedBox(height: 20),
                   _buildControlButtons(context, t),
                 ],
@@ -831,6 +1050,122 @@ class _BuildOutfitScreenState extends State<BuildOutfitScreen> {
     );
   }
 
+  // ── Why This Works ────────────────────────────────────────────
+  // Renders below the Style Board. Every string here — title and
+  // explanation — comes straight from the backend response; nothing
+  // is composed, templated, or styled with app-specific copy logic
+  // on the frontend.
+  Widget _buildWhyThisWorksSection(BuildContext context, AppThemeTokens t) {
+    if (_isLoadingWhyThisWorks) {
+      return Container(
+        margin: const EdgeInsets.only(top: 16),
+        width: double.infinity,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: t.backgroundSecondary,
+          border: Border.all(color: t.cardBorder, width: 1.0),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Row(
+          children: [
+            SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: t.accent.primary,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Text(
+              AppLocalizations.t(context, 'style_boards_why_this_works_loading'),
+              style: GoogleFonts.inter(fontSize: 13, color: t.mutedText),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (_whyThisWorksError != null) {
+      return Container(
+        margin: const EdgeInsets.only(top: 16),
+        width: double.infinity,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: t.backgroundSecondary,
+          border: Border.all(color: t.cardBorder, width: 1.0),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                _whyThisWorksError!,
+                style: GoogleFonts.inter(fontSize: 13, color: t.mutedText),
+              ),
+            ),
+            TextButton(
+              onPressed: _loadWhyThisWorks,
+              child: Text(
+                AppLocalizations.t(context, 'style_boards_retry'),
+                style: GoogleFonts.inter(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: t.accent.primary,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final whyThisWorks = _whyThisWorks;
+    // Nothing to show until the backend has actually returned content —
+    // the frontend never fills this in with placeholder copy.
+    if (whyThisWorks == null ||
+        (whyThisWorks.title.isEmpty && whyThisWorks.explanation.isEmpty)) {
+      return const SizedBox.shrink();
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(top: 16),
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: t.backgroundSecondary,
+        border: Border.all(color: t.cardBorder, width: 1.0),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (whyThisWorks.title.isNotEmpty)
+            Text(
+              whyThisWorks.title,
+              style: GoogleFonts.inter(
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
+                color: t.textPrimary,
+              ),
+            ),
+          if (whyThisWorks.title.isNotEmpty &&
+              whyThisWorks.explanation.isNotEmpty)
+            const SizedBox(height: 8),
+          if (whyThisWorks.explanation.isNotEmpty)
+            Text(
+              whyThisWorks.explanation,
+              style: GoogleFonts.inter(
+                fontSize: 13,
+                color: t.mutedText,
+                height: 1.4,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
   // ── Category Chips (3 style variations: Classic Professional / Business Casual / Evening Elegance) ────────────────
   // Maps occasion keys to localised display names for category chips
   String _occasionChipName(BuildContext context, String occasion) {
@@ -859,10 +1194,15 @@ class _BuildOutfitScreenState extends State<BuildOutfitScreen> {
           final displayName = _occasionChipName(context, occasion);
 
           return GestureDetector(
-            onTap: () => setState(() {
-              selectedOutfitIndex = i;
-              lockedItemIds.clear();
-            }),
+            onTap: () {
+              setState(() {
+                selectedOutfitIndex = i;
+                lockedItemIds.clear();
+              });
+              // The visible Style Board changed — refresh its Why This
+              // Works explanation from the backend.
+              _loadWhyThisWorks();
+            },
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               decoration: BoxDecoration(
@@ -1270,8 +1610,10 @@ class _BuildOutfitScreenState extends State<BuildOutfitScreen> {
       return _buildSkeletonCard(context, t);
     }
 
+    final isReplacing = _replacingItemId == item.id;
+
     return GestureDetector(
-      onTap: () => _selectItem(item.id),
+      onTap: isReplacing ? null : () => _selectItem(item.id),
       child: Container(
         decoration: BoxDecoration(
           border: Border.all(color: t.cardBorder),
@@ -1292,6 +1634,26 @@ class _BuildOutfitScreenState extends State<BuildOutfitScreen> {
               ),
             )
                 : Icon(Icons.checkroom, color: t.mutedText, size: 32),
+            // Replace Only This Item is in flight for this slot — show
+            // a spinner instead of a picker sheet. Nothing else on the
+            // board is touched while this request is pending.
+            if (isReplacing)
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.35),
+                  borderRadius: BorderRadius.circular(11),
+                ),
+                child: Center(
+                  child: SizedBox(
+                    width: 22,
+                    height: 22,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2.5,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
             if (lockedItemIds.contains(item.id))
               Container(
                 decoration: BoxDecoration(
@@ -1916,7 +2278,7 @@ class _SelectedItemPanel extends StatelessWidget {
                       context,
                       icon: Icons.repeat,
                       label: AppLocalizations.t(
-                          context, 'style_boards_item_replace'),
+                          context, 'style_boards_item_replace_only'),
                       onTap: onReplace,
                       t: t,
                     ),
@@ -1976,28 +2338,24 @@ class _SelectedItemPanel extends StatelessWidget {
 }
 
 // ============================================================
-// ITEM PICKER SHEET (Replace / Find Similar)
-// Candidates are fetched from the backend — never from the local
-// wardrobe. Picking one always produces a BackendBoardItem back on
-// the board.
+// SHOPPABLE MATCHES SHEET (Find Similar)
+// Shows web-sourced "buy this instead" products from the backend's
+// POST /api/v1/find-similar endpoint (reverse image search). This
+// sheet only ever renders whatever the backend returns — no
+// similarity, ranking, or filtering logic lives on the frontend.
 // ============================================================
-class _ItemPickerSheet extends StatefulWidget {
-  final String title;
-  final Future<List<BackendBoardItem>> Function() fetchCandidates;
-  final ValueChanged<BackendBoardItem> onPicked;
+class _ShoppableMatchesSheet extends StatefulWidget {
+  final Future<List<ShoppableMatch>> Function() fetchMatches;
 
-  const _ItemPickerSheet({
-    required this.title,
-    required this.fetchCandidates,
-    required this.onPicked,
-  });
+  const _ShoppableMatchesSheet({required this.fetchMatches});
 
   @override
-  State<_ItemPickerSheet> createState() => _ItemPickerSheetState();
+  State<_ShoppableMatchesSheet> createState() =>
+      _ShoppableMatchesSheetState();
 }
 
-class _ItemPickerSheetState extends State<_ItemPickerSheet> {
-  List<BackendBoardItem>? _candidates;
+class _ShoppableMatchesSheetState extends State<_ShoppableMatchesSheet> {
+  List<ShoppableMatch>? _matches;
   bool _isLoading = true;
   String? _error;
 
@@ -2013,10 +2371,10 @@ class _ItemPickerSheetState extends State<_ItemPickerSheet> {
       _error = null;
     });
     try {
-      final candidates = await widget.fetchCandidates();
+      final matches = await widget.fetchMatches();
       if (!mounted) return;
       setState(() {
-        _candidates = candidates;
+        _matches = matches;
         _isLoading = false;
       });
     } catch (e) {
@@ -2028,13 +2386,20 @@ class _ItemPickerSheetState extends State<_ItemPickerSheet> {
     }
   }
 
+  Future<void> _openLink(String? link) async {
+    if (link == null || link.isEmpty) return;
+    final uri = Uri.tryParse(link);
+    if (uri == null) return;
+    await launchUrl(uri, mode: LaunchMode.externalApplication);
+  }
+
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context).extension<AppThemeTokens>()!;
     final height = MediaQuery.of(context).size.height;
 
     return Container(
-      height: height * 0.65,
+      height: height * 0.75,
       decoration: BoxDecoration(
         color: t.backgroundPrimary,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
@@ -2058,7 +2423,8 @@ class _ItemPickerSheetState extends State<_ItemPickerSheet> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  widget.title,
+                  AppLocalizations.t(
+                      context, 'style_boards_find_similar_title'),
                   style: GoogleFonts.inter(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
@@ -2082,7 +2448,19 @@ class _ItemPickerSheetState extends State<_ItemPickerSheet> {
   Widget _buildBody(BuildContext context, AppThemeTokens t) {
     if (_isLoading) {
       return Center(
-        child: CircularProgressIndicator(color: t.accent.primary),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CircularProgressIndicator(color: t.accent.primary),
+            const SizedBox(height: 16),
+            Text(
+              AppLocalizations.t(
+                  context, 'style_boards_find_similar_loading'),
+              textAlign: TextAlign.center,
+              style: GoogleFonts.inter(fontSize: 13, color: t.mutedText),
+            ),
+          ],
+        ),
       );
     }
 
@@ -2116,13 +2494,13 @@ class _ItemPickerSheetState extends State<_ItemPickerSheet> {
       );
     }
 
-    final candidates = _candidates ?? const [];
-    if (candidates.isEmpty) {
+    final matches = _matches ?? const [];
+    if (matches.isEmpty) {
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(24),
           child: Text(
-            AppLocalizations.t(context, 'style_boards_no_items_to_swap'),
+            AppLocalizations.t(context, 'style_boards_find_similar_empty'),
             textAlign: TextAlign.center,
             style: GoogleFonts.inter(fontSize: 13, color: t.mutedText),
           ),
@@ -2133,26 +2511,89 @@ class _ItemPickerSheetState extends State<_ItemPickerSheet> {
     return GridView.builder(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3,
+        crossAxisCount: 2,
         crossAxisSpacing: 12,
         mainAxisSpacing: 12,
-        childAspectRatio: 0.8,
+        childAspectRatio: 0.68,
       ),
-      itemCount: candidates.length,
+      itemCount: matches.length,
       itemBuilder: (_, i) {
-        final item = candidates[i];
-        return GestureDetector(
-          onTap: () => widget.onPicked(item),
-          child: Container(
-            decoration: BoxDecoration(
-              border: Border.all(color: t.cardBorder),
-              borderRadius: BorderRadius.circular(8),
-              color: t.backgroundPrimary,
-            ),
-            clipBehavior: Clip.antiAlias,
-            child: item.displayUrl != null
-                ? Image.network(item.displayUrl!, fit: BoxFit.contain)
-                : Icon(Icons.checkroom, color: t.mutedText, size: 24),
+        final m = matches[i];
+        final hasThumbnail = m.thumbnail != null && m.thumbnail!.isNotEmpty;
+        final hasLink = m.link != null && m.link!.isNotEmpty;
+
+        return Container(
+          decoration: BoxDecoration(
+            border: Border.all(color: t.cardBorder),
+            borderRadius: BorderRadius.circular(12),
+            color: t.backgroundSecondary,
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(
+                child: Container(
+                  color: Colors.white,
+                  alignment: Alignment.center,
+                  child: hasThumbnail
+                      ? Image.network(
+                    m.thumbnail!,
+                    fit: BoxFit.contain,
+                    // Broken/blocked store images fall back to
+                    // an icon instead of an empty card — the
+                    // item itself is never dropped.
+                    errorBuilder: (_, __, ___) => Icon(
+                      Icons.image_not_supported_outlined,
+                      color: t.mutedText,
+                    ),
+                  )
+                      : Icon(Icons.checkroom, color: t.mutedText, size: 28),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      m.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.inter(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: t.accent.primary,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: hasLink ? () => _openLink(m.link) : null,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: t.accent.primary,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        child: Text(
+                          AppLocalizations.t(
+                              context, 'style_boards_shop_now'),
+                          style: GoogleFonts.inter(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
         );
       },

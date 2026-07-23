@@ -330,25 +330,146 @@ class StyleBoardBackendClient {
     'imageUrl': item.displayUrl,
   };
 
-  /// Replace [_kReplaceEndpoint] with your real API base URL.
+  /// AHVI Visual Fashion Engine — Find Similar endpoint.
   ///
-  /// Powers BOTH "Replace item" and "Find similar" — [similarOnly]
-  /// tells the backend whether to constrain suggestions to close
-  /// matches of [currentItem] (find similar) or return its normal
-  /// slot-appropriate replacement pool (replace). Either way the
-  /// backend — not a local category filter — decides what qualifies,
-  /// so it can surface pieces beyond the user's own wardrobe.
+  /// Sends the selected item's image URL to the Python backend and gets
+  /// back visually similar items from Google Lens via SerpAPI.
+  ///
+  /// Request  (POST JSON): { "item_url": "<public image URL>" }
+  /// Response (JSON):      { "exact_matches": [ { "title", "thumbnail", "link" } ] }
+  ///
+  /// The response is mapped to [_BackendBoardItemDto] so it slots into
+  /// the existing rehydration pipeline without touching any other code.
   static const String _kReplaceEndpoint =
-      'https://api.example.com/api/style-boards/replace';
+      'http://127.0.0.1:8000/api/v1/find-similar';
 
-  /// Requests replacement candidates for [currentItem] from the backend.
+  // ── Replace Only This Item ──────────────────────────────────────────────
+  //
+  // POST /api/style-boards/replace-item
+  // Body:
+  //   {
+  //     "anchor":      { id, name, cat, imageUrl },
+  //     "currentItem": { wardrobeItemId, name, category, imageUrl },
+  //     "boardItems":  [ { id, name, cat, imageUrl }, ... ],  // current board context
+  //     "occasion":    "casual" | "office" | "evening"
+  //   }
+  // Response:
+  //   { "replacement": { wardrobeItemId, name, category, imageUrl, isAiRecommended } }
+  //
+  // The backend picks exactly ONE suitable replacement for the selected slot,
+  // taking the rest of the board as context so the new piece is compatible.
+  // Returns null if the backend provides no replacement.
+  static const String _kReplaceItemEndpoint =
+      'https://api.example.com/api/style-boards/replace-item';
+
+  /// Asks the backend for a single direct replacement for [currentItem].
   ///
-  /// [excludeIds] are ids already placed on the board (so the backend
-  /// doesn't suggest a duplicate), and [occasion] lets the backend keep
-  /// suggestions consistent with the board's slot plan for that tab.
+  /// Unlike [fetchReplacementCandidates] (which returns a list for the
+  /// picker sheet), this returns exactly one [_BackendBoardItemDto] —
+  /// the backend's best pick — so the caller can swap the slot without
+  /// showing any UI.  Returns null if the backend returns nothing.
+  static Future<_BackendBoardItemDto?> fetchDirectReplacement({
+    required WardrobeItem anchorItem,
+    required BoardDisplayItem currentItem,
+    required List<BoardDisplayItem> boardItems,
+    required String occasion,
+  }) async {
+    final body = jsonEncode({
+      'anchor': _wardrobeItemToJson(anchorItem),
+      'currentItem': {
+        'wardrobeItemId': currentItem.wardrobeItem?.id,
+        'name': currentItem.name,
+        'category': currentItem.cat,
+        'imageUrl': currentItem.displayUrl,
+      },
+      'boardItems': boardItems.map((i) => {
+        'id': i.id,
+        'name': i.name,
+        'cat': i.cat,
+        'imageUrl': i.displayUrl,
+      }).toList(),
+      'occasion': occasion,
+    });
+
+    final response = await http.post(
+      Uri.parse(_kReplaceItemEndpoint),
+      headers: {'Content-Type': 'application/json'},
+      body: body,
+    );
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw Exception(
+          'Replace-item API returned ${response.statusCode}: ${response.body}');
+    }
+
+    final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+    final replacement = decoded['replacement'];
+    if (replacement == null) return null;
+    return _BackendBoardItemDto.fromJson(replacement as Map<String, dynamic>);
+  }
+
+  // ── Why This Works ──────────────────────────────────────────────────────
+  //
+  // POST /api/style-boards/why-this-works
+  // Body:
+  //   {
+  //     "anchor":   { id, name, cat, imageUrl },
+  //     "occasion": "casual" | "office" | "evening",
+  //     "items":    [ { id, name, cat, imageUrl }, ... ]
+  //   }
+  // Response:
+  //   { "title": "<short headline>", "explanation": "<paragraph text>" }
+  //
+  // Called once per board after the initial load and after each shuffle,
+  // so the explanation always reflects the current outfit.
+  static const String _kWhyEndpoint =
+      'https://api.example.com/api/style-boards/why-this-works';
+
+  static Future<_WhyThisWorksDto> fetchWhyThisWorks({
+    required WardrobeItem anchorItem,
+    required String occasion,
+    required List<BoardDisplayItem> boardItems,
+  }) async {
+    final body = jsonEncode({
+      'anchor': _wardrobeItemToJson(anchorItem),
+      'occasion': occasion,
+      'items': boardItems.map((i) => {
+        'id': i.id,
+        'name': i.name,
+        'cat': i.cat,
+        'imageUrl': i.displayUrl,
+      }).toList(),
+    });
+
+    final response = await http.post(
+      Uri.parse(_kWhyEndpoint),
+      headers: {'Content-Type': 'application/json'},
+      body: body,
+    );
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw Exception(
+          'Why-this-works API returned ${response.statusCode}: ${response.body}');
+    }
+
+    final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+    return _WhyThisWorksDto(
+      title:       (decoded['title']       as String?) ?? '',
+      explanation: (decoded['explanation'] as String?) ?? '',
+    );
+  }
+
+  /// Requests visually similar candidates for [currentItem] from the
+  /// AHVI Python backend (Google Lens / SerpAPI).
   ///
-  /// Throws on any network / non-2xx error so the caller can fall back
-  /// to the local wardrobe filter.
+  /// [currentItem.displayUrl] is used as the query image — if the item
+  /// has no URL (AI placeholder without an image) the call is skipped
+  /// and an empty list is returned immediately so the sheet shows the
+  /// "no results" empty state rather than an error.
+  ///
+  /// The unused parameters ([anchorItem], [wardrobe], [occasion],
+  /// [similarOnly], [excludeIds]) are kept in the signature so the
+  /// call-site in [_openItemPicker] doesn't need to change.
   static Future<List<_BackendBoardItemDto>> fetchReplacementCandidates({
     required WardrobeItem anchorItem,
     required List<WardrobeItem> wardrobe,
@@ -357,18 +478,11 @@ class StyleBoardBackendClient {
     required bool similarOnly,
     required Set<String> excludeIds,
   }) async {
-    final body = jsonEncode({
-      'anchor': _wardrobeItemToJson(anchorItem),
-      'wardrobe': wardrobe.map(_wardrobeItemToJson).toList(),
-      'occasion': occasion,
-      'currentItem': {
-        'wardrobeItemId': currentItem.wardrobeItem?.id,
-        'name': currentItem.name,
-        'category': currentItem.cat,
-      },
-      'similarOnly': similarOnly,
-      'excludeIds': excludeIds.toList(),
-    });
+    // Nothing to search if the item has no image URL.
+    final itemUrl = currentItem.displayUrl ?? '';
+    if (itemUrl.isEmpty) return [];
+
+    final body = jsonEncode({'item_url': itemUrl});
 
     final response = await http.post(
       Uri.parse(_kReplaceEndpoint),
@@ -378,15 +492,36 @@ class StyleBoardBackendClient {
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw Exception(
-          'Style board replace API returned ${response.statusCode}: ${response.body}');
+          'Find-similar API returned ${response.statusCode}: ${response.body}');
     }
 
+    // Response shape: { "exact_matches": [ { "title", "thumbnail", "link" } ] }
+    // Map each match → _BackendBoardItemDto so the existing rehydration
+    // pipeline (rehydrateCandidates) works without any changes.
     final decoded = jsonDecode(response.body) as Map<String, dynamic>;
-    final candidatesJson = (decoded['candidates'] as List?) ?? [];
-    return candidatesJson
-        .map((e) => _BackendBoardItemDto.fromJson(e as Map<String, dynamic>))
-        .toList();
+    final matches = (decoded['exact_matches'] as List?) ?? [];
+
+    return matches.map((e) {
+      final m = e as Map<String, dynamic>;
+      return _BackendBoardItemDto(
+        wardrobeItemId: null,              // web result — not in wardrobe
+        name: (m['title'] as String?) ?? '',
+        category: currentItem.cat,         // inherit slot category from the item being searched
+        imageUrl: (m['thumbnail'] as String?) ?? '',
+        isAiRecommended: true,             // treat web results as AI-recommended
+      );
+    }).toList();
   }
+}
+
+// ============================================================
+// WHY THIS WORKS DTO
+// Simple value object for the backend's outfit explanation.
+// ============================================================
+class _WhyThisWorksDto {
+  final String title;
+  final String explanation;
+  const _WhyThisWorksDto({required this.title, required this.explanation});
 }
 
 // ============================================================
@@ -542,15 +677,10 @@ class StyleBoardAIService {
     }
 
     // ANCHOR GUARANTEE: selected item is always first, always present.
-    final rawItems = [
+    final items = [
       WardrobeBoardItem(anchorItem, matchScore: 1.0),
       ...rehydrated,
     ].take(maxItemsPerBoard).toList();
-
-    // PLACEMENT RULES: reorder so the grid layout receives items in the
-    // correct slot order (anchor → bottomwear → second topwear → shoes →
-    // watch → pocket square → belt → bag → wallet).
-    final items = _applyPlacementRules(rawItems);
 
     return StyleBoard(
       id: occasion,
@@ -559,118 +689,6 @@ class StyleBoardAIService {
       items: items,
       thumbnail: anchorItem.displayUrl ?? '',
     );
-  }
-
-  // ============================================================
-  // PLACEMENT RULES
-  // Reorders a list of BoardDisplayItems so the adaptive grid layout
-  // (_buildAdaptiveBoard / _buildRightSide) always receives items in
-  // the correct slot positions:
-  //
-  //   Position 0  — Top Left   : anchor (selected item, always)
-  //   Position 1  — Bottom Left: first Bottomwear item
-  //   Position 2+ — Right side : second Topwear (if any), then Shoes,
-  //                              Watch, Pocket Square, Belt, Bag, Wallet,
-  //                              and any remaining items.
-  //
-  // The anchor at position 0 is guaranteed by _rehydrateBoard before
-  // this method is called and is never moved.
-  //
-  // Category matching is keyword-based (case-insensitive) so it works
-  // equally well for WardrobeBoardItems and AiRecommendedBoardItems.
-  // ============================================================
-  static List<BoardDisplayItem> _applyPlacementRules(
-      List<BoardDisplayItem> items) {
-    if (items.isEmpty) return items;
-
-    // Position 0 is always the anchor — do not touch it.
-    final anchor = items.first;
-    final rest = items.skip(1).toList();
-
-    // ── Category helpers ──────────────────────────────────────
-    bool _isBottomwear(BoardDisplayItem i) {
-      final c = i.cat.toLowerCase();
-      return c.contains('bottom') ||
-          c.contains('pant') ||
-          c.contains('jean') ||
-          c.contains('trouser') ||
-          c.contains('skirt') ||
-          c.contains('short') ||
-          c.contains('chino');
-    }
-
-    bool _isTopwear(BoardDisplayItem i) {
-      final c = i.cat.toLowerCase();
-      return c.contains('top') ||
-          c.contains('shirt') ||
-          c.contains('tee') ||
-          c.contains('blouse') ||
-          c.contains('sweater') ||
-          c.contains('jumper') ||
-          c.contains('jacket') ||
-          c.contains('coat') ||
-          c.contains('hoodie') ||
-          c.contains('outerwear') ||
-          c.contains('blazer') ||
-          c.contains('suit');
-    }
-
-    // Priority order for right-side slots (lower index = higher priority).
-    const _rightSidePriority = [
-      'shoe', 'footwear', 'sneaker', 'boot', 'heel', 'loafer', 'sandal', // shoes
-      'watch',                                                              // watch
-      'pocket square', 'handkerchief',                                     // pocket square
-      'belt',                                                               // belt
-      'bag', 'purse', 'tote', 'backpack', 'clutch',                        // bag
-      'wallet',                                                             // wallet
-    ];
-
-    int _rightSideRank(BoardDisplayItem i) {
-      final c = i.cat.toLowerCase();
-      for (int r = 0; r < _rightSidePriority.length; r++) {
-        if (c.contains(_rightSidePriority[r])) return r;
-      }
-      return _rightSidePriority.length; // unknown → append at end
-    }
-
-    // ── Partition ─────────────────────────────────────────────
-    // Identify the first Bottomwear item (Bottom Left slot).
-    BoardDisplayItem? bottomwear;
-    final remaining = <BoardDisplayItem>[];
-
-    for (final item in rest) {
-      if (bottomwear == null && _isBottomwear(item)) {
-        bottomwear = item;
-      } else {
-        remaining.add(item);
-      }
-    }
-
-    // ── Right-side ordering ───────────────────────────────────
-    // Pull out extra Topwear items first (they take the first right-side
-    // slot(s)), then sort everything else by priority.
-    final extraTopwear = <BoardDisplayItem>[];
-    final accessories = <BoardDisplayItem>[];
-
-    for (final item in remaining) {
-      if (_isTopwear(item)) {
-        extraTopwear.add(item);
-      } else {
-        accessories.add(item);
-      }
-    }
-
-    accessories.sort((a, b) => _rightSideRank(a).compareTo(_rightSideRank(b)));
-
-    // ── Assemble final list ───────────────────────────────────
-    final ordered = <BoardDisplayItem>[
-      anchor,
-      if (bottomwear != null) bottomwear,
-      ...extraTopwear,
-      ...accessories,
-    ];
-
-    return ordered;
   }
 
   /// Converts backend replace/find-similar candidate DTOs into
@@ -734,6 +752,14 @@ class _StyleBoardsScreenState extends State<StyleBoardsScreen> {
   bool _boardsInitialized = false;
   bool _isLoading = true;
   String? _loadError;
+
+  // Why This Works state
+  String? _whyTitle;
+  String? _whyExplanation;
+  bool _whyLoading = false;
+
+  // Replace Only This Item — tracks which slot is being replaced
+  String? _replacingItemId;
 
   @override
   void initState() {
@@ -831,12 +857,111 @@ class _StyleBoardsScreenState extends State<StyleBoardsScreen> {
             .toList();
         _isLoading = false;
       });
+      // Fetch "Why This Works" explanation for the first occasion tab.
+      _loadWhyThisWorks();
     } catch (_) {
       if (!mounted) return;
       setState(() {
         _loadError = AppLocalizations.t(context, 'style_boards_load_error');
         _isLoading = false;
       });
+    }
+  }
+
+  // ── Why This Works ───────────────────────────────────────────
+
+  /// Fetches the outfit explanation from the backend for the currently
+  /// selected board and renders it below the style board grid.
+  ///
+  /// Fails silently (no error state shown) so a network hiccup never
+  /// blocks the user from using the board itself.
+  Future<void> _loadWhyThisWorks() async {
+    if (styleBoards.isEmpty) return;
+    final board = styleBoards[selectedBoardIndex];
+
+    setState(() {
+      _whyLoading = true;
+      _whyTitle = null;
+      _whyExplanation = null;
+    });
+
+    try {
+      final dto = await StyleBoardBackendClient.fetchWhyThisWorks(
+        anchorItem: widget.selectedItem,
+        occasion: board.occasion,
+        boardItems: board.items,
+      );
+      if (!mounted) return;
+      setState(() {
+        _whyTitle = dto.title;
+        _whyExplanation = dto.explanation;
+        _whyLoading = false;
+      });
+    } catch (_) {
+      // Silent failure — the board is still fully usable without this.
+      if (!mounted) return;
+      setState(() => _whyLoading = false);
+    }
+  }
+
+  // ── Replace Only This Item ───────────────────────────────────
+
+  /// Calls the backend for a single direct replacement of [item],
+  /// then swaps that slot in-place without showing any picker UI.
+  ///
+  /// Shows a per-slot loading spinner on the card while the request
+  /// is in flight. Fails silently (no-op) if the backend returns
+  /// nothing or errors — the item stays unchanged.
+  Future<void> _replaceOnlyThisItem(BoardDisplayItem item) async {
+    // Anchor can never be replaced.
+    if (item.id == widget.selectedItem.id) return;
+
+    final board = styleBoards[selectedBoardIndex];
+
+    setState(() => _replacingItemId = item.id);
+
+    try {
+      final dto = await StyleBoardBackendClient.fetchDirectReplacement(
+        anchorItem: widget.selectedItem,
+        currentItem: item,
+        boardItems: board.items,
+        occasion: board.occasion,
+      );
+
+      if (!mounted) return;
+
+      if (dto == null) {
+        setState(() => _replacingItemId = null);
+        return;
+      }
+
+      // Re-hydrate the single DTO into a BoardDisplayItem.
+      final wardrobeById = {for (final w in widget.allItems) w.id: w};
+      final BoardDisplayItem newItem;
+      if (dto.wardrobeItemId != null &&
+          wardrobeById.containsKey(dto.wardrobeItemId)) {
+        newItem = WardrobeBoardItem(
+            wardrobeById[dto.wardrobeItemId]!, matchScore: 0.85);
+      } else {
+        newItem = AiRecommendedBoardItem(
+          id: 'ai_replace_${board.occasion}_${dto.name}_${DateTime.now().microsecondsSinceEpoch}',
+          name: dto.name.isNotEmpty ? dto.name : dto.category,
+          cat: dto.category,
+          displayUrl: dto.imageUrl,
+          matchScore: 0.75,
+          reason: '',
+        );
+      }
+
+      // Reuse the existing _replaceItem mutation so history is updated.
+      _replaceItem(item.id, newItem);
+
+      // Refresh "Why This Works" for the updated board.
+      _loadWhyThisWorks();
+    } catch (_) {
+      // Silent failure — item stays unchanged.
+    } finally {
+      if (mounted) setState(() => _replacingItemId = null);
     }
   }
 
@@ -922,17 +1047,11 @@ class _StyleBoardsScreenState extends State<StyleBoardsScreen> {
       }
 
       final now = DateTime.now();
-      // Apply placement rules so the grid always receives items in the
-      // correct slot order even after a shuffle (anchor → bottomwear →
-      // extra topwear → shoes → watch → pocket square → belt → bag → wallet).
-      final orderedItems = StyleBoardAIService._applyPlacementRules(
-        newItems.take(StyleBoardAIService.maxItemsPerBoard).toList(),
-      );
       final updatedBoard = StyleBoard(
         id: board.id,
         name: board.name,
         occasion: board.occasion,
-        items: orderedItems,
+        items: newItems.take(StyleBoardAIService.maxItemsPerBoard).toList(),
         thumbnail: board.thumbnail,
         createdAt: now,
       );
@@ -951,6 +1070,8 @@ class _StyleBoardsScreenState extends State<StyleBoardsScreen> {
         );
         _isLoading = false;
       });
+      // Refresh "Why This Works" to reflect the shuffled outfit.
+      _loadWhyThisWorks();
     } catch (_) {
       if (!mounted) return;
       // On failure restore the previous board so the user isn't left
@@ -1008,6 +1129,10 @@ class _StyleBoardsScreenState extends State<StyleBoardsScreen> {
           onReplace: () {
             Navigator.pop(ctx);
             _openItemPicker(item, similarOnly: false);
+          },
+          onReplaceOnly: () {
+            Navigator.pop(ctx);
+            _replaceOnlyThisItem(item);
           },
           onFindSimilar: () {
             Navigator.pop(ctx);
@@ -1175,6 +1300,8 @@ class _StyleBoardsScreenState extends State<StyleBoardsScreen> {
                 ],
               ),
             ),
+            const SizedBox(height: 20),
+            _buildWhyThisWorks(context, t),
             const SizedBox(height: 28),
             _buildBoardHistorySection(context, t),
             const SizedBox(height: 28),
@@ -1328,10 +1455,14 @@ class _StyleBoardsScreenState extends State<StyleBoardsScreen> {
       children: List.generate(styleBoards.length, (i) {
         final isSelected = i == selectedBoardIndex;
         return GestureDetector(
-          onTap: () => setState(() {
-            selectedBoardIndex = i;
-            lockedItemIds.clear();
-          }),
+          onTap: () {
+            setState(() {
+              selectedBoardIndex = i;
+              lockedItemIds.clear();
+            });
+            // Each occasion has its own outfit — refresh the explanation.
+            _loadWhyThisWorks();
+          },
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             decoration: BoxDecoration(
@@ -1812,6 +1943,26 @@ class _StyleBoardsScreenState extends State<StyleBoardsScreen> {
                   ),
                 ),
               ),
+            // ── Replace-only loading overlay ────────────────────────
+            // Shown when this specific slot is being replaced by the
+            // backend. The rest of the board stays fully interactive.
+            if (_replacingItemId == item.id)
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.45),
+                  borderRadius: BorderRadius.circular(7),
+                ),
+                child: const Center(
+                  child: SizedBox(
+                    width: 22,
+                    height: 22,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2.5,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
           ],
         ),
       ),
@@ -1876,6 +2027,79 @@ class _StyleBoardsScreenState extends State<StyleBoardsScreen> {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  // ── Why This Works ──────────────────────────────────────────
+  // Rendered below the style board grid. Shows a backend-provided
+  // title + explanation. While loading, shows a two-line skeleton.
+  // Hidden completely if the backend call failed (silent failure).
+
+  Widget _buildWhyThisWorks(BuildContext context, AppThemeTokens t) {
+    // Nothing at all until the first fetch has started.
+    if (!_whyLoading && _whyTitle == null) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Container(
+        width: double.infinity,
+        decoration: BoxDecoration(
+          color: t.backgroundSecondary,
+          border: Border.all(color: t.cardBorder, width: 1.0),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        padding: const EdgeInsets.all(16),
+        child: _whyLoading
+        // Skeleton while the explanation is loading.
+            ? _SkeletonPulse(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _SkeletonBox(height: 14, width: 140, t: t),
+              const SizedBox(height: 10),
+              _SkeletonBox(height: 12, t: t),
+              const SizedBox(height: 6),
+              _SkeletonBox(height: 12, width: double.infinity, t: t),
+              const SizedBox(height: 6),
+              _SkeletonBox(height: 12, width: 200, t: t),
+            ],
+          ),
+        )
+        // Render the backend response — title + explanation, no hardcoded copy.
+            : Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.lightbulb_outline,
+                    color: t.accent.primary, size: 16),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    _whyTitle ?? '',
+                    style: GoogleFonts.inter(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: t.textPrimary,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            if ((_whyExplanation ?? '').isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text(
+                _whyExplanation!,
+                style: GoogleFonts.inter(
+                  fontSize: 13,
+                  color: t.mutedText,
+                  height: 1.5,
+                ),
+              ),
+            ],
+          ],
         ),
       ),
     );
@@ -2153,6 +2377,7 @@ class _SelectedItemPanel extends StatelessWidget {
   final bool isAnchor;
   final VoidCallback onToggleLock;
   final VoidCallback onReplace;
+  final VoidCallback? onReplaceOnly;
   final VoidCallback? onFindSimilar;
 
   const _SelectedItemPanel({
@@ -2161,6 +2386,7 @@ class _SelectedItemPanel extends StatelessWidget {
     required this.isAnchor,
     required this.onToggleLock,
     required this.onReplace,
+    this.onReplaceOnly,
     this.onFindSimilar,
   });
 
@@ -2326,6 +2552,15 @@ class _SelectedItemPanel extends StatelessWidget {
                           label: AppLocalizations.t(
                               context, 'style_boards_item_replace'),
                           onTap: onReplace,
+                          t: t,
+                        ),
+                        const SizedBox(height: 8),
+                        _action(
+                          context,
+                          icon: Icons.swap_horiz,
+                          label: AppLocalizations.t(
+                              context, 'style_boards_item_replace_only'),
+                          onTap: onReplaceOnly ?? () {},
                           t: t,
                         ),
                         const SizedBox(height: 8),

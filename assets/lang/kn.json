@@ -1041,7 +1041,8 @@
   "style_boards_item_find_similar": "Find similar",
   "style_boards_item_lock": "Lock item",
   "style_boards_item_locked_badge": "Locked",
-  "style_boards_item_replace": "Replace only this item",
+  "style_boards_item_replace": "ಬದಲಾಯಿಸಿ",
+  "style_boards_item_replace_only": "Replace only this item",
   "style_boards_item_unlock": "Unlock item",
   "style_boards_items_locked": "{locked} of {total} items locked",
   "style_boards_legend_ai": "AI ಶಿಫಾರಸು ಮಾಡಿದ",
@@ -1338,6 +1339,8 @@
   "style_boards_anchor_badge": "ಆಯ್ಕೆ ಮಾಡಲಾಗಿದೆ",
   "style_boards_anchor_note": "ಇದು ನೀವು ಆಯ್ಕೆ ಮಾಡಿದ ಐಟಂ ಆಗಿದೆ. ಇದು ಯಾವಾಗಲೂ ನಿಮ್ಮ ಸ್ಟೈಲ್ ಬೋರ್ಡ್‌ನಲ್ಲಿ ಕಾಣಿಸುತ್ತದೆ.",
   "style_boards_picker_load_error": "ಸಲಹೆಗಳನ್ನು ಲೋಡ್ ಮಾಡಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ. ನಿಮ್ಮ ಸಂಪರ್ಕವನ್ನು ಪರಿಶೀಲಿಸಿ ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.",
+  "style_boards_why_this_works_loading": "ಇದು ಏಕೆ ಕೆಲಸ ಮಾಡುತ್ತದೆ ಎಂದು ಕಂಡುಹಿಡಿಯಲಾಗುತ್ತಿದೆ…",
+  "style_boards_why_this_works_error": "Why This Works ಲೋಡ್ ಮಾಡಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ. ದಯವಿಟ್ಟು ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.",
   "buildOutfitShuffleError": "ಶಫಲ್ ಮಾಡಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ. ದಯವಿಟ್ಟು ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.",
   "buildOutfitPickerError": "ಐಟಂಗಳನ್ನು ಲೋಡ್ ಮಾಡಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ. ದಯವಿಟ್ಟು ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ."
 }

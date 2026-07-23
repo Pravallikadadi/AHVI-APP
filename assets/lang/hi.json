@@ -1041,7 +1041,8 @@
   "style_boards_item_find_similar": "समान खोजें",
   "style_boards_item_lock": "आइटम लॉक करें",
   "style_boards_item_locked_badge": "लॉक किया गया",
-  "style_boards_item_replace": "केवल इस आइटम को बदलें",
+  "style_boards_item_replace": "बदलें",
+  "style_boards_item_replace_only": "केवल इस आइटम को बदलें",
   "style_boards_item_unlock": "आइटम अनलॉक करें",
   "style_boards_items_locked": "{locked} में से {total} आइटम लॉक हैं",
   "style_boards_legend_ai": "AI अनुशंसित",
@@ -1338,6 +1339,8 @@
   "style_boards_anchor_badge": "चुना गया",
   "style_boards_anchor_note": "यह आपका चुना हुआ आइटम है। यह हमेशा आपके स्टाइल बोर्ड में दिखाई देगा।",
   "style_boards_picker_load_error": "सुझाव लोड नहीं हो सके। अपना कनेक्शन जांचें और फिर कोशिश करें।",
+  "style_boards_why_this_works_loading": "यह क्यों कारगर है, यह पता लगाया जा रहा है…",
+  "style_boards_why_this_works_error": "Why This Works लोड नहीं हो सका। कृपया पुनः प्रयास करें।",
   "buildOutfitShuffleError": "शफ़ल नहीं हो सका। कृपया फिर कोशिश करें।",
   "buildOutfitPickerError": "आइटम लोड नहीं हो सके। कृपया फिर कोशिश करें।"
 }
