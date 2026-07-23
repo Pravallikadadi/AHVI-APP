@@ -898,15 +898,26 @@ class _BuildOutfitScreenState extends State<BuildOutfitScreen> {
   // and consistent UI performance. If the backend returns more than
   // 8 items, only the first 8 are displayed (see _buildUnifiedGrid).
   //
-  // ITEM COUNT HANDLING:
+  // ITEM COUNT HANDLING (per AHVI Style Board Layouts spec):
   // ───────────────────
   // • 1–2 items:  Equal-width columns, centered
-  // • 3 items:    L-shaped (1 large on left + 2 stacked on right)
-  // • 4 items:    2×2 grid
-  // • 5 items:    Asymmetric (2 top + 3 bottom)
-  // • 6 items:    3×2 grid
-  // • 7 items:    3 columns with varied heights
-  // • 8 items:    Complex masonry-inspired layout
+  // • 3–8 items:  Topwear + Bottomwear ALWAYS stacked on the left,
+  //               equal height. Only the right-side layout changes
+  //               based on item count:
+  //     3 items → right side: 1 item, full height
+  //     4 items → right side: 2 items stacked (top/bottom)
+  //     5 items → right side: 1 on top, 2 side-by-side on bottom
+  //     6 items → right side: 1 on top, (2 + 1) on bottom
+  //     7 items → right side: 1 on top, 2×2 grid on bottom
+  //     8 items → right side: 1 on top, (2 + 2 + 1) on bottom
+  //
+  // The selected wardrobe item (the anchor the board was built from)
+  // is always pinned to the top-left ("Topwear") position and
+  // Bottomwear to bottom-left. Every other item — Shoes, an extra
+  // Topwear piece, Watch, Belt, Bag, etc. — simply fills the right
+  // side in priority order; no category owns a fixed slot there, so
+  // nothing the backend returns is ever dropped. See
+  // _placeBoardItems for the full priority order.
   //
   // NO EMPTY SPACES: Each layout is tailored to fit exactly N items
   // without awkward gaps or unfilled grid cells. All items maintain
@@ -922,8 +933,9 @@ class _BuildOutfitScreenState extends State<BuildOutfitScreen> {
   // grow. Those layouts use half-width (or bigger) cells, which made
   // outfits with only a few items look oversized on typical phone
   // widths. 5/6/7/8-item layouts already divide into three columns and
-  // stay compact on their own, so they're left as-is. (3-item layout
-  // has its own sizing — see _kLayout3MaxRowWidth below.)
+  // stay compact on their own, so they're left as-is. (3–8 item
+  // layouts share _styleBoardLayout below, which derives its own
+  // column width the same way via _cappedCellWidth.)
   static const double _kMaxCardExtent = 180.0;
 
   double _cappedCellWidth(double totalWidth, double gap, int columns,
@@ -942,28 +954,107 @@ class _BuildOutfitScreenState extends State<BuildOutfitScreen> {
     if (items.isEmpty) return const SizedBox.shrink();
 
     // Enforce maximum item count; discard any items beyond the cap
-    final displayItems = items.length > _kMaxBoardItems
+    final capped = items.length > _kMaxBoardItems
         ? items.take(_kMaxBoardItems).toList()
         : items;
+
+    // Places every item on the board: selected item pinned top-left,
+    // actual Bottomwear bottom-left, and everything else filling the
+    // right side in priority order — nothing is ever dropped.
+    final displayItems = _placeBoardItems(capped);
 
     switch (displayItems.length) {
       case 1:
       case 2:
         return _layoutSmall(context, t, displayItems);
-      case 3:
-        return _layout3(context, t, displayItems);
-      case 4:
-        return _layout4(context, t, displayItems);
-      case 5:
-        return _layout5(context, t, displayItems);
-      case 6:
-        return _layout6(context, t, displayItems);
-      case 7:
-        return _layout7(context, t, displayItems);
       default:
-      // This case handles 8+ items, but we cap at 8 above
-        return _layout8(context, t, displayItems);
+      // 3–8 items all share the same left column (Topwear +
+      // Bottomwear, equal height) with only the right side varying.
+        return _styleBoardLayout(context, t, displayItems);
     }
+  }
+
+  // ── Placement rules ──────────────────────────────────────────
+  // Only two positions are ever fixed:
+  //   1. Selected item (anchor)  → always top-left.
+  //   2. Bottomwear item         → always bottom-left, if the backend
+  //                              returned one.
+  // Everything else — Shoes, extra Topwear, Watch, Pocket Square,
+  // Belt, Bag, Wallet, and anything uncategorized — simply fills the
+  // right side, top-to-bottom / left-to-right, in that priority
+  // order. No category owns a fixed slot on the right, so nothing is
+  // ever dropped: whatever the backend returns (up to _kMaxBoardItems)
+  // ends up somewhere on the board, and the layout picked in
+  // _buildUnifiedGrid already sizes itself to however many items
+  // that turns out to be.
+  //
+  // Category matching is a best-effort, case-insensitive keyword
+  // match against BoardDisplayItem.cat — adjust the keyword lists
+  // below (_kBottomwearKw etc.) if the backend's actual category
+  // strings differ.
+  static bool _isCat(BoardDisplayItem i, List<String> keywords) {
+    final c = i.cat.toLowerCase();
+    return keywords.any((k) => c.contains(k));
+  }
+
+  static const _kBottomwearKw = [
+    'bottomwear', 'bottom wear', 'pants', 'trouser', 'jeans', 'shorts', 'skirt',
+  ];
+  static const _kTopwearKw = [
+    'topwear', 'top wear', 'shirt', 'tee', 't-shirt', 'jacket', 'blazer',
+    'sweater', 'hoodie', 'top',
+  ];
+  static const _kShoesKw = ['shoe', 'footwear', 'sneaker', 'boot', 'sandal'];
+  static const _kWatchKw = ['watch'];
+  static const _kPocketSquareKw = ['pocket square', 'pocketsquare', 'pocket_square'];
+  static const _kBeltKw = ['belt'];
+  static const _kBagKw = ['bag', 'purse', 'handbag'];
+  static const _kWalletKw = ['wallet'];
+
+  List<BoardDisplayItem> _placeBoardItems(List<BoardDisplayItem> items) {
+    if (items.isEmpty) return items;
+
+    final anchorId = widget.selectedItem.id;
+    final pool = List<BoardDisplayItem>.from(items);
+    final anchorIndex = pool.indexWhere((i) => i.id == anchorId);
+    // If the anchor isn't in the list yet (e.g. still loading), fall
+    // back to whatever's first rather than leaving top-left empty.
+    final anchor = pool.removeAt(anchorIndex >= 0 ? anchorIndex : 0);
+
+    // Bottom-left: the actual Bottomwear item, if present.
+    final bottomwearIdx = pool.indexWhere((i) => _isCat(i, _kBottomwearKw));
+    final bottomwear =
+    bottomwearIdx >= 0 ? pool.removeAt(bottomwearIdx) : null;
+
+    List<BoardDisplayItem> take(List<String> keywords) {
+      final matches = pool.where((i) => _isCat(i, keywords)).toList();
+      pool.removeWhere((i) => _isCat(i, keywords));
+      return matches;
+    }
+
+    // Right side: everything that isn't the anchor or Bottomwear,
+    // filled in priority order — Shoes, extra Topwear (e.g. a second
+    // jacket alongside the selected shirt), Watch, Pocket Square,
+    // Belt, Bag, Wallet, then anything uncategorized (kept in
+    // original relative order). No item in `pool` is ever discarded
+    // here — `...pool` at the end catches anything the keyword lists
+    // above didn't match.
+    final rightSide = [
+      ...take(_kShoesKw),
+      ...take(_kTopwearKw),
+      ...take(_kWatchKw),
+      ...take(_kPocketSquareKw),
+      ...take(_kBeltKw),
+      ...take(_kBagKw),
+      ...take(_kWalletKw),
+      ...pool,
+    ];
+
+    return [
+      anchor,
+      if (bottomwear != null) bottomwear,
+      ...rightSide,
+    ];
   }
 
   // ─── 1–2 items: equal-width columns, centered ──────────────────────────────
@@ -998,61 +1089,59 @@ class _BuildOutfitScreenState extends State<BuildOutfitScreen> {
     });
   }
 
-  // ─── 3 items: L-shaped layout ──────────────────────────────────────────────
-  // Layout: One large item on left + two stacked items on right.
-  //         Proportions: Left square (leftW × leftW) + Right column (rightCw × leftW).
-  // Spacing: _kGap (16.0) between left/right columns and between stacked items.
-  // Alignment: Centered, capped to _kLayout3MaxRowWidth to maintain aspect.
-  // Sizing: All cells are square (aspect 1:1) for visual consistency.
+  // ─── 3–8 items: AHVI Style Board layout ────────────────────────────────────
+  // Shared structure for every count from 3 to 8 (matches the "Common
+  // Flutter Structure" in the AHVI Style Board Layouts spec):
   //
-  // Left col:  one square item (leftW × leftW).
-  // Right col: two square items (rightCw × rightCw each) stacked to
-  //            exactly match the left item's height — derived so the
-  //            left tile comes out square (matches a typical product
-  //            photo's aspect, instead of a narrow rectangle that got
-  //            cropped by BoxFit.cover) and the whole row never grows
-  //            past _kLayout3MaxRowWidth.
-  static const double _kLayout3MaxRowWidth = 270.0;
-
-  Widget _layout3(
+  //   Row(
+  //     Expanded(Column(Topwear, gap, Bottomwear)),   <- always equal height
+  //     gap,
+  //     Expanded(RightSideLayout()),                  <- only this changes
+  //   )
+  //
+  // Topwear/Bottomwear (items[0]/items[1] after anchor-pinning) are
+  // always stacked on the left at equal height. The right side is the
+  // only part that varies by item count:
+  //   3 items → right side: 1 item spanning the full height
+  //   4 items → right side: 2 items stacked (top/bottom)
+  //   5 items → right side: 1 on top, 2 side-by-side on bottom
+  //   6 items → right side: 1 on top, (2 side-by-side + 1 full-width) on bottom
+  //   7 items → right side: 1 on top, 2×2 grid on bottom
+  //   8 items → right side: 1 on top, (2 + 2 + 1 full-width) on bottom
+  //
+  // Sizing: left/right columns are equal width (matching the spec's
+  // Expanded/Expanded with no flex override). Total board height is
+  // derived from that column width so Topwear/Bottomwear render as
+  // squares, then every cell on the right side fills its share of
+  // that same fixed height via Expanded — no per-cell pixel math
+  // needed beyond the initial column width.
+  Widget _styleBoardLayout(
       BuildContext context, AppThemeTokens t, List<BoardDisplayItem> items) {
     return LayoutBuilder(builder: (_, box) {
       const double g = _kGap;
-      final w = box.maxWidth < _kLayout3MaxRowWidth
-          ? box.maxWidth
-          : _kLayout3MaxRowWidth;
-
-      // Solving leftW = 2*rightCw + g (right column height matches the
-      // left tile) together with leftW + g + rightCw = w (row fills w):
-      final leftW = (2 * w - g) / 3;
-      final rightCw = (w - 2 * g) / 3;
-      final totalH = leftW; // square left tile
+      final colW = _cappedCellWidth(box.maxWidth, g, 2);
+      final totalH = colW * 2 + g;
 
       return Center(
         child: SizedBox(
-          width: leftW + g + rightCw,
+          width: colW * 2 + g,
           height: totalH,
           child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Left: one square item
-              SizedBox(
-                width: leftW,
-                height: totalH,
-                child: _buildItemCard(context, items[0], t),
-              ),
-              SizedBox(width: g),
-              // Right: two square items, stacked
-              SizedBox(
-                width: rightCw,
+              // Left: Topwear + Bottomwear, always stacked, equal height.
+              Expanded(
                 child: Column(
                   children: [
-                    SizedBox(height: rightCw, child: _buildItemCard(context, items[1], t)),
+                    Expanded(child: _buildItemCard(context, items[0], t)),
                     SizedBox(height: g),
-                    SizedBox(height: rightCw, child: _buildItemCard(context, items[2], t)),
+                    Expanded(child: _buildItemCard(context, items[1], t)),
                   ],
                 ),
               ),
+              SizedBox(width: g),
+              // Right: layout varies by item count.
+              Expanded(child: _rightSideLayout(context, t, items)),
             ],
           ),
         ),
@@ -1060,266 +1149,117 @@ class _BuildOutfitScreenState extends State<BuildOutfitScreen> {
     });
   }
 
-  // ─── 4 items: 2×2 grid ────────────────────────────────────────────────────
-  // Layout: 2 rows × 2 columns of equal-sized square items.
-  // Spacing: _kGap (16.0) between all items (both horizontal and vertical).
-  // Alignment: Centered within parent container.
-  // Cell sizing: Responsive width, capped at _kMaxCardExtent (180.0).
-  // Aspect ratio: All cells are square (1:1).
-  Widget _layout4(
+  /// Right-side layout for the 3–8 item Style Board. `items[2]` always
+  /// takes the top-right cell (matching Topwear's height); for 3 items
+  /// there is no bottom cell, so the single item spans the full height
+  /// instead. `items[3..]`, if any, are arranged in the bottom-right
+  /// cell (matching Bottomwear's height) by [_bottomRightArea].
+  Widget _rightSideLayout(
       BuildContext context, AppThemeTokens t, List<BoardDisplayItem> items) {
-    return LayoutBuilder(builder: (_, box) {
-      final w = box.maxWidth;
-      const double g = _kGap;
-
-      final cw = _cappedCellWidth(w, g, 2);
-      final ih = cw;
-
-      return Center(
-        child: SizedBox(
-          width: cw * 2 + g,
-          child: Column(
-            children: [
-              _row2(context, t, items[0], items[1], cw, ih),
-              SizedBox(height: g),
-              _row2(context, t, items[2], items[3], cw, ih),
-            ],
-          ),
-        ),
-      );
-    });
+    if (items.length == 3) {
+      // 3 items: single card spans the full right-side height.
+      return _buildItemCard(context, items[2], t);
+    }
+    return Column(
+      children: [
+        Expanded(child: _buildItemCard(context, items[2], t)),
+        const SizedBox(height: _kGap),
+        Expanded(
+            child: _bottomRightArea(context, t, items.sublist(3))),
+      ],
+    );
   }
 
-  // ─── 5 items: Asymmetric layout (2 top + 3 bottom) ────────────────────────
-  // Layout: Top row has 2 items (left narrow + right wide).
-  //         Bottom row has 3 equal-width items.
-  // Spacing: _kGap (16.0) between all items (horizontal and vertical).
-  // Alignment: Full width, top items proportionally weighted.
-  // Heights: Top items matched at topH (derived from aspect), bottom items square.
-  // Visual effect: Creates dynamic, gallery-like appearance without empty spaces.
-  Widget _layout5(
-      BuildContext context, AppThemeTokens t, List<BoardDisplayItem> items) {
-    return LayoutBuilder(builder: (_, box) {
-      final w = box.maxWidth;
-      const double g = _kGap;
-
-      final tlw = w * 0.42 - g / 2;
-      final topH = tlw / 0.65;
-
-      final biw = (w - 2 * g) / 3;
-      final bih = biw;
-
-      return Column(
-        children: [
-          SizedBox(
-            height: topH,
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                SizedBox(width: tlw, child: _buildItemCard(context, items[0], t)),
-                SizedBox(width: g),
-                Expanded(child: _buildItemCard(context, items[1], t)),
-              ],
-            ),
-          ),
-          SizedBox(height: g),
-          Row(
-            children: [
-              SizedBox(width: biw, height: bih, child: _buildItemCard(context, items[2], t)),
-              SizedBox(width: g),
-              SizedBox(width: biw, height: bih, child: _buildItemCard(context, items[3], t)),
-              SizedBox(width: g),
-              SizedBox(width: biw, height: bih, child: _buildItemCard(context, items[4], t)),
-            ],
-          ),
-        ],
-      );
-    });
-  }
-
-  // ─── 6 items: 3×2 grid ────────────────────────────────────────────────────
-  // Layout: 2 rows × 3 columns of equal-sized square items.
-  // Spacing: _kGap (16.0) between all items (both horizontal and vertical).
-  // Alignment: Full width, equal column distribution.
-  // Cell sizing: Responsive, all cells square (1:1 aspect ratio).
-  // Visual effect: Classic grid layout maximizes space efficiency.
-  Widget _layout6(
-      BuildContext context, AppThemeTokens t, List<BoardDisplayItem> items) {
-    return LayoutBuilder(builder: (_, box) {
-      final w = box.maxWidth;
-      const double g = _kGap;
-
-      final cw = (w - 2 * g) / 3;
-      final ih = cw;
-
-      return Column(
-        children: [
-          _row3(context, t, items.sublist(0, 3), cw, ih),
-          SizedBox(height: g),
-          _row3(context, t, items.sublist(3, 6), cw, ih),
-        ],
-      );
-    });
-  }
-
-  // ─── 7 items: Three-column asymmetric layout ───────────────────────────────
-  // Layout: 3 columns with varied heights (left: 2 items, middle: 2 items, right: 3 items).
-  // Spacing: _kGap (16.0) between all items.
-  // Alignment: Full width, equal-width columns.
-  // Cell sizing: All cells square (cw × cw), responsive width.
-  // Heights: Left/middle = cw*2 + g; Right = cw*3 + 2*g.
-  //          Overall container height driven by the tallest column (right).
-  // Visual effect: Masonry-inspired layout maintains perfect alignment without gaps.
-  //
-  // All items share the same cell size (cw × cw).
-  // Left/middle cols: 2 items stacked → total height = cw*2 + g.
-  // Right col: 3 items stacked at the same cw height → total height = cw*3 + 2*g.
-  // The overall SizedBox uses the taller right column so nothing is clipped.
-  Widget _layout7(
-      BuildContext context, AppThemeTokens t, List<BoardDisplayItem> items) {
-    return LayoutBuilder(builder: (_, box) {
-      final w = box.maxWidth;
-      const double g = _kGap;
-
-      final cw = (w - 2 * g) / 3; // equal-width columns
-      final totalH = cw * 3 + 2 * g; // right col drives the height
-
-      return SizedBox(
-        height: totalH,
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
+  /// Arranges the items below "Shoes" on the right side, sized to
+  /// match Bottomwear's height. The sub-layout grows with the count:
+  ///   1 item  (4 total) → single full-width card
+  ///   2 items (5 total) → 2 side-by-side
+  ///   3 items (6 total) → (2 side-by-side) + (1 full-width)
+  ///   4 items (7 total) → 2×2 grid
+  ///   5 items (8 total) → (2) + (2) + (1 full-width)
+  Widget _bottomRightArea(
+      BuildContext context, AppThemeTokens t, List<BoardDisplayItem> rest) {
+    const double g = _kGap;
+    switch (rest.length) {
+      case 1:
+        return _buildItemCard(context, rest[0], t);
+      case 2:
+        return Row(
           children: [
-            SizedBox(
-              width: cw,
-              child: Column(
+            Expanded(child: _buildItemCard(context, rest[0], t)),
+            SizedBox(width: g),
+            Expanded(child: _buildItemCard(context, rest[1], t)),
+          ],
+        );
+      case 3:
+        return Column(
+          children: [
+            Expanded(
+              child: Row(
                 children: [
-                  SizedBox(height: cw, child: _buildItemCard(context, items[0], t)),
-                  SizedBox(height: g),
-                  SizedBox(height: cw, child: _buildItemCard(context, items[1], t)),
+                  Expanded(child: _buildItemCard(context, rest[0], t)),
+                  SizedBox(width: g),
+                  Expanded(child: _buildItemCard(context, rest[1], t)),
                 ],
               ),
             ),
-            SizedBox(width: g),
-            SizedBox(
-              width: cw,
-              child: Column(
+            SizedBox(height: g),
+            Expanded(child: _buildItemCard(context, rest[2], t)),
+          ],
+        );
+      case 4:
+        return Column(
+          children: [
+            Expanded(
+              child: Row(
                 children: [
-                  SizedBox(height: cw, child: _buildItemCard(context, items[2], t)),
-                  SizedBox(height: g),
-                  SizedBox(height: cw, child: _buildItemCard(context, items[3], t)),
+                  Expanded(child: _buildItemCard(context, rest[0], t)),
+                  SizedBox(width: g),
+                  Expanded(child: _buildItemCard(context, rest[1], t)),
                 ],
               ),
             ),
-            SizedBox(width: g),
-            SizedBox(
-              width: cw,
-              child: Column(
+            SizedBox(height: g),
+            Expanded(
+              child: Row(
                 children: [
-                  SizedBox(height: cw, child: _buildItemCard(context, items[4], t)),
-                  SizedBox(height: g),
-                  SizedBox(height: cw, child: _buildItemCard(context, items[5], t)),
-                  SizedBox(height: g),
-                  SizedBox(height: cw, child: _buildItemCard(context, items[6], t)),
+                  Expanded(child: _buildItemCard(context, rest[2], t)),
+                  SizedBox(width: g),
+                  Expanded(child: _buildItemCard(context, rest[3], t)),
                 ],
               ),
             ),
           ],
-        ),
-      );
-    });
-  }
-
-  // ─── 8 items: Complex masonry layout ──────────────────────────────────────
-  // Layout: Two-row design with proportional widths.
-  //         Top: 3 items (left 30% + center 42% + right 28%, all height = center width)
-  //         Bottom: 4 items (left 30% + 3 equal columns 23% each, all height = column width)
-  // Spacing: _kGap (16.0) between all items.
-  // Alignment: Full width, responsive proportions.
-  // Cell sizing: Top row height driven by center item's square aspect.
-  //              Bottom row items are all square.
-  // Visual effect: Sophisticated gallery layout balances visual interest with stability.
-  //               No empty spaces, perfect pixel alignment.
-  Widget _layout8(
-      BuildContext context, AppThemeTokens t, List<BoardDisplayItem> items) {
-    return LayoutBuilder(builder: (_, box) {
-      final w = box.maxWidth;
-      const double g = _kGap;
-
-      final tLW = w * 0.30 - g * 2 / 3;
-      final tCW = w * 0.42 - g * 2 / 3;
-      final tRW = w - tLW - tCW - 2 * g;
-      final topH = tCW;
-
-      final bLW = tLW;
-      final bItemW = (w - bLW - 3 * g) / 3;
-      final botH = bItemW;
-
-      return Column(
-        children: [
-          SizedBox(
-            height: topH,
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                SizedBox(width: tLW, child: _buildItemCard(context, items[0], t)),
-                SizedBox(width: g),
-                SizedBox(width: tCW, child: _buildItemCard(context, items[1], t)),
-                SizedBox(width: g),
-                SizedBox(
-                  width: tRW,
-                  child: Column(
-                    children: [
-                      Expanded(child: _buildItemCard(context, items[2], t)),
-                      SizedBox(height: g),
-                      Expanded(child: _buildItemCard(context, items[3], t)),
-                    ],
-                  ),
-                ),
-              ],
+        );
+      case 5:
+        return Column(
+          children: [
+            Expanded(
+              child: Row(
+                children: [
+                  Expanded(child: _buildItemCard(context, rest[0], t)),
+                  SizedBox(width: g),
+                  Expanded(child: _buildItemCard(context, rest[1], t)),
+                ],
+              ),
             ),
-          ),
-          SizedBox(height: g),
-          SizedBox(
-            height: botH,
-            child: Row(
-              children: [
-                SizedBox(width: bLW, child: _buildItemCard(context, items[4], t)),
-                SizedBox(width: g),
-                SizedBox(width: bItemW, child: _buildItemCard(context, items[5], t)),
-                SizedBox(width: g),
-                SizedBox(width: bItemW, child: _buildItemCard(context, items[6], t)),
-                SizedBox(width: g),
-                SizedBox(width: bItemW, child: _buildItemCard(context, items[7], t)),
-              ],
+            SizedBox(height: g),
+            Expanded(
+              child: Row(
+                children: [
+                  Expanded(child: _buildItemCard(context, rest[2], t)),
+                  SizedBox(width: g),
+                  Expanded(child: _buildItemCard(context, rest[3], t)),
+                ],
+              ),
             ),
-          ),
-        ],
-      );
-    });
-  }
-
-  Widget _row2(BuildContext context, AppThemeTokens t, BoardDisplayItem a,
-      BoardDisplayItem b, double w, double h) {
-    return Row(
-      children: [
-        SizedBox(width: w, height: h, child: _buildItemCard(context, a, t)),
-        SizedBox(width: _kGap),
-        SizedBox(width: w, height: h, child: _buildItemCard(context, b, t)),
-      ],
-    );
-  }
-
-  Widget _row3(BuildContext context, AppThemeTokens t, List<BoardDisplayItem> items,
-      double w, double h) {
-    return Row(
-      children: [
-        SizedBox(width: w, height: h, child: _buildItemCard(context, items[0], t)),
-        SizedBox(width: _kGap),
-        SizedBox(width: w, height: h, child: _buildItemCard(context, items[1], t)),
-        SizedBox(width: _kGap),
-        SizedBox(width: w, height: h, child: _buildItemCard(context, items[2], t)),
-      ],
-    );
+            SizedBox(height: g),
+            Expanded(child: _buildItemCard(context, rest[4], t)),
+          ],
+        );
+      default:
+        return const SizedBox.shrink();
+    }
   }
 
   // ── Item card (skeleton-aware) ───────────────────────────────
@@ -1666,22 +1606,19 @@ class _BuildOutfitScreenState extends State<BuildOutfitScreen> {
       BuildContext context, AppThemeTokens t, List<BoardDisplayItem> items) {
     if (items.isEmpty) return const SizedBox.shrink();
 
-    switch (items.length) {
+    final capped = items.length > 8 ? items.take(8).toList() : items;
+    // Same placement rules as the main board, so history previews
+    // stay visually consistent with the current Style Board.
+    final displayItems = _placeBoardItems(capped);
+
+    switch (displayItems.length) {
       case 1:
       case 2:
-        return _historyLayoutSmall(context, t, items);
-      case 3:
-        return _historyLayout3(context, t, items);
-      case 4:
-        return _historyLayout4(context, t, items);
-      case 5:
-        return _historyLayout5(context, t, items);
-      case 6:
-        return _historyLayout6(context, t, items);
-      case 7:
-        return _historyLayout7(context, t, items);
+        return _historyLayoutSmall(context, t, displayItems);
       default:
-        return _historyLayout8(context, t, items.take(8).toList());
+      // 3–8 items share the same left column (Topwear + Bottomwear,
+      // equal height) with only the right side varying.
+        return _historyStyleBoardLayout(context, t, displayItems);
     }
   }
 
@@ -1739,112 +1676,143 @@ class _BuildOutfitScreenState extends State<BuildOutfitScreen> {
     );
   }
 
-  Widget _historyLayout3(
+  // ─── 3–8 items: AHVI Style Board layout (history mini-grid) ────────────────
+  // Mirrors _styleBoardLayout on the main board exactly, just with the
+  // tighter _kHGap spacing and history item cards (no lock icon, no
+  // tap handler — taps fall through via the caller's IgnorePointer).
+  Widget _historyStyleBoardLayout(
       BuildContext context, AppThemeTokens t, List<BoardDisplayItem> items) {
-    return Row(
-      children: [
-        Expanded(child: _buildHistoryItemCard(context, items[0], t)),
-        SizedBox(width: _kHGap),
-        Expanded(
-          child: Column(
-            children: [
-              Expanded(child: _buildHistoryItemCard(context, items[1], t)),
-              SizedBox(height: _kHGap),
-              Expanded(child: _buildHistoryItemCard(context, items[2], t)),
-            ],
-          ),
+    return LayoutBuilder(builder: (_, box) {
+      const double g = _kHGap;
+      final colW = (box.maxWidth - g) / 2;
+      final totalH = colW * 2 + g;
+
+      return SizedBox(
+        width: colW * 2 + g,
+        height: totalH,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Left: Topwear + Bottomwear, always stacked, equal height.
+            Expanded(
+              child: Column(
+                children: [
+                  Expanded(child: _buildHistoryItemCard(context, items[0], t)),
+                  SizedBox(height: g),
+                  Expanded(child: _buildHistoryItemCard(context, items[1], t)),
+                ],
+              ),
+            ),
+            SizedBox(width: g),
+            // Right: layout varies by item count.
+            Expanded(child: _historyRightSideLayout(context, t, items)),
+          ],
         ),
-      ],
-    );
+      );
+    });
   }
 
-  Widget _historyLayout4(
+  /// Right-side layout for the history mini-grid — see
+  /// [_rightSideLayout] for the main-board equivalent this mirrors.
+  Widget _historyRightSideLayout(
       BuildContext context, AppThemeTokens t, List<BoardDisplayItem> items) {
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        crossAxisSpacing: 8,
-        mainAxisSpacing: 8,
-        childAspectRatio: 1,
-      ),
-      itemCount: 4,
-      itemBuilder: (_, i) => _buildHistoryItemCard(context, items[i], t),
-    );
-  }
-
-  Widget _historyLayout5(
-      BuildContext context, AppThemeTokens t, List<BoardDisplayItem> items) {
+    if (items.length == 3) {
+      return _buildHistoryItemCard(context, items[2], t);
+    }
     return Column(
       children: [
-        Row(
-          children: [
-            Expanded(child: _buildHistoryItemCard(context, items[0], t)),
-            SizedBox(width: _kHGap),
-            Expanded(child: _buildHistoryItemCard(context, items[1], t)),
-          ],
-        ),
-        SizedBox(height: _kHGap),
-        Row(
-          children: [
-            Expanded(child: _buildHistoryItemCard(context, items[2], t)),
-            SizedBox(width: _kHGap),
-            Expanded(child: _buildHistoryItemCard(context, items[3], t)),
-            SizedBox(width: _kHGap),
-            Expanded(child: _buildHistoryItemCard(context, items[4], t)),
-          ],
-        ),
+        Expanded(child: _buildHistoryItemCard(context, items[2], t)),
+        const SizedBox(height: _kHGap),
+        Expanded(
+            child: _historyBottomRightArea(context, t, items.sublist(3))),
       ],
     );
   }
 
-  Widget _historyLayout6(
-      BuildContext context, AppThemeTokens t, List<BoardDisplayItem> items) {
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3,
-        crossAxisSpacing: 8,
-        mainAxisSpacing: 8,
-        childAspectRatio: 1,
-      ),
-      itemCount: 6,
-      itemBuilder: (_, i) => _buildHistoryItemCard(context, items[i], t),
-    );
-  }
-
-  Widget _historyLayout7(
-      BuildContext context, AppThemeTokens t, List<BoardDisplayItem> items) {
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3,
-        crossAxisSpacing: 8,
-        mainAxisSpacing: 8,
-        childAspectRatio: 1,
-      ),
-      itemCount: 7,
-      itemBuilder: (_, i) => _buildHistoryItemCard(context, items[i], t),
-    );
-  }
-
-  Widget _historyLayout8(
-      BuildContext context, AppThemeTokens t, List<BoardDisplayItem> items) {
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 4,
-        crossAxisSpacing: 8,
-        mainAxisSpacing: 8,
-        childAspectRatio: 1,
-      ),
-      itemCount: 8,
-      itemBuilder: (_, i) => _buildHistoryItemCard(context, items[i], t),
-    );
+  /// See [_bottomRightArea] for the main-board equivalent this mirrors.
+  Widget _historyBottomRightArea(
+      BuildContext context, AppThemeTokens t, List<BoardDisplayItem> rest) {
+    const double g = _kHGap;
+    switch (rest.length) {
+      case 1:
+        return _buildHistoryItemCard(context, rest[0], t);
+      case 2:
+        return Row(
+          children: [
+            Expanded(child: _buildHistoryItemCard(context, rest[0], t)),
+            SizedBox(width: g),
+            Expanded(child: _buildHistoryItemCard(context, rest[1], t)),
+          ],
+        );
+      case 3:
+        return Column(
+          children: [
+            Expanded(
+              child: Row(
+                children: [
+                  Expanded(child: _buildHistoryItemCard(context, rest[0], t)),
+                  SizedBox(width: g),
+                  Expanded(child: _buildHistoryItemCard(context, rest[1], t)),
+                ],
+              ),
+            ),
+            SizedBox(height: g),
+            Expanded(child: _buildHistoryItemCard(context, rest[2], t)),
+          ],
+        );
+      case 4:
+        return Column(
+          children: [
+            Expanded(
+              child: Row(
+                children: [
+                  Expanded(child: _buildHistoryItemCard(context, rest[0], t)),
+                  SizedBox(width: g),
+                  Expanded(child: _buildHistoryItemCard(context, rest[1], t)),
+                ],
+              ),
+            ),
+            SizedBox(height: g),
+            Expanded(
+              child: Row(
+                children: [
+                  Expanded(child: _buildHistoryItemCard(context, rest[2], t)),
+                  SizedBox(width: g),
+                  Expanded(child: _buildHistoryItemCard(context, rest[3], t)),
+                ],
+              ),
+            ),
+          ],
+        );
+      case 5:
+        return Column(
+          children: [
+            Expanded(
+              child: Row(
+                children: [
+                  Expanded(child: _buildHistoryItemCard(context, rest[0], t)),
+                  SizedBox(width: g),
+                  Expanded(child: _buildHistoryItemCard(context, rest[1], t)),
+                ],
+              ),
+            ),
+            SizedBox(height: g),
+            Expanded(
+              child: Row(
+                children: [
+                  Expanded(child: _buildHistoryItemCard(context, rest[2], t)),
+                  SizedBox(width: g),
+                  Expanded(child: _buildHistoryItemCard(context, rest[3], t)),
+                ],
+              ),
+            ),
+            SizedBox(height: g),
+            Expanded(child: _buildHistoryItemCard(context, rest[4], t)),
+          ],
+        );
+      default:
+        return const SizedBox.shrink();
+    }
   }
 }
 
